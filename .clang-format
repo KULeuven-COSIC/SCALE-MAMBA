@@ -1,0 +1,28 @@
+Language: Cpp
+BraceWrapping:
+  AfterClass:      true
+  AfterControlStatement: true
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     true
+  AfterUnion:      false
+  BeforeCatch:     true
+  BeforeElse:      true
+  IndentBraces:    true
+BreakBeforeBraces: Custom
+ColumnLimit: 0
+UseTab: Never
+IndentWidth: 2
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: true
+SpaceAfterCStyleCast: true
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: false
+SpaceBeforeParens: ControlStatements
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
