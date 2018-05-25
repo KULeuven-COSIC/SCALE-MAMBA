@@ -1,0 +1,37 @@
+sfloat.vlen = 8   # Length of mantissa in bits
+sfloat.plen = 5   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+a = [sfloat(i) for i in [-.03,2]]
+a[0], a[1] = cond_swap(a[0], a[1])
+test(a[0])
+test(a[1])
+
+a = [sfloat(i) for i in [3,0]]
+a[0], a[1] = cond_swap(a[0], a[1])
+test(a[0])
+test(a[1])
+
+import random
+random.seed(0)
+a = [sfloat(random.uniform(-100,100)) for i in range(8)]
+odd_even_merge_sort(a)
+test(a[0])
+test(a[1])
+test(a[2])
+test(a[3])
+test(a[4])
+test(a[5])
+test(a[6])
+test(a[7])
+
+a = [sfloat(random.uniform(-100,100)) for i in range(8)]
+chunky_odd_even_merge_sort(a)
+test(a[0])
+test(a[1])
+test(a[2])
+test(a[3])
+test(a[4])
+test(a[5])
+test(a[6])
+test(a[7])

@@ -1,0 +1,142 @@
+
+
+\mainsection{Introduction}\label{sec:introduction}
+The SCALE system consists of three main sub-systems:
+An offline phase, an online phase and a compiler. 
+Unlike the earlier SPDZ system, in SCALE the online
+and offline phases are fully integrated. Thus you
+can no longer time just the online phase, or just
+the offline phase.
+The combined online/offline phase we shall refer
+to as SCALE, the compiler takes a program written
+in our special language MAMBA, and then turns it
+into bytecode which can be executed by the SCALE
+system.
+
+We provide switches (see below) to obtain 
+different behaviours between how the online and offline
+phases are integrated together, which can allow for
+some form of timing approximation.
+The main reason for this change is to ensure that the
+system is ``almost'' secure out of the box, even if
+means it is less good for obtaining super-duper numbers
+for research papers.
+
+An issue though is that the system takes a while to warm
+up the offline queues before the online phase can execute.
+This is especially true in the case of using a Full Threshold
+secret sharing scheme. Indeed in this case it is likely
+that the online phase will run so-fast that the offline
+phase is always trying to catch up. In addition, in this
+situation the offline phase needs to do a number of
+high-cost operations before it can even start. Thus
+using the system to run very small programs is going to
+be inefficient, although the execution time you get
+is indicative of the total run time you should be getting
+in a real system, it is just not going to be very
+impressive.
+
+In order to enable efficient operation in the case where the
+offline phase is expensive (e.g. for Full Threshold secret sharing)
+we provide an {\em experimental} mechanism to enable the SCALE system to run
+as a seperate process (generating offline data), and then
+a MAMBA program can be compiled in a just-in-time manner
+and can then be dispated to the SCALE system for
+execution. Our methodology for this is not perfect, but has
+been driven by a real use case of the system.
+See Section \ref{sec:restart} for more details.
+
+But note SCALE/MAMBA is {\em an experimental research system} 
+there has been no effort to ensure that the system meets rigourous production
+quality code control. 
+In addition this also means it comes with limited support.
+If you make changes to any files/components you are on your
+own.
+If you have a question about the system we will endeavour to
+answer it.
+
+\vspace{5mm}
+
+\noindent
+{\bf Warnings:}
+\begin{itemize}
+\item
+The Overdrive system \cite{KPR} for the offline phase
+for full-threshold access structures requires a distributed key 
+generation phase for the underlying homomorphic encryption scheme. 
+The SPDZ-2 system and paper does describe such a protocol, but it is only
+covertly secure. 
+We do not provide the protocol to do this, instead the
+Setup program in this instance will generate a suitable
+key and distribute it to the different players.
+In any real system this entire setup phase will need
+investigating, with perhaps using HSMs to construct and deploy
+keys if no actively secure key generation protocol is available.
+\item
+There is a security hole in how we have implemented things.
+As the
+\begin{center}
+  \verb+offline->sacrifice->online+ 
+\end{center}
+pipeline is run continously in separate threads, each with their own channels etc., we 
+may {\bf use} a data item in the online phase {\bf before} the checking
+of a data item has {\bf fully completed} (i.e. before in an associated
+sacrifice etc. has been MAC-checked, for full-threshold,
+or hash-checked, for other LSSS schemes). 
+In a real system you will want to address this by having some
+other list of stuff (between sacrifice and online), which
+ensures that all checks are complete before online is
+allowed to use any data; or by ensuring MAC/hash-checking is
+done before the sacrifice queues are passed to the online phase.
+In our current system if something bad is introduced by an adversary
+then the system {\bf will} halt.
+But, before doing so there is a {\em small} chance that some data will 
+have leaked from the computation if the adversary can schedule the 
+error at exactly the right point (depending on what is happening in
+other threads).
+\end{itemize}
+
+
+\subsection{Architecture}
+The basic internal runtime architecture is as follows:
+\begin{itemize}
+\item Each MAMBA program (\verb+.mpc+ file) will initiate a number of threads
+to perform the online stage.
+The number of ``online threads'' needed is worked out by the compiler. You
+can programmatically start and stop threads using the python-like
+language (see later).
+Using multiple threads enables you to get high throughput. Almost all
+of our experimental results are produced using multiple threads.
+\item Each online is associated with another four ``feeder'' threads.
+One produces multiplication triples, one produces square pairs
+and one produces shared bits.
+The fourth thread performs the sacrificing step, as well as
+the preprocessing data for player IO.
+The chain of events is that the multiplication thread produces
+an unchecked triple. This triple is added to a triple-list (which is
+done in batches for efficiency).
+At some point the sacrifice thread decides to take some
+data off the triple-list and perform the triple checking via
+sacrificing.
+Once a triple passes sacrificing it is passed onto another
+list, called the sacrificed-list, for consumption by the online phase.
+\item By having the production threads aligned with an online
+thread we can avoid complex machinary to match produces with
+consumers. This however may (more like will) result in the 
+over-production of offline data for small applications.
+\item In the case of Full Threshold we have another global
+thread (called the FHE factory thread) which produces level one 
+random FHE ciphertexts which have passed the ZKPoK from the high 
+gear variant of Overdrive \cite{KPR}.
+This is done in a single global thread as the ZKPoK would
+blow up memory if done for each thread that would consume 
+data from the FHE thread.
+Any thread (offline production thread) can request a new
+ciphertext/plaintext pair from the FHE factory thread.
+To ensure we always have data lieing around, we try 
+to get to the situation where we have have two 
+ZKPoK batches in memory (or being produced) at any
+one time.
+\end{itemize}
+
+

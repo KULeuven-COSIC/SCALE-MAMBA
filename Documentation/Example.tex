@@ -1,0 +1,119 @@
+\mainsection{Simple Example}
+\label{sec:example}
+In this section we describe writing and compiling a simple
+function using the python-like language MAMBA.
+We also explain how to run the test scripts to test the system
+out, plus the run time options/switches you can pass to 
+\verb+Player.x+ for different behaviours.
+
+\subsection{Compiling and running simple program}
+Look at the simple program in \verb+Programs/tutorial/tutorial.mpc+
+given below:
+
+\verbatiminput{../Programs/tutorial/tutorial.mpc}
+This takes a secret integer \verb+a+ and a clear integer \verb+b+
+and applies various operations to them. It then prints tests
+as to whether these operations give the desired results.
+Then an array of secret integers is created and assigned the
+values $i^2$. Finally a conditional expression is evaluated
+based on a clear value.
+Notice how the \verb+tutorial.mpc+ file is put into a directory
+called \verb+tutorial+, this is crucial for the running of
+the compiler.
+
+~~
+
+\noindent
+To compile this program we type
+\begin{verbatim}
+   ./compile.py Programs/tutorial
+\end{verbatim}
+in the main directory. Notice how we run the compiler on the
+{\em directory} and not the program file itself.
+The compiler then places various ``tape'' files consisting of 
+byte-code instructions into this directory, along with a
+schedule file \verb+tutorial.sch+. It is this last file which
+tells the run time how to run the program, including how
+many threads to run, and which ``tape'' files to run 
+first\footnote{Historical note, we call the byte code files ``tapes''
+as they are roughly equivalent to simple programs, and
+the initial idea for scheduling came to Nigel when looking at
+the Harwell WITCH computer at TMNOC. They in some sense
+correspond to ``largish'' basic blocks in modern programming
+languages.}.
+
+Having compiled our program we can now run it. To do so
+we simply need to execute the following commands, one on
+each of the computers in our MPC engine (assuming three players)
+\begin{verbatim}
+    ./Player.x 0 Programs/tutorial
+    ./Player.x 1 Programs/tutorial
+    ./Player.x 2 Programs/tutorial
+\end{verbatim}
+Note players are numbers from zero, and again we run the
+{\em directory} and not the program file itself.
+
+\subsection{The Test Scripts}
+You will notice a bunch of test programs in directory
+\verb+Programs+. These are for use with the test scripts
+in the directory \verb+Scripts+.
+To use these test scripts you simply execute in the 
+top level directory
+\begin{verbatim}
+   Script/test.sh test_<name of test>
+\end{verbatim}
+The test scripts place data in the clear memory dump
+at the end of a program, and test this cleared memory against
+a simulated run.
+the test-all facility of
+\begin{verbatim}
+   Script/test.sh 
+\end{verbatim}
+If a test passes then the program will fail, with a
+(possibly cryptic) explanation of why.
+
+We also provide a script which tests the {\bf entire}
+system over various access structures. This can
+take a {\bf very long time to run}, but if you want to
+run exhaustive tests then in the main directory
+execute
+\begin{verbatim}
+   ./run_tests.sh
+\end{verbatim}
+
+\subsection{Run Time Switches for Player.x}
+There are a number of switches which can be passed to the
+program \verb+Player.x+; these are
+\begin{itemize}
+\item {\bf -pnb $x$}: Sets the base portnumber to $x$. This by
+default is equal to 5000. With this setting we use all
+portnumbers in the range $x$ to $x+n-1$,
+where $n$ is the number of players. 
+\item {\bf -pns $x_1,\ldots,x_n$}: This overides the \verb+pnb+
+option, and sets the listening portnumber for player
+$i$ to $x_i$.
+The same arguments must be supplied to each player, otherwise
+the players do not know where to connect to, and if this
+option is used there needs to be precisely $n$ given
+distinct portnumbers.
+\item {\bf -mem xxxx}: Where xxxx is either \verb+old+
+or \verb+empty+. The default is \verb+empty+.
+See later for what we mean by memory.
+\item {\bf -max m,s,b}: Stop running the offline phase for each online
+thread when we have generated $m$ multiplication triples, $s$ square
+pairs and $b$ shared bits.
+\item {\bf -min m,s,b}: Do not run the online phase in each thread 
+until the associated offline threads have generated $m$ multiplication 
+triples, $s$ square pairs and $b$ shared bits.
+However, these minimums need to be less than the maximum sacrificed
+list sizes defined in \verb+config.h+. Otherwise the maximums
+defined in that file will result in the program freezing.
+\end{itemize}
+For example by using high values of the variables set to {\bf -min} you
+get the offline data queues full before you trigger the execution
+of the online program. For a small online program this will produce
+times close to that of running the offline phase on its own.
+Or alternatively you can stop these queues using {\bf -max}. By
+combining the two together you can get something close to (but not
+exactly the same as) running the offline phase followed by the online
+phase.

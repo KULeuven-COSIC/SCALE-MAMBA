@@ -1,0 +1,96 @@
+test(cint(-2))
+
+@function_block
+def f():
+    test(cint(-1))
+
+test(cint(-3))
+f()
+test(cint(-4))
+
+@function_block
+def f():
+    test(cint(1))
+
+@function_block
+def g():
+    test(cint(2))
+    f()
+
+g()
+
+@function_block
+def f(i):
+    test(i, 3)
+
+f(3)
+
+@function_block
+def f():
+    @for_range(5)
+    def g(i):
+        test(i, 4)
+
+f()
+
+@for_range(6)
+def f(i):
+    @function_block
+    def g(i):
+        test(i, 5)
+    g(i)
+
+@function_block
+def e(l,m):
+    test(l * 100 + m, 406)
+
+e(-1,-1)
+
+@function_block
+def g(j):
+    a = [cint(100) for i in range(100)]
+    @for_range(7)
+    def h(k):
+        sum(a)
+        e(j,k)
+
+g(-1)
+
+@for_range(5)
+def f(i):
+    g(i)
+
+
+@function_block
+def f():
+    return cint(8)
+
+test(f(), 8)
+
+@function_block
+def f():
+    return (sint(9), cint(10)), sint(11)
+
+res = f()
+test(res[0][0], 9)
+test(res[0][1], 10)
+test(res[1], 11)
+
+
+@function_block
+def f(i=1):
+    return i
+
+test(f(), 1)
+test(f(2), 2)
+
+
+class A:
+    def __init__(self, x):
+        self.x = MemValue(regint(x))
+    @method_block
+    def f(self):
+        return self.x
+
+test(A(12).f(), 12)
+test(A(13).f(), 13)

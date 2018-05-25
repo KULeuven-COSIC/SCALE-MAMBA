@@ -1,0 +1,119 @@
+
+\mainsection{Changes}
+This section documents changes made since the ``last'' release of
+the software. 
+
+\vspace{5mm}
+
+\noindent
+This is currently version 1.0 of the SCALE and MAMBA software.
+There are two main components to the system, a run time system called
+SCALE,
+\begin{center}
+  Secure Computation Algorithms from LEuven
+\end{center}
+and a Python-like programming language called MAMBA
+\begin{center}
+  Multiparty AlgorithMs Basic Argot
+\end{center}
+Note, that MAMBA is a type of snake (like a Python), a snake
+has scales, and an argot is a ``secret language''.
+
+\vspace{5mm}
+
+\noindent
+The software is a major modification of the earlier SPDZ software. 
+You {\em should not} assume it works the same so please read
+the documentation fully before proceeding.
+
+
+\subsection{Changes From SPDZ}
+Apart from the way the system is configured and run there are
+a number of functionality changes which we outline below.
+
+\subsubsection{Things no longer supported}
+\begin{enumerate}
+\item We do not support any $GF(2^n)$ arithmetic in the run time 
+environment. The compiler will no longer compile your programs.
+\item There are much fewer switches in the main program, as we want
+to produce a system which is easier to support and more useful in
+building applications.
+\item Socket connections, file, and other forms of IO to the main MPC
+engine is now unified into a single location. This allows {\em you} to
+extend the functionality without altering the compiler or
+run-time in any way (bar changing which IO class you load
+at compile time). See Section \ref{sec:IO} for details.
+\end{enumerate}
+
+\subsubsection{Additions}
+\begin{enumerate}
+\item The offline and online phases are now fully integrated.
+This means that run-times will be slower than you would have got
+with SPDZ, but the run-times obtained are closer to what you would
+expect in a ``real'' system.
+{\bf Both} the online and offline phases are {\bf actively} secure
+with abort.
+\item Due to this change it can be slow to start a new instance
+and run a new program. So we provide a new (experimental) operation which 
+``restarts'' the run-time. This is described in Section \ref{sec:restart}.
+This operation is likely to be revamped and improved in the next
+release as we get more feedback on its usage.
+\item We support various Q2 access structures now, which can be
+defined in various ways: Shamir threshold, via Replicated sharing,
+or via a general Monotone Span Programme (MSP).
+For replicated sharing you can define the structure
+via either the minimally qualified sets, or the maximally unqualified
+sets.
+For general Q2-MSPs you can input a non-multiplicative MSP and the
+system will find an equivalent multiplicative one for you using the
+method of \cite{CDM00}.
+\item Offline generation for Q2 is done via Maurer's method \cite{Maurer}, but
+for Replicated you can choose between Maurer and the reduced communication
+method of Keller, Rotaru, Smart and Wood \cite{KRSW}.
+For general Q2-MSPs, and Shamir sharing, the online phase is the method described in Smart and Wood \cite{SW18},
+with ({\em currently}) the offline phase utilizing Maurer's multiplication method \cite{Maurer}.
+\item All player connections are now via SSL, this is not strictly
+needed for full threshold but is needed for the other access structures
+we now support.
+\item We now have implemented more higher level mathematical functions for
+the \verb+sfix+ datatype, and corrected a number of bugs. 
+A similar upgrade is expected in the next release for the \verb+sfloat+ type.
+\end{enumerate}
+
+\subsubsection{Changes}
+\begin{enumerate}
+\item The {\bf major} change is that the offline and online phases are now integrated.
+This means that to run quick test runs, using full threshold is going to take
+ages to set up the offline data. Thus for test runs of programs in the online
+phase it is best to test using one of the many forms of Q2 access structures.
+For example by using Shamir with three players and threshold one. Then once your
+online program is tested you can move to a production system with two players
+and full threshold if desired.
+\item You now compile a program by executing
+\begin{verbatim}
+      ./compile.py Programs/tutorial
+\end{verbatim}
+where \verb+Programs/tutorial+ is a {\em directory} which contains
+a file called \verb+tutorial.mpc+. Then the compiler puts all of the
+compiled tapes etc {\em into this directory}.
+This produces a much cleaner directory output etc.
+By typing \verb+make pclean+ you can clean up all pre-compiled directorys
+into their initial state.
+\item The compiler picks up the prime being used for secret sharing
+after running the second part of \verb+Setup.x+. So you need to recompile
+the \verb+.mpc+ files if  you change the prime used in secret sharing, and you
+should not compile any SCALE \verb+.mpc+ programs before running \verb+Setup.x+.
+\item Internally (i.e. in the C++ code), a lot has been re-organized. The major simplification
+is removal of the \verb+octetstream+ class, and it's replacement by a combination
+of \verb+stringstream+ and \verb+string+ instead. This makes readibility
+much easier.
+\item All opcodes in the range \verb+0xB*+ have been changed, so any byte codes
+you have generated from outside the python system will need to be changed.
+\item We have tried to reduce dependencies between classes in the 
+C++ code a lot more. Thus making the code easier to manage.
+\item Security-wise we use the latest FHE security estimates for the
+FHE-based part, and this can be easily updated. See Chapter \ref{sec:fhe} on FHE
+security later.
+\end{enumerate}
+
+

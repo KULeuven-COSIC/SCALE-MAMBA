@@ -1,0 +1,26 @@
+program.options.dead_code_elimination = False
+
+@function_block
+def f():
+    @for_range(10)
+    def f(i):
+        sint.get_random_triple()
+    sint.get_random_bit()
+    @for_range_multithread(10, 10, 100)
+    def h(i):
+        sint.get_random_triple()
+
+@function_block
+def g():
+    if_then(regint(0))
+    sint.get_random_bit()
+    else_then()
+    @for_range(10)
+    def h(i):
+        f()
+        sint.get_random_triple()
+    sint.get_random_bit()
+    end_if()
+
+g()
+g()

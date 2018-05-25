@@ -1,0 +1,234 @@
+%%
+%% This is file `tocbibind.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% tocbibind.dtx  (with options: `usc')
+%% 
+%%  Copyright 1998, 1999 Peter R. Wilson
+%% 
+%%  This program is provided under the terms of the
+%%  LaTeX Project Public License distributed from CTAN
+%%  archives in directory macros/latex/base/lppl.txt.
+%% 
+%% Author: Peter Wilson (CUA and NIST)
+%%         now at: peter.r.wilson@boeing.com
+%% 
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tocbibind}[1999/09/12 v1.3a extra ToC listings]
+\RequirePackage{stdclsdv}
+\providecommand{\PRWPackageNote}[2]{%
+  \GenericWarning{%
+    (#1)\@spaces\@spaces\@spaces\@spaces
+  }{%
+    Package #1 Note: #2%
+   }%
+}
+\providecommand{\PRWPackageNoteNoLine}[2]{%
+  \PRWPackageNote{#1}{#2\@gobble}%
+}
+\ifSCDnodivs
+  \PackageWarning{tocbibind}%
+    {I don't recognize any sectional divisions.
+     I hope you have used the `other' option}
+  \renewcommand{\SCDquit}{\endinput}
+\fi
+%%\SCDquit
+\ifSCDknownclass\else
+  \PackageWarning{tocbibind}%
+    {| don't recognize the class but I'll do my best}
+%%  \ifSCDnodivs
+%%    \PackageWarning{tocbibind}%
+%%      {I don't recognize any sectional divisions so I'll do nothing}
+%%    \renewcommand{\SCDquit}{\endinput}
+%%  \fi
+\fi
+%%\SCDquit
+\newif\if@inltxdoc
+\@ifclassloaded{ltxdoc}{\@inltxdoctrue}{\@inltxdocfalse}
+\newif\if@bibchapter\@bibchapterfalse
+\ifSCDchapter
+  \@bibchaptertrue
+\fi
+\newif\if@dotocbib\@dotocbibtrue
+\newif\if@dotocind\@dotocindtrue
+\newif\if@dotoctoc\@dotoctoctrue
+\newif\if@dotoclot\@dotoclottrue
+\newif\if@dotoclof\@dotocloftrue
+\newif\if@donumbib\@donumbibfalse
+\newif\if@donumindex\@donumindexfalse
+\DeclareOption{section}{\@bibchapterfalse}
+\DeclareOption{notbib}{\@dotocbibfalse}
+\DeclareOption{notindex}{\@dotocindfalse}
+\DeclareOption{nottoc}{\@dotoctocfalse}
+\DeclareOption{notlot}{\@dotoclotfalse}
+\DeclareOption{notlof}{\@dotocloffalse}
+\DeclareOption{numbib}{\@donumbibtrue}
+\DeclareOption{numindex}{\@donumindextrue}
+\DeclareOption{chapter}{%
+  \ifx\chapter\undefined
+    \@bibchapterfalse
+    \PackageWarning{tocbibind}%
+                   {Chapters are undefined, using section instead}
+  \else
+    \ifx\@makeschapterhead\undefined
+      \@bibchapterfalse
+      \PackageWarning{tocbibind}%
+                     {Makeschapterhead undefined, using section instead}
+    \else
+       \@bibchaptertrue
+    \fi
+  \fi}
+\DeclareOption{other}{\renewcommand{\SCDquit}{}
+                      \@bibchapterfalse}
+\ProcessOptions\relax
+\SCDquit
+\if@bibchapter
+%%  \PackageWarning{tocbibind}{Using chapter style headings}
+  \PRWPackageNoteNoLine{tocbibind}{Using chapter style headings}
+\else
+%%  \PackageWarning{tocbibind}{Using section or other style headings}
+  \PRWPackageNoteNoLine{tocbibind}{Using section or other style headings}
+\fi
+\if@inltxdoc \@dotocindfalse \fi
+\newcommand{\@tocextra}{section}
+\newcommand{\tocotherhead}[1]{\renewcommand{\@tocextra}{#1}}
+\providecommand{\prw@mkboth}[1]{\@mkboth{%
+  \MakeUppercase{#1}}{\MakeUppercase{#1}}}
+\newcommand{\toc@section}[2]{%
+  \@nameuse{#1}*{#2\prw@mkboth{#2}}
+  \addcontentsline{toc}{#1}{#2}}
+\newcommand{\toc@headstar}[2]{%
+  \@nameuse{#1}*{{#2}}}
+\newcommand{\toc@chapter}[1]{%
+  \chapter*{#1\prw@mkboth{#1}}
+  \addcontentsline{toc}{chapter}{#1}}
+\ifx\bibname\undefined
+  \ifx\refname\undefined
+    \newcommand{\tocbibname}{References}
+  \else
+    \newcommand{\tocbibname}{\refname}
+  \fi
+\else
+  \newcommand{\tocbibname}{\bibname}
+\fi
+\providecommand{\indexname}{Index}
+\newcommand{\setindexname}[1]{\renewcommand{\indexname}{#1}}
+\providecommand{\contentsname}{Contents}
+\newcommand{\settocname}[1]{\renewcommand{\contentsname}{#1}}
+\providecommand{\listtablename}{List of Tables}
+\newcommand{\setlotname}[1]{\renewcommand{\listtablename}{#1}}
+\providecommand{\listfigurename}{List of Figures}
+\newcommand{\setlofname}[1]{\renewcommand{\listfigurename}{#1}}
+\newcommand{\settocbibname}[1]{\renewcommand{\tocbibname}{#1}}
+\if@dotocbib
+  \renewenvironment{thebibliography}[1]
+     {\if@bibchapter
+        \if@donumbib
+          \chapter{\tocbibname}
+        \else
+          \toc@chapter{\tocbibname}
+        \fi
+      \else
+        \if@donumbib
+          \@nameuse{\@tocextra}{\tocbibname}
+        \else
+          \toc@section{\@tocextra}{\tocbibname}
+        \fi
+      \fi
+      \begin{thebibitemlist}{#1}}{\end{thebibitemlist}}
+  \newenvironment{thebibitemlist}[1]{
+    \list{\@biblabel{\@arabic\c@enumiv}}%
+         {\settowidth\labelwidth{\@biblabel{#1}}%
+          \leftmargin\labelwidth
+          \advance\leftmargin\labelsep
+          \@openbib@code
+          \usecounter{enumiv}%
+          \let\p@enumiv\@empty
+          \renewcommand\theenumiv{\@arabic\c@enumiv}}%
+    \sloppy
+    \clubpenalty4000
+    \@clubpenalty \clubpenalty
+    \widowpenalty4000%
+    \sfcode`\.\@m}
+   {\def\@noitemerr
+     {\@latex@warning{Empty `thebibliography' environment}}%
+     \endlist}
+\fi
+\if@dotocind
+  \renewenvironment{theindex}
+    {\if@twocolumn
+       \@restonecolfalse
+     \else
+       \@restonecoltrue
+     \fi
+     \if@bibchapter
+        \if@donumindex
+          \refstepcounter{chapter}
+          \twocolumn[\vspace*{2\baselineskip}%
+                     \@makechapterhead{\indexname}]%
+          \addcontentsline{toc}{chapter}{\protect\numberline{\thechapter}\indexname}
+%%          \prw@mkboth{\indexname}
+          \chaptermark{\indexname}
+        \else
+          \twocolumn[\@makeschapterhead{\indexname}]%
+          \prw@mkboth{\indexname}
+          \addcontentsline{toc}{chapter}{\indexname}
+        \fi
+     \else
+        \if@donumindex
+          \twocolumn[\vspace*{-\baselineskip}%
+                     \@nameuse{\@tocextra}{\indexname}]%
+%%          \prw@mkboth{\indexname}
+          \prw@mkboth{\csname the\@tocextra\endcsname \quad\indexname}
+        \else
+          \twocolumn[\toc@headstar{\@tocextra}{\indexname}]%
+          \prw@mkboth{\indexname}
+          \addcontentsline{toc}{\@tocextra}{\indexname}
+        \fi
+     \fi
+   \thispagestyle{plain}\parindent\z@
+   \parskip\z@ \@plus .3\p@\relax
+   \let\item\@idxitem}
+   {\if@restonecol\onecolumn\else\clearpage\fi}
+\fi
+\newcommand{\toc@start}{%
+  \ifSCDchapter
+    \if@twocolumn
+      \@restonecoltrue\onecolumn
+    \else
+      \@restonecolfalse
+    \fi
+  \fi}
+\newcommand{\toc@finish}{%
+  \ifSCDchapter
+    \if@restonecol\twocolumn\fi
+  \fi}
+\newcommand{\toc@file}[2]{%
+  \toc@start
+  \if@bibchapter
+    \toc@chapter{#1}
+  \else
+    \toc@section{\@tocextra}{#1}
+  \fi
+  \@starttoc{#2}
+  \toc@finish}
+\if@dotoctoc
+  \renewcommand{\tableofcontents}{%
+    \toc@file{\contentsname}{toc}
+  }
+\fi
+\if@dotoclot
+  \renewcommand{\listoftables}{%
+    \toc@file{\listtablename}{lot}
+  }
+\fi
+\if@dotoclof
+  \renewcommand{\listoffigures}{%
+    \toc@file{\listfigurename}{lof}
+  }
+\fi
+\endinput
+%%
+%% End of file `tocbibind.sty'.

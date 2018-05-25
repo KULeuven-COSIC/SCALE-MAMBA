@@ -1,0 +1,119 @@
+a = cint(5)
+
+# From 20 to 30 step 2
+@for_range(20, 30, 2)
+def f(i):
+    test(i)
+    test(a)
+
+#range_loop(f, 10)
+#range_loop(f, 10, 20)
+#range_loop(f, 20, 30, 2)
+
+# Function f() returns whether you want to repeat (0=No,1=Yes)
+@do_while
+def f():
+    test(cint(123), 123)
+    return regint(0)
+
+p_i = 0
+store_in_mem(0, p_i)
+
+@do_while
+def f():
+    i = regint.load_mem(p_i)
+    store_in_mem(i + 1, p_i)
+    return not_(and_(lambda: regint(1), lambda: i))
+
+test(regint.load_mem(p_i), 2)
+
+@while_do(lambda x: x < 10, regint(1))
+def f(i):
+    test(i, 9)
+    return i + 1
+
+store_in_mem(0, 0)
+@while_do(lambda x: x < 0, regint(1))
+def f(i):	 
+    store_in_mem(i, 0)
+    return i + 1
+test(load_clear_mem(0), 0)
+
+store_in_mem(0, 0)
+@for_range(1, regint(0))
+def f(i):
+    store_in_mem(i, 0)
+test(load_clear_mem(0), 0)
+
+@for_range(20, 0, -3)
+def f(i):
+    test(i, 2)
+
+@for_range(20, 0, regint(-7))
+def f(i):
+    test(i, 6)
+
+sfloat.vlen = 8   # Length of mantissa in bits
+sfloat.plen = 5   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+x = MemValue(0)
+y = MemFloat(0)
+one = sfloat(1)
+test(y + one)
+
+if_then(regint(1))
+x.write(1)
+y.write(1)
+else_then()
+x.write(2)
+y.write(2)
+end_if()
+
+test(x.read(), 1)
+test(y.read(), 1)
+
+x.write(0)
+y.write(0)
+
+@for_range(5)
+def f(i):
+    x.write(x + 1)
+    y.iadd(sfloat(1))
+
+test(x.read(), 5)
+test(y.read(), 5)
+
+@for_range(10)
+def f(i):
+    @for_range(10)
+    def f(i):
+        test(a)
+
+@for_range_parallel(3, 10)
+def f(i):
+    cint(i).store_in_mem(i)
+
+for i in range(10):
+    test_mem(i, i)
+
+def summer(x,y):
+    return tuple(a + b for a,b in zip(x,y))
+
+@map_reduce_single(10, 99, lambda: cint(0), summer)
+def f(i):
+    return cint(1)
+test(f(), 99)
+
+@for_range_parallel(3, regint(10))
+def f(i):
+    cint(10 + i).store_in_mem(10 + i)
+
+for i in range(10, 20):
+    test_mem(i, i)
+
+@for_range_parallel(3, regint(1))
+def f(i):
+    cint(20 + i).store_in_mem(20 + i)
+
+test_mem(20, 20)

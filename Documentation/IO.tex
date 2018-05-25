@@ -1,0 +1,158 @@
+\mainsection{New IO Class}
+\label{sec:IO}
+
+A major change in SCALE over SPDZ is the way input and output
+is handled in the system to an outside data source/sync.
+In SPDZ various hooks were placed within the compiler/bytecode
+to enable external applications to connect. This resulted in
+code-bloat as the run-time had to support all possible
+ways someone would want to connect.
+
+In SCALE this is simplified to a simple IO procedure for
+getting data in and out of the MPC engine. It is then up
+to the application developer to write code (see below)
+which catches and supplies this data in the way that is
+wanted by their application.
+This should be done without needing to modify then bytecode,
+runtime system, or any compiler being used.
+
+\subsection{Adding your own IO Processing}
+We identify a number of different input/output scenarios
+which are captured in the C++ abstract class 
+\begin{verbatim}
+    src/Input_Output/Input_Output_Base.h
+\end{verbatim}
+To use this interface, an application programmer will have to
+write their own derived class, just like in the example
+class
+\begin{verbatim}
+    src/Input_Output/Input_Output_Simple.h
+\end{verbatim}
+given in the distribution.
+Then to compile the system they will need to place the
+name of their derived class in the file
+\begin{verbatim}
+    src/config.h
+\end{verbatim}
+in the macro variable \verb+IO_FUNCTIONALITY+.
+Finally any ``configuration'' for this derived class needs
+to be placed in the file
+\begin{verbatim}
+    src/Player.cpp
+\end{verbatim}
+in the line which initializes the IO class, which for
+our simple demo example is given by
+\begin{verbatim}
+    machine.IO.init(cin,cout,true)
+\end{verbatim}
+Internally the IO class can maintain any number of ``channels''
+for each of the various operations below.
+The runtime bytecodes can then pass the required channel to the 
+IO class; if no channel is specified in the MAMBA language
+then channel zero is selected by default (although for
+the \verb+input_shares+ and \verb+output_shares+ commands
+you {\em always} need to specify a channel.
+
+\subsection{Types of IO Processing}
+In this section we outline the six forms of input and
+output supported by the new IO system.
+
+\subsubsection{Private Output}
+To obtain an $\F_p$ element privately to one party one
+executes the bytecodes
+\begin{center}
+\verb+START_PRIVATE_OUTPUT+ and \verb+STOP_PRIVATE_OUTPUT+.
+\end{center}
+These correspond to the old SPDZ bytecodes
+\verb+STARTPRIVATEOUTPUT+ and \verb+STOPPRIVATEOUTPUT+.
+They enable a designated party to obtain output of
+one of the secretly shared variables, this is then passed
+to the sytem by a call to the function
+\verb+IO.private_output_gfp(const gfp& output,unsigned int channel)+ in the C++ IO class.
+
+\subsubsection{Private Input}
+This is the oppposite operation to the one above and it 
+is accomplised by the bytecodes 
+\begin{center}
+\verb+START_PRIVATE_INPUT+ and \verb+STOP_PRIVATE_INPUT+.
+\end{center}
+These correspond to the old SPDZ bytecodes
+\verb+STARTINPUT+ and \verb+STOPINPUT+.
+They enable a designated party to enter a value into
+the computation.
+The value that the player enters is obtained via a call to the 
+member function
+\verb+IO.private_input_gfp(unsigned int channel)+ in the C++ IO class.
+
+\subsubsection{Public Output}
+To obtain public output, i.e. the output of an opened variable,
+then the bytecode is \verb+OUTPUT_CLEAR+, corresponding to
+old SPDZ bytecode \verb+RAWOUTPUT+.
+This output needs to be caught by the C++ IO class in
+the member function \verb+IO.public_output_gfp(const gfp& output,unsigned int channel)+.
+
+\subsubsection{Public Input}
+A clear public input value is something which is input to
+{\em all} players; and must be the same input for all players.
+This hooks into the C++ IO class function 
+\verb+IO.public_input_gfp(unsigned int channel)+, and corresponds to the bytecode
+\verb+INPUT_CLEAR+.
+This is a bit like the old SPDZ bytecode \verb+PUBINPUT+
+but with slightly different semantics.
+
+\subsubsection{Share Output}
+In some situations the system might want to store some
+internal state, in particular the shares themselves.
+To enable this we provide the \verb+OUTPUT_SHARE+
+bytecode (corresponding roughly to the old 
+\verb+READFILESHARE+ bytecode). The IO class can do
+whatever it would like with this share obtained. However,
+one needs to be careful that any usage does not break the
+MPC security model.
+The member function hook to deal with this type of
+output is the function
+\verb+IO.output_share(const Share& S,unsigned int channel)+.
+
+\subsubsection{Share Input}
+Finally, shares can be input from an external source
+(note they need to be correct/suitably MAC'd). This
+is done via the bytecode \verb+INPUT_SHARE+ and the
+member function \verb+IO.input_share(unsigned int channel)+.
+
+\subsubsection{Trigger}
+There is a special function \verb+IO.trigger()+ which is
+used for the parties to signal that they are content with
+performing a \verb+RESTART+ command.
+See Section \ref{sec:restart} for further details.
+
+
+\subsection{MAMBA Hooks}
+These functions can be called from the MAMBA language via,
+for \verb+a+ of type \verb+sint+ and \verb+b+ of type \verb+cint+.
+\begin{verbatim}
+    # Private Output to player 2 on channel 0 and on channel 11
+    a.reveal_to(2)
+    a.reveal_to(2,11)
+
+    # Private Input from player 0 on channel 0 and on channel 15
+    a=sint.get_private_input_from(0)
+    a=sint.get_private_input_from(0,15)
+
+    # Public Output on channel 0 and on channel 5
+    b.public_output()
+    b.public_output(5)
+
+    # Public Input on default channel 0 and on channel 10
+    b=public_input()
+    b=public_input(10)
+
+    # Share Output on channel 1000
+    output_shares(1000,[sint(1)])
+
+    # Share Input on channel 2000
+    inp=[sint()]
+    input_shares(2000,*inp)
+\end{verbatim}
+The \verb+IO.trigger()+ is called only when a \verb+restart()+ command
+is executed from MAMBA.
+

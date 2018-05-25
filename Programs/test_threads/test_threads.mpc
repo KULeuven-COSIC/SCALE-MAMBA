@@ -1,0 +1,13 @@
+def f():
+    store_in_mem(reveal((get_arg() or 0) * sint(99)), get_arg())
+
+t = MPCThread(f, 'f')
+
+for j in range(10):
+    n = 7
+    for i in range(n):
+    	arg = 10 * j + i
+    	t.start(arg)
+	test_mem(arg * 99, arg)
+    for i in range(n):
+        t.join()

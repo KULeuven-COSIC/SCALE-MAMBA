@@ -1,0 +1,18 @@
+def f():
+    a = cint(1)
+    b = a + a
+
+thread = MPCThread(f, 'test')
+
+for i in range(100000):
+    thread.start()
+    thread.join()
+
+for i in range(10):
+    thread.start()
+for i in range(10):
+    thread.join()
+
+for i in range(100000):
+    thread.start()
+    thread.join()

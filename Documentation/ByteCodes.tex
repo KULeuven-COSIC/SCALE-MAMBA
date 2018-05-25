@@ -1,0 +1,343 @@
+
+\mainsection{Run Time Subsystem}
+\label{ch:vm}
+
+This chapter describes the implementation of the
+MPC Virtual Machine. 
+The virtual machine is driven by Bytecodes which
+are produced by the MAMBA compiler (see later).
+Of course you could compile Bytecodes from any compiler
+if you wanted to write one with the correct backend.
+
+The virtual machine structure resembles that of a
+simple multi-core processor, and is a register-based
+machine.
+Each core corresponds to a seperate online thread
+of execution; so from now on we refer to these ``cores''
+as threads.
+Each thread has a seperate set of registers, as
+well as a stack for {\em integer} values.
+To allow the saving of state, or the transfer of data
+between threads there is a global memory.
+This global memory (or at least the first $2^{20}$
+values) are saved whenever the SCALE system gracefully
+shuts down.
+The loading of this saved memory into a future run of the
+system is controlled by the command line arguments
+passed to the \verb+Player.x+ program.
+The design is deliberately kept sparse to ensure a fast, low-level 
+implementation, whilst more complex optimization decisions are intended 
+to be handled at a higher level.
+
+\subsection{Overview}
+
+The core of the virtual machine is a set of threads, which
+execute sequences of instructions encoded in a bytecode format.
+Files of bytecode instructions are referred to as \emph{tapes},
+and each thread processes a single tape at a time.
+Each of these execution threads has a pairwise point-to-point
+communication channels with the associated threads in all
+other players' runtime environments.
+These communication channels, like all communication channels
+in SCALE, are secured via TLS.
+In addition each online thread is supported by four other threads
+performing the offline phase, each again with pairwise 
+TLS secured point-to-point channels.
+
+In the case of Full Threshold secret sharing another thread
+acts as a factory of FHE ciphertexts. Actively secure
+production of such ciphertexts is expensive, requiring complex
+zero-knowledge proofs (see Section \ref{sec:fhe}). Thus
+the FHE-Factory thread locates this production into a
+single location. This saves memory, over a multiple factory
+design.
+
+In addition to bytecode files, each program to be run must
+have a \emph{schedule}. This is a file detailing the execution
+order of the tapes, and which tapes are to be run in parallel.
+There is no limit to the number of concurrent tapes specified in a schedule, 
+but in practice one will be restricted by the number of cores.
+The schedule file allows you to schedule concurrent threads
+of execution, it also defines the maximum number of threads
+a given run-time system will support. It also defines
+the specific bytecode sequences which are pre-loaded
+into the system.
+One can also programmatically control execution of new
+threads using the byte-code instructions \verb+RUN_TAPE+ and \verb+JOIN_TAPE+
+(see below for details).
+The schedule is run by the \emph{control thread}.
+This thread takes the tapes to be executed at a
+given step in the schedule, passes them to the execution
+threads, and waits for the threads to
+finish their execution before proceeding to the next stage of
+the schedule.
+
+
+Communication between threads is handled by a global
+\emph{main memory}, which all threads have access to.
+To avoid unnecessary stalls there is no locking mechanism provided to
+the memory. So if two simultaneously running threads
+execute a read and a write, or two writes, to the same
+memory location then the result is undefined since it is
+not specified as to which order the instructions
+will be performed in.
+Memory comes in both clear and secret forms.
+
+
+Each execution thread also has its own local clear and secret
+registers, to hold temporary variables.
+To avoid confusion with the main memory
+The values of registers are not assumed to be maintained
+between an execution thread running one tape and
+the next tape, so all passing of values
+between two sequential tape executions must be done
+by reading and writing to the virtual machine's main memory.
+This holds even if the two consequtive bytecode
+sequences run  on the same ``core''.
+
+\subsection{Bytecode instructions}
+
+The design of the Bytecode instructions within a tape are influenced
+by the RISC design strategy, coming in only a few basic
+types and mostly taking between one and three
+operands. The virtual machine also supports a limited form of
+SIMD instructions within a thread, whereby a single instruction is used to
+perform the same operation on a fixed size set of registers.
+These vectorized instructions are not executed in parallel
+as in traditional SIMD architectures, but exist to provide a compact way of
+executing multiple instructions within a thread, saving on memory
+and code size.
+
+A complete set of byte codes and descriptions is
+given in the html file in 
+\begin{center}
+   \verb+$(HOME)/Documentation/Compiler_Documentation/index.html+
+\end{center}
+under the class \verb+instructions+.
+Each encoded instruction begins with 32 bits reserved for the opcode.
+The right-most nine bits specify the instruction to be executed\footnote{The choice of nine is to enable extension of the system later, as eight is probably going 
+to be too small.}.
+The remaining 23 bits are used for vector instructions, specifying the
+size of the vector of registers being operated on.
+The remainder of an instruction encoding consists of 4-byte operands, which
+correspond to either indices of registers or immediate integer values.
+\begin{itemize}
+\item Note, vector instructions are not listed in the \verb+html+ document above.
+They have the same name as standard instructions, prefixed by `V',
+with the opcode created as described above.
+\end{itemize}
+The basic syntax used in the above html file is as follows:
+\begin{itemize}
+\item \verb|ci|: clear $\F_p$ register index $i$
+\item \verb|si|: secret $\F_p$ register index $i$
+\item \verb|v|: immediate value in $\F_p$
+\item \verb|n|: integer value
+\end{itemize}
+
+\subsection{Load, Store and Memory Instructions}
+Being a RISC design the main operations are load/store
+operations, moving operations, and memory operations.
+Each type of instructions comes in either clear data, 
+sharedata, or integer data formats. 
+The integer data is pure integer arithemetic, say
+for controling loops, whereas clear data is integer
+arithmetic modulo $p$.
+For the clear values all values represented as integers 
+in the range $(-\frac{p-1}{2}, \dots, \frac{p-1}{2}]$.
+The integer stack is again mainly intended for loop
+control.
+
+\subsubsection{Basic Load/Store/Move Instructions:}
+\verb+LDI+,
+\verb+LDI+,
+\verb+LDSI+,
+\verb+LDINT+,
+\verb+MOVC+,
+\verb+MOVS+,
+\verb+MOVINT+.
+
+\subsubsection{Loading to/from Memory:}
+ \verb+LDMC+,
+ \verb+LDMS+,
+ \verb+STMC+,
+ \verb+STMS+,
+ \verb+LDMCI+,
+ \verb+LDMSI+,
+ \verb+STMCI+,
+ \verb+STMSI+,
+ \verb+LDMINT+, 
+ \verb+STMINT+,
+ \verb+LDMINTI+,
+ \verb+STMINTI+.
+
+\subsubsection{Accessing the integer stack:}
+\verb+PUSHINT+, \verb+POPINT+.
+
+\subsubsection{Data Conversion}
+To convert from mod $p$ to integer values and
+back we provide the conversion routines.
+\verb+CONVINT+, \verb+CONVMODP+.
+These are needed as the internal mod $p$ representation
+of clear data is in Montgomery representation.
+
+\subsection{Preprocessing loading instructions}
+The instructions for loading data from the preprocessing phase
+are denoted \verb+TRIPLE+, \verb+SQUARE+, \verb+BIT+,
+and they take as argument three, two, and one secret registers 
+respectively.
+The associated data is loaded from the concurrently running
+offline threads and loaded into the registers given as arguments.
+
+\subsection{Open instructions}
+
+The process of opening secret values is covered by two instructions.
+The \verb+STARTOPEN+ instruction takes as input a set of $m$
+shared registers, and \verb+STOPOPEN+ an associated set of $m$
+clear registers, where $m$ can be an arbitrary integer.
+This initiates the protocol to reveal the $m$ secret shared register values,
+storing the result in the specified clear registers. The reason for
+splitting this into two instructions is so that local, independent
+operations may be placed between a \verb+STARTOPEN+ and \verb+STOPOPEN+,
+to be executed whilst waiting for the communication to finish.
+
+There is no limit on the number of operands to these instructions,
+allowing for communication to be batched into a single pair of
+instructions to save on network latency. However, note that when
+the \texttt{RunOpenCheck} function in the C++ class \texttt{Open\_Protocol}
+is used to check MACs/Hashes then this can stall when the network buffer fills 
+up, and hang indefinitely.
+On our test machines this happens when opening around 10000 elements
+at once, so care must be taken to avoid this when compiling or writing
+bytecode (the Python compiler could automatically detect and avoid
+this).
+
+\subsection{Threading tools}
+Various special instructions are provided to ease the workload when writing
+programs that use multiple tapes. 
+\begin{itemize}
+\item The \verb+LDTN+ instruction loads the current thread number into 
+a clear register.
+\item The \verb+LDARG+ instruction loads an argument that was passed 
+when the current thread was called.
+Thread arguments are optional and consist of a single integer, 
+which is specified in the schedule file that determines the execution 
+order of tapes, or via the instruction \verb+RUN_TAPE+.
+\item The \verb+STARG+ allows the current tape to change its
+existing argument.
+\item To run a specified pre-loaded tape in a given thread, with
+a given argument the \verb+RUN_TAPE+ command is executed.
+\item To wait until a specified thread has finished one executes
+the \verb+JOIN_TAPE+ function.
+\end{itemize}
+
+\subsection{Basic Arithmetic}
+This is captured by the following instructions,
+with different instructions being able to be operated
+on clear, shared and integer types.
+    \verb+ADDC+,
+    \verb+ADDS+,
+    \verb+ADDM+,
+    \verb+ADDCI+,
+    \verb+ADDSI+,
+    \verb+ADDINT+,
+    \verb+SUBC+,
+    \verb+SUBS+,
+    \verb+SUBML+,
+    \verb+SUBMR+,
+    \verb+SUBCI+,
+    \verb+SUBSI+,
+    \verb+SUBCFI+,
+    \verb+SUBSFI+,
+    \verb+SUBINT+,
+    \verb+MULC+,
+    \verb+MULM+,
+    \verb+MULCI+,
+    \verb+MULSI+,
+and
+    \verb+MULINT+.
+
+\subsection{Advanced Arithmetic}
+More elaborate algorithms can clearly be executed directly on
+clear or integer values; without the need for complex
+protocols. These include logical, shift and number
+theoretic functions.
+    \verb+ANDC+,
+    \verb+XORC+,
+    \verb+ORC+,
+    \verb+ANDCI+,
+    \verb+XORCI+,
+    \verb+ORCI+,
+    \verb+NOTC+,
+    \verb+SHLC+,
+    \verb+SHRC+,
+    \verb+SHLCI+,
+    \verb+SHRCI+,
+    \verb+DIVC+,
+    \verb+DIVCI+,
+    \verb+DIVINT+,
+    \verb+MODC+,
+    \verb+MODCI+.
+    \verb+LEGENDREC+,
+and
+    \verb+DIGESTC+.
+
+\subsection{Debuging Output}
+To enable debugging we provide simple commands to print 
+values to standard output. These bytecodes are
+\begin{verbatim}
+    PRINTINT,           PRINTMEM,          PRINTREG,           PRINTREGPLAIN,
+    PRINTCHR,           PRINTSTR,          PRINTCHRINT,        PRINTSTRINT,
+    PRINTFLOATPLAIN,    PRINTFIXPLAIN.
+\end{verbatim}
+
+\subsection{Data input and output}
+This is entirely dealt with in the later Chapter on IO.
+The associated bytecodes are
+\begin{verbatim}
+             OUTPUT_CLEAR,           INPUT_CLEAR, 
+             OUTPUT_SHARE,           INPUT_SHARE, 
+             START_PRIVATE_INPUT,    STOP_PRIVATE_INPUT, 
+             START_PRIVATE_OUTPUT,   STOP_PRIVATE_OUTPUT. 
+\end{verbatim}
+
+\subsection{Branching}
+Branching is supported by the following
+instructions
+ \verb+JMP+,
+    \verb+JMPNZ+,
+    \verb+JMPEQZ+,
+    \verb+EQZC+,
+    \verb+LTZC+,
+    \verb+LTC+,
+    \verb+GTC+,
+    \verb+EQC+,
+and
+    \verb+JMPI+.
+
+\subsection{Other Commands}
+The following byte codes are for fine tuning the machine
+\begin{itemize}
+\item \verb+REQBL+ this is output by the compiler to signal that
+the tape requires a minimal bit length. This forces the runtime
+to check the prime $p$ satisfies this constraint.
+\item \verb+CRASH+ this enables the program to create a crash,
+if the programmer is feeling particularly destuctive.
+\item \verb+RAND+ this loads a pseudo-random value into a
+clear register. This is not a true random number, as all
+parties output the same random number at this point.
+\item \verb+RESTART+ which restarts the online runtime.
+See Section \ref{sec:restart} for how this intended to be used.
+\item \verb+START_TIMER+ and \verb+STOP_TIMER+ are used to time different
+parts of the code. There are 100 times available in the system;
+each is initialized to zero at the start of the machine running.
+The operation \verb+START_TIMER+ re-initializes a specified timer,
+whereas \verb+STOP_TIMER+ prints the elapsed time since the last
+initialization (it does not actually reinitialise/stop the timer itself).
+These are accessed from MAMBA via the functions
+\verb+start_clock(n)+ and \verb+stop_clock(n)+.
+The timers use the basic \verb+clock()+ command in C, and so have the
+same limitations as that function.
+\end{itemize}
+
+
+

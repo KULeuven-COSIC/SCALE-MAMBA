@@ -1,0 +1,8 @@
+sfloat.vlen = 8   # Length of mantissa in bits
+sfloat.plen = 5   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+test(sfloat(1, size=16) * sfloat(1, size=16))
+test(sfloat(1, size=16) + sfloat(1, size=16))
+test(sfloat(0, size=16) < sfloat(1, size=16))
+test(sfloat(0.5, size=16) ** 5)

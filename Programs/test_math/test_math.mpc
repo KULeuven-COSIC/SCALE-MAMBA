@@ -1,0 +1,109 @@
+a = sfix(-7.5)
+b = sfix(-6)
+c = sfix(-4.5)
+d = sfix(-3)
+
+e = sfix(3)
+f = sfix(4.5)
+g = sfix(6)
+h = sfix(7.5)
+
+# Test sin
+test(mpc_math.sin(a))
+test(mpc_math.sin(b))
+test(mpc_math.sin(c))
+test(mpc_math.sin(d))
+
+test(mpc_math.sin(e))
+test(mpc_math.sin(f))
+test(mpc_math.sin(g))
+test(mpc_math.sin(h))
+
+## Test cos
+test(mpc_math.cos(a))
+test(mpc_math.cos(b))
+test(mpc_math.cos(c))
+test(mpc_math.cos(d))
+
+test(mpc_math.cos(e))
+test(mpc_math.cos(f))
+test(mpc_math.cos(g))
+test(mpc_math.cos(h))
+
+# # Test tan
+# test(mpc_math.tan(a), lower=-2.707, upper=-2.705)
+# test(mpc_math.tan(b), lower=0.291004, upper=0.291007)
+# # precision problem here < 1e-3 but > 1e-4
+# test(mpc_math.tan(c), lower=-4.6374, upper=-4.6370)
+# test(mpc_math.tan(d), lower=0.142545, upper=0.142549)
+#
+# test(mpc_math.tan(e), lower=-0.142549, upper=-0.142545)
+# test(mpc_math.tan(f), lower=4.6370, upper=4.6374)
+# test(mpc_math.tan(g), lower=-0.291007, upper=-0.291004)
+# test(mpc_math.tan(h), lower=2.705, upper=2.707)
+
+# Test tan
+test(mpc_math.tan(a))
+test(mpc_math.tan(b))
+# precision problem here < 1e-3 but > 1e-4
+test(mpc_math.tan(c))
+test(mpc_math.tan(d))
+
+test(mpc_math.tan(f))
+test(mpc_math.tan(e))
+test(mpc_math.tan(g))
+test(mpc_math.tan(h))
+# Test asin
+i = sfix(0.5)
+j = sfix(-0.5)
+
+test(mpc_math.asin(i))
+test(mpc_math.asin(j))
+
+# Test acos
+test(mpc_math.acos(i))
+test(mpc_math.acos(j))
+
+a = sfix(2)
+b = sfix(3)
+c = sfix(4)
+d = sfix(5)
+
+sfloat.vlen = 15   # Length of mantissa in bits
+sfloat.plen = 10   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+# Test log_2
+test(mpc_math.log2_fx(a))
+test(mpc_math.log2_fx(b))
+test(mpc_math.log2_fx(c))
+test(mpc_math.log2_fx(d))
+
+# Test exp_2
+test(mpc_math.exp2_fx(a))
+test(mpc_math.exp2_fx(b))
+test(mpc_math.exp2_fx(c))
+test(mpc_math.exp2_fx(d))
+
+# Test pow
+test(mpc_math.pow_fx(a,2),lower=3.5, upper=4.01)
+test(mpc_math.pow_fx(b,2),lower=8, upper=9)
+test(mpc_math.pow_fx(c,2),lower=15, upper=16.01)
+test(mpc_math.pow_fx(d,2),lower=24, upper=25)
+
+# Test log
+test(mpc_math.log_fx(a,3))
+test(mpc_math.log_fx(b,3))
+test(mpc_math.log_fx(c,3))
+test(mpc_math.log_fx(d,3))
+
+# Test sqrt
+# Fix the signature in Compiler.mpc_math
+# a = sfix(25)
+# b = sfix(36)
+# c = sfix(6.25)
+# d = sfix(49)
+
+# test(mpc_math.sqrt(a))
+# test(mpc_math.sqrt(b))
+# test(mpc_math.sqrt(c))
+# test(mpc_math.sqrt(d))

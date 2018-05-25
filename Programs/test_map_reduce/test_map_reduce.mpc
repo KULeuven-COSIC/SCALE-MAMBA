@@ -1,0 +1,14 @@
+def summer(x,y):
+    return tuple(a + b for a,b in zip(x,y))
+
+@map_reduce(10, 10, 999, lambda: cint(0), summer)
+def f(i):
+    return cint(1)
+test(f(), 999)
+
+
+@map_sum(5, 5, 100, 2, cint)
+def f(i):
+    return (cint(1), cint(2))
+test(f()[0], 100)
+test(f()[1], 200)

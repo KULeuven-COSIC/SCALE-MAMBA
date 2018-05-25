@@ -1,0 +1,245 @@
+x = sint()
+y = sint()
+z = [sint() for i in range(3)]
+comparison.PRandM(x, y, z, 5, 3, 7)
+test(x, 0, 2 ** 9)
+test(y, 0, 2 ** 3)
+test(z[0], 0, 2)
+test(z[1], 0, 2)
+test(z[2], 0, 2)
+test(y - z[0] - 2 * z[1] - 4 * z[2], 0)
+
+x = sint()
+y = sint()
+z = sint()
+comparison.PRandM(x, y, [z], 16, 1, 8)
+test(y - z, 0)
+test(x, 0, 2**23)
+
+x = cint()
+comparison.ld2i(x, 31)
+test(x, 2 ** 31)
+
+x = [sint(i) for i in range(100,103)]
+z = [sint() for i in range(3)]
+comparison.PreMulC_without_inverses(z, x)
+test(z[0], 100)
+test(z[1], 100 * 101)
+test(z[2], 100 * 101 * 102)
+
+x = [sint(i) for i in range(100,103)]
+z = comparison.PreMulC(x)
+test(z[0], 100)
+test(z[1], 100 * 101)
+test(z[2], 100 * 101 * 102)
+
+x = [sint(i) for i in range(100,103)]
+z = comparison.KMulC(x)
+test(z, 100 * 101 * 102)
+
+x = cint(2)
+y = [sint(i) for i in [1,1]]
+z = sint()
+pp, a_bits, d, s, t, c, bb, pre_input = comparison.BitLTC1(z, x, y, 16)
+test1(bb[0], 1)
+test(bb[1], 1)
+test1(a_bits[0], 0)
+test(a_bits[1], 1)
+test1(c[2][0], 0)
+test1(t[0][0], 0)
+test1(t[1][0], 1)
+test(t[1][1], 2)
+test1(d[0], 1)
+test(d[1], 0)
+test1(pp[0], 2)
+test(pp[1], 1)
+test1(s[0], 1)
+test(s[1], 0)
+test(z, 1)
+
+x = cint(2)
+y = [sint(i) for i in [1,0]]
+z = sint()
+pp, a_bits, d, s, t, c, bb, pre_input = comparison.BitLTC1(z, x, y, 16)
+test1(a_bits[0], 0)
+test(c[0][1], 2)
+test(c[1][1], 1)
+test(a_bits[1], 1)
+test1(c[2][0], 0)
+test1(t[0][0], 0)
+test1(t[1][0], 1)
+test1(d[0], 1)
+test(c[2][1], 2)
+test(bb[1], 0)
+test(t[0][1], 0)
+test(t[1][1], 1)
+test(d[1], 1)
+test1(pre_input[0], 2)
+test1(pre_input[1], 2)
+test(pp[0], 4)
+test(pp[1], 2)
+test1(s[0], 2)
+test(s[1], 1)
+test(z, 0)
+
+x = cint(3)
+y = [sint(i) for i in [1,1]]
+z = sint()
+comparison.BitLTC1(z, x, y, 16)
+test(z, 0)
+
+x = cint(2)
+y = [sint(i) for i in [1,1]]
+z = sint()
+comparison.BitLTL(z, x, y, 16)
+test(z, 1)
+
+x = cint(2)
+y = [sint(i) for i in [1,0]]
+z = sint()
+a_bits, s0 = comparison.BitLTL(z, x, y, 16)
+test(a_bits[0], 0)
+test(a_bits[1], 1)
+test(s0[0], 0)
+test(s0[1], 1)
+test(z, 0)
+
+x = cint(3)
+y = [sint(i) for i in [1,1]]
+z = sint()
+comparison.BitLTL(z, x, y, 16)
+test(z, 0)
+
+x = [cint(i) for i in [1,0]]
+y = [sint(i) for i in [0,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 0, 16)
+test(z, 0)
+
+x = [cint(i) for i in [1,0]]
+y = [sint(i) for i in [1,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 0, 16)
+test(z, 1)
+
+x = [cint(i) for i in [1,1]]
+y = [sint(i) for i in [0,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 0, 16)
+test(z, 1)
+
+x = [cint(i) for i in [0,0]]
+y = [sint(i) for i in [0,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 0, 16)
+test(z, 0)
+
+x = [cint(i) for i in [0,1]]
+y = [sint(i) for i in [0,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 0, 16)
+test(z, 0)
+
+x = [cint(i) for i in [1,0]]
+y = [sint(i) for i in [0,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 1, 16)
+test(z, 1)
+
+x = [cint(i) for i in [0,1]]
+y = [sint(i) for i in [0,1]]
+z = sint()
+comparison.CarryOut(z, x, y, 1, 16)
+test(z, 0)
+
+x = [cint(i) for i in [1,0]]
+y = [sint(i) for i in [1,0]]
+z = sint()
+comparison.CarryOut(z, x, y, 1, 16)
+test(z, 1)
+
+x = cint(5)
+y = [sint(i) for i in [1,0,1]]
+z = sint()
+comparison.BitLTL(z, x, y, 16)
+test(z, 0)
+
+x = cint(5)
+y = [sint(i) for i in [1,1,1]]
+z = sint()
+comparison.BitLTL(z, x, y, 16)
+test(z, 1)
+
+b = 2137
+sb = sint(b)
+a_prime = sint()
+r_dprime, r_prime, c, c_prime, u, t, c2k1 = \
+    comparison.Mod2m(a_prime, sb, 16, 2, 8, True)
+test(r_dprime, 0, 2 ** 22)
+test(r_prime, 0, 2 ** 2)
+test(c2k1, 2 ** 15)
+test(t[0], 0, 2 ** 24)
+test(t[1], 0, 2 ** 17)
+test(t[2], 0, 2 ** 25)
+test(c, 0, 2 ** 26)
+test(c_prime, 0, 2 ** 2)
+test(u, 0, 2)
+test(a_prime, 0, 2 ** 2)
+test(a_prime, b % 4)
+
+test(comparison.TruncRoundNearest(sint(7), 16, 1, 8), 4)
+test(comparison.TruncRoundNearest(sint(4), 16, 1, 8), 2)
+
+test(comparison.TruncRoundNearest(sint(0), 16, 2, 8), 0)
+test(comparison.TruncRoundNearest(sint(1), 16, 2, 8), 0)
+test(comparison.TruncRoundNearest(sint(2), 16, 2, 8), 1)
+test(comparison.TruncRoundNearest(sint(3), 16, 2, 8), 1)
+test(comparison.TruncRoundNearest(sint(4), 16, 2, 8), 1)
+test(comparison.TruncRoundNearest(sint(5), 16, 2, 8), 1)
+test(comparison.TruncRoundNearest(sint(6), 16, 2, 8), 2)
+test(comparison.TruncRoundNearest(sint(7), 16, 2, 8), 2)
+test(comparison.TruncRoundNearest(sint(8), 16, 2, 8), 2)
+test(comparison.TruncRoundNearest(sint(9), 16, 2, 8), 2)
+test(comparison.TruncRoundNearest(sint(10), 16, 2, 8), 3)
+test(comparison.TruncRoundNearest(sint(11), 16, 2, 8), 3)
+test(comparison.TruncRoundNearest(sint(12), 16, 2, 8), 3)
+test(comparison.TruncRoundNearest(sint(13), 16, 2, 8), 3)
+test(comparison.TruncRoundNearest(sint(14), 16, 2, 8), 4)
+test(comparison.TruncRoundNearest(sint(15), 16, 2, 8), 4)
+
+test(comparison.TruncRoundNearest(sint(0), 16, 3, 8), 0)
+test(comparison.TruncRoundNearest(sint(1), 16, 3, 8), 0)
+test(comparison.TruncRoundNearest(sint(2), 16, 3, 8), 0)
+test(comparison.TruncRoundNearest(sint(3), 16, 3, 8), 0)
+test(comparison.TruncRoundNearest(sint(4), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(5), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(6), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(7), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(8), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(9), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(10), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(11), 16, 3, 8), 1)
+test(comparison.TruncRoundNearest(sint(12), 16, 3, 8), 2)
+test(comparison.TruncRoundNearest(sint(13), 16, 3, 8), 2)
+test(comparison.TruncRoundNearest(sint(14), 16, 3, 8), 2)
+test(comparison.TruncRoundNearest(sint(15), 16, 3, 8), 2)
+
+x = sint(1)
+y = sint()
+comparison.Mod2(y, x, 1, 8, False)
+test(y, 1)
+
+x = sint(2**10 - 1)
+y = sint()
+comparison.Mod2(y, x, 10, 8, False)
+test(y, 1)
+
+x = sint(2**10 - 1)
+y = sint()
+comparison.Mod2(y, x, 11, 8, False)
+test(y, 1)
+
+x = sint(-2**10)
+y = sint()
+comparison.Mod2(y, x, 11, 8, False)
+test(y, 0)

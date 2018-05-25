@@ -1,0 +1,62 @@
+\mainsection{Programmatic Restarting}
+\label{sec:restart}
+This feature is totally {\em experimental} and may change in future
+releases.
+
+Because, unlike in SPDZ, the offline and online phases are totally
+integrated, it can takes a long time for the queues of pre-processed
+triples to be full. This means that quickly starting an instance to
+run a short program can be very time-consuming. For reactive systems
+in which the precise program which is going to be run is not known
+until just before execution this can be a problem.
+We therefore provide a mechanism, which we call \verb+RESTART+, to
+enable a program to {\em programatically} restart the online runtime, whilst 
+still maintaining the current offline data.
+In the bytecode this is accessed by the op-code \verb+RESTART+
+and in MAMBA it is accessed by the function \verb+restart()+.
+
+The basic model is as follows.
+You start an instance of the SCALE engine with some (possibly
+dummy) program. This program instance will define the total number
+of online threads you will ever need; this is because we do not
+want a restart operation to have to spawn new offline threads.
+You then ensure that the last operation performed by this
+program is a \verb+RESTART+/\verb+restart()+.
+At this point the runtime waits for a trigger to be obtained
+from {\em each} player on the \verb+IO_FUNCTIONALITY+ (see
+Section \ref{sec:IO}).
+This trigger can be anything, but in our default IO class it
+is simply each player needing to enter a value on the standard
+input.
+
+At this point the schedule file is reloaded from the 
+{\em same directory} as the original program instance.
+This also reloads the tapes etc.
+The reason for this triggering is that the system which is
+calling SCALE {\em may} want to replace the underlying
+schedule file and tapes; thus enabling the execution of
+a new program entirely.
+
+To see this in operation we provide the following simple
+example, in \verb+Programs/restart_1/restart.mpc+
+and \verb+Programs/restart_2/restart.mpc+.
+To see these in operation execute the following commands
+from the main directory
+\begin{verbatim}
+            \cp Programs/restart_1/restart.mpc Programs/restart/
+            ./compile.py Programs/restart
+\end{verbatim}
+Now run the resulting program as normal, i.e. using \verb+Programs/restart+
+as the program.
+When this program has finished it asks (assuming you are
+using the default IO class) for all players to enter
+a number. {\em Do not do this yet!}
+First get the next program ready to run by executing
+\begin{verbatim}
+        \cp Programs/restart_2/restart.mpc Programs/restart/
+        ./compile.py Programs/restart
+\end{verbatim}
+Now enter a number on each players console, and 
+the second program should now run.
+Since it also ends with a \verb+restart()+ command, you can
+continue in this way forever.

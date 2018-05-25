@@ -1,0 +1,393 @@
+/*
+Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
+All rights reserved
+*/
+
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+using namespace std;
+
+#include "Math/Matrix.h"
+#include "Open_Protocol.h"
+#include "Tools/Crypto.h"
+#include "config.h"
+
+Open_Protocol::Open_Protocol()
+{
+  open_cnt= 0;
+  counter= 0; // Counts the balance of sends and receives
+  macs.resize(Share::SD.nmacs);
+  SHA256_Init(&sha256);
+}
+
+void Open_Protocol::AddToMacs(const vector<Share> &shares)
+{
+  for (unsigned int i= 0; i < shares.size(); i++)
+    {
+      for (unsigned int j= 0; j < Share::SD.nmacs; j++)
+        {
+          macs[j].push_back(shares[i].mac[j]);
+        }
+    }
+}
+
+void Open_Protocol::AddToValues(const vector<gfp> &values)
+{
+  vals.insert(vals.end(), values.begin(), values.end());
+}
+
+void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
+                                      const vector<Share> &S, Player &P,
+                                      bool verbose)
+{
+
+  if (verbose)
+    {
+      cout << "Size: " << S.size() << " " << S[0].a.size() << endl;
+    }
+  if (Share::SD.type == Full)
+    {
+      AddToMacs(S);
+      stringstream ss;
+      for (unsigned int i= 0; i < S.size(); i++)
+        {
+          values[i]= S[i].a[0];
+          values[i].output(ss, false);
+        }
+      P.send_all(ss.str());
+    }
+  else
+    {
+      for (unsigned int p= 0; p < P.nplayers(); p++)
+        {
+          if (Share::SD.OpenC[P.whoami()][p] == 1 && p != P.whoami())
+            {
+              stringstream ss;
+              for (unsigned int i= 0; i < S.size(); i++)
+                {
+                  for (unsigned int k= 0; k < S[0].a.size(); k++)
+                    {
+                      if (Share::SD.RCt[P.whoami()][p][k] == 1)
+                        {
+                          if (!verbose)
+                            {
+                              S[i].a[k].output(ss, false);
+                            }
+                          else
+                            {
+                              S[i].a[k].output(ss, true);
+                              ss << " ";
+                            }
+                        }
+                    }
+                }
+              if (verbose)
+                {
+                  printf("Sending from %d to %d : %s\n", P.whoami(), p,
+                         ss.str().c_str());
+                }
+              P.send_to_player(p, ss.str());
+            }
+        }
+      counter+= S.size();
+    }
+}
+
+void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
+                                    Player &P, bool verbose)
+{
+  if (Share::SD.type == Full)
+    {
+      istringstream is;
+      string ss;
+      gfp a;
+      for (unsigned int j= 0; j < P.nplayers(); j++)
+        {
+          if (j != P.whoami())
+            {
+              P.receive_from_player(j, ss);
+              istringstream is(ss);
+              for (unsigned int i= 0; i < S.size(); i++)
+                {
+                  a.input(is, false);
+                  values[i].add(a);
+                }
+            }
+        }
+      AddToValues(values);
+      if (open_cnt > open_check_gap)
+        {
+          RunOpenCheck(P);
+        }
+    }
+  else
+    {
+      unsigned int p= P.whoami();
+      vector<stringstream> is(P.nplayers());
+      string ss;
+      for (unsigned int i= 0; i < P.nplayers(); i++)
+        {
+          if (Share::SD.OpenC[i][p] == 1 && i != p)
+            {
+              P.receive_from_player(i, ss);
+              is[i] << ss;
+              if (verbose)
+                {
+                  printf("Received from %d to %d : %s\n", i, P.whoami(), ss.c_str());
+                }
+            }
+        }
+
+      vector<gfp> vs(Share::SD.ReconS[p].size());
+      gfp t;
+      for (unsigned int i= 0; i < S.size(); i++)
+        {
+          int c= 0;
+          for (unsigned int j= 0; j < Share::SD.M.nplayers(); j++)
+            {
+              for (unsigned int k= 0; k < Share::SD.M.shares_per_player(j); k++)
+                {
+                  if (j == p)
+                    {
+                      vs[c]= S[i].a[k];
+                      c++;
+                    }
+                  else if (Share::SD.RCt[j][p][k] == 1)
+                    {
+                      if (!verbose)
+                        {
+                          vs[c].input(is[j], false);
+                        }
+                      else
+                        {
+                          vs[c].input(is[j], true);
+                        }
+                      c++;
+                    }
+                }
+            }
+          values[i]= dot_product(vs, Share::SD.ReconS[p]);
+          vector<gfp> ssv= Mul(Share::SD.ReconSS[p], vs);
+
+          // Hash into the state
+          stringstream ss;
+          for (unsigned int j= 0; j < ssv.size(); j++)
+            {
+              ssv[j].output(ss, false);
+            }
+          SHA256_Update(&sha256, ss.str().c_str(), ss.str().size());
+        }
+      counter-= S.size();
+    }
+  open_cnt+= values.size();
+  if (open_cnt > open_check_gap && counter == 0)
+    {
+      RunOpenCheck(P);
+    }
+}
+
+void Open_Protocol::RunOpenCheck(Player &P, bool verbose)
+{
+  if (Share::SD.type == Full)
+    {
+      uint8_t seed[SEED_SIZE];
+      Create_Random_Seed(seed, SEED_SIZE, P);
+      PRNG G;
+      G.SetSeed(seed);
+
+      int neqs= Share::SD.nmacs;
+      vector<vector<gfp>> tau(neqs, vector<gfp>(P.nplayers()));
+
+      vector<gfp> gami(neqs), a(neqs);
+
+      gfp r, temp;
+      for (int j= 0; j < neqs; j++)
+        {
+          a[j].assign_zero();
+          gami[j].assign_zero();
+          for (int i= 0; i < open_cnt; i++)
+            {
+              r.almost_randomize(G);
+              temp.mul(r, vals[i]);
+              a[j].add(temp);
+
+              temp.mul(r, macs[j][i]);
+              gami[j].add(temp);
+            }
+          macs[j].erase(macs[j].begin(), macs[j].begin() + open_cnt);
+          temp.mul(a[j], P.get_mac_key(j));
+          tau[j][P.whoami()].sub(gami[j], temp);
+        }
+      vals.erase(vals.begin(), vals.begin() + open_cnt);
+
+      Commit_And_Open(tau, P);
+
+      gfp t;
+      for (int j= 0; j < neqs; j++)
+        {
+          t.assign_zero();
+          for (unsigned int i= 0; i < P.nplayers(); i++)
+            {
+              t.add(tau[j][i]);
+            }
+          if (!t.is_zero())
+            {
+              throw mac_fail();
+            }
+        }
+
+      // Now check everyone is OK, in case I am honest and another honest
+      // player aborted
+      //   - Removes need for the Broadcast check in original SPDZ
+      vector<string> OK(P.nplayers());
+      OK[P.whoami()]= "Y";
+      P.Broadcast_Receive(OK);
+      for (unsigned int i= 0; i < P.nplayers(); i++)
+        {
+          if (OK[i].compare("Y") != 0)
+            {
+              throw mac_fail();
+            }
+        }
+    }
+  else
+    {
+      unsigned char hash[SHA256_DIGEST_LENGTH];
+      SHA256_Final(hash, &sha256);
+      string ss((char *) hash, SHA256_DIGEST_LENGTH);
+      if (verbose)
+        {
+          printf("Open Check: Sending  : %d : ", P.whoami());
+          for (unsigned int i= 0; i < SHA256_DIGEST_LENGTH; i++)
+            {
+              printf("%02x", (uint8_t) ss.c_str()[i]);
+            }
+          printf("\n");
+          printf("%lu %d\n", ss.size(), SHA256_DIGEST_LENGTH);
+        }
+      P.send_all(ss, verbose);
+      for (unsigned int i= 0; i < P.nplayers(); i++)
+        {
+          if (i != P.whoami())
+            {
+              string is;
+              P.receive_from_player(i, is, verbose);
+              if (verbose)
+                {
+                  printf("Open Check: Received : %d : ", i);
+                  for (unsigned int i= 0; i < SHA256_DIGEST_LENGTH; i++)
+                    {
+                      printf("%02x", (uint8_t) is.c_str()[i]);
+                    }
+                  printf("\n");
+                  printf("%lu %d\n", is.size(), SHA256_DIGEST_LENGTH);
+                }
+              if (is != ss)
+                {
+                  throw hash_fail();
+                }
+            }
+        }
+      SHA256_Init(&sha256);
+    }
+  open_cnt= 0;
+}
+
+void Open_Protocol::Open_To_One_Begin(unsigned int player_num,
+                                      const vector<Share> &S, Player &P)
+{
+  if (player_num == P.whoami())
+    {
+      throw sending_error();
+    }
+  stringstream ss;
+  for (unsigned int i= 0; i < S.size(); i++)
+    {
+      for (unsigned int k= 0; k < Share::SD.M.shares_per_player(P.whoami());
+           k++)
+        {
+          S[i].a[k].output(ss, false);
+        }
+    }
+  P.send_to_player(player_num, ss.str());
+}
+
+void Open_Protocol::Open_To_One_End(vector<gfp> &values, const vector<Share> &S,
+                                    Player &P)
+{
+  vector<istringstream> is(P.nplayers());
+  for (unsigned int i= 0; i < P.nplayers(); i++)
+    {
+      if (i != P.whoami())
+        {
+          string ss;
+          P.receive_from_player(i, ss);
+          is[i].str(ss);
+        }
+    }
+  if (Share::SD.type == Full)
+    {
+      for (unsigned int i= 0; i < S.size(); i++)
+        {
+          values[i].assign_zero();
+          gfp temp;
+          for (unsigned int p= 0; p < P.nplayers(); p++)
+            {
+              if (p == P.whoami())
+                {
+                  values[i].add(S[i].a[0]);
+                }
+              else
+                {
+                  temp.input(is[p], false);
+                  values[i].add(temp);
+                }
+            }
+        }
+    }
+  else
+    {
+      vector<gfp> shares(Share::SD.Parity[0].size());
+      for (unsigned int i= 0; i < S.size(); i++)
+        {
+          int c= 0;
+          for (unsigned int p= 0; p < P.nplayers(); p++)
+            {
+              if (p == P.whoami())
+                {
+                  for (unsigned int k= 0; k < Share::SD.M.shares_per_player(p); k++)
+                    {
+                      shares[c]= S[i].a[k];
+                      c++;
+                    }
+                }
+              else
+                {
+                  for (unsigned int k= 0; k < Share::SD.M.shares_per_player(p); k++)
+                    {
+                      shares[c].input(is[p], false);
+                      c++;
+                    }
+                }
+            }
+          // We now have the vector of shares. So check parity and reconstruct the secret
+          vector<gfp> check= Mul(Share::SD.Parity, shares);
+
+          for (unsigned int j= Share::SD.M.col_dim(); j < check.size(); j++)
+            {
+              if (!check[j].is_zero())
+                {
+                  throw receiving_error();
+                }
+            }
+          values[i].assign_zero();
+          for (unsigned int j= 0; j < Share::SD.M.col_dim(); j++)
+            {
+              values[i].add(check[j]);
+            }
+        }
+    }
+}

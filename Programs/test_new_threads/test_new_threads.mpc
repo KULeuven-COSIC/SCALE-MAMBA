@@ -1,0 +1,33 @@
+def f():
+    sint(0) * sint(0)
+    cint(get_arg()).store_in_mem(get_arg())
+    test_mem(cint(get_arg()), get_arg())
+
+def make_tapes(n=10):
+    return [program.new_tape(f) for i in range(n)]
+
+counter = 0
+def inc():
+    global counter
+    counter += 1
+    return counter
+
+def run_tapes(a):
+    b = [program.run_tape(i, inc()) for i in a]
+    for i in b:
+        program.join_tape(i)
+
+for i in range(5):
+    run_tapes(make_tapes())
+
+a = make_tapes()
+
+for i in range(10):
+    run_tapes(a)
+
+x = make_tapes(1)[0]
+
+for i in range(15):
+    run_tapes([x for i in range(4)])
+
+program.malloc(counter, 'c')

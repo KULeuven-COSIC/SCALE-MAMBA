@@ -1,0 +1,313 @@
+\mainsection{Installation and Setup}
+
+\subsection{Installation}
+You will require the following previously loaded programs and 
+libraries:
+\begin{itemize}
+\item GCC/G++: Tested with version 7.2.1
+\item MPIR library, compiled with C++ support (use flag --enable-cxx when running configure) : Tested with version 3.0.0
+\item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
+\item CPU supporting AES-NI and PCLMUL
+\item OpenSSL: Tested with version 1.1.0
+\end{itemize}
+Developers will also require
+\begin{itemize}
+\item clang-format as to apply the standard C++ format to files. Tested with clang-format version 4.0.1.
+\end{itemize}
+First copy the file
+\begin{verbatim}
+     CONFIG
+\end{verbatim}
+in the main directory to the file
+\begin{verbatim}
+     CONFIG.mine
+\end{verbatim}
+Now edit \verb+CONFIG.mine+.
+You need to place the location of this ROOT directory correctly, 
+as well as indicate where the OpenSSL library should be picked up 
+from (this is likely to be different from the
+system installed one which GCC would automatically pick up).
+
+You can also at this stage specify various compile time options
+such as various debug and optimisation options.
+We would recommend commenting out all DEBUG options from FLAGS
+and keeping \verb+OPT = -O3+.
+\begin{itemize}
+\item The \verb+DEBUG+ flag is a flag which turns on checking for 
+reading before writing on registers, thus it is mainly a flag
+for development testing of issues related to the compiler.
+\item The \verb+DETERMINISTIC+ flag turns off the use of true randomness.
+This is really for debugging to ensure we can replicate errors due.
+It should {\bf not} be used in a real system for obvious reasons.
+\end{itemize}
+If you are going to use full threshold LSSSs then \verb+MAX_MOD+
+needs to be set large enough to deal with the sizes of the FHE
+keys. Otherwise this can be set to just above the word size of your
+secret-sharing modulus.
+
+~~
+
+\noindent If wanted you can then configure various bits of the system
+by editing the file
+\begin{verbatim}
+     config.h
+\end{verbatim}
+in the sub-directory \verb+src+.
+
+~
+
+\noindent You can then type
+\begin{verbatim}
+     make
+\end{verbatim}
+
+\subsection{Creating and Installing Certificates}
+
+All channels will be TLS encrypted. For SPDZ this is not needed, but for
+other protocols we either need authenticated or secure channels. So might
+as well do everything over {\em mutually} authenticated TLS. We are going
+to set up a small PKI to do this. You thus first need to create
+keys and certificates for the main CA and the various players you
+will be using.
+
+When running \verb+openssl req ...+ to create certificates, it is
+vitally important to ensure that each player has a different Common
+Name (CN), and that the CNs contain no spaces.  The CN is used later
+to configure the main MPC system and be sure about each party's
+identity (in other words, they really are who they say they are).
+
+~~
+
+\noindent
+First go into the certificate store
+\begin{verbatim}
+       cd Cert-Store
+\end{verbatim}
+Create CA authority private key
+\begin{verbatim}
+       openssl genrsa -out RootCA.key 4096
+\end{verbatim}
+Create the CA self-signed certificate:
+\begin{verbatim}
+       openssl req -new -x509 -days 1826 -key RootCA.key -out RootCA.crt
+\end{verbatim}
+Note, setting the DN for the CA is not important, you can leave them
+at the default values.
+
+~~
+
+\noindent
+Now for {\em each} MPC player create a player certificate, e.g.
+\begin{verbatim}
+       openssl genrsa -out Player0.key 2048
+       openssl req -new -key Player0.key -out Player0.csr
+       openssl x509 -req -days 1000 -in Player0.csr -CA RootCA.crt \
+              -CAkey RootCA.key -set_serial 0101 -out Player0.crt -sha256
+\end{verbatim}
+remembering to set a different Common Name for each player.
+
+In the above we assumed a global shared file system.  Obviously on
+a real system the private keys is kept only in the
+\verb+Cert-Store+ of that particular player, and the player public
+keys are placed in the \verb+Cert-Store+ on each player's
+computer. The global shared file system here is simply for test
+purposes. Thus a directory listing of \verb+Cert-Store+
+for player one, in a four player installation, will look like
+\begin{verbatim}
+      Player1.crt
+      Player1.key
+      Player2.crt
+      Player3.crt
+      Player4.crt
+      RootCA.crt
+\end{verbatim}
+
+
+\subsection{Running Setup}
+The program \verb+Setup.x+ is used to run a one-time setup 
+for the networking and/or secret-sharing system being used.
+You must do networking before secret-sharing (unless you keep
+the number of players fixed), since the secret-sharing set up
+picks up the total number of players you configured when setting
+up networking.
+\begin{itemize}
+\item Just as above for OpenSSL key-generation, for demo purposes we assume
+a global file store with a single directory \verb+Data+.
+\end{itemize}
+Running the program \verb+Setup.x+ and specifying the secret-sharing
+method will cause the program to generate files holding MAC and/or FHE
+keys and place them in the folder \verb+Data+.  When running the
+protocol on separate machines, you must then install the appropriate
+generated MAC key file \verb+MKey-*.key+ in the \verb+Data+ folder of
+each player's computer.  If you have selected full-threshold, you also
+need to install the file \verb+FHE-Key-*.key+ in the same directory.
+You also need to make sure the public data files
+\verb+NetworkData.txt+ and \verb+SharingData.txt+ are in the directory
+\verb+Data+ on each player's computer.
+These last two files specify the configuration which you select with
+the \verb+Setup.x+ program.
+
+~~
+
+\noindent We now provide more detail on each of the two aspects of the script
+\verb+Setup.x+.
+
+\subsubsection{Data for networking}
+Input provided by the user generates the file
+\verb+Data/NetworkData.txt+ which defines the following
+\begin{itemize}
+\item The root certificate name.
+\item The number of players.
+\item For each player you then need to define
+\begin{itemize}
+  \item Which IP address is going to be used
+  \item The name of the certificate for that player
+\end{itemize}
+\item Whether a fake offline phase is going to be used.
+\item Whether a fake sacrifice phase is going to be used.
+\end{itemize}
+
+\subsubsection{Data for secret sharing:}
+You first define whether you are going to be using full threshold (as in
+traditional SPDZ), Shamir (with $t<n/2$), a Q2-Replicated scheme, or 
+a Q2-MSP.
+
+\paragraph{Full Threshold:}
+In this case the prime modulus cannot be chosen directly, but
+needs to be selected to be FHE-friendly. Hence, in this case you
+can only specify the number of bits in the modulus\footnote{In all
+other cases you select the prime modulus for the LSSS directly
+at this point.}.
+For Full Threshold you can enter the size of the modulus you want (between 16 bits
+and 1024 bits).  The system will then
+search for a modulus which is compatible with the FHE system we are
+using.
+
+At this stage the MAC keys and FHE secret keys are set up and written into the
+files 
+\begin{center}
+\verb+MKey-*.key+ and \verb+FHE-Key-*.key+ 
+\end{center}
+in the \verb+Data+ directory. 
+This is clearly an insecure way of parties picking their MAC keys. But this is only a
+research system. 
+At this stage we also generate a set of keys
+for distributed decryption of a level-one FHE scheme if needed.
+For the case of fake offline we assume these keys are on {\em each} computer,
+but using fake offline is only for test purposes in any case.
+
+\paragraph{Shamir Secret Sharing:}
+Shamir secret sharing we assume is self-explanatory.
+For the Shamir setting we use an online phase using the reduced communication
+protocols of \cite{KRSW}; 
+the offline phase ({\em currently}) only supports {\em Maurer}'s multiplication method
+\cite{Maurer}.
+This will be changed in future releases to also support the new offline method from
+\cite{SW18}.
+
+
+\paragraph{Replicated Secret Sharing:}
+For Replicated sharing you should enter a complete monotone Q2 access structure.
+There are three options to do this, 
+\begin{enumerate}
+\item As a set of maximally unqualified sets;
+\item As a set of unqualified qualified sets;
+\item As a simple threshold system.
+\end{enumerate}
+If the first (resp. second) option is selected, then any set that is neither 
+a superset nor a subset of a set provided as input will be assumed qualified (resp. unqualified).
+The last option is really for testing, as most 
+threshold systems implemented using Replicated secret-sharing will be
+less efficient than using Shamir.  
+Specifying either the first or second option and providing input
+results in the program computing all of the qualified and unqualified
+sets in the system.  
+
+For Replicated secret-sharing you
+can also decide what type of offline phase you want: one based on
+{\em Maurer}'s multiplication method \cite{Maurer}, 
+or one based on our {\em Reduced} communication protocols \cite{KRSW}.
+
+~~
+
+\noindent
+Suppose we want to input the four-party Q2 access structure given by
+\[\Gamma^- = \{\{P_1, P_2\}, \{P_1, P_3\}, \{P_1, P_4\}, \{P_2, P_3, P_4\}\}\]
+and
+\[\Delta^+ = \{\{P_1\}, \{P_2, P_3\}, \{P_2, P_4\}, \{P_3, P_4\}\}.\]
+We can express this example in the following two ways:
+\begin{verbatim}
+4 parties, maximally unqualified
+        1 0 0 0
+        0 1 1 0
+        0 1 0 1
+        0 0 1 1
+\end{verbatim}
+or as
+\begin{verbatim}
+4 parties, minimally qualified
+        1 1 0 0
+        1 0 1 0
+        1 0 0 1
+        0 1 1 1
+\end{verbatim}
+
+\noindent
+As a second example with six parties with a more complex
+access structure for our Reduced Communication protocol consider:
+\[\Gamma^- = \{\{P_1, P_6\}, \{P_2, P_5\}, \{P_3, P_4\}, \{P_1, P_2, P_3\}, \{P_1,
+  P_4, P_5\}, \{P_2, P_4, P_6\}, \{P_3, P_5, P_6\}\}\]
+and
+\[\Delta^+ = \{\{P_1, P_2, P_4\}, \{P_1, P_3, P_5\}, \{P_2, P_3, P_6\}, \{P_4, P_5, P_6\}\}.\]
+Each party is in a different pair of sets.  We can represent it via:
+\begin{verbatim}
+6 parties, maximally unqualified sets
+        1 1 0 1 0 0
+        1 0 1 0 1 0
+        0 1 1 0 0 1
+        0 0 0 1 1 1
+\end{verbatim}
+
+\paragraph{Q2-MSP Programs:}
+A final way of entering a Q2 access structure is via a MSP, or equivalently,
+via the matrix which defines an underlying Q2 LSSS.
+For $n$ parties we define the number of shares each party has to be 
+$n_i$, and the dimension of the MSP to be $k$. The MSP is then given
+by a $(\sum n_i) \times k$ matrix $G$.
+The first $n_1$ rows of $G$ are associated with player one, the
+next $n_2$ rows with player two and so on.
+An secret sharing of a value $s$ is given by the vector of values
+\[ \vs = G \cdot \vk \]
+where $\vk = (k_i) \in \F_p^k$ and $\sum k_i =s$.
+A subset of parties $A$ is qualified if the span of the rows they control
+contain the vector $(1,\ldots,1) \in \F_p^k$.
+
+This secret sharing scheme can be associated with a monotone
+access structure, and we call this scheme Q2 if the associated
+access structure is Q2.
+However, it is not the case (unlike for Shamir and Replicated sharing)
+that the Q2 MSP is itself multiplicative (which is crucial for
+our MPC protocols).
+Thus if you enter a Q2 MSP which is {\bf not} multiplicative, we
+will automatically extend this for you into an equivalent multiplicative MSP
+using the method of \cite{CDM00}.
+
+As in the Shamir setting we use an online phase using the reduced communication
+protocols of \cite{KRSW}; 
+the offline phase ({\em currently}) only supports {\em Maurer}'s multiplication method
+\cite{Maurer}.
+This will be changed in future releases to also support the new offline method from
+\cite{SW18}.
+
+In the file \verb+Auto-Test-Data/README.txt+ we provide some examples
+of MSPs. If we take the MSP for Shamir (say) over three parties with threshold
+one we obtain the matrix
+\[ 
+   G = \left( \begin{array}{cc}
+      1 & 2 \\ 1 & 3 \\ 1 & 4 
+       \end{array} \right).
+\]
+This is slightly different from the usual Shamir generating matrix
+as we assume the target vector is $(1,1)$ and not $(1,0)$ as is often
+the case in Shamir sharing.
+

@@ -1,0 +1,4 @@
+def f():
+    pass
+
+program.join_tape(program.run_tape(program.new_tape(f), 0))

@@ -1,0 +1,51 @@
+for k in range(10):
+    for t in cint, sint:
+        a = Array(10, t)
+
+        print len(a)
+
+        for i,j in enumerate(a):
+            a[i] = j + i
+
+a = Array(1, cint)
+a[0] = 1234
+b = Array(None, cint, a.address)
+test(b[0], 1234)
+
+M = Matrix(2, 3, cint)
+@for_range(2)
+def f(i):
+    @for_range(3)
+    def f(j):
+        M[i][j] = 10 * i + j
+
+test(M[0][0], 0)
+test(M[0][1], 1)
+test(M[0][2], 2)
+test(M[1][0], 10)
+test(M[1][1], 11)
+#test(M[1][2], 12)
+
+a = Array(100, cint)
+a.assign(range(100))
+test(a[-1], 99)
+test(a[:][99], 99)
+test(a[50:][0], 50)
+test(a[:50][49], 49)
+test(a[::3][33], 99)
+test(a[50::3][16], 98)
+test(a[:50:3][16], 48)
+
+b = Array(100, cint)
+b[:] = a
+test(b[99], 99)
+b.assign_all(0)
+b[50:] = a[:50]
+test(b[99], 49)
+b.assign_all(0)
+b[:50] = a[:50]
+test(b[49], 49)
+b.assign_all(0)
+b[::3] = a[:34]
+test(b[99], 33)
+test(b[1], 0)

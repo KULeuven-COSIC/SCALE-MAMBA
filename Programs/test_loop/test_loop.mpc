@@ -1,0 +1,47 @@
+c1_addr = 1000
+c2_addr = 1001
+
+
+def basic(cond):
+    cint(cond).print_reg()
+    t1 = sint(1) * cond
+    print_reg(reveal(t1))
+    
+    t = t1*t1
+    a = reveal(t)
+    store_in_mem(a, cond-1)
+    cond -= 1
+    return cond
+ 
+def outer(c1):
+    def inner(c2):
+        s1 = sint(1) * c1
+        s2 = sint(1) * c2
+        t = s1 * s2
+        store_in_mem(reveal(t), 5*c1 + c2)
+        c2 -=1
+        return c2
+
+    c2 = regint(5)
+    do_loop(c2, inner)
+    c1 -= 1
+    return c1
+
+
+# basic loop
+t = regint(5)
+do_loop(t, basic)
+for i in range(5):
+    test_mem((i+1)**2, i)
+
+# nested loop
+c1 = regint(5)
+do_loop(c1, outer)
+
+
+for i in range(1, 6):
+    for j in range(1, 6):
+        test_mem(i*j, 5*i + j)
+
+
+#:mode=python:

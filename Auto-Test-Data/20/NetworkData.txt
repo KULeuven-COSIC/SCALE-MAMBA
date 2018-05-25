@@ -1,0 +1,6 @@
+RootCA.crt
+2
+0 127.0.0.1 Player1.crt P1
+1 127.0.0.1 Player2.crt P2
+0
+0

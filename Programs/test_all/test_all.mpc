@@ -1,0 +1,664 @@
+from Compiler import config
+
+def f():
+    a = 5424
+    b = 3543
+
+    ca = cint(a)
+    cb = cint(b)
+    sa = sint(a)
+    sb = sint(b)
+
+    test(cint(0))
+    test(cint(1))
+    test(ca)
+    test(sb)
+
+    test(cint(ca))
+    test(sint(sa))
+    test(sint(ca))
+
+    test(ca + cb)
+    test(sa + cb)
+    test(ca + sb)
+    test(sa + sb)
+
+    test(ca + b)
+    test(a + cb)
+    test(sa + b)
+    test(a + sb)
+
+    test(ca - cb)
+    test(sa - cb)
+    test(ca - sb)
+    test(sa - sb)
+
+    test(ca - b)
+    test(a - cb)
+    test(sa - b)
+    test(a - sb)
+
+    test(ca * cb)
+    test(sa * cb)
+    test(ca * sb)
+    test(sa * sb)
+
+    test(ca * b)
+    test(a * cb)
+    test(sa * b)
+    test(a * sb)
+
+    divisible = a - a % b
+    test(cint(divisible) / cb)
+    test(cint(divisible) / b)
+    test(cint(divisible) / sb)
+    test(divisible / cb)
+    test(divisible / sb)
+    test(sint(divisible) / cb)
+    test(sint(divisible) / b)
+    test(sint(divisible) / sb)
+
+    test(ca / 1)
+
+    test(ca % cb)
+    test(ca % b)
+    test(a % cb)
+
+    test(ca < cb)
+    test(cb < ca)
+    test(ca == ca)
+    test(cb == cb)
+    test(cb == ca)
+    test(ca <= ca)
+    test(ca <= ca - 1)
+    test(ca > cb)
+    test(cb > ca)
+    test(ca >= cb)
+    test(cb >= ca)
+    test(ca >= ca)
+    test(ca >= ca + 1)
+    test(-ca < 0)
+    test(0 > cb)
+    test(ca != 0)
+
+    int_max = cint(2**(program.bit_length-1) - 1)
+    int_min = cint(-2**(program.bit_length-1))
+    test(1 - int_max < 0)
+    test(int_max - 1 <= int_max)
+    test(int_max - 1 >= int_max)
+    test(int_max - 1 < int_max)
+    test(int_max - 1 > int_max)
+    test(int_min < int_min + 1)
+    test(int_min <= int_min + 1)
+    test(int_min <= int_min)
+    test(int_max >= 0)
+    test(int_min <= 0)
+    test(int_min < int_max)
+    test(int_min > int_max)
+    test(int_max == 0)
+    test(int_min == 0)
+    test(int_min == int_max)
+    test(int_min == int_min)
+    test(int_max == int_max)
+
+    test(sint.get_random_bit(), 0, 2)
+
+    test(sint.get_random_int(1), 0, 2)
+    test(sint.get_random_int(16), 0, 2 ** 16)
+    test(sint.get_random_int(30), 0, 2 ** 30)
+
+    t1, t2, t3 = sint.get_random_triple()
+    test(reveal(t1) * reveal(t2) - reveal(t3), 0)
+    s1, s2 = sint.get_random_square()
+    test(reveal(s1) * reveal(s1) - reveal(s2), 0)
+
+    program.bit_length = 16
+    program.security = 8
+
+    test(sa % 2)
+    test(sb % 2)
+    test(sa % 4)
+    test(sb % 4)
+    test(sa % 8)
+    test(sb % 8)
+
+    test(sa.mod2m(1))
+    test(sa.mod2m(2))
+    test(sa.mod2m(3))
+
+    test(sb.mod2m(sint(1)))
+    test(sb.mod2m(sint(2)))
+    test(sb.mod2m(sint(3)))
+
+    test(sa < sb)
+    test(sa < sa)
+    test(sa < sa + 1)
+    test(-sa < sa)
+    test(-sb < sb)
+    test(sa < -sb)
+    test(-sa < -sb)
+
+    test(ca < cb)
+    test(sa < cb)
+    test(ca < sb)
+    test(sa < sb)
+
+    test(ca < b)
+    test(a < cb)
+    test(sa < b)
+    test(a < sb)
+
+    test(ca > cb)
+    test(sa > cb)
+    test(ca > sb)
+    test(sa > sb)
+
+    test(ca > b)
+    test(a > cb)
+    test(sa > b)
+    test(a > sb)
+
+    test(ca <= cb)
+    test(sa <= cb)
+    test(ca <= sb)
+    test(sa <= sb)
+
+    test(ca <= b)
+    test(a <= cb)
+    test(sa <= b)
+    test(a <= sb)
+
+    test(ca >= cb)
+    test(sa >= cb)
+    test(ca >= sb)
+    test(sa >= sb)
+
+    test(ca >= b)
+    test(a >= cb)
+    test(sa >= b)
+    test(a >= sb)
+
+    test(ca == cb)
+    test(sa == cb)
+    test(ca == sb)
+    test(sa == sb)
+
+    test(ca == b)
+    test(a == cb)
+    test(sa == b)
+    test(a == sb)
+
+    test(ca != cb)
+    test(sa != cb)
+    test(ca != sb)
+    test(sa != sb)
+
+    test(ca != b)
+    test(a != cb)
+    test(sa != b)
+    test(a != sb)
+
+    test(ca != ca)
+    test(sa != ca)
+    test(ca != sa)
+    test(sa != sa)
+
+    test(ca != a)
+    test(a != ca)
+    test(sa != a)
+    test(a != sa)
+
+    test(ca & cb)
+    test(ca & b)
+    test(a & cb)
+
+    test(ca ^ cb)
+    test(ca ^ b)
+    test(a ^ cb)
+
+    test(ca | cb)
+    test(ca | b)
+    test(a | cb)
+
+    i = 3
+    ci = cint(i)
+    si = sint(i)
+
+    test(ca << ci)
+    test(sa << ci)
+    test(ca << si)
+    test(sa << si)
+
+    test(ca << i)
+    test(a << ci)
+    test(sa << i)
+    test(a << si)
+
+    test(ca >> ci)
+    #test(sa >> ci)
+    test(ca >> si)
+    test(sa >> si)
+
+    test(ca >> i)
+    test(a >> ci)
+    test(sa >> i)
+    test(a >> si)
+
+    test(cint(0) << i)
+    test(cint(0) << ci)
+    test(cint(0) << si)
+    test(cint(0) >> i)
+    test(cint(0) >> ci)
+    test(cint(0) >> si)
+
+    test(ca >> 0)
+    test(ca << 0)
+    test(ca >> cint(0))
+    test(ca << cint(0))
+    test(ca >> sint(0))
+    test(ca << sint(0))
+
+    test(sa >> 0)
+    test(sa << 0)
+    #test(sa >> cint(0))
+    test(sa << cint(0))
+    test(sa >> sint(0))
+    test(sa << sint(0))
+
+    test(2 ** ci)
+    test(2 ** si)
+
+    test(ci ** 0)
+    test(si ** 0)
+    test(ci ** 1)
+    test(si ** 1)
+    test(ci ** 2)
+    test(si ** 2)
+    test(ci ** 3)
+    test(si ** 3)
+    test(ci ** 4)
+    test(si ** 4)
+    test(ci ** 5)
+    test(si ** 5)
+
+    test(-ca)
+    test(-sa)
+
+    test(~ca, ~a + 2 ** program.bit_length)
+
+    test(sint.load_mem(0), a)
+    test(cint.load_mem(0), b)
+    test(regint.load_mem(0), a)
+    store_in_mem(sa, 0)
+    store_in_mem(cb, 0)
+    store_in_mem(regint(a), 0)
+
+    test(get_thread_number(), 1)
+    test(get_arg(), 9876)
+
+    test(sint(0) == sint(0))
+    test(sint(1) == sint(0))
+    test(sint(-1) == sint(-1))
+    test(sint(-1) == sint(0))
+    test(sint(0) != sint(0))
+    test(sint(1) != sint(0))
+    test(sint(2**(program.bit_length-1)) == sint(0))
+    test(sint(2**(program.bit_length-1)-1) == sint(-1))
+
+    test(cint(2**31))
+    test(cint(2**31+1))
+    test(cint(-2**31))
+    test(cint(-2**31-1))
+
+    test(sint(2**31))
+    test(sint(2**31+1))
+    test(sint(-2**31+1))
+    test(sint(-2**31-1))
+
+    c0 = regint(2)
+    ca.store_in_mem(c0)
+    sa.store_in_mem(c0)
+    regint(a).store_in_mem(c0)
+    test(cint.load_mem(c0), a)
+    test(sint.load_mem(c0), a)
+    test(regint.load_mem(c0), a)
+
+    x = sa.bit_decompose()
+    test(x[0])
+    test(x[1])
+    test(x[2])
+    test(x[3])
+    test(x[4])
+    test(x[5])
+    test(x[6])
+    test(x[7])
+    test(x[8])
+    test(x[9])
+    test(x[10])
+    test(x[11])
+    test(x[12])
+    test(x[13])
+    test(x[14])
+    test(x[15])
+
+    ca = regint(a)
+    cb = regint(b)
+
+    test(regint(0))
+    test(regint(1))
+    test(ca)
+    #test(regint(ca))
+
+    test(ca + cb)
+    test(ca + b)
+    test(a + cb)
+
+    test(ca - cb)
+    test(ca - b)
+    test(a - cb)
+
+    test(ca * cb)
+    test(ca * b)
+    test(a * cb)
+
+    test(ca / cb)
+    test(ca / b)
+    test(a / cb)
+
+    test(ca % cb)
+    test(ca % b)
+    test(a % cb)
+
+    test(ca < cb)
+    test(ca < b)
+    test(a < cb)
+
+    test(ca > cb)
+    test(ca > b)
+    test(a > cb)
+
+    test(ca <= cb)
+    test(ca <= b)
+    test(a <= cb)
+
+    test(ca >= cb)
+    test(ca >= b)
+    test(a >= cb)
+
+    test(ca == cb)
+    test(ca == b)
+    test(a == cb)
+
+    test(ca != cb)
+    test(ca != b)
+    test(a != cb)
+
+    test(ca != ca)
+    test(ca != a)
+    test(a != ca)
+
+    test(ca ** 0)
+    test(ca ** 1)
+    test(ca ** 2)
+    test(ca ** 3)
+    test(ca ** 4)
+
+    i = 3
+    ci = regint(i)
+
+    test(ca << ci)
+    test(ca << i)
+    test(a << ci)
+
+    test(ca >> ci)
+    test(ca >> i)
+    test(a >> ci)
+
+    test(cint(0) << i)
+    test(cint(0) << ci)
+    test(cint(0) >> i)
+    test(cint(0) >> ci)
+
+    test(ca >> 0)
+    test(ca << 0)
+    test(ca >> cint(0))
+    test(ca << cint(0))
+
+    test(-ca)
+
+    sa = sint(a)
+    sb = regint(b)
+    ca = regint(a)
+    cb = cint(b)
+
+    test(ca + cb)
+    test(sa + cb)
+    test(ca + sb)
+    test(sa + sb)
+
+    test(ca + b)
+    test(a + cb)
+    test(sa + b)
+    test(a + sb)
+
+    test(ca - cb)
+    test(sa - cb)
+    test(ca - sb)
+    test(sa - sb)
+
+    test(ca - b)
+    test(a - cb)
+    test(sa - b)
+    test(a - sb)
+
+    test(ca * cb)
+    test(sa * cb)
+    test(ca * sb)
+    test(sa * sb)
+
+    test(ca * b)
+    test(a * cb)
+    test(sa * b)
+    test(a * sb)
+
+    test(sa < sb)
+    test(sa < sa)
+    test(sa < sa + 1)
+    test(-sa < sa)
+    test(-sb < sb)
+    test(sa < -sb)
+    test(-sa < -sb)
+
+    test(ca < cb)
+    test(sa < cb)
+    test(ca < sb)
+    test(sa < sb)
+
+    test(ca < b)
+    test(a < cb)
+    test(sa < b)
+    test(a < sb)
+
+    test(ca > cb)
+    test(sa > cb)
+    test(ca > sb)
+    test(sa > sb)
+
+    test(ca > b)
+    test(a > cb)
+    test(sa > b)
+    test(a > sb)
+
+    test(ca <= cb)
+    test(sa <= cb)
+    test(ca <= sb)
+    test(sa <= sb)
+
+    test(ca <= b)
+    test(a <= cb)
+    test(sa <= b)
+    test(a <= sb)
+
+    test(ca >= cb)
+    test(sa >= cb)
+    test(ca >= sb)
+    test(sa >= sb)
+
+    test(ca >= b)
+    test(a >= cb)
+    test(sa >= b)
+    test(a >= sb)
+
+    test(ca == cb)
+    test(sa == cb)
+    test(ca == sb)
+    test(sa == sb)
+
+    test(ca == b)
+    test(a == cb)
+    test(sa == b)
+    test(a == sb)
+
+    test(ca != cb)
+    test(sa != cb)
+    test(ca != sb)
+    test(sa != sb)
+
+    test(ca != b)
+    test(a != cb)
+    test(sa != b)
+    test(a != sb)
+
+    test(ca != ca)
+    test(sa != ca)
+    test(ca != sa)
+    test(sa != sa)
+
+    test(ca != a)
+    test(a != ca)
+    test(sa != a)
+    test(a != sa)
+
+    test(regint(cint(a)))
+    test(cint(regint(a)))
+    test(sint(regint(a)))
+
+    test(regint(2**31 - 1))
+    test(regint(2**31))
+    test(regint(2**31 + 1))
+    test(regint(2**32 - 1))
+    test(regint(2**32))
+    test(regint(2**32 + 1))
+
+    test(regint(-2**31 - 1))
+    test(regint(-2**31))
+    test(regint(-2**31 + 1))
+    test(regint(-2**32 - 1))
+    test(regint(-2**32))
+    test(regint(-2**32 + 1))
+
+    test(regint(2**63 - 1))
+    test(regint(-2**63))
+
+    i = 3
+    ci = cint(i)
+    si = regint(i)
+
+    test(ca << ci)
+    test(sa << ci)
+    test(ca << si)
+    test(sa << si)
+
+    test(ca << i)
+    test(a << ci)
+    test(sa << i)
+    test(a << si)
+
+    test(ca >> ci)
+    test(sa >> ci)
+    test(ca >> si)
+    test(sa >> si)
+
+    test(ca >> i)
+    test(a >> ci)
+    test(sa >> i)
+    test(a >> si)
+
+def g():
+    a = 3904
+    b = 2879
+    test(load_secret_mem(1), a)
+    test(load_clear_mem(1), b)
+    store_in_mem(sint(a), 1)
+    store_in_mem(cint(b), 1)
+
+@function_tape
+def h(x, y, z, a, b):
+    test(x, 753)
+    test(y, 239)
+    test(z, 192)
+    test(a, 491)
+    test(b, 842)
+
+
+thread = h(753, sint(239), cint(192), MemValue(491), MemValue(sint(842)))
+thread2 = h(258, sint(127), cint(983), MemValue(153), MemValue(sint(122)))
+thread2.start()
+thread2.join()
+thread.start()
+thread.join()
+
+thread = MPCThread(f, 'test')
+thread2 = MPCThread(g, 'test2')
+for i in range(10):
+    thread.start()
+    thread2.start()
+    thread.join()
+    thread2.join()
+
+thread2.start()
+thread.start(9876)
+thread2.join()
+thread.join()
+
+g = cint(645)
+def f(i):
+    test(i)
+    test(g)
+range_loop(f, 20, 30, 2)
+
+program.bit_length = 1
+program.security = 100
+sa = sint(5321)
+sb = sint(4683)
+test(sa.less_than(sb, 16, 8))
+test(sa.greater_than(sb, 16, 8))
+test(sa.less_equal(sb, 16, 8))
+test(sa.greater_equal(sb, 16, 8))
+test(sa.equal(sb, 16, 8))
+test(sa.not_equal(sb, 16, 8))
+test(sb.less_than(sa, 16, 8))
+test(sb.greater_than(sa, 16, 8))
+test(sb.less_equal(sa, 16, 8))
+test(sb.greater_equal(sa, 16, 8))
+test(sb.equal(sa, 16, 8))
+test(sb.not_equal(sa, 16, 8))
+
+test(sa.mod2m(4, 16, 8))
+test(sa.mod2m(sint(4), 16, 8))
+test(sint(13).pow2(16, 8))
+test(sa.right_shift(3, 16, 8))
+test(sint(0).mod2m(4, 16, 8))
+test(sint(0).mod2m(sint(4), 16, 8))
+
+test(sint(1).right_shift(sint(1), 1), 0)
+test(sint(1).right_shift(sint(0), 1), 1)
+
+test(sint(1).mod2m(sint(1), 1), 1)
+test(sint(1).mod2m(sint(0), 1), 0)
+
+test(sint(regint.get_random(0)), 0)
+test(sint(regint.get_random(1)), 0, 2)
+test(sint(regint.get_random(2)), 0, 4)
+test(sint(regint.get_random(3)), 0, 8)
+test(sint(regint.get_random(10)), 0, 1024)

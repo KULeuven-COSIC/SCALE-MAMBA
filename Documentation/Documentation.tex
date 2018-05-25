@@ -1,0 +1,72 @@
+\documentclass{article}
+\def\COMM{0}
+
+\usepackage[nottoc]{tocbibind}
+
+\usepackage{verbatim}
+\usepackage{fullpage}
+\usepackage{times}
+\usepackage{amsmath}
+\usepackage{amssymb} 
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{framed}
+\usepackage{graphicx}
+\usepackage{varwidth}
+\usepackage{color}
+\usepackage{url}
+\usepackage{cite}
+
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{underscore}
+\input{symbols}
+
+\begin{document}
+
+\newcommand{\mainsection}[1]{\newpage \section{#1}}
+\newcommand{\msubsection}[1]{\newpage \subsection{#1}}
+\newcommand{\msubsubsection}[1]{\subsubsection{#1}}
+
+\title{SCALE and MAMBA Documentation}
+\author{
+A. Aly
+\and M. Keller 
+\and E. Orsini
+\and D. Rotaru 
+\and P. Scholl 
+\and N.P. Smart
+\and T. Wood}
+
+\maketitle
+
+\tableofcontents
+
+\input{Changes}
+
+\input{Introduction}
+
+\input{Installation}
+
+\input{Example}
+
+\input{ByteCodes}
+
+\input{IO}
+
+\input{Restart}
+
+\input{Compiler}
+
+\input{FHE}
+
+\input{Advanced}
+
+\bibliographystyle{alpha}
+\bibliography{SCALE}
+
+\end{document}

@@ -1,0 +1,8 @@
+b = sfix(36)
+d = sfix(49)
+
+
+print_ln("test sqrt:")
+
+test(mpc_math.sqrt_test(b))
+test(mpc_math.sqrt_test(d))

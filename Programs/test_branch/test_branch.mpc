@@ -1,0 +1,103 @@
+program.bit_length = 16
+program.security = 8
+
+s = sint(35)
+t = sint(34)
+store_in_mem(s, 50)
+store_in_mem(t, 51)
+c0 = regint(0) #reveal(s < t) # 0
+c1 = regint(1) #reveal(t < s) # 1
+
+test(c0)
+test(c1)
+#print 'c0 =', c0.value
+#print 'c1 =', c1.value
+
+
+# basic if/else
+def if0():
+    a = cint(0)
+    a += load_secret_mem(50)
+    store_in_mem(reveal(a), 0)
+
+def else0():
+    a = cint(25)
+    a += load_secret_mem(50)
+    store_in_mem(reveal(a), 0)
+   
+def if1():
+    a = cint(4)
+    a += load_secret_mem(51)
+    store_in_mem(reveal(a), 1)
+
+def else1():
+    a = cint(26)
+    a += load_secret_mem(51)
+    store_in_mem(reveal(a), 1)
+
+def if2():
+    a = cint(222)
+    store_in_mem(a, 2)
+
+def else2():
+    a = cint(111)
+    store_in_mem(a, 2)
+
+# c0 = False
+if_statement(c0, if0, else0)
+test_mem(60, 0)
+
+c = cint(8)
+store_in_mem(c,3)
+test_mem(8, 3)
+
+# c1 = True
+if_statement(c1, if1, else1)
+test_mem(38, 1)
+
+c = cint(9)
+store_in_mem(c,4)
+test_mem(9, 4)
+
+# nested if
+def outer():
+    a = cint(23)
+    b = load_secret_mem(50)*a
+    store_in_mem(b, 10)
+    store_in_mem(reveal(b), 10)
+
+    def innerif():
+        t = load_secret_mem(10)
+        t = reveal(t*t + 11)
+        store_in_mem(t, 11)
+    def innerelse():
+        t = load_secret_mem(10)
+        store_in_mem(reveal(t*t*t), 11)
+
+    if_statement(regint(reveal(b)), innerif, innerelse)
+
+c = cint(19)
+store_in_mem(c,12)
+test_mem(19, 12)
+
+if_statement(c1, outer)
+t = 23*35
+test_mem(t, 10)
+test_mem(t*t + 11, 11)
+
+
+#def if_outer():
+#    a = cint(23)
+#    b = reveal(s*a)
+#    b -= 500
+#    store_in_mem(b, 10)
+#    def if_inner():
+#        # can't do this as inner function can't modify names in enclosing scope
+#        b += 500
+#        store_in_mem(b,10)
+#    if_statement(b, if_inner)
+
+#if_statement(c1, if_outer)
+
+
+#:mode=python:

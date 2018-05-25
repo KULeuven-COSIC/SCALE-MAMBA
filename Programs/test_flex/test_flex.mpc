@@ -1,0 +1,9 @@
+a = load_int_to_secret_vector(range(100))
+b = load_int_to_secret_vector(range(100,200))
+c = a * b
+test(c[1])
+test(c[99])
+d = Array(100,'s')
+d.assign(c)
+test(d[0])
+test(d[42])

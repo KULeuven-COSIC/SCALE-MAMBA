@@ -1,0 +1,364 @@
+program.bit_length = 80
+print "program.bit_length: ", program.bit_length
+program.security = 40
+
+aa = 532.0
+bb = 342.0
+
+#########################################
+# (-1, -1)
+
+a = -1 * aa
+b = -1 * bb
+
+ca = cfix(a)
+cb = cfix(b)
+
+sa = sfix(a)
+sb = sfix(b)
+
+test(ca + cb, a+b)
+test(sa + cb, a+b)
+test(ca + sb, a+b)
+test(sa + sb, a+b)
+
+test(ca - cb, a-b)
+test(sa - ca, a-a)
+test(ca - sb, a-b)
+test(sa - sb, a-b)
+
+test(ca * cb, a*b)
+test(sa * cb, a*b)
+test(ca * sb, a*b)
+test(sa * sb, a*b)
+
+# secret fp arithmetic
+
+test(sa / sb, a/b)
+test(sb / sa, b/a)
+
+# clear fp arithmetic
+test(ca / cb, a/b)
+test(cb / ca, b/a)
+
+# mixed fp arithmetic
+test(ca / sb, a/b)
+test(sa / cb, a/b)
+test(cb / sa, b/a)
+test(sb / ca, b/a)
+
+#########################################
+# (-1, 1)
+
+a = -1 * aa
+b = 1 * bb
+
+ca = cfix(a)
+cb = cfix(b)
+
+sa = sfix(a)
+sb = sfix(b)
+
+test(ca + cb, a+b)
+test(sa + cb, a+b)
+test(ca + sb, a+b)
+test(sa + sb, a+b)
+
+test(ca - cb, a-b)
+test(sa - ca, a-a)
+test(ca - sb, a-b)
+test(sa - sb, a-b)
+
+test(ca * cb, a*b)
+test(sa * cb, a*b)
+test(ca * sb, a*b)
+test(sa * sb, a*b)
+
+# secret fp arithmetic
+
+test(sa / sb, a/b)
+test(sb / sa, b/a)
+
+# clear fp arithmetic
+
+test(ca / cb, a/b)
+test(cb / ca, b/a)
+
+# mixed fp arithmetic
+test(ca / sb, a/b)
+test(sa / cb, a/b)
+test(cb / sa, b/a)
+test(sb / ca, b/a)
+
+#########################################
+# (1, -1)
+
+a = 1 * aa
+b = -1 * bb
+
+ca = cfix(a)
+cb = cfix(b)
+
+sa = sfix(a)
+sb = sfix(b)
+
+test(ca + cb, a+b)
+test(sa + cb, a+b)
+test(ca + sb, a+b)
+test(sa + sb, a+b)
+
+test(ca - cb, a-b)
+test(sa - ca, a-a)
+test(ca - sb, a-b)
+test(sa - sb, a-b)
+
+test(ca * cb, a*b)
+test(sa * cb, a*b)
+test(ca * sb, a*b)
+test(sa * sb, a*b)
+
+# secret fp arithmetic
+
+test(sa / sb, a/b)
+test(sb / sa, b/a)
+
+# clear fp arithmetic
+
+test(ca / cb, a/b)
+test(cb / ca, b/a)
+
+# mixed fp arithmetic
+test(ca / sb, a/b)
+test(sa / cb, a/b)
+test(cb / sa, b/a)
+test(sb / ca, b/a)
+
+#########################################
+# (1, 1)
+
+a = 1 * aa
+b = 1 * bb
+
+ca = cfix(a)
+cb = cfix(b)
+
+sa = sfix(a)
+sb = sfix(b)
+
+test(ca + cb, a+b)
+test(sa + cb, a+b)
+test(ca + sb, a+b)
+test(sa + sb, a+b)
+
+test(ca - cb, a-b)
+test(sa - ca, a-a)
+test(ca - sb, a-b)
+test(sa - sb, a-b)
+
+test(ca * cb, a*b)
+test(sa * cb, a*b)
+test(ca * sb, a*b)
+test(sa * sb, a*b)
+
+# secret fp arithmetic
+
+test(sa / sb, a/b)
+test(sb / sa, b/a)
+
+# clear fp arithmetic
+
+test(ca / cb, a/b)
+test(cb / ca, b/a)
+
+# mixed fp arithmetic
+test(ca / sb, a/b)
+test(sa / cb, a/b)
+test(cb / sa, b/a)
+test(sb / ca, b/a)
+
+# #########################################
+
+
+# test branching on fixed point
+x = MemValue(0)
+yv = sfix(0);
+y = MemFix(yv)
+one = sfix(); one.load_int(1)
+
+test(y + one, 1.0)
+
+if_then(regint(1))
+x.write(1)
+y.write(sfix(1))
+else_then()
+x.write(2)
+y.write(sfix(2))
+end_if()
+
+test(x.read(), 1)
+test(y.read(), 1)
+
+x.write(0)
+y.write(sfix(0))
+
+@for_range(5)
+def f(i):
+    x.write(x + 1)
+    t = sfix(1);
+    y.iadd(t)
+
+test(x.read(), 5)
+test(y.read(), 5)
+
+a = sfix(1)
+b = sfix(1)
+test(a / b, 1.0)
+
+sfloat.vlen = 8   # Length of mantissa in bits
+sfloat.plen = 5   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+v = 1 << (sfloat.vlen - 1)
+p1 = -sfloat.vlen + 1
+p2 = -sfloat.vlen + 2
+one = sfloat(v, p1, 0, 0)
+two = sfloat(v, p2, 0, 0)
+zero = sfloat(0, 0, 1, 0)
+minus_one = sfloat(v, p1, 0, 1)
+
+digits = sfloat(.03213)
+sx = sfix(digits)
+test(sx, 0.03213)
+
+
+# taken from test_vector to test comparisons
+
+a = 126.0
+b = 125.0
+
+ca = cfix(a)
+cb = cfix(b)
+sa = sfix(a)
+sb = sfix(b)
+
+test(ca + cb, a+b)
+test(sa + cb, a+b)
+test(ca + sb, a+b)
+test(sa + sb, a+b)
+
+test(ca + b, a+b)
+test(a + cb, a+b)
+test(sa + b, a+b)
+test(a + sb, a+b)
+
+test(ca - cb, a-b)
+test(sa - cb, a-b)
+test(ca - sb, a-b)
+test(sa - sb, a-b)
+
+test(ca - b, a-b)
+test(a - cb, a-b)
+test(sa - b, a-b)
+test(a - sb, a-b)
+
+test(ca * cb, a*b)
+test(sa * cb, a*b)
+test(ca * sb, a*b)
+test(sa * sb, a*b)
+
+test(ca * b, a*b)
+test(a * cb, a*b)
+test(sa * b, a*b)
+test(a * sb, a*b)
+
+test(ca < cb, int(a<b))
+test(cb < ca, int(b<a))
+test(ca == ca, int(a==a))
+test(cb == cb, int(b==b))
+test(cb == ca, int(b==a))
+test(ca <= ca, int(a<=a))
+test(ca <= ca - 1, int(a<=a-1))
+test(ca > cb, int(a>b))
+test(cb > ca, int(b>a))
+test(ca >= cb, int(a>=b))
+test(cb >= ca, int(b>=a))
+test(ca >= ca, int(a>=a))
+test(ca >= ca + 1, int(a>=a+1))
+
+
+test(sa < sb, int(a<b))
+test(sa < sa, int(a<a))
+test(sa < sa + 1, int(a<a+1))
+test(-sa < sa, int(-a<a))
+test(-sb < sb, int(-b<b))
+test(sa < -sb, int(a<-b))
+test(-sa < -sb, int(-a<-b))
+
+test(ca < cb, int(a<b))
+test(sa < cb, int(a<b))
+test(ca < sb, int(a<b))
+
+test(ca < b, int(a<b))
+test(a < cb, int(a<b))
+test(sa < b, int(a<b))
+test(a < sb, int(a<b))
+
+test(ca > cb, int(a>b))
+test(sa > cb, int(a>b))
+test(ca > sb, int(a>b))
+test(sa > sb, int(a>b))
+
+test(ca > b, int(a>b))
+test(a > cb, int(a>b))
+test(sa > b, int(a>b))
+test(a > sb, int(a>b))
+
+test(ca <= cb, int(a<=b))
+test(sa <= cb, int(a<=b))
+test(ca <= sb, int(a<=b))
+test(sa <= sb, int(a<=b))
+
+test(ca <= b, int(a<=b))
+test(a <= cb, int(a<=b))
+test(sa <= b, int(a<=b))
+test(a <= sb, int(a<=b))
+
+test(ca >= cb, int(a>=b))
+test(sa >= cb, int(a>=b))
+test(ca >= sb, int(a>=b))
+test(sa >= sb, int(a>=b))
+
+test(ca >= b, int(a>=b))
+test(a >= cb, int(a>=b))
+test(sa >= b, int(a>=b))
+test(a >= sb, int(a>=b))
+
+test(ca == cb, int(a==b))
+test(sa == cb, int(a==b))
+test(ca == sb, int(a==b))
+test(sa == sb, int(a==b))
+
+test(ca == b, int(a==b))
+test(a == cb, int(a==b))
+test(sa == b, int(a==b))
+test(a == sb, int(a==b))
+
+test(ca != cb, int(a!=b))
+test(sa != cb, int(a!=b))
+test(ca != sb, int(a!=b))
+test(sa != sb, int(a!=b))
+
+test(ca != b, int(a!=b))
+test(a != cb, int(a!=b))
+test(sa != b, int(a!=b))
+test(a != sb, int(a!=b))
+
+test(ca != ca, int(a!=a))
+test(sa != ca, int(a!=a))
+test(ca != sa, int(a!=a))
+test(sa != sa, int(a!=a))
+
+test(ca != a, int(a!=a))
+test(a != ca, int(a!=a))
+test(sa != a, int(a!=a))
+test(a != sa, int(a!=a))

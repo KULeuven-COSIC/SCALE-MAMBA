@@ -1,0 +1,53 @@
+sfloat.vlen = 8   # Length of mantissa in bits
+sfloat.plen = 5   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+n = 5
+value_type = sint
+
+A = value_type.Array(n)
+B = value_type.Array(n)
+C = value_type.Array(n)
+
+for i in range(n):
+	A[i] = A.value_type(i)
+	B[i] = B.value_type(i)
+	C[i] = A[i] * B[i]
+
+test(C[0])
+test(C[1])
+test(C[2])
+test(C[3])
+test(C[4])
+
+value_type = sfix
+A = value_type.Array(n)
+B = value_type.Array(n)
+C = value_type.Array(n)
+
+for i in range(n):
+	A[i] = A.value_type(i)
+	B[i] = B.value_type(i)
+	C[i] = A[i] * B[i]
+
+test(C[0])
+test(C[1])
+test(C[2])
+test(C[3])
+test(C[4])
+
+value_type = sfloat
+A = value_type.Array(n)
+B = value_type.Array(n)
+C = value_type.Array(n)
+
+for i in range(n):
+	A[i] = A.value_type(i)
+	B[i] = B.value_type(i)
+	C[i] = A[i] * B[i]
+
+test(C[0])
+test(C[1])
+test(C[2])
+test(C[3])
+test(C[4])

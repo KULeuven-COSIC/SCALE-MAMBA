@@ -1,0 +1,10 @@
+n = 1000
+a = Array(n, 'c')
+for i in range(n):
+    a[i] = i + 1
+test(a[0], 1)
+test(a[n-1], n)
+for i in range(n):
+    a[i] = -i - 1
+test(a[0], -1)
+test(a[n-1], -n)

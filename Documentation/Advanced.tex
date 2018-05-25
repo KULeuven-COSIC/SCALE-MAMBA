@@ -1,0 +1,2149 @@
+\mainsection{Advanced Protocols}
+This section details the protocols needed to perform complex
+functionalities on LSSS style secret shared values in MAMBA.
+As well as the documentation here further, details can be
+found at 
+\begin{center}
+   \verb+$(HOME)/Documentation/Compiler_Documentation/index.html+
+\end{center}
+under the heading \verb+Files+.
+
+The protocols break the ``arithmetic circuit'' model of computation,
+as they make heavy use of pre-processed data and the ability
+to $\Open$ shared values.
+In particular we assume three lists of pre-processed data:
+\[ \MList, \quad \SList, \quad \BList. \]
+An entry on the $\MList$ is of the form 
+$(\sshare{a}, \sshare{b}, \sshare{c})$ where $c=a \cdot b \pmod{p}$,
+an entry on the $\SList$ is of the form
+$(\sshare{a}, \sshare{b})$ where $b=a^2 \pmod{p}$,
+whilst an entry on the $\BList$ is of the form
+$\sshare{b}$ where $b \in \{0,1\}$.
+We also assume a function $\Random()$ which can generate
+a random secret sharing (this can be implemented by just taking
+the first element from a multiplication triple).
+We add and multiply secret shared elements in what follows
+using the notation 
+\[ \sshare{a+b} \asn \sshare{a}+\sshare{b}, \quad
+   \sshare{a\cdot b} \asn \sshare{a} \cdot \sshare{b}.
+\]
+
+The protocols in this chapter allow us to do more advanced operations,
+without resorting to using full blown arithmetic circuits.
+We describe here what we have implemented as a form of
+documentation, both for us and for others. 
+Many of the protocol ideas can be found in the five
+documents
+\begin{itemize}
+\item Unconditionally Secure Constant-Rounds
+Multi-party Computation for Equality, Comparison, Bits and Exponentiation.
+{\em TCC 2006}, \cite{DFKNT06}.
+\item Improved Primitives for Secure Multiparty Integer Computation.
+{\em SCN 2010}, \cite{CH10}.
+\item D9.2 of the EU project {\em secureSCM}, \cite{SSCM}.
+\item Secure Computation with Fixed-Point Numbers {\em FC 2010} \cite{CS10}.
+\item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
+\end{itemize}
+Many of the protocols operating on integers make use of a statistical security 
+parameter $\kappa$.
+If the integer being operated on is $k$ bits long, then we often require $(k+\kappa)<\log_2 p$.
+For ease of implementation of the protocols we recommend $k$ is
+always a power of two, and we assume this in the write up below.
+If this is not the case, obvious tweaks can be made to the protocols.
+
+Due to experience with the SPDZ system we prefer logarithmic
+round protocols over constant round protocols, it appears that in
+practice the logarithmic round protocols outperform the contant
+round ones.
+The MAMBA compiler can execute non-constant round protocols, by 
+flicking a compile time switch. But here we only document
+logarithmic round protocols.
+
+\msubsection{Basic Protocols}
+
+\msubsubsection{$\mathsf{Inv}(\sshare{x})$:}
+This produces a share $\sshare{z}$ of $1/x \pmod{p}$, with an
+$\abort$ if $x=0$.
+\begin{enumerate}
+\item $\sshare{a} \asn \Random()$.
+\item $\sshare{y} \asn \sshare{a} \cdot \sshare{x}$.
+\item $y \asn \Open(\sshare{y})$.
+\item If $y=0$ then $\abort$.
+\item $t \asn 1/y \pmod{p}$.
+\item $\sshare{z} \asn t \cdot \sshare{a}$.
+\item Return $\sshare{z}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the inverse of a \verb|sint| or a \verb|cint| can be done as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+d = sint(5)
+d_inv =  floatingpoint.Inv(d)
+print_ln("inverse is correct if 1: %s", (d*d_inv).reveal())
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{Ran}_p^*()$:}
+This produces a random sharing of a value $x$ and its inverse $1/x$.
+This is faster than generating $x$, and then performing the above operaton.
+\begin{enumerate}
+\item Take a triple $(\sshare{a},\sshare{b},\sshare{c})$ from $\MList$.
+\item $c \asn \Open(\sshare{c})$.
+\item If $c=0$ then return to the first step.
+\item $\sshare{a^{-1}} \asn c^{-1} \cdot \sshare{b}$.
+\item Output $(\sshare{a},\sshare{a^{-1}})$.
+\end{enumerate}
+This function does not exist ``as is'' in the MAMBA language, as it
+is used in place within the python compiler. Thus it is only here
+for documentation reasons.
+
+\msubsubsection{$\mathsf{PreMult}(\sshare{a_1},\ldots,\sshare{a_t},T)$:}
+This computes the prefix multiplication, i.e. the values 
+\[ \sshare{a_{i_0,i_1}} = \bsshare{\prod_{i=i_0}^{i_1} a_i} \]
+where $(i_0,i_1) \in T$ and $1 \le i_0 \le i_1 \le t$.
+\begin{enumerate}
+\item For $i \in [0,\ldots,t]$ do.
+\begin{enumerate}
+  \item $(\sshare{b_i},\sshare{b_i^{-1}}) \asn \mathsf{Ran}_p^*()$.
+\end{enumerate}
+\item For $i \in [0,\ldots,t]$ do.
+\begin{enumerate}
+  \item $\sshare{t} \asn \sshare{b_{i-1}} \cdot \sshare{a_i}$.
+  \item $\sshare{d_i} \asn \sshare{t} \cdot \sshare{b_i^{-1}}$.
+  \item $d_i \asn \Open(\sshare{d_i})$.
+\end{enumerate}
+\item For $(i_0,i_1) \in T$ 
+\begin{enumerate}
+   \item $d_{i_0,i_1} \asn \prod_{i=i_0}^{i_1} d_i$.
+   \item $\sshare{a_{i_0,i_1}} \asn d_{i_0,i_1} \cdot
+	   	\sshare{b_{i_0-1}^{-1}} \cdot \sshare{b_{i_1}}$.
+\end{enumerate}
+\end{enumerate}
+Again, this function does not exist ``as is'' in the MAMBA language, as it
+is used in place within the python compiler. Thus it is only here
+for documentation reasons.
+
+
+
+\msubsection{Bit Oriented Operations}
+
+\msubsubsection{$\mathsf{OR}(\sshare{a},\sshare{b})$:}
+This computes the logical OR of two input shared bits:
+\begin{enumerate}
+\item Return $\sshare{a}+\sshare{b}-\sshare{a} \cdot \sshare{b}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the \verb|or| of two \verb|sint| or \verb|cint| numbers you can: 
+\begin{lstlisting}[language={python}]
+a= sint(1)
+b= sint(0)
+print_ln("or is correct if 1: %s", (a or b).reveal())
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{XOR}(\sshare{a},\sshare{b})$:}
+This computes the logical XOR of two input shared bits:
+\begin{enumerate}
+\item Return $\sshare{a}+\sshare{b}-2 \cdot \sshare{a} \cdot \sshare{b}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the \verb|xor| of two \verb|sint| or \verb|cint| numbers you can: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a= sint(1)
+b= sint(0)
+print_ln("or is correct if 1: %s", floatingpoint.xor_op(a, b).reveal())
+\end{lstlisting}
+
+\iffalse
+\note{Nigel}{Does not seem to be used anywhere}
+\msubsubsection{$\mathsf{Symm}(f,\sshare{a_1},\ldots,\sshare{a_t})$:}
+This takes a symmetric boolean function $f$ on $t$ binary inputs
+and evaluates it at the points $\sshare{a_1},\ldots,\sshare{a_t}$,
+where we assume $a_i \in \{0,1\}$.
+We first pre-process the function $f$ so that we can write
+\[ f(x_1,\ldots,x_t) = \phi(1+\sum_{i=1}^t x_i), \]
+where the inner sum is over the integers and
+$\phi:{1,2,\ldots,t+1} \longrightarrow \{0,1\}$.
+We then write
+\[ \phi(X) = \sum_{i=0}^t \alpha_i \cdot X^i \pmod{p} \]
+using Lagrange interpolation.
+So for example if we have $f(X_1,X_2)=X_1^2+X_1 \cdot X_2+X_2^2+1$
+then $\phi$ is the function which maps 
+$1 \longrightarrow 1$, $2 \longrightarrow 0$, $3 \longrightarrow 0$.
+In which case $\phi(X)=X^2/2-5 \cdot X/2+3$.
+
+To compute this function we have the algorithm
+\begin{enumerate}
+\item $\sshare{a} \asn 1+ \sum_{i=1}^t \sshare{a_i}$.
+\item $(\sshare{a},\sshare{a^2},\ldots,\sshare{a^t})
+	\asn \mathsf{PreMult}(\sshare{a},\ldots,\sshare{a},
+			\{(1,1),\ldots,(1,t)\})$.
+\item $\sshare{f(a_1,\ldots,a_t)}
+	\asn \sum_{i=0}^t \alpha_i \cdot \sshare{a^i}$.
+\end{enumerate}
+\fi
+
+\msubsubsection{$\mathsf{KOp}(\odot,\sshare{a_1},\ldots,\sshare{a_k},k)$:}
+This computes the operation $\sshare{p}= \bigodot_{i=1}^k \sshare{a_i}$
+given a binary operator $\odot$.
+\begin{enumerate}
+\item If $k>1$ then
+\begin{enumerate}
+  \item For $i \in [1,\ldots,k/2]$ do
+  \begin{enumerate}
+     \item $\sshare{u_i} \asn \sshare{a_{2\cdot i}} \odot \sshare{a_{2 \cdot i-1}}$.
+  \end{enumerate}
+  \item $\sshare{p} \asn \mathsf{KOp}(\odot, \sshare{u_{k/2}},\ldots,\sshare{u_1},k/2)$.
+\end{enumerate}
+\item Else
+\begin{enumerate}
+   \item $\sshare{p} \asn \sshare{a_1}$.
+\end{enumerate}
+\item Return $\sshare{p}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} Note that we basically want to achieve a construction capable to call any function in an iterative fashion reducing computation time. In this sense a call to the function could be perform in the following way: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+
+# addition
+def addition(a, b):
+    return a + b
+    
+ar=[1]*16
+# (k is exctracted from ar directly on the implementation)
+print_ln("KOpL is correct if 32: %s", (floatingpoint.KOpL(func,ar)).reveal())
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{PreOp}(\odot,\sshare{a_1},\ldots,\sshare{a_k},k)$:}
+This computes the prefix operator $\sshare{p_j} = \odot_{i=1}^j \sshare{a_i}$,
+for $1 \le j \le k$.
+\begin{enumerate}
+\item For $i \in [1,\ldots, \log_2 k]$ do
+\begin{enumerate}
+  \item For $j \in [1,\ldots,k/2^i]$ do
+  \begin{enumerate}
+     \item $y \asn 2^{i-1}+j\cdot 2^i$.
+     \item For $z \in [1,\ldots,2^{i-1}]$ do
+     \begin{enumerate}
+	\item $\sshare{a_{y+z}} \asn \sshare{a_y} \odot \sshare{a_{y+z}}$.
+     \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+\item Return $(\sshare{a_1},\ldots,\sshare{a_k})$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} Similarly, we basically want to achieve a construction capable to call any function in an iterative fashion reducing computation time. In this case, however, we return all the list of intermediate values. The function call could be performed in the following way: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+
+def addition(a, b):
+    return a + b
+
+def addition_triple(a, b, c):
+	# c is a boolean parameter
+    return a + b
+    
+e = sint(2)
+
+ar = [e]*16
+# k is stracted from ar.
+print_ln("PreOpL is correct if 32: %s", (floatingpoint.PreOpL(addition_triple,ar))[15].reveal())
+print_ln("PreOpN is correct if 32: %s", (floatingpoint.PreOpN(addition,ar))[15].reveal())
+\end{lstlisting}
+Note that both methods are implementations of the functionality with slightly different  communication and round complexity.
+With the \verb+PreOpL+ function corresponding to the pseudo-code above.
+
+\msubsubsection{$\mathsf{Solved\mhyphen Bits}(BitsList, k)$:}
+This outputs a shared integer $x$ in the range
+$[0,\ldots,2^k)$ with $2^k<p$ and the shared bits
+making up its binary representation.
+\begin{enumerate}
+\item Take $k$ shares $\{\sshare{x_i}\}_{i=0}^{k-1}$ from $\BList$.
+\item $\sshare{x} \asn \sum_{i=0}^{k-1} 2^i \cdot \sshare{x_i}$.
+\item Output $(\sshare{x}, \{\sshare{x_i}\}_{i=0}^{k-1})$.
+\end{enumerate}
+To ease notation in what follows we write
+$\sshare{x}_B = \{\sshare{x_i}\}_{i=0}^{k-1}$.
+
+\paragraph{MAMBA Example:}  We can reconstruct a number from its bits as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a = [sint(0)]*program.bit_length
+# k is taken from a
+print_ln("solved_bits is correct if 0: %s", floatingpoint.SolvedBits(a, program.bit_length).reveal())
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{PRandM}(k,m,\kappa)$:}
+This generates two random shares $r' \in [0,\ldots,2^{k+\kappa-m}-1]$
+and $r \in [0,\ldots,2^m-1]$, along with the shares the bits of $r$.
+\begin{enumerate}
+\item $\sshare{r}, \sshare{r}_B \asn \mathsf{Solved\mhyphen Bits}(m)$.
+\item $\sshare{r'}, \sshare{r'}_B \asn \mathsf{Solved\mhyphen Bits}(k+\kappa-m)$.
+\item Return $\sshare{r'}, \sshare{r}, \sshare{r}_B$.
+\end{enumerate}
+\paragraph{MAMBA Example:}  We obtain the randomness and its bits as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+
+# x, y,z are returned values
+x = sint()
+y = sint()
+z = [sint() for i in range(3)]
+
+# k, m, kappa are parameters
+k = 5
+m = 3
+kappa = 7
+comparison.PRandM(x, y, z, k, m, kappa)
+\end{lstlisting}
+\msubsubsection{$\mathsf{CarryOut}(\sshare{a}_B,\sshare{b}_B,k)$:}
+This protocol computes the carry-out of a binary addition of
+two $k$ bit shared values, when presented via shared bits.
+The protocol can easily be adapted to the case when either
+the bits of $a$, or the bits of $b$, are given in the clear.
+We give a logarithmic round version, which requires $\log k$
+rounds of interaction.
+It requires a sub-routine $\mathsf{CarryOutAux}$ which we
+give below.
+\begin{enumerate}
+\item For $i \in [0,\ldots,k-1]$ do
+\begin{enumerate}
+\item $\sshare{d_i}_B \asn (\mathsf{XOR}(\sshare{a_i},\sshare{b_i}),
+	                    \sshare{a_i}\cdot \sshare{b_i})$.
+      [Note, $\sshare{d_i}_B$ is a set of two shared bits, one being the XOR
+      of $a_i$ and $b_i$, whilst the other the AND].
+\end{enumerate}
+\item $\sshare{d}_B \asn \mathsf{CarryOutAux}(\sshare{d_{k-1}}_B,\ldots,\sshare{d_0}_B,k)$.
+\item $(\sshare{p},\sshare{g}) \asn \sshare{d}_B$.
+\item Return $\sshare{g}$.
+\end{enumerate}
+\paragraph{MAMBA Example:}  The carry out operation is executed as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+
+res = sint() # last carry bit in addition of a and b
+a = [cint(i) for i in [1,0]] # array of clear bits
+b = [sint(i) for i in [0,1]] # array of secret bits (same length as a)
+c = 0 # initial carry-in bit
+kappa = 16
+comparison.CarryOut(res, a, b, c, 16)
+\end{lstlisting}
+\msubsubsection{$\mathsf{CarryOutAux}(\sshare{d_k}_B,\ldots,\sshare{d_1}_B,k, \kappa)$:}
+This function uses the $\circ$ operator for carry propagation on two
+bit inputs which is defined as
+\[  \circ:  \left\{ \begin{array}{ccc}
+			\{0,1\}^2 \times \{0,1\}^2 & \longrightarrow & \{0,1\} \\
+			(p_2,g_2) \circ (p_1,g_1) & \longmapsto &
+			 (p_1 \wedge p_2, g_2 \vee (p_2 \wedge g_1))
+		     \end{array} \right.
+\]
+This is computed using arithmetic operations (i.e. where the values are
+held as bits modulo $p$) as $(p,g) = (p_2,g_2) \circ (p_1,g_1)$ via
+\begin{align*}
+	p &= p_1 \cdot p_2, \\
+	g &= g_2 + p_2 \cdot g_1.
+\end{align*}
+Given this operation the function $\mathsf{CarryOutAux}$ is defined by,
+which is just a specialisation of the protocol $\mathsf{KOp}$ above,
+\begin{enumerate}
+\item If $k>1$ then
+\begin{enumerate}
+  \item For $i \in [1,\ldots,k/2]$ do
+  \begin{enumerate}
+     \item $\sshare{u_i}_B \asn \sshare{d_{2\cdot i}}_B \circ \sshare{d_{2 \cdot i-1}}_B$.
+  \end{enumerate}
+  \item $\sshare{d}_B \asn \mathsf{CarryOutAux}(\sshare{u_{k/2}}_B,\ldots,\sshare{u_1}_B,k/2)$.
+\end{enumerate}
+\item Else
+\begin{enumerate}
+   \item $\sshare{d}_B \asn \sshare{d_1}_B$.
+\end{enumerate}
+\item Return $\sshare{d}_B$.
+\end{enumerate}
+\paragraph{MAMBA Example:} This method is thought as a subroutine for \verb|CarryOut| and should not be used outside that context. the code is invoked in the following way: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+# this is how it is invoked, where res, is the return, and 16 is the kappa
+# k can be extracted from the array size
+comparison.CarryOutAux(res, [::d -1], 16)
+# it could be interpreted as follows when called:
+kappa = 16
+x = [cint(i) for i in [1,0]]
+res = sint()
+comparison.CarryOut(z, x, 16)
+\end{lstlisting}
+
+\iffalse
+\note{Nigel}{Does not seem to be used anywhere}
+\msubsubsection{$\mathsf{CarryOutCIn}(\sshare{a}_B,\sshare{b}_B,c,k)$:}
+A minor tweak allows us to also input a {\em clear} carry-in
+bit into the $\mathsf{CarryOut}$ function.
+\begin{enumerate}
+\item For $i \in [0,\ldots,k-1]$ do
+\begin{enumerate}
+	\item $\sshare{d_i}_B \asn (\mathsf{XOR}(\sshare{a_i}, \sshare{b_i}),
+	                    \sshare{a_i}\cdot \sshare{b_i})$.
+\end{enumerate}
+\item $\sshare{g_0} \asn \sshare{g_0}+c \cdot\sshare{p_0}$ [Where $\sshare{d_0}_B=(\sshare{p_0},\sshare{g_0})$].
+\item $\sshare{d}_B \asn \mathsf{CarryOutAux}(\sshare{d_{k-1}}_B,\ldots,\sshare{d_0}_B,k)$.
+\item $(\sshare{p},\sshare{g}) \asn \sshare{d}_B$.
+\item Return $\sshare{g}$.
+\end{enumerate}
+\fi
+
+\msubsubsection{$\mathsf{BitAdd}((\sshare{a_{k-1}},\ldots,\sshare{a_0}), (\sshare{b_{k-1}},\ldots,\sshare{b_0}),k)$:}
+This function also makes use of the operator $\circ$.
+The inputs are shared bits. The case where one set of inputs is in the clear
+is obviously more simple, and we do not detail this here.
+\begin{enumerate}
+\item For $i \in [0,\ldots,k-1]$ do
+\begin{enumerate}
+\item $\sshare{d_i}_B \asn (\mathsf{XOR}(\sshare{a_i}, \sshare{b_i}),
+	                    \sshare{a_i}\cdot \sshare{b_i})$.
+\end{enumerate}
+\item $\sshare{c_{k-1},t_{k-1}},\ldots,\sshare{c_0,t_0}  \asn \mathsf{PreOp}(\circ,\sshare{d_{k-1}}_B,\ldots,\sshare{d_0}_B,k)$.
+\item $\sshare{s_0} \asn \mathsf{XOR}(\sshare{a_0}, \sshare{a_1})$.
+\item For $i \in [1,\ldots,k-1]$ do
+\begin{enumerate}
+  \item $\sshare{s_i} \asn \sshare{a_i}+\sshare{b_i}+\sshare{c_{i-1}}-2\cdot \sshare{c_i}$.
+\end{enumerate}
+\item $\sshare{s_k} \asn \sshare{c_{k-1}}$.
+\item Return $(\sshare{s_k},\ldots,\sshare{s_0})$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} The addition of two numbers expressed in bits, can be performed as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a_bits = [sint(i) for i in [0,1,0,1,1]]
+b_bits = [sint(i) for i in [0,1,0,1,1]]
+# k can be extracted from the array size
+b = floatingpoint.BitAdd(a_bits, b_bits)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{BitLT}(a,\sshare{b}_B,k)$:}
+This computes the sharing of the bit $a<b$, where $a$ is a public value.
+Both $a$ and $b$ are assumed to be $k$ bit values, with
+$a=\sum_{i=0}^{k-1} a_i \cdot 2^i$ and 
+$b=\sum_{i=0}^{k-1} b_i \cdot 2^i$.
+\begin{enumerate}
+\item For $i \in [0,\ldots,k-1]$
+\begin{enumerate}
+   \item $\sshare{b_i'}\asn 1-\sshare{b_i}$.
+\end{enumerate}
+\item $\sshare{s} \asn 1- 
+	\mathsf{CarryOut}((a_{k-1},\ldots,a_0),\sshare{b}_B)$.
+\item Return $\sshare{s}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} Comparing an open register with a secret shared number decomposed in bits can be achieved as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+x = cint(5)
+y = [sint(i) for i in [1,0,1]]
+z = sint()
+kappa = 16
+# k can be extracted from the array size
+# in this case the bit that is the answer is contained in z
+comparison.BitLTL(z, x, y, kappa)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{BitDec}(\sshare{a},k,m)$:}
+This outputs the $m$ least significant bits in the $2$'s complement
+representation of $a \in \Zk$.
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^k+2^{k+\kappa}-\sshare{r}-2^m \cdot \sshare{r'})$.
+\item $(\sshare{a_{m-1}},\ldots,\sshare{a_0}) \asn 
+	\mathsf{BitAdd}(c,(\sshare{r_{m-1}},\ldots,\sshare{r_0}))$.
+\item Return $(\sshare{a_{m-1}},\ldots,\sshare{a_0})$.
+\end{enumerate}
+\paragraph{MAMBA Example:} A secret shared value can be decomposed into bits as shown in the following snippet: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+a = sint(23)
+k = 5
+m = 5
+kappa = 20
+# where b is bit array of type sint
+b = floatingpoint.BitDec(a, k, m, kappa)
+\end{lstlisting}
+
+\msubsection{Arithmetic with Signed Integers}
+In this section we define basic arithmetic on signed integers.
+We define $\Zk$ as the set of integers $\{x \in \Z: -2^{k-1} \le x \le 2^{k-1}-1\}$,
+which we embed into $\F_p$ via the map $x \mapsto x \pmod{p}$.
+
+\msubsubsection{$\mathsf{TruncPR}(\sshare{a},k,m, \kappa)$:}
+An approximate truncation algorithm which is faster than 
+a fully accurate Trunc. 
+Given $a \in \Zk$, $m \in [1,\ldots,k-1]$
+this outputs $\floor{a/2^m}+u$ where $u$ is a random
+(and unknown) bit.
+It gives the actual correct nearest integer with
+probability $1-\alpha$, where $\alpha$ is the distance
+between $a/2^m$ and that integer.
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2^m \cdot \sshare{r'})$.
+\item $c'\asn c \pmod{2^m}$.
+\item $t \asn 1/2^m \pmod{p}$.
+\item $\sshare{d} \asn t \cdot (\sshare{a}-c'+\sshare{r})$.
+\item Return $\sshare{d}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} A secret shared fractional register can be approximately truncated as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a = sint(23)
+k = 5
+m = 3
+kappa = 20
+# where b is a register of type sint
+b=floatingpoint.TruncPr(a, k, m, kappa)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{Mod2m}(\sshare{a_prime}, \sshare{a},k,m, \kappa, signed)$:}
+Given $a \in \Zk$, $m \in [1,\ldots,k-1]$ this outputs $a \pmod{2^m}$.
+Use this protocol when $m>1$, for $m=1$ use $\mathsf{Mod2}$ below.
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2^m \cdot \sshare{r'})$.
+\item $c'\asn c \pmod{2^m}$.
+\item $\sshare{u} \asn \mathsf{BitLT}(c',(\sshare{r_{m-1}},\ldots,\sshare{r_0}),m)$.
+\item $\sshare{a'} \asn c'-\sshare{r}+2^m \cdot \sshare{u}$.
+\item Return $\sshare{a'}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} The \verb|mod| to a power of $2$ of a secret shared integer register can be obtain as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+
+a_prime = 3 a % 2 ^ m
+a = sint(100)
+k = 16 # bit length of a
+m = 2 # compile-time integer
+kappa = 8 
+signed = True # True/False, describes a
+
+# where b is a register of type sint
+r_dprime, r_prime, c, c_prime, u, t, c2k1 = \
+    comparison.Mod2m(a_prime, a, k, m, kappa, signed)
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{Trunc}(\sshare{a},k,m, kappa)$:}
+An exact version of $\mathsf{Trunc}$ above
+\begin{enumerate}
+\item $\sshare{a'} \asn \mathsf{Mod2m}(\sshare{a},k,m, \kappa)$.
+\item $t \asn 1/2^m \pmod{p}$.
+\item $\sshare{d} \asn t \cdot (\sshare{a}-\sshare{a'})$.
+\item Return $\sshare{d}$.
+\end{enumerate}
+Below we will give a version of $\mathsf{Trunc}$ in which $m$ is kept secret shared.
+\paragraph{MAMBA Example:} You truncate a number as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+# a = sint(23)
+# k = 5
+# m = 3 
+# kappa = 20
+# where a is a register of type sint
+a= floatingpoint.Trunc(a, k, m, kappa)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{Mod2}(\sshare{a},k, \kappa, signed)$:}
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r_0} \asn \mathsf{PRandM}(k,1,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2 \cdot \sshare{r'})$.
+\item $\sshare{a_0} \asn c_0+\sshare{r_0}-2 \cdot c_0 \cdot \sshare{r_0}$.
+\item Return $\sshare{a_0}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} You obtain the modulo two of a number as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+
+a = sint(1)
+a_0 = sint()
+k = 1
+kappa = 8
+signed = False 
+# y stores the result of X % 2
+comparison.Mod2(a_0, A, k, kappa, signed)
+\end{lstlisting}
+
+\iffalse
+\note{Nigel}{Does not seem to be used anywhere}
+\msubsubsection{$\mathsf{Mod}(\sshare{a},k,x)$:}
+Given $a \in \Zk$ and public $x \in [1,\ldots,2^{k-1}-1]$
+this computes $\sshare{a \pmod{x}}$.
+\begin{enumerate}
+\item $m \asn \ceil{\log_2 x }$.
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+x \cdot \sshare{r'})$.
+\item $c' \asn c \pmod{x}$.
+\item $\sshare{v} \asn 1 -\mathsf{BitLT}(\sshare{r}_B,x)$.
+\item $\sshare{u} \asn \mathsf{LTZ}(c' - \sshare{r} + x \cdot \sshare{v},m)$.
+\item $\sshare{a'} \asn c' - \sshare{r} + x \cdot ( \sshare{v}+\sshare{u})$.
+\item Return $\sshare{a'}$.
+\end{enumerate}
+\fi
+
+\msubsubsection{$\mathsf{LTZ}(\sshare{a},k, \kappa)$:}
+Given $a \in \Zk$ this tests whether $a<0$ or not,
+resulting in a shared bit.
+\begin{enumerate}
+\item $\sshare{s} \asn - \mathsf{Trunc}(\sshare{a},k,k-1)$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} You determine whether a number is less than zero as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+a = sint(1)
+b = sint()
+k=80
+kappa=40
+# b stores the result of x < 0
+comparison.LTZ(b, a, k, kappa)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{EQZ}(\sshare{a},k, \kappa)$:}
+Given $a \in \Zk$ this tests whether $a=0$ or not,
+resulting in a shared bit.
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+2^k \cdot \sshare{r'}+\sshare{r})$.
+\item Let $c_{k-1},\ldots,c_0$ be the bits of $c$.
+\item For $i \in [0,\ldots,k-1]$ do
+\begin{enumerate}
+   \item $\sshare{d_i} \asn c_i+\sshare{r_i}-2 \cdot c_i \cdot \sshare{r_i}$.
+\end{enumerate}
+\item $\sshare{z} \asn 1- \mathsf{KOp}(\mathsf{OR},\sshare{d_{k-1}},\ldots,\sshare{d_0},k)$.
+\item Return $\sshare{z}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} You determine whether a number is equal to zero as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a = sint(1)
+b = sint()
+k = 80
+kappa = 40
+# b stores the result of x == 0
+floatingpoint.EQZ(b, a, k, kappa)
+\end{lstlisting}
+
+
+\msubsubsection{Comparison Operators:}
+We can now define the basic comparison operators on shared
+representations from $\Zk$.
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+Operator & Protocol Name & Construction \\
+\hline
+$a>0$    & $\mathsf{GTZ(\sshare{a})}$           & $\mathsf{LTZ}(-\sshare{a})$ \\
+$a\le0$  & $\mathsf{LEZ(\sshare{a})}$           & $1-\mathsf{LTZ}(-\sshare{a})$ \\
+$a\ge0$  & $\mathsf{GEZ(\sshare{a})}$           & $1-\mathsf{LTZ}(\sshare{a})$ \\
+$a=b$    & $\mathsf{EQ(\sshare{a},\sshare{b})}$ & $\mathsf{EQZ}(\sshare{a}-\sshare{b})$ \\
+$a<b$    & $\mathsf{LT(\sshare{a,\sshare{b}})}$ & $\mathsf{LTZ}(\sshare{a}-\sshare{b})$ \\
+$a>b$    & $\mathsf{GT(\sshare{a,\sshare{b}})}$ & $\mathsf{LTZ}(\sshare{b}-\sshare{a})$ \\
+$a\le b$ & $\mathsf{LE(\sshare{a,\sshare{b}})}$ & $1-\mathsf{LTZ}(\sshare{b}-\sshare{a})$ \\
+$a\ge b$ & $\mathsf{GE(\sshare{a,\sshare{b}})}$ & $1-\mathsf{LTZ}(\sshare{a}-\sshare{b})$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\msubsubsection{Addition, Multiplication in $\Zk$}
+Addition and multiplication $\odot$ of two elements $\sshare{a}, \sshare{b}$
+to obtain $\sshare{c}$, where $a,b,c \in \Zk$ is then easy to define 
+by performing 
+\begin{enumerate}
+\item $\sshare{d} \asn \sshare{a} \odot \sshare{b}$.
+\item $\sshare{c} \asn \mathsf{Mod2m}(\sshare{d},k',k)$,
+	where $k'=k+1$ is $\odot=+$ and $k'=2\cdot k$ if $\odot=\cdot$.
+\item Return $\sshare{c}$.
+\end{enumerate}
+These functions are not directly callable from MAMBA, they are
+included here purely for documentation reasons.
+
+\msubsubsection{$\mathsf{Pow2}(\sshare{a},k, \kappa)$:}
+This computes $\sshare{2^a}$ where $a \in [0,\ldots,k)$
+\begin{enumerate}
+\item $m \asn \ceil{\log_2 k}$.
+\item $\sshare{a_{m-1}},\ldots,\sshare{a_0} \asn \mathsf{BitDec}(\sshare{a},m,m)$.
+\item For $i\in [0,\ldots,m-1]$ do 
+\begin{enumerate}
+  \item $\sshare{v_i} \asn 2^{2^i} \cdot \sshare{a_i}+1-\sshare{a_i}$.
+\end{enumerate}
+\item $\sshare{x_0},\ldots,\sshare{x_{m-1}}
+	\asn \ \mathsf{PreMult}(\sshare{v_0},\ldots,\sshare{v_{m-1}}, \{(1,1),\ldots,(1,m)\})$
+\item Return $\sshare{x_{m-1}}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} You can obtain the value of two raised to a secret shared number as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a = sint(23)
+l = 32
+kappa = 20
+# y stores the result of 2^23
+y =floatingpoint.Pow2(a, l, kappa)
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{B2U}(\sshare{a},k, \kappa)$:}
+This converts the integer $a \in [0,\ldots,k)$ into unary form.
+It outputs $k$ bits, of which the last $a$ bits are zero to one,
+with the others set to zero.
+\begin{enumerate}
+\item $\sshare{2^a} \asn \mathsf{Pow2}(\sshare{a},k)$.
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
+\item $c \asn \Open(\sshare{2^a}+\sshare{r}+2^k \cdot \sshare{r'})$.
+\item Let $c_{k-1},\ldots,c_0$ be the bits of $c$.
+\item For $i \in [0,\ldots,k=1]$ do
+\begin{enumerate}
+	\item $\sshare{x_i} \asn c_i+\sshare{r_i}-2 \cdot c_i \cdot \sshare{r_i}$.
+\end{enumerate}
+\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
+\item For $i \in [0,\ldots,k=1]$ do
+\begin{enumerate}
+	\item $\sshare{a_i} \asn 1-\sshare{y_i}$.
+\end{enumerate}
+\item Return $\sshare{a_0},\ldots,\sshare{a_{k-1}}$.
+\end{enumerate}
+Note, in the function $\mathsf{Trunc}$ below we also require the
+value $\sshare{2^a}$ to be returned so as to avoid recomputing it.
+
+\paragraph{MAMBA Example:} You can transform a number into its unary form as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a = sint(3)
+l=5
+kappa=20
+b,c = floatingpoint.B2U(a, l, kappa)
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{Trunc}(\sshare{a},k,\sshare{m}, \kappa)$:}
+This does the same operation as $\mathsf{Trunc}$ above, but $m$ is now secret shared.
+\begin{enumerate}
+\item $\sshare{x_0},\ldots,\sshare{x_{k-1}}, \sshare{2^m} \asn \mathsf{B2U}(\sshare{m},k)$.
+\item $\sshare{2^{-m}} \asn \mathsf{Inv}(\sshare{2^m})$.
+\item $\sshare{r''}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
+\item $\sshare{r'} \asn \sum_{i=0}^{k-1} 2^i \cdot \sshare{x_i} \cdot \sshare{r_i}$
+\item $c \asn \Open(\sshare{a}+\sshare{r''}+\sshare{r})$.
+\item For $i \in [1,\ldots,k=1]$ do $c_i' \asn c \pmod{2^i}$.
+\item $\sshare{c''} \asn \sum_{i=1}^{k-1} c_i' \cdot (\sshare{x_{i-1}}-\sshare{x_i})$.
+\item $\sshare{d} \asn \mathsf{LT}(\sshare{c''},\sshare{r'},k)$.
+\item $\sshare{b} \asn (\sshare{a}-\sshare{c''}+\sshare{r'}) \cdot \sshare{2^{-m}} - \sshare{d}$.
+\item Return $\sshare{b}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} You truncate a number as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+a = sint(23)
+k = 5
+m = sint(3)
+kappa = 20
+# where a is a register of type sint
+b= floatingpoint.Trunc(a, k, m, kappa)
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{Mod2m}(a_prime, \sshare{a},k,\sshare{m}, \kappa)$:}
+This does the same operation as $\mathsf{Mod2m}$ above, but $m$ is now secret shared.
+\begin{enumerate}
+\item $\sshare{x_0},\ldots,\sshare{x_{k-1}}, \sshare{2^m} \asn \mathsf{B2U}(\sshare{m},k)$.
+\item $\sshare{2^{-m}} \asn \mathsf{Inv}(\sshare{2^m})$.
+\item $\sshare{r''}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
+\item $\sshare{r'} \asn \sum_{i=0}^{k-1} 2^i \cdot \sshare{x_i} \cdot \sshare{r_i}$
+\item $c \asn \Open(\sshare{a}+\sshare{r''}+\sshare{r})$.
+\item For $i \in [1,\ldots,k=1]$ do $c_i' \asn c \pmod{2^i}$.
+\item $\sshare{c''} \asn \sum_{i=1}^{k-1} c_i' \cdot (\sshare{x_{i-1}}-\sshare{x_i})$.
+\item $\sshare{d} \asn \mathsf{LT}(\sshare{c''},\sshare{r'},k)$.
+\item $\sshare{b} \asn \sshare{c''}-\sshare{r'}+\sshare{2^m} \cdot \sshare{d}$.
+\item Return $\sshare{b}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} The \verb|mod| to a secret shared power of $2$ of a secret shared integer register can be obtain as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import comparison
+
+a_prime = param_a_prime # a % 2^m
+a sint(2137)
+k = 16
+m = sint(2)
+kappa = 8  
+signed = True # True/False, describes a
+
+# where sb is a register of type sint
+r_dprime, r_prime, c, c_prime, u, t, c2k1 = \
+    comparison.Mod2m(a_prime, a, k, m, kappa, signed)
+\end{lstlisting}
+
+
+\msubsection{Arithmetic with Fixed Point Numbers}
+In this section we define basic arithmetic on fixed
+point numbers.
+We mainly follow the algorithms given in 
+\begin{itemize}
+\item Secure Computation with Fixed-Point Numbers {\em FC 2010} \cite{CS10}.
+\end{itemize}
+We define $\Qk{f}$ as the set of rational numbers
+$\{x \in \Q: x = \overline{x} \cdot 2^{-f}, \overline{x} \in \Zk\}$.
+We represent $x \in \Q$ as the integer $x \cdot 2^f = \overline{x} \in \Zk$,
+which is then represented in $\F_p$ via the mapping used above.
+Thus $x \in \Q$ is in the range $[-2^e,2^e-2^{-f}]$
+where $e=k-f$.
+As we are working with fixed point numbers we assume that the
+parameters $f$ and $k$ are public.
+For our following algorithms to work (in particular fixed point
+multiplication and division) we require that $q>2^{2 \cdot k}$.
+By abuse of notation we write $\sshare{a}$ to mean $\sshare{\overline{a}}$,
+i.e. the secret sharing of the fixed point number $a$,
+is actually the secret sharing of the integer representative
+$\overline{a}$.
+
+\msubsubsection{$\mathsf{Scale}(\sshare{a},k,f_1,f_2)$:}
+Sometimes we want to scale the input fixed point number $a$
+from $\Qk{f_1}$ to $\Qk{f_2}$.
+\begin{enumerate}
+\item $m \asn f_2-f_1$.
+\item If $m\ge 0$ then $\sshare{a'} \asn 2^m \cdot \sshare{a}$.
+\item Else $\sshare{a'} \asn \mathsf{TruncPR}(\sshare{a},k,-m)$.
+\item Return $\sshare{a'}$.
+\end{enumerate}
+This is not directly callable from MAMBA it is here purely
+for documentation reasons.
+
+\msubsubsection{$\mathsf{FxEQZ}, \mathsf{FxLTZ}, \mathsf{FxEQ}, \mathsf{FxLT}$, etc:}
+All of the comparison operators for integers given above carry
+over to fixed point numbers (if the inputs have the same $f$-values).
+
+\msubsubsection{$\mathsf{FxAbs}(\sshare{a},k,f)$}
+\begin{enumerate}
+\item $\sshare{s} \asn \mathsf{LTZ}(\sshare{a})$.
+\item $\sshare{a} \asn (1-2\cdot \sshare{s}) \cdot \sshare{a}$.
+\item Return $\sshare{a}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the absolute value of a number as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+b = -1.5
+sb = sfix(b)
+
+# k and f are extracted from b
+# returns unsigned b and receives signed b
+ub = mpc_math.abs_fx(sb)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{FxNeg}(\sshare{a},k,f)$}
+\begin{enumerate}
+\item Return $-\sshare{a}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the original value times $-1$ as follows: 
+\begin{lstlisting}[language={python}]
+b = -1.5
+sb = sfix(b)
+# k and f are extracted from b
+# returns the value of signed b times -1.
+nb = -sb
+\end{lstlisting}
+\msubsubsection{$\mathsf{FxAdd}(\sshare{a},\sshare{b},k,f)$:}
+Given $a, b \in \Qk{f}$ this is just the integer addition algorithm for elements
+in $\Zk$ given above
+\begin{enumerate}
+\item $\sshare{d} \asn \sshare{a} + \sshare{b}$.
+\item $\sshare{c} \asn \mathsf{Mod2m}(\sshare{d},k+1,k)$.
+\item Return $\sshare{c}$.
+\end{enumerate}
+Obviously from $\mathsf{FxNeg}$ and $\mathsf{FxAdd}$ we can define $\mathsf{FxSub}$.
+\paragraph{MAMBA Example:} To obtain the addition of two fixed point secret shared values you can do as follows:
+\begin{lstlisting}[language={python}]
+a = sfix(3.5)
+b = sfix(1.5)
+# k and f are extracted from b or a
+#returns secret shared 5
+a_plus_b = a+b
+\end{lstlisting}
+\msubsubsection{$\mathsf{FxMult}(\sshare{a},\sshare{b},k,f)$:}
+Given $a, b \in \Qk{f}$ this requires integer multiplication followed
+by a suitable truncation.
+\begin{enumerate}
+\item $\sshare{d} \asn \sshare{a} \cdot \sshare{b}$.
+\item $\sshare{c} \asn \mathsf{TrunkPR}(\sshare{d},2 \cdot k,f)$.
+\item Return $\sshare{c}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the multiplication of two fixed point secret shared values you can do as follows:
+\begin{lstlisting}[language={python}]
+a = sfix(3.5)
+b = sfix(1.5)
+# k and f are extracted from b or a
+#returns secret shared 5.25
+a_mult_b = a*b
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{FxDiv}(\sshare{a},b,k,f)$:}
+We first give division for when $a, b \in \Qk{f}$ and $b$ is in the clear.
+\begin{enumerate}
+\item Compute $x \in \Qk{f}$ such that $x \approx 1/b$.
+\item $\sshare{y} \asn \mathsf{TruncPR}(\overline{x} \cdot \sshare{a},k,f)$.
+\item Return $\sshare{y}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To divide two fixed point values (where only one is secret shared) you can do as follows:
+\begin{lstlisting}[language={python}]
+a = sfix(3.5)
+b = 1.5
+# k and f are extracted from b
+#returns secret shared 2.333333
+a_div_b = a/b
+\end{lstlisting}
+\msubsubsection{$\mathsf{FxDiv}(\sshare{a},\sshare{b},k,f)$:}
+This operation is more complex and we use method of Goldschmidt, which
+is recommended by Catrina et. al.
+The following routine makes use of the two subroutines which follow
+\begin{enumerate}
+\item $\theta \asn \ceil{\log_2 (k/3.5)}$. 
+\item $\overline{\alpha} \asn 2^{2 \cdot f}$. 
+	Note that $\overline{\alpha}$ is the integer representative of $1.0$ in $\Qk{2\cdot f}$.
+\item $\sshare{w} \asn \mathsf{AppRcr}(\sshare{b},k,f)$.
+\item $\sshare{x} \asn \overline{\alpha} - \sshare{b}\cdot \sshare{w}$.
+\item $\sshare{y} \asn \sshare{a}\cdot \sshare{w}$.
+\item $\sshare{y} \asn \mathsf{TruncPr}(\sshare{y},2\cdot k,f)$.
+\item For $i \in [1,\ldots,\theta-1]$ do
+\begin{enumerate}
+  \item $\sshare{y} \asn \sshare{y} \cdot (\overline{\alpha}+\sshare{x})$.
+  \item $\sshare{x} \asn \sshare{x}^2$.
+  \item $\sshare{y} \asn \mathsf{TruncPr}(\sshare{y},2\cdot k,2 \cdot f)$.
+  \item $\sshare{x} \asn \mathsf{TruncPr}(\sshare{x},2\cdot k,2 \cdot f)$.
+\end{enumerate}
+\item $\sshare{y} \asn \sshare{y} \cdot (\overline{\alpha}+\sshare{x})$.
+\item $\sshare{y} \asn \mathsf{TruncPr}(\sshare{y},2\cdot k,2 \cdot f)$.
+\item Return $\sshare{y}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the division of two fixed point values that are secret shared, you can do as follows:
+\begin{lstlisting}[language={python}]
+a = sfix(3.5)
+b = 1.5
+# k and f are extracted from b
+#returns secret shared 2.333333
+a_div_b = a/b
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{AppRcr}(\sshare{b},k,f)$:}
+\begin{enumerate}
+\item $\overline{\alpha} \asn 2.9142 \cdot 2^k$.
+	Note that $\overline{\alpha}$ is the integer representative of $2.9142$ in $\Qk{f}$.
+\item $(\sshare{c},\sshare{v}) \asn \mathsf{Norm}(\sshare{b},k,f)$.
+\item $\sshare{d} \asn \overline{\alpha} - 2 \cdot \sshare{c}$.
+\item $\sshare{w} \asn \sshare{d} \cdot \sshare{v}$.
+\item $\sshare{w} \asn \mathsf{TruncPR}(\sshare{w},2 \cdot k,2 \cdot (k-f))$.
+\item Return $\sshare{w}$.
+\end{enumerate}
+This is not callable from MAMBA, it is here purely for documentation reasons.
+
+
+\msubsubsection{$\mathsf{Norm}(\sshare{b},k,f):$}
+This returns the value $c$ such that $2^{k-1} \le c <2^k$
+and $v'$ such that $b \cdot v' = c$,
+and if $2^{m-1} \le |b| <2^m$ then $v'= \pm 2^{k-m}$.
+\begin{enumerate}
+\item $\sshare{s} \asn 1-2 \cdot \mathsf{LTZ}(\sshare{b},k)$.
+\item $\sshare{x} \asn \sshare{s} \cdot \sshare{b}$.
+\item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{x},k,k)$.
+\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
+\item For $i \in [0,\ldots,k-2]$ do 
+\begin{enumerate}
+  \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
+\end{enumerate}
+\item $\sshare{z_{k-1}} \asn \sshare{y_{k-1}}$.
+\item $\sshare{v} \asn \sum_{i=0}^{k-1} 2^{k-i-1} \cdot \sshare{z_i}$.
+\item $\sshare{c} \asn \sshare{x} \cdot \sshare{v}$.
+\item $\sshare{v'} \asn \sshare{s} \cdot \sshare{v}$.
+\item Return $(\sshare{c}, \sshare{v'})$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To obtain the norm of a secret shared fix point register you can do as follows:
+\begin{lstlisting}[language={python}]
+from Compiler import library
+kappa = 40 
+b = sfix(1.5)
+#returns the norm
+ c, v = library.Norm(b, b.k, b.f, kappa, True)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{NormSQ}(\sshare{b},k,f):$}
+As above, but now we assume $b \ge 0$, and we also
+output shares of $m$ and $w$ such that $w=2^{m/2}$
+if $m$ is even and $2^{(m-1)/2}$ if $m$ is odd. Furthermore $v = 2^{k-m}$. Note that we have introduced some adaptations from the original paper:
+\begin{enumerate}
+\item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{b},k,k)$.
+\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
+\item For $i \in [0,\ldots,k-2]$ do 
+\begin{enumerate}
+  \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
+\end{enumerate}
+\item $\sshare{z_{k-1}} \asn \sshare{y_{k-1}}$.
+\item $\sshare{v} \asn \sum_{i=0}^{k-1} 2^{k-i-1} \cdot \sshare{z_i}$.
+\item $\sshare{c} \asn \sshare{b} \cdot \sshare{v}$.
+\item $\sshare{m} \asn \sum_{i=0}^{k-1} (i+1) \cdot \sshare{z_i}$. 
+%z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
+\item For $i \in [1,\ldots,k/2]$ do
+\begin{enumerate}
+	\item $\sshare{w_i}=\sshare{z_{2\cdot i-1 -(1 -k\%2)}}+\sshare{z_{2\cdot i - (1-k\%2)}}$.
+\end{enumerate}
+\item $\sshare{w_0} \asn 0$. 
+\item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
+\item Return $(\sshare{c}, \sshare{v}, \sshare{m}, \sshare{w})$.
+\end{enumerate}
+
+
+\msubsection{Arithmetic with Floating Point Numbers}
+\todo{This section is currently not fully implemented. We aim to 
+implement it fully in the next release.}
+
+For floating point numbers we utilize the methods described in
+\begin{itemize}
+\item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
+\end{itemize}
+However we make explicit use of an error flag which we carry throughout
+a computation.
+\todo{This error flag is not currently implemented in MAMBA system 
+we need to add it}
+As discussed in the above paper for overflow and underflow detection
+one can choose to use the flag or not, thus we isolate the underflow/overflow
+detection below in the routine $\mathsf{FlowDetect}$ and allow a compile
+time flag $\mathsf{fdflag}$ to turn this option off or on.
+The error flag is still needed however to catch other forms of errors
+in computations.
+
+Floating point numbers are defined by two global, public integer parameters
+$(\ell,k)$ which define the size of the mantissa and the exponent respectively.
+Each floating point number is represented as a five tuple $(v,p,z,s,\err)$, where
+\begin{itemize}
+\item $v \in [2^{\ell-1},2^\ell)$ is an $\ell$-bit significand with it's most
+most bit always set to one.
+\item $p \in \Zk$ is the signed exponent.
+\item $z$ is a bit to define whether the number is zero or not.
+\item $s$ is a sign bit (equal to zero if non-negative).
+\item $\err$ is an error bit (equal to zero if no error has occured).
+\end{itemize}
+Thus assuming $\err=0$ this tuple represents the value
+\[ u=(1- 2 \cdot s) \cdot (1-z) \cdot v \cdot 2^p. \]
+We adopt the conventions that when $u=0$ we also have $z=1, v=0$ and $p=0$,
+and when $\err=1$ then the values of $v,p,z$ and $s$ are meaningless.
+
+\msubsubsection{$\mathsf{FlowDetect}(\sshare{p},\sshare{\err})$:}
+\begin{enumerate}
+\item If $\mathsf{fdflag}$ then
+\begin{enumerate}
+\item $\sshare{of} \asn \mathsf{GT}(\sshare{p},2^{k-1}-1,k+1)$.
+\item $\sshare{uf} \asn \mathsf{LT}(\sshare{p},-2^{k-1}-1,k+1)$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{of})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{uf})$.
+\end{enumerate}
+\item Return $\sshare{\err}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLNeg}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item $\sshare{s} \asn 1-\sshare{s}$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLAbs}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item $\sshare{s} \asn 0$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$
+\end{enumerate}
+Obviously from $\mathsf{FLNeg}$ and $\mathsf{FLAdd}$ we can define $\mathsf{FLSub}$.
+
+\msubsubsection{$\mathsf{FLMult}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+For floating point operations multiplication is much easier than addition, so we deal with 
+this first.
+\begin{enumerate}
+\item $\sshare{v} \asn \sshare{v_1} \cdot \sshare{v_2}$.
+\item $\sshare{v} \asn \mathsf{Trunc}(\sshare{v},2 \cdot \ell, \ell-1)$.
+\item $\sshare{b} \asn \mathsf{LT}(\sshare{v},2^\ell,\ell+1)$.
+\item $\sshare{v'} \asn \sshare{v}+\sshare{b} \cdot \sshare{v}$.
+\item $\sshare{v} \asn \mathsf{Trunc}(\sshare{v'}, \ell+1, 1)$.
+\item $\sshare{z} \asn \mathsf{OR}(\sshare{z_1},\sshare{z_2})$.
+\item $\sshare{s} \asn \mathsf{XOR}(\sshare{s_1},\sshare{s_2})$.
+\item $\sshare{p} \asn (\sshare{p_1}+\sshare{p_2}+\ell-\sshare{b}) \cdot (1-\sshare{z})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_1},\sshare{\err_2})$.
+\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
+\end{enumerate}
+
+
+\msubsubsection{$\mathsf{FLAdd}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item $\sshare{a} \asn \mathsf{LT}(\sshare{p_1},\sshare{p_2},k$.
+\item $\sshare{b} \asn \mathsf{EQ}(\sshare{p_1},\sshare{p_2},k$. 
+\item $\sshare{c} \asn \mathsf{LT}(\sshare{v_1},\sshare{v_2},k$.
+\item $\sshare{p_{\max}} \asn \sshare{a} \cdot \sshare{p_2} + (1-\sshare{a}) \cdot \sshare{p_1}$.
+\item $\sshare{p_{\min}} \asn (1-\sshare{a}) \cdot  \sshare{p_2} + \sshare{a} \cdot \sshare{p_1}$.
+\item $\sshare{a \cdot b} \asn \sshare{a} \cdot \sshare{b}$.
+\item $\sshare{b \cdot c} \asn \sshare{b} \cdot \sshare{c}$.
+\item $\sshare{v_{\max}} \asn 
+	(\sshare{a \cdot b}-\sshare{a}-\sshare{b \cdot c}) \cdot (\sshare{v_1}-\sshare{v_2})
+			   + \sshare{v_1}$.
+\item $\sshare{v_{\min}} \asn 
+	(\sshare{a \cdot b}-\sshare{a}-\sshare{b \cdot c}) \cdot (\sshare{v_2}-\sshare{v_1})
+			   + \sshare{v_2}$.
+\item $\sshare{s_3} \asn \mathsf{XOR}(\sshare{s_1},\sshare{s_2})$.
+\item $\sshare{d} \asn \mathsf{LT}(\ell, \sshare{p_{\max}}-\sshare{p_{\min}}, k)$.
+\item $\sshare{2^\Delta} \asn \mathsf{Pow2}((1-\sshare{d}) \cdot (\sshare{p_{\max}}-\sshare{p_{\min}),\ell+1)$.
+\item $\sshare{v_3} \asn 2 \cdot (\sshare{v_{\max}}-\sshare{s_3})+1$.
+\item $\sshare{v_4} \asn \sshare{v_{\max}} \cdot \sshare{2^\Delta}+(1-2 \cdot \sshare{s_3}) \cdot \sshare{v_{\min}}$.
+\item $\sshare{v} \asn (\sshare{d} \cdot \sshare{v_3}+(1-\sshare{d}) \cdot \sshare{v_4})
+		\cdot 2^\ell \cdot \mathsf{Inv}(\sshare{2^\Delta}})$.
+\item $\sshare{v} \asn \mathsf{Trunc}(\sshare{v},2 \cdot \ell+1,\ell-1)$.
+\item $\sshare{u_{\ell+1}},\ldots,\sshare{u_0} \asn \mathsf{BitDec}(\sshare{v},\ell+2,\ell+2)$.
+\item $\sshare{h_0},\ldots,\sshare{h_{\ell+1}} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{u_{\ell+1}},\ldots,\sshare{u_0},k)$.
+\item $\sshare{p_0} \asn \ell+2-\sum_{i=0}^{\ell+1} \sshare{h_i}$.
+\item $\sshare{2^{p_0}} \asn 1+ \sum_{i=0}^{\ell+1} 2^i \cdot (1-\sshare{h_i})$.
+\item $\sshare{v} \asn \mathsf{Trunc}(\sshare{2^{p_0}} \cdot \sshare{v},\ell+2,2)$.
+\item $\sshare{p} \asn \sshare{p_{\max}}-\sshare{p_0}+1-\sshare{d}$.
+\item $\sshare{z_1 \cdot z_2} \asn \sshare{z_1} \cdot \sshare{z_2}$.
+\item $\sshare{v} \asn (1-\sshare{z_1}-\sshare{z_2} +\sshare{z_1 \cdot z_2}) \cdot \sshare{v}
+		    + \sshare{z_1} \cdot \sshare{v_2} + \sshare{z_2} \cdot \sshare{v_1}$.
+\item $\sshare{z} \asn \mathsf{EQZ}(\sshare{v},\ell)$.
+\item $\sshare{p} \asn (1-\sshare{z_1}-\sshare{z_2}+\sshare{z_1 \cdot z_2}) \cdot \sshare{p}
+	+ \sshare{z_1} \cdot \sshare{p_2} 
+	+ \sshare{z_2} \cdot \sshare{p_1}) \cdot (1-\sshare{z})$.
+\item $\sshare{s} \asn (\sshare{a}-\sshare{a \cdot b}) \cdot \sshare{s_2}
+	             + (1-\sshare{a}-\sshare{b}+\sshare{a \cdot b}) \cdot \sshare{s_1})
+		     + \sshare{b \cdot c} \cdot \sshare{s_2}
+		     + (\sshare{b}-\sshare{b \cdot c}) \cdot \sshare{s_1})$.
+\item $\sshare{s} \asn (1-\sshare{z_1}-\sshare{z_2}+\sshare{z_1 \cdot z_2}) \cdot \sshare{s}
+	             + (\sshare{z_2}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_1}
+		     + (\sshare{z_1}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_2}$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_1},\sshare{\err_2})$.
+\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{SDiv}(\sshare{a},\sshare{b},\ell)$:}
+\begin{enumerate}
+\item $\theta \asn \ceil{\log_{2} \ell}$. 
+\item $\sshare{x} \asn \sshare{b}$.
+\item $\sshare{y} \asn \sshare{a}$.
+\item For $i \in [1,\ldots,\theta-1]$ do
+\begin{enumerate}
+  \item $\sshare{y} \asn \sshare{y} \cdot (2^{\ell+1}-\sshare{x})$.
+  \item $\sshare{y} \asn \mathsf{TruncPr}(\sshare{y},2\cdot \ell+1,\ell)$.
+  \item $\sshare{x} \asn \sshare{x} \cdot (2^{\ell+1}-\sshare{x})$.
+  \item $\sshare{x} \asn \mathsf{TruncPr}(\sshare{x},2\cdot \ell+1,\ell)$.
+\end{enumerate}
+\item $\sshare{y} \asn \sshare{y} \cdot (2^{\ell+1}-\sshare{x})$.
+\item $\sshare{y} \asn \mathsf{TruncPr}(\sshare{y},2\cdot \ell+1,\ell)$.
+\item Return $\sshare{y}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLDiv}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item $\sshare{v} \asn \mathsf{SDiv}(\sshare{v_1},\sshare{v_2}+\sshare{z_2},\ell)$.
+\item $\sshare{b} \asn \mathsf{LT}(\sshare{v},2^\ell,\ell+1)$.
+\item $\sshare{v'} \asn \sshare{v}+\sshare{b} \cdot \sshare{v}$.
+\item $\sshare{v} \asn \mathsf{Trunc}(\sshare{v'}, \ell+1, 1)$.
+\item $\sshare{z} \asn \sshare{z_1}$.
+\item $\sshare{s} \mathsf{XOR}(\sshare{s_1},\sshare{s_2})$.
+\item $\sshare{p} \asn (\sshare{p_1}-\sshare{p_2}-\ell+1-\sshare{b}) \cdot (1-\sshare{z})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_1},\sshare{\err_2})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{z_2})$.
+\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
+\end{enumerate}
+
+
+\msubsubsection{$\mathsf{FLLTZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item Return $\sshare{s} \cdot (1-\sshare{z})$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLEQZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item Return $\sshare{z})$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLGTZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item Return $(1-\sshare{s}) \cdot (1-\sshare{z})$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLLEZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item Return $\sshare{s}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLGEZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
+\begin{enumerate}
+\item Return $1-\sshare{s}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLEQ}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item $\sshare{b_1} \asn \mathsf{EQ}(\sshare{v_1},\sshare{v_2},\ell)$.
+\item $\sshare{b_2} \asn \mathsf{EQ}(\sshare{p_1},\sshare{p_2},k)$.
+\item $\sshare{b_3} \asn \sshare{z_1} \cdot \sshare{z_2}$.
+\item $\sshare{b_4} \asn \sshare{s_1} \cdot \sshare{s_2}$.
+\item Return $\sshare{b_1} \cdot \sshare{b_2} \cdot \sshare{b_3} \cdot \sshare{b_4}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLLT}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item $\sshare{a} \asn \mathsf{LT}(\sshare{p_1},\sshare{p_2},k)$.
+\item $\sshare{c} \asn \mathsf{EQ}(\sshare{p_1},\sshare{p_2},k)$.
+\item $\sshare{d} \asn \mathsf{LT}((1-2\cdot \sshare{s_1}) \cdot \sshare{v_1},
+	                           (1-2\cdot \sshare{s_2}) \cdot \sshare{v_2},\ell+1)$.
+\item $\sshare{a \cdot c} \asn \sshare{a}\cdot \sshare{c}$.
+\item $\sshare{c \cdot d} \asn \sshare{c}\cdot \sshare{d}$.
+\item $\sshare{b^+} \asn \sshare{c \cdot d}+(\sshare{a}-\sshare{a \cdot c})$.
+\item $\sshare{b^-} \asn \sshare{c \cdot d}+(1-\sshare{c}-\sshare{a}+\sshare{a \cdot c})$.
+\item $\sshare{z_1 \cdot z_2} \asn \sshare{z_1}\cdot \sshare{z_2}$.
+\item $\sshare{s_1 \cdot s_2} \asn \sshare{s_1}\cdot \sshare{s_2}$.
+\item $\sshare{b} \asn \sshare{z_1 \cdot z_2} \cdot (\sshare{s_2}-1-\sshare{s_1 \cdot s_2})
+	             + \sshare{s_1 \cdot s_2} \cdot (\sshare{z_1}+\sshare{z_2}-1)
+		     + \sshare{z_1}\cdot (1-\sshare{s1}-\sshare{s_2})
+		     + \sshare{s_1}$.
+\item $\sshare{b} \asn \sshare{b}+
+	(1-\sshare{z_1}-\sshare{z_2}+\sshare{z_1 \cdot z_2} \cdot 
+	((1-\sshare{s_1}-\sshare{s_2}+\sshare{s_1 \cdot s_2}) \cdot \sshare{b^+}
+	+\sshare{s_1 \cdot s_2} \cdot \sshare{b^-})$.
+\item Return $\sshare{b}$.
+\end{enumerate}
+
+
+\msubsubsection{$\mathsf{FLGT}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item Return $\mathsf{FLLT}(
+	(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),
+        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLLET}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item $\sshare{b_1} \asn \mathsf{FLLT}(
+        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
+\item $\sshare{b_2} \asn \mathsf{FLEQ}(
+        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
+\item Return $\mathsf{OR}(\sshare{b_1},\sshare{b_2})$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLGET}(
+	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
+\begin{enumerate}
+\item $\sshare{b_1} \asn \mathsf{FLGT}(
+        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
+\item $\sshare{b_2} \asn \mathsf{FLEQ}(
+        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
+\item Return $\mathsf{OR}(\sshare{b_1},\sshare{b_2})$.
+\end{enumerate}
+
+
+\msubsection{Conversion Routines}
+\todo{As floating point is not yet fully implemented, the
+references in this section to floating point operations should
+be considered ``experimental''.}
+
+\msubsubsection{$\mathsf{FLRound}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1},\mathsf{mode})$:}
+This, depending on $\mathsf{mode}$, computes either the floating point
+representation of the floor (if $\mathsf{mode}=0$) or the ceiling (if $\mathsf{mode}=1$)
+of the input floating point number.
+\begin{enumerate}
+\item $\sshare{a} \asn \mathsf{LTZ}(\sshare{p_1},k)$.
+\item $\sshare{b} \asn \mathsf{LT}(\sshare{p_1},-\ell+1,k)$.
+\item $\sshare{a \cdot b} \asn \sshare{a} \cdot \sshare{b}$.
+\item $\sshare{v_2},\sshare{2^{-p_1}} \asn \mathsf{Mod2m}(\sshare{v_1},\ell,(\sshare{a \cdot b}-\sshare{a}) \cdot \sshare{p_1})$. 
+	[Note, we save the computation of $\sshare{2^{-p_1}}$ which this routine computes when $0 \le p_1 < -\ell$, otherwise the returned share is of $2^0$.]
+\item $\sshare{c} \asn \mathsf{EQZ}(\sshare{v_2},\ell)$.
+\item $\sshare{v} \asn \sshare{v_1}-\sshare{v_2}+(1-\sshare{c}) \cdot \sshare{2^{-p_1}} 
+	\cdot \mathsf{XOR}(\mathsf{mode},\sshare{s_1})$.
+\item $\sshare{d} \asn \mathsf{EQ}(\sshare{v},2^\ell,\ell+1)$.
+\item $\sshare{v} \asn 2^{\ell-1} \cdot \sshare{d} + (1-\sshare{d}) \cdot \sshare{v}$.
+\item $\sshare{v} \asn (\sshare{a}-\sshare{a \cdot b}) \cdot \sshare{v}
+			+ \sshare{a \cdot b} \cdot (\mathsf{mode}-\sshare{s_1})
+					+ (1-\sshare{a}) \cdot \sshare{v_1}$.
+\item $\sshare{s} \asn (1-\sshare{b} \cdot \mathsf{mode}) \cdot \sshare{s_1}$.
+\item $\sshare{z} \asn \mathsf{OR}(\mathsf{EQZ}(\sshare{v},\ell),\sshare{z_1})$.
+\item $\sshare{v} \asn \sshare{v} \cdot (1-\sshare{z})$.
+\item $\sshare{p} \asn (\sshare{p_1}+\sshare{d} \cdot (\sshare{a}-\sshare{a \cdot b})) \cdot (1-\sshare{z})$.
+\item $\sshare{\err} \asn \sshare{\err_1}$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To round a \verb|sfloat| value we could invoke the function as follows: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+x = sfloat(5.5)
+mode = 0 
+# v, p, z, s, err are extracted from x
+# retunrs the floor of x
+y = floatingpoint.FLRound(x,mode)
+\end{lstlisting}
+When \verb+mode=2+ then we get the ceil operation.
+
+
+\msubsubsection{$\mathsf{Int2Fx}(\sshare{a},k,f)$:}
+Given an integer $a \in \Zk$ this gives the equivalent integer $b$
+in $\Qk{f}$, namely $\overline{b}=a \cdot 2^f$.
+Note this means, to ensure correctness, that $|a|\le 2^{k-f}$.
+\begin{enumerate}
+\item Return $2^f \cdot \sshare{a}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To cast an \verb|int| or \verb|sint| register into a \verb|sfix| one, you could execute the following: 
+\begin{lstlisting}[language={python}]
+x = sfix(5.5)
+# k, f are extracted from x
+y = sfix.load_sint(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{Int2FL}(\sshare{a},\gamma,\ell)$:}
+We assume $a \in \Zgam$, this could loose precision if $\gamma-1>\ell$.
+\begin{enumerate}
+\item $\lambda \asn \gamma-1$.
+\item $\sshare{s} \asn \mathsf{LTZ}(\sshare{a},\gamma)$.
+\item $\sshare{z} \asn \mathsf{EQZ}(\sshare{a},\gamma)$.
+\item $\sshare{a} \asn (1- 2 \cdot \sshare{s}) \cdot \sshare{a}$.
+\item $\sshare{a_{\lambda-1}},\ldots,\sshare{a_0}
+		\asn \mathsf{BitDec}(\sshare{a},\lambda,\lambda)$.
+\item $\sshare{b_0},\ldots,\sshare{b_{\lambda-1}} \asn
+ \mathsf{PreOp}(\mathsf{OR},\sshare{a_{\lambda-1}},\ldots,\sshare{a_0},\gamma)$.
+\item $\sshare{v} \asn \sshare{a} \cdot
+	( 1+\sum_{i=0}^{\lambda-1} 2^i \cdot (1-\sshare{b_i}))$.
+\item $\sshare{p} \asn - (\lambda-\sum_{i=0}^{\lambda-1} \sshare{b_i})$.
+\item If $(\gamma-1)>\ell$ then
+\begin{enumerate}
+  \item $\sshare{v} \asn \mathsf{Trunc}(\sshare{v},\gamma-1,\gamma-\ell-1)$.
+\end{enumerate}
+\item Else
+\begin{enumerate}
+  \item $\sshare{v} \asn 2^{\ell-\gamma+1} \cdot \sshare{v}$.
+\end{enumerate}
+\item $\sshare{p} \asn (\sshare{p}+\gamma-1-\ell) \cdot (1-\sshare{z})$.
+\item $\sshare{\err} \asn 0$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To cast an \verb|int| or \verb|sint| register into a \verb|sfloat| one, you could execute the following: 
+\begin{lstlisting}[language={python}]
+x = sfloat(5.5)
+# gamma and l are extracted from the system
+y = sfloat(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{Fx2Int}(\sshare{a},k,f)$:}
+Given a value $a \in \Qk{f}$ this gives the integer
+$\floor{\overline{a}/2^f}$.
+\begin{enumerate}
+\item Return $\mathsf{Trunc}(\sshare{a},k,f)$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To cast an \verb|sfix| register into a \verb|sint| one, you could execute the following: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+x = sifx(5.5)
+# y stores 5 in a sint register
+y = floatingpoint.Trunc(x.v, x.k - x.f, x.f, x.kappa)
+\end{lstlisting}
+\msubsubsection{$\mathsf{FxFloor}(\sshare{a},k,f)$:}
+Given a value $a \in \Qk{f}$ this does the same, but
+gives the result as a fixed point value.
+\begin{enumerate}
+\item Return $2^f \cdot \mathsf{Trunc}(\sshare{a},k,f)$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To floor an \verb|sfix| register, you could execute the following: 
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x = sifx(5.5)
+# k and f are extracted from x
+# y stores 5 in a sfix register
+y = mpc_math.floor_fx(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{Fx2FL}(\sshare{g},\gamma,f,\ell,k)$:}
+Converts $g \in \Qk{f}$ into a floating point number
+\begin{enumerate}
+\item ($\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})
+	\asn \mathsf{Int2FL}(\sshare{g},\gamma,\ell)$.
+\item $\sshare{p} \asn (\sshare{p}-f) \cdot (1-\sshare{z})$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To cast an \verb|sfix| register into a \verb|sint| one, you could execute the following: 
+\begin{lstlisting}[language={python}]
+# stores 5.5 on a sfloat register
+x = sfloat(sifx(5.5))
+\end{lstlisting}
+\msubsubsection{$\mathsf{FL2Int}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}),\ell,k,\gamma)$:}
+Note the two calls to $\mathsf{Mod2m}$ below can be combined into
+one, as can the two calls to $\mathsf{Pow2}$.
+The output here is in $\Zgam$.
+\begin{enumerate}
+\item $\sshare{v'},\sshare{p'},\sshare{z'},\sshare{s'},\sshare{\err'}
+	\asn \mathsf{FLRound}(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err},\mathsf{2})$. 
+\item $\sshare{a} \asn \mathsf{LT}(\sshare{p'},\gamma-1,k)$.
+\item $\sshare{b} \asn \mathsf{LT}(\gamma-\ell-1,\sshare{p'},k)$.
+\item $\sshare{c} \asn \mathsf{LTZ}(\sshare{p'},k)$.
+\item $\sshare{b \cdot c} \asn \sshare{b} \cdot \sshare{c}$.
+\item $\sshare{m} \asn \sshare{a}\cdot (\sshare{b} -\sshare{b \cdot c})
+		\cdot (\gamma-1-\sshare{p'})$.
+\item $\sshare{u} \asn \mathsf{Mod2m}(\sshare{v'},\ell,\sshare{m})$.
+\item $\sshare{v'} \asn (\sshare{b} -\sshare{b \cdot c}) \cdot ( \sshare{u}-\sshare{v'}) +\sshare{v'}$
+\item $\sshare{2^{-p'}} \asn \mathsf{Pow2}(-\sshare{c} \cdot \sshare{p'},\ell)$.
+\item $\sshare{2^{p'}} \asn \mathsf{Inv}(\sshare{2^{-p'}})$.
+\item $\sshare{v'} \asn (\sshare{c} \cdot \sshare{2^{p'}}+1-\sshare{c})
+			\cdot \sshare{v'}$.
+\item $\sshare{w} \asn \mathsf{Mod2m}(\sshare{v'},\ell,
+		\sshare{b \cdot c}\cdot(\gamma-1))$.
+\item $\sshare{v'} \asn \sshare{b \cdot c} \cdot (\sshare{w}-\sshare{v'}) +\sshare{v'}$.
+\item $\sshare{2^{p'}} \asn \mathsf{Pow2}(\sshare{a} \cdot (1-\sshare{c})
+				\cdot \sshare{p'},\gamma-1)$.
+\item $\sshare{g} \asn (1-\sshare{z'}) \cdot (1-2 \cdot \sshare{s'})
+			\cdot \sshare{2^{p'}} \cdot \sshare{a}
+			\cdot \sshare{v'}$.
+\item Return $\sshare{g}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To cast an \verb|sfloor| register into a \verb|sint| one, you could execute the following: 
+\begin{lstlisting}[language={python}]
+from Compiler import floatingpoint
+# v, p, z, s, err are extracted from x and l, k, gamma are system parameters 
+x = sfloat(5.5)
+# retunrs the floor of x
+y = floatingpoint.FLRound(x,0)
+\end{lstlisting}
+\msubsubsection{$\mathsf{FL2Fx}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}),\ell,k,\gamma,f)$:}
+\begin{enumerate}
+\item $\sshare{b} \asn \mathsf{LT}(\sshare{p},2^{k-1}-f,k)$.
+\item $\sshare{g} \asn \mathsf{FL2Int}((\sshare{v},\sshare{p}+f,\sshare{z},
+	\sshare{s},\sshare{\err}),\ell,k,\gamma)$.
+\item Return $\sshare{g} \cdot \sshare{b}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} To cast an \verb|sfloat| register into a \verb|sfix| one, you could execute the following: 
+\begin{lstlisting}[language={python}]
+# stores 5.5 on a sfix register
+# v, p, z, s, err are extracted from x and l, k, gamma are system parameters 
+x = sfix(sfloat(5.5))
+\end{lstlisting}
+
+\msubsection{SQRT Functions}
+The fixed point square root algorithm is in
+\begin{itemize}
+\item Secure Distributed Computation of the Square Root and Applications, {\em ISPEC 2012}
+\cite{Liedel12}.
+\end{itemize}
+The floating point variant is in
+\begin{itemize}
+\item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
+\end{itemize}
+Both algorithms makes use of two constants
+\[ \alpha = -0.8099868542, \quad \beta  =  1.787727479.  \]
+These are the solutions of the system of equations
+\begin{align*}
+   E(x)&= \frac{\alpha \cdot x+\beta-\frac{1}{\sqrt{x}}}{\frac{1}{\sqrt{x}}}, \\
+	M &= \frac{\sqrt{3}}{3} \cdot \sqrt{\frac{-\beta}{\alpha}}
+	    \cdot \left(\frac{2}{3} \cdot\beta
+		    -\frac{\sqrt{3}}{\sqrt{\frac{-\beta}{\alpha}}} 
+	    \right), \\
+   E\left( \frac{1}{2}\right) &= E(1) = -M.
+\end{align*}
+
+\msubsubsection{$\mathsf{FxSqrt}(\sshare{x},k,f)$:}
+This algorithm uses the sub-algorithm $\mathsf{LinAppSQ}$ defined below, note that \verb|LinAppSQ| returns an scaled $1/\sqrt{x} \cdot 2^{f}$.
+The algorithm only works when $3 \cdot k -2 \cdot f$ is less than the system precision, which is by default equal to $20$.
+In a future release we will extend the sqrt function to cope with other input ranges.
+\begin{enumerate}
+\item $\theta \asn \ceil{\log_2 (k/5.4)}$.
+\item $\sshare{y_0} \asn \mathsf{LinAppSQ}(\sshare{x},k,f)$.
+\item $\sshare{y_0} \asn \sshare{y_0} \cdot 1/2^{f}$.
+\item $\sshare{g_0} \asn \sshare{y_0} \cdot \sshare{x}$.
+\item $\sshare{g_0} \asn \sshare{y_0} \cdot 1/2^{f}$.
+%\item $\sshare{g_0} \asn \mathsf{TruncPr}(\sshare{g_0},k,f)$.
+%\item $\sshare{h_0} \asn \mathsf{FxDiv}(\sshare{g_0},2,k,f)$.
+\item $\sshare{g_0} \asn \sshare{y_0} \cdot 1/2$.
+\item $\sshare{gh_0} \asn \sshare{g_0} \cdot \sshare{h_0}$.
+%\item $\sshare{gh} \asn \mathsf{TruncPr}(\sshare{gh},k,f)$.
+\item $\sshare{g} \asn \sshare{g_0}$.
+\item $\sshare{h} \asn \sshare{h_0}$.
+\item $\sshare{gh} \asn \sshare{gh_0}$.
+\item For $i \in[1,\ldots,\theta-2]$ do
+\begin{enumerate}
+  \item $\sshare{r} \asn 3/2-\sshare{gh}$.
+  \item $\sshare{g} \asn \sshare{g} \cdot \sshare{r}$.
+  \item $\sshare{h} \asn \sshare{h} \cdot \sshare{r}$.
+  %\item $\sshare{g} \asn \mathsf{TruncPr}(\sshare{g},k,f)$.
+  %\item $\sshare{h} \asn sf{TruncPr}(\sshare{h},k,f)$.
+  \item $\sshare{gh} \asn \sshare{g} \cdot \sshare{h}$.
+  %\item $\sshare{gh} \asn \mathsf{TruncPr}(\sshare{gh},k,f)$.
+\end{enumerate}
+\item $\sshare{r} \asn 3/2-\sshare{gh}$.
+\item $\sshare{h} \asn \sshare{h} \cdot \sshare{r}$.
+%\item $\sshare{h} \asn \mathsf{TruncPr}(\sshare{h},k,f)$.
+\item $\sshare{H} \asn 4 \cdot (\sshare{h}^2)$.
+\item $\sshare{H} \asn \sshare{H}\cdot \sshare{x}$.
+\item $\sshare{H} \asn (3) - \sshare{H}$.
+\item $\sshare{H} \asn \sshare{h} \cdot \sshare{H}$.
+\item $\sshare{g} \asn \sshare{H} \cdot \sshare{x}$.
+%\item $\sshare{g} \asn \mathsf{FxDiv}(\sshare{g},2,k,f)$.
+%\item $\sshare{g} \asn \mathsf{TruncPr}(\sshare{g},4 \cdot k,4 \cdot f)$.
+\item Return $\sshare{g}$.
+\end{enumerate}
+
+
+\paragraph{MAMBA Example:} To obtain the \verb|sqrt| of any value, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+ x = sfix(6.25)
+ k = 5
+ f = 2
+# returns the sqrt of the number, i.e. 2.5
+# inputs have to be expressed such that:
+# x * 2^f \in Z_q
+# and 3*k -2*f < sfix.f (system precision)
+# by default system precision is 20 bits. 
+y = mpc_math.sqrt(x, k, f)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{LinAppSQ}(\sshare{b},k,f)$:}
+We based this section on the contents of the original paper, and capture the spirit of what the author tries to achieve. However we corrected the typos and other items alike from the original work, the result is as follows:
+\begin{enumerate}
+\item $\alpha \asn (-0.8099868542) \cdot 2^k$.  
+\item $\beta \asn (1.787727479) \cdot 2^{2\cdot k}$.
+\item $(\sshare{c},\sshare{v},\sshare{m},\sshare{W}) \asn \mathsf{NormSQ}(\sshare{b},k,f)$.
+\item $\sshare{w} \asn \alpha \cdot \sshare{c}+\beta$.
+\item $\sshare{m} \asn \mathsf{Mod2}(\sshare{m},\ceil{\log_2 k})$.
+\item $\sshare{w} \asn \sshare{w} \cdot \sshare{W} \cdot \sshare{v}$.
+\item $\sshare{w} \asn \mathsf{FxDiv}(\sshare{w},2^{f/2},w.k,w.f)$.
+\item $\sshare{w} \asn \mathsf{FxDiv}(\sshare{w},3 \cdot k - 2 \cdot f,w.k,w.f)$.
+%\item $\sshare{w} \asn \mathsf{TruncPr}(\sshare{w},3\cdot k, 3 \cdot k - 2 \cdot f)$.
+\item $\sshare{w} \asn (1-\sshare{m}) \cdot \sshare{w} \cdot 2^f
+			+(\sqrt{2} \cdot 2^f) \cdot \sshare{m}\cdot \sshare{w}$.
+\item Return $\sshare{w}$ % \asn \mathsf{TruncPr}(\sshare{w},k,f)$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FLSqrt}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$:}
+Below we let $\ell_0$ denote the lsb of $\ell$,
+$(v_\alpha,p_\alpha,z_\alpha,s_\alpha)$
+(resp.  $(v_\beta,p_\beta,z_\beta,s_\beta)$)
+denote the floating point representation of the constant $\alpha$ (resp. $\beta$)
+given above,
+and $v_{\sqrt{2}}$ and $p_{\sqrt{2}}$ represent the $\ell$-bit significand and exponent of
+$\sqrt{2}$ in floating point representation.
+\begin{enumerate}
+\item $\sshare{b} \asn \mathsf{BitDec}(\sshare{p_1},\ell,1)$.
+\item $\sshare{c} \asn \mathsf{XOR}(\sshare{b},\ell_0)$. 
+\item $\sshare{p} \asn 2^{-1} \cdot (\sshare{p_1}-\sshare{b})
+		+\floor{\ell/2}+\mathsf{OR}(\sshare{b},\ell_0)$.
+\item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	\asn \mathsf{FLMult}((\sshare{v_1},-\ell,0,0,0),(v_\alpha,p_\alpha,z_\alpha,s_\alpha,0))$.
+\item $(\sshare{v_0},\sshare{p_0},\sshare{z_0},\sshare{s_0},\sshare{\err_0})
+	\asn \mathsf{FLAdd}((\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),(v_\beta,p_\beta,z_\beta,s_\beta,0))$.
+\item $(\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g})
+	\asn \mathsf{FLMult}((\sshare{v_1},-\ell,0,0,0),(\sshare{v_0},\sshare{p_0},\sshare{z_0},\sshare{s_0},\sshare{\err_0}))$.
+\item  $(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
+	\asn   (\sshare{v_0},\sshare{p_0}-1,\sshare{z_0},\sshare{s_0},\sshare{\err_0})$.
+\item For $i \in [1,\ldots,\ceil{\ell/5.4}-1]$ do
+\begin{enumerate}
+   \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g}),
+                (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
+		)$.
+   \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	   	\asn \mathsf{FLSub}(
+		(3 \cdot 2^{\ell-2},-(\ell-1),0,0,0),
+                (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+		)$.
+   \item $(\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g}),
+                (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+		)$.
+   \item $(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),
+                (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+		)$.
+\end{enumerate}
+\item $(\sshare{v_{h^2}},\sshare{p_{h^2}},\sshare{z_{h^2}},\sshare{s_{h^2}},\sshare{\err_{h^2}})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),
+                (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
+		)$.
+\item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	   	\asn \mathsf{FLMult}(
+                (\sshare{v_1},-\ell,0,0,0),
+                (\sshare{v_{h^2}},\sshare{p_{h^2}},\sshare{z_{h^2}},\sshare{s_{h^2}},\sshare{\err_{h^2}})$.
+\item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	   	\asn \mathsf{FLSub}(
+		(3 \cdot 2^{\ell-2},-(\ell-1),0,0,0),
+                (\sshare{v_2},\sshare{p_2}+1,\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+		)$.
+\item $(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),
+                (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+		)$.
+\item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_1},-\ell,0,0,0),
+                (\sshare{v_h},\sshare{p_h}+1,\sshare{z_h},\sshare{s_h},\sshare{\err_h})
+		)$.
+\item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+	   	\asn \mathsf{FLMult}(
+		(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+		(2^{\ell-1} \cdot (1-\sshare{c}) + v_{\sqrt{2}} \cdot \sshare{c},
+		-(1-\sshare{c}) \cdot (\ell-1)+p_{\sqrt{2}} \cdot \sshare{c},0,0,0)$.
+\item $\sshare{p} \asn (\sshare{p_2}+\sshare{p}) \cdot (1-\sshare{z_1})$.
+\item $\sshare{v} \asn \sshare{v_2} \cdot (1-\sshare{z_1})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_2},\sshare{s_1})$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z_1},\sshare{s_1},\sshare{\err})$.
+\end{enumerate}
+\todo{Have we picked up $\err$ correctly here?}
+
+\msubsection{EXP and LOG Functions}
+\todo{These functions are only currently supported in their
+fixed point versions.}
+
+A secure fixed point exponentiation and logarithm algorithm is not found anywhere, so
+this is our own one derived from the identities in the book.
+\begin{itemize}
+\item {\em Computer Approximations} by Hart from 1968 \cite{Hart:1978:CA:540084}.
+\end{itemize}
+The floating point variants are in
+\begin{itemize}
+\item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
+\end{itemize}
+Once we have defined $\mathsf{FxExp2}$ and $\mathsf{FxLog2}$
+(resp. $\mathsf{FLExp2}$ and $\mathsf{FLLog2}$) we can
+define the following functions from the usual identities
+for non-secret values of the base $b$:
+\begin{align*}
+	\log_b x &= (\log_b 2) \cdot \mathsf{Log2}(x), \\
+	x^y      &= \mathsf{Exp2}(y \cdot \mathsf{Log2}(x)), \\
+	\exp   x &= \mathsf{Exp2}(x \cdot \log_2 e), \\
+\end{align*}
+Note, we can define these operations 
+
+\msubsubsection{$\mathsf{FxExp2}(\sshare{a},k,f)$:}
+This algorithm computes $2^a$ as a fixed point calculation.
+First takes the integer and fractional part of the input
+$|a/2^f|$, which we denote by $b$ and $c$.
+We then compute $d=2^b$, which will clearly overflow
+if $b>k-f$, but we ignore this error (if the user is stupid
+enough to put in garbage, they get garbage out).
+We then compute $e=2^c$, as $0 \le c \le 1$ via the 
+polynomial $P_{1045}(X)$ from Hart \cite{Hart:1978:CA:540084} with coefficients
+\begin{center}
+\begin{tabular}{|c|c|l|}
+\hline
+0 & 1  & +.10000 00077 44302 1686 \\
+1 & 0  & +.69314 71804 26163 82779 5756 \\
+2 & 0  & +.24022 65107 10170 64605 384 \\
+3 & -1 & +.55504 06862 04663 79157 744 \\
+4 & -2 & +.96183 41225 88046 23749 77 \\
+5 & -2 & +.13327 30359 28143 78193 29 \\
+6 & -3 & +.15510 74605 90052 57397 8 \\
+7 & -4 & +.14197 84739 97656 06711 \\
+8 & -5 & +.18633 47724 13796 7076 \\
+\hline
+\end{tabular}
+\end{center}
+which gives a relative error of at most $10^{-12.11}$
+if computed exactly.
+The table should be read as line $(i,a,b)$ giving 
+the $i$th coefficient of the polynomial being
+$b \cdot 10^a$.
+Given $d$ and $e$ one can now compute
+$2^{|a|}=2^{b+c}=2^b \cdot 2^c=d \cdot e$,
+and the final dealing with the sign of $a$ can
+be done by an inversion.
+We denote by $\mathsf{FxPol}(P_{1045},\sshare{x},k,f)$ the evaluation
+of the polynomial $P_{1045}$ on the fixed point input $\sshare{x}$
+where $x \in \Qk{f}$. This is done by Horner's rule.
+\begin{enumerate}
+\item $\sshare{s}=\mathsf{FxLTZ}(\sshare{a})$.
+\item $\sshare{a} \asn (1-2 \cdot \sshare{s}) \cdot \sshare{a}$.
+\item $\sshare{b} \asn \mathsf{Fx2Int}(\sshare{a},k,f)$.
+\item $\sshare{c} \asn \sshare{a}-\mathsf{Int2Fx}(\sshare{b},k,f)$.
+\item $\sshare{d} \asn \mathsf{Int2Fx}(\mathsf{Pow2}(\sshare{b},k),k,f)$. [This will produce an invalid result if $b$ is too big, in which case the result cannot be held in an Fx in any case]
+\item $\sshare{e} \asn \mathsf{FxPol}(P_{1045},\sshare{c},k,f)$.
+\item $\sshare{g} \asn \mathsf{FxMult}(\sshare{d},\sshare{e},k,f)$.
+\item $\sshare{g^{-1}} \asn \mathsf{FxDiv}(2^f,\sshare{g},k,f)$.
+\item $\sshare{a} \asn (1-\sshare{s}) \cdot g+ \sshare{s} \cdot \sshare{g^{-1}}$.
+\item Return $\sshare{a}$.
+\end{enumerate}
+The above works, but we have found a little numerical
+instability due to the division operation. 
+\paragraph{MAMBA Example:} To obtain $2^y$ where $y$ is secret shared you could run the following: 
+\begin{lstlisting}[language={python}]
+
+from Compiler import mpc_math
+# import comparison
+sfloat.vlen = 15   # Length of mantissa in bits
+sfloat.plen = 10   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+y =sfix(4)
+
+# returns 2^4 
+# extracts k and f from y
+exp2_y=mpc_math.exp2_fx(sfix(y))
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{FLExp2}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$:}
+This method assumes that $k \le \ell$.
+We do not support a method if $k > \ell$, and so if this happens
+we will signal an error.
+\begin{enumerate}
+\item If $k>\ell$ then $\err_1 \asn 1$.
+\item $\max \asn \ceil{\log_2(2^{k-1}-1+\ell)-\ell+1}$.
+\item $\sshare{a} \asn \mathsf{LT}(\sshare{p_1},\max,k)$.
+\item $\sshare{b} \asn \mathsf{LT}(\sshare{p_1},-\ell+1,k)$.
+\item $\sshare{c} \asn \mathsf{LT}(\sshare{p_1},-2 \cdot \ell+1,k)$.
+\item $\sshare{(1-c) \cdot a} \asn (1-\sshare{c}) \cdot \sshare{a}$.
+\item $\sshare{p_2} \asn -\sshare{(1-c) \cdot a} \cdot (\sshare{b} \cdot \ell +\sshare{p_1})$.
+\item $\sshare{x},\sshare{2^{p_2}} \asn \mathsf{Trunc}(\sshare{v_1},\ell,\sshare{p_2})$.
+\item $\sshare{y} \asn \sshare{v_1}-\sshare{x} \cdot \sshare{2^{p_2}}$.
+\item $\sshare{d} \asn \mathsf{EQZ}(\sshare{y},\ell)$.
+\item $\sshare{b \cdot s_1} \asn \sshare{b} \cdot \sshare{s_1}$.
+\item $\sshare{(1-d) \cdot s_1} \asn (1-\sshare{d}) \cdot \sshare{s_1}$.
+\item $\sshare{x} \asn (1-\sshare{b \cdot s_1})
+	                 \cdot (\sshare{x}-\sshare{(1-d)\cdot s_1})
+		+\sshare{b \cdot s_1} \cdot(2^\ell-1+\sshare{d}-\sshare{x})$.
+\item $\sshare{y} \asn \sshare{(1-d) \cdot s_1} \cdot (\sshare{2^{p_2}}-\sshare{y})
+			+ (1-\sshare{s_1})\cdot \sshare{y}$.
+\item $\sshare{w} \asn \sshare{(1-c) \cdot a} \cdot
+			((1-\sshare{b}) \cdot\sshare{x}+\sshare{b \cdot s_1})
+			\cdot (1-2\cdot \sshare{s_1})-\sshare{c} \cdot \sshare{s_1}$.
+\item $\sshare{u} \asn \sshare{(1-c) \cdot a}
+			\cdot (\sshare{b} \cdot \sshare{x}
+			+(1-\sshare{b}) \cdot 2^\ell \cdot \mathsf{Inv}(\sshare{2^{p_2}})
+							\cdot \sshare{y})
+			+(2^\ell-1)\cdot \sshare{c} \sshare{s_1}$.
+\item $\sshare{u_\ell},\ldots,\sshare{u_1} \asn \mathsf{BitDec}(\sshare{u},\ell,\ell)$.
+\item For $i \in [1,\ldots,\ell]$ do
+\begin{enumerate}
+  \item~ [In this loop $(cv_i,cp_i,0,0)$ represents the floating point number $2^{2^{-i}}$].
+  \item $\sshare{a_i} \asn 2^{\ell-1} \cdot (1-\sshare{u_i})+cv_i \cdot \sshare{u_i}$.
+  \item $\sshare{b_i} \asn -(\ell-1) \cdot (1-\sshare{u_i})+cp_i \cdot \sshare{u_i}$.
+\end{enumerate}
+\item $(\sshare{v_u},\sshare{p_i},0,0)
+	\asn \mathsf{FLProd}((\sshare{a_1},\sshare{b_1},0,0), \ldots,
+	                     (\sshare{a_\ell},\sshare{b_\ell},0,0))$. 
+			     [This implements a product of $\ell$ floating point values, which is
+			      performed via a binary tree style method.]
+\item $\sshare{p} \asn \sshare{a} \cdot (\sshare{w}+\sshare{p_u})
+			+2^{k-1}\cdot (1-\sshare{a}) \cdot (1-2 \sshare{s_1})$.
+\item $\sshare{v} \asn 2^{\ell-1} \cdot \sshare{z_1}+(1-\sshare{z_1}) \cdot \sshare{v_u}$.
+\item $\sshare{p} \asn -\sshare{z_1} \cdot (\ell-1)
+			+(1-\sshare{z_1}) \cdot \sshare{p}$.
+\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err_1})$
+\item Return $(\sshare{v},\sshare{p},0,0,\sshare{\err})$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FxLog2}(\sshare{a},k,f)$:}
+We first map $a$ to a value $v$ in the interval $[1/2,1]$ by essentially
+converting to a floating point number.
+So we a have $a=(v/2^k) \cdot 2^p$ where $v, p \in \Zk$,
+and $v/2^k \in [1/2,1]$.
+Thus we have 
+$\log_2 a = p+\log_2 (v/2^k)$, and we then treat $v$ as a fixed
+point number and apply the Pade approximation $P_{2524}/Q_{2524}$
+from Hart's book \cite{Hart:1978:CA:540084},
+which produces an {\em absolute} error of $10^{-8.32}$.
+We denote by $\mathsf{FxPade}(P_{2524},Q_{2524},\sshare{x},k,f)$ the evaluation
+of the rational function $P_{2524}/Q_{2524}$ on the fixed point input $\sshare{x}$
+where $x \in \Qk{f}$.
+The Pade approximation is given be the rational function defined
+by the following table
+\begin{center}
+\begin{tabular}{|c|c|c|l|}
+\hline
+P & 0 & 1  & -.20546 66719 51 \\
+P & 1 & 1  & -.88626 59939 1 \\
+P & 2 & 1  & +.61058 51990 15 \\
+P & 3 & 1  & +.48114 74609 89 \\ 
+Q & 0 & 0  & +.35355 34252 77 \\ 
+Q & 1 & 1  & +.45451 70876 29  \\
+Q & 2 & 1  & +.64278 42090 29 \\ 
+Q & 3 & 1  & +.1 \\ 
+\hline
+\end{tabular}
+\end{center}
+
+\begin{enumerate}
+\item $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})
+	\asn \mathsf{Fx2FL}(\mathsf{a},k,f,k,k)$.
+\item $\sshare{a} \asn \mathsf{FxPade}(P_{2524},Q_{2524},\sshare{v},k,k)$.
+\item $\sshare{a} \asn \sshare{a}+\sshare{p}$.
+\item $\sshare{a} \asn \sshare{a} \cdot (1-\sshare{z}) \cdot (1-\sshare{s}) \cdot (1-\cdot \sshare{\err})$.
+\item Return $\sshare{a}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain \verb|log2|$(x)$ where $y$ is secret shared you could run the following: 
+\begin{lstlisting}[language={python}]
+
+from Compiler import mpc_math
+# import comparison
+sfloat.vlen = 15   # Length of mantissa in bits
+sfloat.plen = 10   # Length of exponent in bits
+sfloat.kappa = 4  # Statistical security parameter for floats
+
+x =sfix(4)
+# extracts k and f from y
+# returns log_2(4) 
+log2_x=mpc_math.log2_fx(sfix(x))
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{FLLog2}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$:}
+In the following algorithm $(cv_i,cp_i,0,0)$ represents the floating point
+constant $(2 \cdot \log_2 e)/(2 \cdot i+1)$.
+\begin{enumerate}
+\item $M \asn \ceil{ \ell/(2 \cdot \log_2 3)-1/2}$.
+\item $(\sshare{v_2},\sshare{p_2},0,0,0) \asn \mathsf{FLSub}((2^{\ell-1},-(\ell-1),0,0,0),(\sshare{v_1},-\ell,0,0,0))$.
+\item $(\sshare{v_3},\sshare{p_3},0,0,0) \asn \mathsf{FLAdd}((2^{\ell-1},-(\ell-1),0,0,0),(\sshare{v_1},-\ell,0,0,0))$.
+\item $(\sshare{v_y},\sshare{p_y},0,0,0) \asn \mathsf{FLDiv}((\sshare{v_2},\sshare{p_2},0,0,0),(\sshare{v_3},\sshare{p_3},0,0,0))$.
+\item $(\sshare{v_{y^2}},\sshare{p_{y^2}},0,0,0) \asn \mathsf{FLMult}((\sshare{v_y},\sshare{p_y},0,0,0),(\sshare{v_y},\sshare{p_y},0,0,0))$.
+\item $(\sshare{v},\sshare{p},0,0,0) \asn  \mathsf{FLMult}((\sshare{v_y},\sshare{p_y},0,0),(cv_0,cp_0,0,0))$.
+\item For $i \in[1,\ldots,M]$ do
+\begin{enumerate}
+  \item $(\sshare{v_y},\sshare{p_y},0,0,0) \asn \mathsf{FLMult}((\sshare{v_y},\sshare{p_y},0,0,0),(\sshare{v_{y^2}},\sshare{p_{y^2}},0,0,0))$.
+  \item $(\sshare{v_2},\sshare{p_2},0,0,0) \asn \mathsf{FLMult}((\sshare{v_y},\sshare{p_y},0,0,0),(cv_i,cp_i,0,0,0))$.
+  \item $(\sshare{v},\sshare{p},0,0,0) \asn \mathsf{FLAdd}((\sshare{v},\sshare{p},0,0,0),(\sshare{v_2},\sshare{p_2},0,0,0))$.
+\end{enumerate}
+\item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}) \asn \mathsf{Int2FL}(\ell,-\sshare{p},\ell,\ell)$.
+\item $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}) \asn \mathsf{FLSub}((\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),(\sshare{v},\sshare{p},0,0,0))$.
+\item $\sshare{a} \asn \mathsf{EQ}(\sshare{p_1},-(\ell-1),k)$.
+\item $\sshare{b} \asn \mathsf{EQ}(\sshare{v_1},2^{\ell-1},\ell)$.
+\item $\sshare{z} \asn \sshare{a} \cdot \sshare{b}$.
+\item $\sshare{v} \asn \sshare{v} \cdot(1-\sshare{z})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{\err_1})$.
+\item $\sshare{\err} \asn \mathsf{OR}(\mathsf{OR}(\sshare{z_1},\sshare{s_1}),\err)$.
+\item $\sshare{p} \asn \sshare{p} \cdot(1-\sshare{z})$.
+\item Return $(\sshare{v},\sshare{p},\sshare{z_1},\sshare{s_1},\sshare{\err})$.
+\end{enumerate}
+
+
+\msubsection{Trigonometic Functions}
+\todo{In the current version, all trigonometric functionality is implemented for fixed-point types only.
+Extension to floating point values will come soon.}
+
+The basic idea for $\sin(x)$ and $\cos(x)$ is to first reduce
+the argument $x$ into the range $[0,\ldots,2 \pi)$,
+with the result being $y$\footnote{The computation
+of $\tan(x)$ is done via $\sin(x)/\cos(x)$.}.
+We then compute a bit $b_1$ to test as to whether
+$y \in [0,\pi)$ or $[\pi,2 \pi)$ (with $0$ being
+the former).
+We then reduce $y$ to $z$ by reducing it into the range
+$[0,\pi)$, and compute a bit $b_2$ which says whether
+$z$ is in the range $[0,\pi/2)$ or $[\pi/2,\pi)$.
+We finally reduce $z$ into the range $[0,\pi/2)$ resulting 
+in $w$.
+Then a polynomial is used to compute
+$\sin(w)$ or $\cos(w)$, which means
+we need to now {\em scale} $w$ into the range $[0,1)$
+to obtain $v$.
+%We then derive the final result using the following 
+%identities:
+%\begin{align*}
+%	\sin(x) &= \sin(y) = (1-2 \cdot b_1) \cdot \sin(z), %\\
+%	\cos(x) &= \cos(y) = (1-2 \cdot b_1) \cdot \cos(z), %\\
+%	\sin(z) &= (1-b_2) \cdot \sin(w) + b_2\cdot \cos(w), %\\
+%	\cos(z) &= (1-b_2) \cdot \cos(w) - b_2\cdot \sin(w).
+%\end{align*}
+For the polynomial approximations to the basic functions in
+the range $[0,\pi/2)$, where the argument is given as $w = v \cdot \pi/2$
+we use the following approximations from Hart's book \cite{Hart:1978:CA:540084}
+\begin{align*} 
+	\sin(w) &= v \cdot P_{3307}(v^2), \\
+	\cos(w) &= P_{3508}(v^2).
+\end{align*}
+Where we have
+\begin{center}
+\begin{tabular}{|c||c|l||c|l|}
+\hline
+& \multicolumn{2}{c||}{$P_{3307}$} & \multicolumn{2}{c|}{$P_{3508}$}  \\
+\hline
+0  &   1  & +.15707 96326 79489 66192 31314 989 &   0 & +.99999 99999 99999 99999 99914 771 \\
+1  &   0  & -.64596 40975 06246 25365 51665 255 &   0 & -.49999 99999 99999 99999 91637 437 \\
+2  &  -1  & +.79692 62624 61670 45105 15876 375	&  -1 & +.41666 66666 66666 66653 10411 988 \\
+3  &  -2  & -.46817 54135 31868 79164 48035 89  &  -2 & -.13888 88888 88888 88031 01864 15 \\
+4  &  -3  & +.16044 11847 87358 59304 30385 5	&  -4 & +.24801 58730 15870 23300 45157 \\
+5  &  -5  & -.35988 43235 20707 78156 5727	&  -6 & -.27557 31922 39332 25642 1489 \\
+6  &  -7  & +.56921 72920 65732 73962 4		&  -8 & +.20876 75698 16541 25915 59 \\
+7  &  -9  & -.66880 34884 92042 33722		& -10 & -.11470 74512 67755 43239 4 \\
+8  & -11  & +.60669 10560 85201 792		& -13 & +.47794 54394 06649 917 \\
+9  & -13  & -.43752 95071 18174 8		& -15 & -.15612 26342 88277 81 \\
+10 & -15  & +.25002 85418 9303			& -18 & +.39912 65450 7924 \\
+\hline
+\end{tabular}
+\end{center}
+NOTE: Polynomial tables are described by the monomial number, the degree of the approximation $p$ and its significand $s$. The coefficient of the $i$th monomial can be obtained by multiplying the significand by $10^{p_{i}}$ as follows: $s_{i} \cdot 10^{p_{i}}$.
+
+\msubsubsection{$\mathsf{F\star TrigSub}(\sshare{x})$:}
+\begin{enumerate}
+
+\item $\sshare{f} \asn \mathsf{F\star Mult}(\sshare{x},(1 /(2 \cdot \pi))$
+\item $\sshare{f} \asn \mathsf{F\star Floor}(\sshare{f})$.
+\item $\sshare{y} \asn \mathsf{F\star Mult}(\sshare{f},(2 \cdot \pi ))$.
+\item $\sshare{y} \asn \mathsf{F\star Add}(\sshare{x},-\sshare{y})$.
+\item $\sshare{b_1} \asn \mathsf{F\star GE}(\sshare{y},(\pi))$.
+\item $\sshare{f} \asn \mathsf{F\star Add}(2 \cdot \pi,-\sshare{y})$
+\item $w \asn \mathsf{F\star Choose}(\sshare{f},\sshare{y}, \sshare{b_1})$.
+\item $\sshare{b_2} \asn \mathsf{F\star GE}(\sshare{2},(\pi / 2))$.
+\item $\sshare{f} \asn \mathsf{F\star Add}( \pi,-\sshare{w})$
+\item $w \asn \mathsf{F\star Choose}(\sshare{f},\sshare{w}, \sshare{b_2})$.
+\item Return $(\sshare{w},\sshare{b_1},\sshare{b_2})$.
+
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To reduce the angle you could execute the following (note that this function call is meant to be used internally):
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x = sfix(4)
+# returns an angle in the [0,pi/2) interval in w and flags b1 and b2. 
+w, b1, b2 = mpc_math.sTrigSub_fx(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{F\star Sin}(\sshare{x})$}
+We present these routines as generic routines given the specific helper subroutine above;
+we assume an obvious overloading/translation of arguments.
+We let $\mathsf{F\star Choose}(\sshare{x},\sshare{y},\sshare{b})$, for a 
+shared bit $b$, denote an operation which produces $\sshare{x}$ if $\sshare{b}=1$ 
+and $\sshare{y}$ otherwise
+This is easily obtained by securely multiplying each component share
+of the data representing $\sshare{x}$ etc by $\sshare{b}$.
+So for fixed point representations this becomes, irrespective of the
+values $k$ and $f$,
+\begin{enumerate}
+\item $\sshare{a} \asn \sshare{b}\cdot \sshare{x}+(1-\sshare{b}) \cdot \sshare{y}$
+\end{enumerate}
+For floating point representations this becomes
+\begin{enumerate}
+\item $\sshare{w}, \sshare{b_1}, \sshare{b_2} \asn \mathsf{F\star TrigSub}(\sshare{x})$
+\item $\sshare{v} \asn \sshare{w} \cdot (1/(\pi/2))$.
+\item $\sshare{b} \asn \mathsf{F\star Choose}(\sshare{-1},\sshare{1}, \sshare{b_1})$.
+\item $\sshare{\sin(v)} \asn \sshare{v} \cdot \mathsf{F\star Pol}(P_{3307},\sshare{v^2})$.
+\item Return $(\sshare{b} \cdot \sshare{\sin(v)})$.
+\end{enumerate}
+%
+%Given this we can now compute $\sin(x)$ in the following lines:
+%\begin{enumerate} 
+%\item $(\sshare{\sin(w)},\sshare{\cos(w)},\sshare{b_1},\sshare{b_2}) \asn \mathsf{F\star TrigSub}(\sshare{x})$.
+%\item $\sshare{\sin(z)} \asn \mathsf{F\star Choose}(\sshare{\sin(w)},\sshare{\cos(w)},1-\sshare{b_2})$.
+%\item $\sshare{-\sin(z)} \asn \mathsf{F\star Neg}(\sshare{\sin(z)}$.
+%\item $\sshare{\sin(x)} \asn \mathsf{F\star Choose}(\sshare{\sin(z)},\sshare{-\sin(z)},1-\sshare{b_1})$.
+%\item Return $\sshare{\sin(x)}$.
+%\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the \verb|sin| of any value, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x = sfix(4)
+# returns the sin of a number of any interval
+y = mpc_math.sin(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{F\star Cos}(\sshare{x})$}
+Likewise this becomes
+\begin{enumerate}
+
+\item $\sshare{w}, \sshare{b_1}, \sshare{b_2} \asn \mathsf{F\star TrigSub}(\sshare{x})$
+\item $\sshare{v} \asn \sshare{w}$.
+\item $\sshare{b} \asn \mathsf{F\star Choose}(\sshare{-1},\sshare{1}, \sshare{b_2})$.
+\item $\sshare{\cos(v)} \asn  \mathsf{F\star Pol}(P_{3308},\sshare{v^2})$.
+\item Return $(\sshare{b} \cdot \sshare{\cos(v)})$.
+
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the \verb|sin| of any value, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x =sfix(4)
+# returns the cos of an angle on any interval
+y = mpc_math.cos(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{F\star Tan}(\sshare{x})$}
+Likewise this becomes
+\begin{enumerate} 
+
+\item $(\sshare{w},\sshare{b_1},\sshare{b_2}) \asn \mathsf{F\star TrigSub}(\sshare{x})$.
+\item $\sshare{v} \asn \sshare{w} \cdot (1/(\pi/2))$.
+\item $\sshare{b} \asn \mathsf{F\star Choose}(\sshare{-1},\sshare{1}, \sshare{b_1})$.
+\item $\sshare{\sin(v)} \asn \sshare{v} \cdot \mathsf{F\star Pol}(P_{3307},\sshare{v^2})$.
+\item $\sshare{\sin(x)} \asn (\sshare{b} \cdot \sshare{\sin(v)})$.
+\item $\sshare{v} \asn \sshare{w}$.
+\item $\sshare{b} \asn \mathsf{F\star Choose}(\sshare{-1},\sshare{1}, \sshare{b_2})$.
+\item $\sshare{\cos(v)} \asn  \mathsf{F\star Pol}(P_{3308},\sshare{v^2})$.
+\item $\sshare{\sin(x)} \asn (\sshare{b} \cdot \sshare{\cos(v)})$.
+\item $\sshare{\tan(x)} \asn \mathsf{F\star Div}(\sshare{\sin(x)},\sshare{\cos(x)})$.
+\item Return $\sshare{\tan(x)}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the \verb|tan| of any value, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x =sfix(4)
+# returns the tan of an angle on any interval
+y = mpc_math.tan(x)
+\end{lstlisting}
+
+\msubsection{Inverse Trigonometric Functions}
+Initially, for $\arcsin$ and $\arccos$, a nice way to do it would be by making use of the formula:
+\begin{align*}
+ \arcsin (x) &= \arctan \left( \frac{x}{\sqrt{1-x^2}} \right), \\
+ \arccos (x) &= \frac{\pi}{2} - \arcsin (x). 
+\end{align*}
+Note, that $\arcsin$ and $\arccos$ are only defined when 
+$|x|\le 1$.
+The value of $\arctan(x)$ is however defined for all real $x$.
+We first reduce to positive values of $x$ by using the formula
+\[ \arctan(-x) = - \arctan(x). \]
+We then reduce to the interval $[0,1)$ using the formula
+\[ \arctan(x) = \frac{\pi}{2} - \arctan\left(\frac{1}{x} \right). \]
+The final approximation to $\arctan(x)$ for $x \in [0,1)$
+is obtained using the Pade approximation $P_{5102}/Q_{5102}$
+from Hart's book \cite{Hart:1978:CA:540084}.
+Where the polynomials are represented as in our earlier 
+descriptions.
+\begin{center}
+\begin{tabular}{|c||c|l||c|l|}
+\hline
+& \multicolumn{2}{c||}{$P_{5102}$} & \multicolumn{2}{c|}{$Q_{5102}$}  \\
+\hline
+0  &  5  & +.21514 05962 60244 19331 93254 468 & 5 & +.21514 05962 60244 19331 93298 234 \\
+1  &  5  & +.73597 43380 28844 42408 14980 706 & 5 & +.80768 78701 15592 48851 76713 209 \\
+2  &  6  & +.10027 25618 30630 27849 70511 863 & 6 & +.12289 26789 09278 47762 98743 322 \\ 
+3  &  5  & +.69439 29750 03225 23370 59765 503 & 5 & +.97323 20349 05355 56802 60434 387 \\
+4  &  5  & +.25858 09739 71909 90257 16567 793 & 5 & +.42868 57652 04640 80931 84006 664 \\ 
+5  &  4  & +.50386 39185 50126 65579 37791 19  & 5 & +.10401 13491 56689 00570 05103 878 \\ 
+6  &  3  & +.46015 88804 63535 14711 61727 227 & 4 & +.12897 50569 11611 09714 11459 55  \\ 
+7  &  2  & +.15087 67735 87003 09877 17455 528 & 2 & +.68519 37831 01896 80131 14024 294 \\
+8  & -1  & +.75230 52818 75762 84445 10729 539 & 1 & +.1 \\
+\hline
+\end{tabular}
+\end{center}
+However, since the square root function is not defined over all possible
+input values currently, we currently use 
+the following Pade approximation to compute $\arcsin(x)= P_{4737}(x)/Q_{4737}(x)$,
+where the approximations are again obtained from Hart~\cite{Hart:1978:CA:540084}.
+
+\begin{center}
+\begin{tabular}{|c||c|l||c|l|}
+\hline
+& \multicolumn{2}{c||}{$P_{4737}$} & \multicolumn{2}{c|}{$Q_{4737}$}  \\
+\hline
+0  &  4  & -.93385 50897 34102 15225 05385 079 & 4 & -.93385 50897 34102 15225 05384 935 \\
+1  &  5  & +.43722 68009 37824 16231 48489 754 & 5 & +.45279 10524 33392 53151 90231 067 \\
+2  &  5  & -.86008 12066 37080 48650 47446 067 & 5 & -.92854 24688 69640 14228 24346 529\\ 
+3  &  5  & +.92190 57592 17549 68438 98184 959 & 6 & +.10468 72504 36629 82242 57408 682 \\
+4  &  5  & -.58360 27724 53392 81220 75635 101 & 5 & -.70581 74909 39687 73509 61227 976 \\ 
+5  &  5  & +.22081 61324 17802 71613 53562 222  & 5 & +.28972 22947 32667 29776 24954 443 \\ 
+6  &  4  & -.48055 41226 76169 96615 64427 739 & 4 & -.70440 02024 71917 27006 85571 406 \\ 
+7  &  3  & +.54221 48323 25522 09437 42314 911 & 3 & +.93571 04153 50280 60863 31621 628 \\
+8  & 2  & -.24949 28894 42250 24662 05102 672 & 2 & -.56833 69358 53 807 14757 96209 327 \\
+9  & 0  & +.22223 61619 46113 15787 97029 272 & 1 & +.1 \\
+\hline
+\end{tabular}
+\end{center}
+These observations then give us the following routines.
+
+\iffalse
+First a protocol for \verb|arcsin| based on square root, that is not currently implemented, a version of the protocol using polynomial approximation, which is implemented, and methods for \verb|arccos| and \verb|arctan|.
+
+\msubsubsection{$\mathsf{F\star ArcSin}(\sshare{x})$}
+\begin{enumerate}
+\item $\sshare{x^2} \asn \mathsf{F\star Mult}(\sshare{x},\sshare{x})$.
+\item $\sshare{-x^2} \asn \mathsf{F\star Neg}(\sshare{x^2})$.
+\item $\sshare{1-x^2} \asn \mathsf{F\star Add}(1,\sshare{-x^2})$.
+\item $\sshare{\sqrt{1-x^2}} \asn \mathsf{F\star Sqrt}(1,\sshare{1-x^2})$.
+\item $\sshare{v} \asn \mathsf{F\star Div}(\sshare{x},\sshare{\sqrt{1-x^2}})$.
+\item $\sshare{y} \asn \mathsf{F\star ArcTan}(\sshare{v})$.
+\item If $\star=\mathsf{L}$
+\begin{enumerate}
+  \item $\sshare{|x|} \asn \mathsf{FLAbs}(\sshare{x})$.
+  \item $\sshare{y_\err} \asn \mathsf{FLGT}(\sshare{|x|},1.0)$.
+\end{enumerate}
+\item Return $\sshare{y}$.
+\end{enumerate}
+\fi
+
+\msubsubsection{$\mathsf{F\star ArcSin}(\sshare{x})$}
+\begin{enumerate}
+\item $\sshare{x^2} \asn \mathsf{F\star Mul}(\sshare{x},\sshare{x})$.
+\item $\sshare{y} \asn \mathsf{FxPade}(P_{4737},Q_{4737},\sshare{x^2})$.
+\item $\sshare{y} \asn \mathsf{F\star Mul}(\sshare{x},\sshare{y})$.
+\item Return $\sshare{y}$.
+\end{enumerate}
+
+
+\paragraph{MAMBA Example:} To obtain the \verb|arcSin| on the  (-1,1) interval, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x =sfix(0.5)
+# returns the tan of an angle on any interval
+y = mpc_math.asin(x)
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{F\star ArcCos}(\sshare{x})$}
+\begin{enumerate}
+\item $\sshare{y} \asn \mathsf{F\star ArcSin}(\sshare{x})$.
+\item $\sshare{-y} \asn \mathsf{F\star Neg}(\sshare{y})$.
+\item $\sshare{\pi/2-y} \asn \mathsf{F\star Add}(\pi/2,\sshare{-y})$.
+\item Return $\sshare{y}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the \verb|arcCos| of any value on the (-1,1) interval, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x =sfix(0.5)
+# returns the tan of an angle on any interval
+y = mpc_math.acos(x)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{F\star ArcTan}(\sshare{x})$}
+\begin{enumerate}
+\item $\sshare{s} \asn \mathsf{F\star LTZ}(\sshare{z})$.
+\item $\sshare{|x|} \asn \mathsf{F\star Abs}(\sshare{x})$.
+\item $\sshare{b} \asn \mathsf{F\star GT}(\sshare{|x|},1.0)$.
+\item $\sshare{v} \asn \mathsf{F\star Div}(1,\sshare{|x|})$.
+\item $\sshare{v} \asn \mathsf{F\star Choose}(\sshare{|x|},\sshare{v},1-\sshare{b})$.
+\item $\sshare{v^2} \asn \mathsf{F\star Mul}(\sshare{v},\sshare{v})$.
+\item $\sshare{y} \asn \mathsf{FxPade}(P_{5102},Q_{5102},\sshare{v^2})$.
+\item $\sshare{y} \asn \mathsf{F\star Mul}(\sshare{v},\sshare{y})$.
+\item $\sshare{\pi/2-y} \asn \mathsf{F\star Sub}(\pi/2,\sshare{y})$.
+\item $\sshare{y} \asn \mathsf{F\star Choose}(\sshare{y},\sshare{\pi/2-y},1-\sshare{b})$.
+\item $\sshare{-y} \asn \mathsf{F\star Neg}(\sshare{y})$.
+\item $\sshare{y} \asn \mathsf{F\star Choose}(\sshare{y},\sshare{-y},1-\sshare{s})$.
+\item Return $\sshare{y}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the \verb|arcTan| of any value, you could execute the following:
+\begin{lstlisting}[language={python}]
+from Compiler import mpc_math
+x =sfix(0.5)
+# returns the tan of an angle on any interval
+y = mpc_math.atan(x)
+\end{lstlisting}
