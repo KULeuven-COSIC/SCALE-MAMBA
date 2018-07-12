@@ -59,14 +59,28 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
                        machine, OCD);
 
           // MAC/Hash Check
-          Proc.RunOpenCheck(P);
+          if (online_num == 0)
+            {
+              Proc.RunOpenCheck(P, machine.get_IO().Get_Check());
+            }
+          else
+            {
+              Proc.RunOpenCheck(P, "");
+            }
 
           machine.Signal_Finished_Tape(online_num);
         }
     }
 
   // Run checks again
-  Proc.RunOpenCheck(P);
+  if (online_num == 0)
+    {
+      Proc.RunOpenCheck(P, machine.get_IO().Get_Check());
+    }
+  else
+    {
+      Proc.RunOpenCheck(P, "");
+    }
 
   machine.Lock_Until_Ready(online_num);
 

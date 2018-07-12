@@ -232,7 +232,7 @@ class FunctionTapeCall:
         return self
     def join(self):
         self.thread.join()
-        instructions.program.free(self.base, 'ci')
+        instructions.program.free(self.base, 'r')
         for reg_type,addr in self.bases.iteritems():
             get_program().free(addr, reg_type.reg_type)
 
@@ -264,7 +264,7 @@ class Function:
             self.on_first_call(wrapped_function)
             self.type_args[len(args)] = type_args
         type_args = self.type_args[len(args)]
-        base = instructions.program.malloc(len(type_args), 'ci')
+        base = instructions.program.malloc(len(type_args), 'r')
         bases = dict((t, get_program().malloc(len(type_args[t]), t)) \
                          for t in type_args)
         for i,reg_type in enumerate(type_args):
@@ -319,7 +319,7 @@ class FunctionBlock(Function):
         else:
             self.result = None
         print 'Done compiling function', self.name
-        p_return_address = get_tape().program.malloc(1, 'ci')
+        p_return_address = get_tape().program.malloc(1, 'r')
         get_tape().function_basicblocks[block] = p_return_address
         return_address = regint.load_mem(p_return_address)
         get_tape().active_basicblock.set_exit(instructions.jmpi(return_address, add_to_prog=False))
@@ -337,7 +337,7 @@ class FunctionBlock(Function):
         old_block = get_tape().active_basicblock
         old_block.set_exit(instructions.jmp(0, add_to_prog=False), block)
         p_return_address = get_tape().function_basicblocks[block]
-        return_address = get_tape().new_reg('ci')
+        return_address = get_tape().new_reg('r')
         old_block.return_address_store = instructions.ldint(return_address, 0)
         instructions.stmint(return_address, p_return_address)
         get_tape().start_new_basicblock(name='call-' + self.name)
@@ -590,7 +590,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
     else:
         a_base = a
     tmp_base = instructions.program.malloc(n, 's')
-    tmp_i = instructions.program.malloc(1, 'ci')
+    tmp_i = instructions.program.malloc(1, 'r')
     chunks = {}
     threads = []
 
@@ -686,7 +686,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
             a[i] = load_secret_mem(a_base + i)
         instructions.program.free(a_base, 's')
     instructions.program.free(tmp_base, 's')
-    instructions.program.free(tmp_i, 'ci')
+    instructions.program.free(tmp_i, 'r')
 
 
 def loopy_odd_even_merge_sort(a, sorted_length=1, n_parallel=32):
@@ -853,7 +853,7 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
         for t in thread_mem_req:
             if t != regint:
                 raise CompilerError('Not implemented for other than regint')
-        args = Matrix(n_threads, 2 + thread_mem_req.get(regint, 0), 'ci')
+        args = Matrix(n_threads, 2 + thread_mem_req.get(regint, 0), 'r')
         state = tuple(initializer())
         def f(inc):
             if thread_mem_req:
@@ -1055,7 +1055,7 @@ def else_(body):
 
 def and_(*terms):
     # not thread-safe
-    p_res = instructions.program.malloc(1, 'ci')
+    p_res = instructions.program.malloc(1, 'r')
     for term in terms:
         if_then(term())
     store_in_mem(1, p_res)
@@ -1065,13 +1065,13 @@ def and_(*terms):
         end_if()
     def load_result():
         res = regint.load_mem(p_res)
-        instructions.program.free(p_res, 'ci')
+        instructions.program.free(p_res, 'r')
         return res
     return load_result
 
 def or_(*terms):
     # not thread-safe
-    p_res = instructions.program.malloc(1, 'ci')
+    p_res = instructions.program.malloc(1, 'r')
     res = regint()
     for term in terms:
         if_then(term())
@@ -1082,7 +1082,7 @@ def or_(*terms):
         end_if()
     def load_result():
         res = regint.load_mem(p_res)
-        instructions.program.free(p_res, 'ci')
+        instructions.program.free(p_res, 'r')
         return res
     return load_result
 
@@ -1091,12 +1091,12 @@ def not_(term):
 
 def start_timer(timer_id=0):
     get_tape().start_new_basicblock(name='pre-start-timer')
-    start(timer_id)
+    start_clock(timer_id)
     get_tape().start_new_basicblock(name='post-start-timer')
 
 def stop_timer(timer_id=0):
     get_tape().start_new_basicblock(name='pre-stop-timer')
-    stop(timer_id)
+    stop_clock(timer_id)
     get_tape().start_new_basicblock(name='post-stop-timer')
 
 def test(value, lower=None, upper=None, prec=None):

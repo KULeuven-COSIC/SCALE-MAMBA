@@ -276,6 +276,13 @@ public:
     return ans.c_str();
   }
 };
+class inconsistent_inputs : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "The players inputs were inconsisent in the IO input routines";
+  }
+};
 
 /* Processor Exceptions */
 class invalid_program : public exception
@@ -322,6 +329,24 @@ class crash_requested : public exception
   virtual const char *what() const throw()
   {
     return "Crash requested by program";
+  }
+};
+
+class Timer_Error : public exception
+{
+  string msg;
+
+public:
+  Timer_Error(string m)
+  {
+    msg= "Timer-Error : " + m;
+  }
+  ~Timer_Error() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
   }
 };
 

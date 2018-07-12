@@ -1,5 +1,6 @@
-@do_while
-def _():
-    for i in range(1000):
-        sint(1) * sint(1)
-    return regint(1)
+@do_while 
+def _():     
+  for i in range(1000):         
+    sint(1) * sint(1)     
+  return regint(1)
+

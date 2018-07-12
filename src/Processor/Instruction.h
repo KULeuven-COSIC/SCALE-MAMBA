@@ -89,6 +89,18 @@ enum {
   LEGENDREC= 0x38,
   DIGESTC= 0x39,
 
+  // IO
+  OUTPUT_CLEAR= 0x40,
+  INPUT_CLEAR= 0x41,
+  OUTPUT_SHARE= 0x42,
+  INPUT_SHARE= 0x43,
+  PRIVATE_INPUT= 0x44,
+  PRIVATE_OUTPUT= 0x46,
+  OUTPUT_INT= 0x48,
+  INPUT_INT= 0x49,
+  OPEN_CHAN= 0x4A,
+  CLOSE_CHAN= 0x4B,
+
   // Open
   STARTOPEN= 0xA0,
   STOPOPEN= 0xA1,
@@ -130,13 +142,12 @@ enum {
   SUBINT= 0x9C,
   MULINT= 0x9D,
   DIVINT= 0x9E,
-  PRINTINT= 0x9F,
 
   // Conversion
   CONVINT= 0xC0,
   CONVMODP= 0xC1,
 
-  // IO
+  // Debug Printing
   PRINTMEM= 0xB0,
   PRINTREG= 0XB1,
   PRINTREGPLAIN= 0xB2,
@@ -145,15 +156,8 @@ enum {
   PRINTCHRINT= 0xB5,
   PRINTSTRINT= 0xB6,
   PRINTFLOATPLAIN= 0xB7,
-  PRINTFIXPLAIN= 0xC7,
-  OUTPUT_CLEAR= 0xB8,
-  INPUT_CLEAR= 0xB9,
-  OUTPUT_SHARE= 0xBA,
-  INPUT_SHARE= 0xBB,
-  START_PRIVATE_INPUT= 0xBC,
-  STOP_PRIVATE_INPUT= 0xBD,
-  START_PRIVATE_OUTPUT= 0xBE,
-  STOP_PRIVATE_OUTPUT= 0xBF,
+  PRINTFIXPLAIN= 0xB8,
+  PRINTINT= 0xB9,
 
   // Others
   RAND= 0xE0,
@@ -181,6 +185,7 @@ protected:
   int opcode;        // The code
   unsigned int size; // Vector size
   int r[4];          // Fixed parameter registers
+  unsigned int p;    // Player value of argument
   unsigned int n;    // Possible immediate value
   unsigned int m;    // Possible immediate value
   vector<int> start; // Values for a start/stop open

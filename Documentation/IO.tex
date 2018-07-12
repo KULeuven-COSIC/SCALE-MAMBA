@@ -30,20 +30,19 @@ class
 \end{verbatim}
 given in the distribution.
 Then to compile the system they will need to place the
-name of their derived class in the file
-\begin{verbatim}
-    src/config.h
-\end{verbatim}
-in the macro variable \verb+IO_FUNCTIONALITY+.
-Finally any ``configuration'' for this derived class needs
-to be placed in the file
+name of their derived class the correct place in the
+main program, 
 \begin{verbatim}
     src/Player.cpp
 \end{verbatim}
-in the line which initializes the IO class, which for
-our simple demo example is given by
+including any configuration needed.
+To load your own IO functionality you alter the line
 \begin{verbatim}
-    machine.IO.init(cin,cout,true)
+    unique_ptr<Input_Output_Simple> io(new Input_Output_Simple);
+\end{verbatim}
+To configure your IO functionality you alter the line
+\begin{verbatim}
+    io->init(cin,cout,true);
 \end{verbatim}
 Internally the IO class can maintain any number of ``channels''
 for each of the various operations below.
@@ -52,33 +51,41 @@ IO class; if no channel is specified in the MAMBA language
 then channel zero is selected by default (although for
 the \verb+input_shares+ and \verb+output_shares+ commands
 you {\em always} need to specify a channel.
+Channels are assumed to be bidirectional, i.e. they can
+communicate for both reading and writing.
+Note, these are logical channels purely for the IO class;
+they are nothing to do with the main communication channels
+between the players.
 
 \subsection{Types of IO Processing}
-In this section we outline the six forms of input and
+In this section we outline the forms of input and
 output supported by the new IO system.
+All IO instructions must be executed from thread zero, this is
+to ensure that the order of IO functions is consistent across
+all executions.
 
 \subsubsection{Private Output}
 To obtain an $\F_p$ element privately to one party one
-executes the bytecodes
+executes the bytecode
 \begin{center}
-\verb+START_PRIVATE_OUTPUT+ and \verb+STOP_PRIVATE_OUTPUT+.
+\verb+PRIVATE_OUTPUT+.
 \end{center}
-These correspond to the old SPDZ bytecodes
+These correspond to a combination of the old SPDZ bytecodes
 \verb+STARTPRIVATEOUTPUT+ and \verb+STOPPRIVATEOUTPUT+.
-They enable a designated party to obtain output of
+The instruction enables a designated party to obtain output of
 one of the secretly shared variables, this is then passed
 to the sytem by a call to the function
 \verb+IO.private_output_gfp(const gfp& output,unsigned int channel)+ in the C++ IO class.
 
 \subsubsection{Private Input}
 This is the oppposite operation to the one above and it 
-is accomplised by the bytecodes 
+is accomplised by the bytecode
 \begin{center}
-\verb+START_PRIVATE_INPUT+ and \verb+STOP_PRIVATE_INPUT+.
+\verb+PRIVATE_INPUT+.
 \end{center}
-These correspond to the old SPDZ bytecodes
+This correspond to the old SPDZ bytecodes
 \verb+STARTINPUT+ and \verb+STOPINPUT+.
-They enable a designated party to enter a value into
+The instruction enables a designated party to enter a value into
 the computation.
 The value that the player enters is obtained via a call to the 
 member function
@@ -91,6 +98,12 @@ old SPDZ bytecode \verb+RAWOUTPUT+.
 This output needs to be caught by the C++ IO class in
 the member function \verb+IO.public_output_gfp(const gfp& output,unsigned int channel)+.
 
+For the same functionality but for \verb|regint| type we have
+that the bytecode is \verb+OUTPUT_INT+.
+This output needs to be caught by the C++ IO class in
+the associated member function 
+\verb+IO.public_output_int(...)+.
+
 \subsubsection{Public Input}
 A clear public input value is something which is input to
 {\em all} players; and must be the same input for all players.
@@ -99,6 +112,15 @@ This hooks into the C++ IO class function
 \verb+INPUT_CLEAR+.
 This is a bit like the old SPDZ bytecode \verb+PUBINPUT+
 but with slightly different semantics.
+For the \verb|regint| type this becomes the bytecode \verb+INPUT_INT+
+and the C++ IO class function
+\verb+IO.public_input_int(...)+.
+
+Any derived class from \verb+Input_Output_Base+ needs to call
+the function \verb+IO.Update_Checker(y,channel)+ from within the
+function \verb+IO.public_input_gfp(...)+,
+or the function \verb+IO.public_input_int(...)+.
+See the example given in the demonstration \verb+Input_Output_Simple+ class provided.
 
 \subsubsection{Share Output}
 In some situations the system might want to store some
@@ -118,17 +140,50 @@ Finally, shares can be input from an external source
 (note they need to be correct/suitably MAC'd). This
 is done via the bytecode \verb+INPUT_SHARE+ and the
 member function \verb+IO.input_share(unsigned int channel)+.
+Again the same issues re careful usage of this function
+apply, as they did for the \verb+OUTPUT_SHARE+ bytecode.
+
+
+\subsection{Other IO Processing}
+
+\subsubsection{Opening and Closing Channels}
+As some IO functionalities will require the explicit opening
+and closing of specific channels we provide two functions
+for this purpose;
+\verb+IO.open_channel(unsigned int n)+
+and
+\verb+IO.close_channel(unsigned int n)+.
+These correspond to the bytecodes \verb+OPEN_CHAN+ and
+\verb+CLOSE_CHAN+.
+For our default IO functionality one does not need to
+explicitly call these functions before, or after,
+using a channel.
+However, it is good programming practice to do so, just
+in case the default IO functionality is replaced by another
+user of your code.
 
 \subsubsection{Trigger}
-There is a special function \verb+IO.trigger()+ which is
-used for the parties to signal that they are content with
+There is a special function \verb+IO.trigger(Schedule& schedule)+ 
+which is used for the parties to signal that they are content with
 performing a \verb+RESTART+ command.
 See Section \ref{sec:restart} for further details.
 
+\subsubsection{Debug Output}
+There is a function \verb+IO.debug_output(const stringstream &ss)+
+which passes the responsed from the \verb+PRINTxxx+ bytecodes.
+In the default instantiation this just sends the contents
+of the \verb+stringstream+ to standard output.
+
+\subsubsection{Crashing}
+The bytecode \verb+CRASH+ calls the function 
+\verb+IO.crash(unsigned int PC, unsigned int thread_num)+.
+This enables the IO class to be able to process any crash
+in an application specific way if needs be.
 
 \subsection{MAMBA Hooks}
 These functions can be called from the MAMBA language via,
-for \verb+a+ of type \verb+sint+ and \verb+b+ of type \verb+cint+.
+for \verb+a+ of type \verb+sint+, \verb+b+ of type \verb+cint+
+and \verb+c+ of type \verb+regint+.
 \begin{verbatim}
     # Private Output to player 2 on channel 0 and on channel 11
     a.reveal_to(2)
@@ -139,11 +194,11 @@ for \verb+a+ of type \verb+sint+ and \verb+b+ of type \verb+cint+.
     a=sint.get_private_input_from(0,15)
 
     # Public Output on channel 0 and on channel 5
-    b.public_output()
+    b=cint.public_output()
     b.public_output(5)
 
     # Public Input on default channel 0 and on channel 10
-    b=public_input()
+    b=cint.public_input()
     b=public_input(10)
 
     # Share Output on channel 1000
@@ -152,7 +207,13 @@ for \verb+a+ of type \verb+sint+ and \verb+b+ of type \verb+cint+.
     # Share Input on channel 2000
     inp=[sint()]
     input_shares(2000,*inp)
+
+    # Regint input and output on channel 4
+    open_channel(4)
+    e=regint.public_input(4)
+    e.public_output(4)
+    close_channel(4)
 \end{verbatim}
-The \verb+IO.trigger()+ is called only when a \verb+restart()+ command
+The \verb+IO.trigger(Schedule& schedule)+ is called only when a \verb+restart()+ command
 is executed from MAMBA.
 

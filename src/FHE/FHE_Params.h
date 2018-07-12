@@ -24,8 +24,8 @@ All rights reserved
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers
  *   - Uses statistical/computational security parameters from config.h
  */
-void Generate_Parameters(int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-                         int h, int n);
+void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
+                         unsigned int h, unsigned int n);
 
 class FHE_Params
 {
@@ -36,7 +36,7 @@ protected:
   // Data for distributed decryption
   bigint Bval; // Bound
 
-  int hwt;
+  unsigned int hwt;
 
 public:
   FHE_Params()
@@ -47,7 +47,7 @@ public:
   // Rely on default copy assignment/constructor (not that they should
   // ever be needed)
 
-  void set(const Ring &R, const bigint &pr0, const bigint &pr1, int hwt, int n,
+  void set(const Ring &R, const bigint &pr0, const bigint &pr1, unsigned int hwt, unsigned int n,
            bool check= true);
 
   const vector<FFT_Data> &FFTD() const
@@ -75,7 +75,7 @@ public:
     return Bval;
   }
 
-  int phi_m() const
+  unsigned int phi_m() const
   {
     return FFTData[0].phi_m();
   }

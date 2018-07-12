@@ -18,20 +18,20 @@ using namespace std;
 
 class Ring
 {
-  int mm, phim;
+  unsigned int mm, phim;
   vector<int> pi;
   vector<int> pi_inv;
   vector<int> poly;
 
 public:
-  void initialize(int m);
+  void initialize(unsigned int m);
 
   Ring()
       : mm(0), phim(0)
   {
     ;
   }
-  Ring(int m)
+  Ring(unsigned int m)
   {
     initialize(m);
   }
@@ -42,11 +42,11 @@ public:
 
   // Rely on default copy assignment/constructor
 
-  int phi_m() const
+  unsigned int phi_m() const
   {
     return phim;
   }
-  int m() const
+  unsigned int m() const
   {
     return mm;
   }

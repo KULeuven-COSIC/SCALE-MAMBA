@@ -28,16 +28,19 @@ void Program::compute_constants()
     }
 }
 
-void Program::parse(istream &s)
+void Program::parse(stringstream &s)
 {
   p.resize(0);
   Instruction instr;
-  s.peek();
-  while (!s.eof())
+  if (!s.fail())
     {
-      instr.parse(s);
-      p.push_back(instr);
       s.peek();
+      while (!s.eof())
+        {
+          instr.parse(s);
+          p.push_back(instr);
+          s.peek();
+        }
     }
   compute_constants();
 }

@@ -23,10 +23,7 @@ using namespace std;
 
 class Processor_IO
 {
-  vector<vector<Share>> rshares;
-  vector<gfp> i_epsilon; // i_epsilon_i = x_i-r_i   (player p knows r_i and has
-                         // input x_i)
-  deque<gfp> o_epsilon;  // o_epsilon_i = r_i       (player p knows r_i)
+  vector<Share> rshares;
 
 public:
   Processor_IO(unsigned int nplayers)
@@ -35,21 +32,14 @@ public:
     ;
   }
 
-  // Prepare to get n_inputs private input values from player player
-  void start_input(unsigned int player, unsigned int n_inputs, unsigned int channel,
-                   Processor &Proc, Player &P, Machine &machine, offline_control_data &OCD);
+  // Get a private input values from a player on a given channel
+  void private_input(unsigned int player, int target, unsigned int channel,
+                     Processor &Proc, Player &P, Machine &machine, offline_control_data &OCD);
 
-  // Assign the input shares to registers given by targets
-  void stop_input(unsigned int player, vector<int> targets, Processor &Proc,
-                  Player &P);
-
-  // Prepare to get n_inputs private input values from player player
-  void start_output(unsigned int player, int target, int source,
-                    Processor &Proc, Player &P, offline_control_data &OCD);
-
-  // Assign the input shares to registers given by targets
-  void stop_output(unsigned int player, int source, unsigned int channel,
-                   Processor &Proc, Player &P, Machine &machine);
+  // Output a private value to a player on a channel
+  void private_output(unsigned int player, int source, unsigned int channel,
+                      Processor &Proc, Player &P, Machine &machine,
+                      offline_control_data &OCD);
 };
 
 #endif

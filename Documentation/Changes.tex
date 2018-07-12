@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently version 1.0 of the SCALE and MAMBA software.
+This is currently version 1.1 of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,60 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software. 
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.1 from 1.0}
+
+\begin{enumerate}
+\item Major bug fix to IO processing of private input and output.
+This has resulted in a change to the bytecodes for these instructions.
+\item We now support multiple FHE Factory threads, the precise number
+is controlled from a run-time switch.
+\item The restart methodology now allows the use to programmatically
+create new schedules and program tapes if so desired. The
+``demo'' functionality is however exactly as it was before.
+Please see the example functionality in the file
+\verb+src/Input_Output/Input_Output_Simple.cpp+
+\item We have added in some extra verbose output to enable timing of the
+offline phase. To time the offline phase, on say bit production,
+you can now use the program \verb+Program/do_nothing.mpc+, and then
+execute the command for player zero.
+\begin{verbatim}
+   ./Player.x -verbose 1 -max 1,1,10000000  0 Programs/do_nothing/
+\end{verbatim}
+Note square production on its own is deliberately throttled
+so that when run in a real execution bit production is preferred
+over squares.
+By altering the constant in the program  \verb+Program/do_nothing.mpc+
+you can also alter the number of threads used for this timing operation.
+If you enter a negative number for verbose then verbose output
+is given for the online phase; i.e. it prints the bytecodes being
+executed.
+\item The fixed point square root functions have now been extended to
+cope with full precision fixed point numbers.
+\item The \verb+PRINTxxx+ bytecodes now pass there output via the
+\verb+Input_Output+ functionality. These bytecodes are meant for
+debugging purposes, and hence catching them via the IO functionality
+makes most sense. The relevant function in the IO class
+is \verb+debug_output+.
+\item We have added the ability to now also input and output \verb+regint+
+values via the IO functionality, with associated additional bytecodes
+added to enable this.
+\item The IO class now allows one to control the opening and closing of
+channels, this is aided by two new bytecodes for this purpose
+called \verb+OPEN_CHAN+ and \verb+CLOSE_CHAN+.
+\item Input of clear values via the IO functionality (i.e.
+for \verb+cint+ and \verb+regint+ values) is now internally checked to ensure that
+all players enter the same clear values.
+Note, this requires modification to any user defined 
+derived classes from \verb+Input_Output_Base+.
+See the chapter on IO for more details on this.
+\item The way the chosen IO functionality is bound with the main program
+has now also been altered. See the chapter on IO for more details on this.
+\item These changes have meant there are a number of changes to the
+specific byte codes, so you will need to recompile MAMBA programs.
+If you generate your own bytecodes then your backend will need to
+change as well.
+\end{enumerate}
 
 
 \subsection{Changes From SPDZ}

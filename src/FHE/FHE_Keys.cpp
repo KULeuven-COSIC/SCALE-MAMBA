@@ -192,6 +192,18 @@ void FHE_SK::decrypt_any(Plaintext &res, const Ciphertext &c)
     decrypt(res, c);
 }
 
+vector<Rq_Element> FHE_SK::make_distributed_key(unsigned int n, PRNG &G) const
+{
+  vector<Rq_Element> si(n, Rq_Element((*params).FFTD(), evaluation, evaluation));
+  si[0]= sk;
+  for (unsigned int i= 1; i < n; i++)
+    {
+      si[i].randomize(G, 0);
+      sub(si[0], si[0], si[i]);
+    }
+  return si;
+}
+
 /* Distributed Decryption Stuff */
 void FHE_SK::dist_decrypt_1(vector<bigint> &vv, const Ciphertext &ctx, int player_number) const
 {
@@ -216,14 +228,14 @@ void FHE_SK::dist_decrypt_1(vector<bigint> &vv, const Ciphertext &ctx, int playe
   Bd= Bd / 2; // make slightly smaller due to rounding issues
 
   dec_sh.to_vec_bigint(vv);
-  if ((int) vv.size() != params->phi_m())
+  if (vv.size() != params->phi_m())
     throw length_error("wrong length of ring element");
   bigint mod= (*params).p0();
   PRNG G;
   G.ReSeed(0);
   bigint mask;
   bigint two_Bd= 2 * Bd;
-  for (int i= 0; i < (*params).phi_m(); i++)
+  for (unsigned int i= 0; i < (*params).phi_m(); i++)
     {
       mask= randomBnd(G, two_Bd);
       mask-= Bd;
@@ -261,13 +273,13 @@ void FHE_SK::dist_decrypt_1a(vector<bigint> &vv, vector<bigint> &f,
   Bd= Bd / 2; // make slightly smaller due to rounding issues
 
   dec_sh.to_vec_bigint(vv);
-  if ((int) vv.size() != params->phi_m())
+  if (vv.size() != params->phi_m())
     throw length_error("wrong length of ring element");
   bigint mod= (*params).p0();
   PRNG G;
   G.ReSeed(0);
   bigint two_Bd= 2 * Bd;
-  for (int i= 0; i < (*params).phi_m(); i++)
+  for (unsigned int i= 0; i < (*params).phi_m(); i++)
     {
       f[i]= randomBnd(G, two_Bd);
       f[i]-= Bd;
@@ -284,7 +296,7 @@ void FHE_SK::dist_decrypt_2(vector<bigint> &vv,
                             const vector<bigint> &vv1) const
 {
   bigint mod= (*params).p0();
-  for (int i= 0; i < (*params).phi_m(); i++)
+  for (unsigned int i= 0; i < (*params).phi_m(); i++)
     {
       vv[i]+= vv1[i];
       vv[i]%= mod;

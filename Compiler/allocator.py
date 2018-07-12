@@ -181,22 +181,14 @@ class Merger:
             return new_args
 
         for i in merges_iter:
-            if isinstance(instructions[n], start_private_input):
-                instructions[n].args[1] += instructions[i].args[1]
-            elif isinstance(instructions[n], stop_private_input):
-                if instructions[n].get_size() != instructions[i].get_size():
-                    raise NotImplemented()
-                else:
-                    instructions[n].args += instructions[i].args[1:]
+            if instructions[n].get_size() != instructions[i].get_size():
+                 # merge as non-vector instruction
+                 instructions[n].args = expand_vector_args(instructions[n]) + \
+                     expand_vector_args(instructions[i])
+                 if instructions[n].is_vec():
+                     instructions[n].size = 1
             else:
-                if instructions[n].get_size() != instructions[i].get_size():
-                    # merge as non-vector instruction
-                    instructions[n].args = expand_vector_args(instructions[n]) + \
-                        expand_vector_args(instructions[i])
-                    if instructions[n].is_vec():
-                        instructions[n].size = 1
-                else:
-                    instructions[n].args += instructions[i].args
+                 instructions[n].args += instructions[i].args
                 
             # join arg_formats if not special iterators
             # if not isinstance(instructions[n].arg_format, (itertools.repeat, itertools.cycle)) and \
@@ -265,11 +257,10 @@ class Merger:
         starters = []
         for n in xrange(len(G)):
             if n not in merge_nodes_set and \
-                depth_of[n] != rev_depth_of[n] and G[n] and G.get_attr(n,'start') == -1 and not isinstance(instructions[n], AsymmetricCommunicationInstruction):
+                depth_of[n] != rev_depth_of[n] and G[n] and G.get_attr(n,'start') == -1: 
                     #print n, depth_of[n], rev_depth_of[n]
                     flex_nodes[depth_of[n]].setdefault(rev_depth_of[n], set()).add(n)
-            elif len(G.pred[n]) == 0 and \
-                    not isinstance(self.instructions[n], RawInputInstruction):
+            elif len(G.pred[n]) == 0:
                 starters.append(n)
             if n % 10000000 == 0 and n > 0:
                 print "Processed %d nodes at" % n, time.asctime()
@@ -325,10 +316,7 @@ class Merger:
             stop = self.G.get_attr(merge, 'stop')
             stops_in[rev_depth_of[stop]].append(stop)
         for node in self.input_nodes:
-            if isinstance(self.instructions[node], start_private_input):
-                startinputs.append(node)
-            else:
-                stopinputs.append(node)
+            stopinputs.append(node)
         max_round = max(rev_depth_of)
         for i in xrange(max_round, 0, -1):
             preorder.extend(reversed(stops_in[i]))
@@ -581,19 +569,6 @@ class Merger:
                 if last_print_str is not None:
                     add_edge(last_print_str, n)
                 last_print_str = n
-            elif isinstance(instr, PublicFileIOInstruction):
-                keep_order(instr, n, instr.__class__)
-            elif isinstance(instr, RawInputInstruction):
-                keep_order(instr, n, instr.__class__, 0)
-                self.input_nodes.append(n)
-                G.add_node(n, merges=[])
-                player = instr.args[0]
-                if isinstance(instr, stop_private_input):
-                    add_edge(last[start_private_input][player], n)
-            elif isinstance(instr, start_private_output_class):
-                keep_order(instr, n, start_private_output_class, 2)
-            elif isinstance(instr, stop_private_output_class):
-                keep_order(instr, n, stop_private_output_class, 1)
             elif isinstance(instr, StackInstruction):
                 keep_order(instr, n, StackInstruction)                
 

@@ -93,11 +93,11 @@ class stmc(base.DirectMemoryWriteInstruction):
 
 class ldmsi(base.ReadMemoryInstruction):
     code = base.opcodes['LDMSI']
-    arg_format = ['sbw','ci']
+    arg_format = ['sbw','r']
 
 class stmsi(base.WriteMemoryInstruction):
     code = base.opcodes['STMSI']
-    arg_format = ['sb','ci']
+    arg_format = ['sb','r']
 
 class ldmsdi(base.ReadMemoryInstruction):
     code = opcodes['LDMSDI']
@@ -117,11 +117,11 @@ class stmsd(base.WriteMemoryInstruction):
 
 class convsint(base.Instruction):
     code = opcodes['CONVSINT']
-    arg_format = ['sbw','ci']
+    arg_format = ['sbw','r']
 
 class convcint(base.Instruction):
     code = opcodes['CONVCINT']
-    arg_format = ['cbw','ci']
+    arg_format = ['cbw','r']
 
 class movs(base.Instruction):
     code = base.opcodes['MOVS']

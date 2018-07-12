@@ -86,7 +86,7 @@ void Processor::execute(const Program &prog, int argument, Player &P,
   int reg_maxi= prog.num_reg(INT);
   Cp.resize(reg_maxp);
   Sp.resize(reg_maxp);
-  Ci.resize(reg_maxi);
+  Ri.resize(reg_maxi);
 
   for (int i= 0; i < reg_maxp; i++)
     {
@@ -123,12 +123,13 @@ void Processor::execute(const Program &prog, int argument, Player &P,
         {
           /* Call trigger 
            * This halts machine, until something external says OK to go
+           * Possibly loading a new schedule
            */
-          machine.IO.trigger();
+          machine.get_IO().trigger(machine.schedule);
           printf("Restarting...\n");
-          RunOpenCheck(P);
-          // Load new schedule file
-          machine.Load_Programs();
+          RunOpenCheck(P, machine.get_IO().Get_Check());
+          // Now parse any new schedule into the main machine
+          machine.Load_Schedule_Into_Memory();
           printf("Loaded programs\n");
           fflush(stdout);
           PC= size;

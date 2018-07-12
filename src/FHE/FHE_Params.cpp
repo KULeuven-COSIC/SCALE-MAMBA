@@ -43,8 +43,8 @@ bigint make_prime(int lg2, int N, const bigint &q= 0,
 }
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers */
-void Generate_Parameters(int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-                         int h, int n)
+void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
+                         unsigned int h, unsigned int n)
 {
   double pp= exp2((double) lg2p), ss= exp2((double) stat_sec),
          S= exp2(stat_sec);
@@ -121,7 +121,8 @@ void Generate_Parameters(int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
        << p1 % (2 * N) << endl;
 }
 
-void FHE_Params::set(const Ring &R, const bigint &p0, const bigint &p1, int h, int n,
+void FHE_Params::set(const Ring &R, const bigint &p0, const bigint &p1,
+                     unsigned int h, unsigned int n,
                      bool check)
 {
   Zp_Data prD0(p0);
@@ -142,13 +143,13 @@ void FHE_Params::set(const Ring &R, const bigint &p0, const bigint &p1, int h, i
 
 vector<bigint> FHE_Params::sample_Hwt(PRNG &G) const
 {
-  int n= FFTData[0].phi_m();
+  unsigned int n= FFTData[0].phi_m();
   vector<bigint> ans(n);
-  for (int i= 0; i < n; i++)
+  for (unsigned int i= 0; i < n; i++)
     {
       ans[i]= 0;
     }
-  int cnt= 0, j= 0;
+  unsigned int cnt= 0, j= 0;
   uint8_t ch= 0;
   while (cnt < hwt)
     {

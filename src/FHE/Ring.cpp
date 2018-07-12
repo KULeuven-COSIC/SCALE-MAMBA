@@ -10,10 +10,10 @@ All rights reserved
 #include "Math/bigint.h"
 #include "Tools/int.h"
 
-void Ring::initialize(int m)
+void Ring::initialize(unsigned int m)
 {
   int lg2= CEIL_LOG2(m);
-  if (m != (1 << lg2))
+  if (m != (1UL << lg2))
     {
       fprintf(stderr, "Ring dimension must be a power of two");
       throw not_implemented();
@@ -23,13 +23,13 @@ void Ring::initialize(int m)
 
   pi.resize(phim);
   pi_inv.resize(mm);
-  for (int i= 0; i < mm; i++)
+  for (unsigned int i= 0; i < mm; i++)
     {
       pi_inv[i]= -1;
     }
 
   int k= 0;
-  for (int i= 1; i < mm; i++)
+  for (unsigned int i= 1; i < mm; i++)
     {
       if (gcd(i, mm) == 1)
         {
@@ -43,12 +43,12 @@ void Ring::initialize(int m)
 ostream &operator<<(ostream &s, const Ring &R)
 {
   s << R.mm << " " << R.phim << endl;
-  for (int i= 0; i < R.phim; i++)
+  for (unsigned int i= 0; i < R.phim; i++)
     {
       s << R.pi[i] << " ";
     }
   s << endl;
-  for (int i= 0; i < R.mm; i++)
+  for (unsigned int i= 0; i < R.mm; i++)
     {
       s << R.pi_inv[i] << " ";
     }
@@ -65,11 +65,11 @@ istream &operator>>(istream &s, Ring &R)
   s >> R.mm >> R.phim;
   R.pi.resize(R.phim);
   R.pi_inv.resize(R.mm);
-  for (int i= 0; i < R.phim; i++)
+  for (unsigned int i= 0; i < R.phim; i++)
     {
       s >> R.pi[i];
     }
-  for (int i= 0; i < R.mm; i++)
+  for (unsigned int i= 0; i < R.mm; i++)
     {
       s >> R.pi_inv[i];
     }

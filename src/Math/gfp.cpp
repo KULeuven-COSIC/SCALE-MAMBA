@@ -107,7 +107,15 @@ void gfp::XOR(const gfp &x, const bigint &y)
 
 void gfp::SHL(const gfp &x, int n)
 {
-  if (!x.is_zero())
+  if (n < 0)
+    {
+      throw arithmetic_bug();
+    }
+  else if (n == 0)
+    {
+      assign(x);
+    }
+  else if (!x.is_zero())
     {
       bigint bi;
       to_bigint(bi, x, false);
@@ -123,7 +131,15 @@ void gfp::SHL(const gfp &x, int n)
 
 void gfp::SHR(const gfp &x, int n)
 {
-  if (!x.is_zero())
+  if (n < 0)
+    {
+      throw arithmetic_bug();
+    }
+  else if (n == 0)
+    {
+      assign(x);
+    }
+  else if (!x.is_zero())
     {
       bigint bi;
       to_bigint(bi, x);

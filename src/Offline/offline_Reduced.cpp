@@ -17,9 +17,9 @@ unsigned int pos;
 void Init_Configure(unsigned int whoami)
 {
   init= true;
-  // Check whether this player does Maurer or specific send, if not Maurer find
-  // which
-  // share value am I going to be sending to the other players
+  // Check whether this player does Maurer or specific send,
+  // if not Maurer find which share value am I going to be sending
+  // to the other players
   if (find(Share::SD.maurer_chans.begin(), Share::SD.maurer_chans.end(),
            whoami) == Share::SD.maurer_chans.end())
     {
@@ -41,7 +41,7 @@ void Init_Configure(unsigned int whoami)
     {
       for (unsigned int j= 0; j < Share::SD.mult_proc[i].size(); j++)
         {
-          if (Share::SD.mult_proc[i][j] == 0)
+          if (Share::SD.mult_proc[i][j] <= 0)
             {
               need_prss= true;
             }
@@ -76,10 +76,16 @@ void mult_inner_subroutine_one(const Share &aa, const Share &bb, Share &cc,
    * from someone else */
   for (unsigned int k= 0; k < Share::SD.M.shares_per_player(whoami); k++)
     {
-      if (need_prss && Share::SD.mult_proc[whoami][k] == 0)
+      if (need_prss)
         {
-          cc.set_share(k, dd.get_share(k));
-          prod-= dd.get_share(k);
+          if (Share::SD.mult_proc[whoami][k] <= 0)
+            {
+              cc.set_share(k, dd.get_share(k));
+            }
+          if (Share::SD.mult_proc[whoami][k] == -1)
+            {
+              prod-= dd.get_share(k);
+            }
         }
       else if (Share::SD.mult_proc[whoami][k] == 2)
         {

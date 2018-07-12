@@ -105,7 +105,7 @@ public:
   vector<int> finish_offline;   // Flag to say whether we SHOULD finish offline
   vector<int> finished_offline; // Counts how many threads HAVE died
 
-  void resize(int num_threads)
+  void resize(unsigned int num_threads)
   {
     clean_up();
     mult_mutex= new mutex[num_threads];
@@ -117,7 +117,7 @@ public:
     totb.resize(num_threads);
     finish_offline.resize(num_threads);
     finished_offline.resize(num_threads);
-    for (int i= 0; i < num_threads; i++)
+    for (unsigned int i= 0; i < num_threads; i++)
       {
         totm[i]= 0;
         tots[i]= 0;

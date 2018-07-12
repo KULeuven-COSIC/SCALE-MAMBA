@@ -99,6 +99,12 @@ distinct portnumbers.
 \item {\bf -mem xxxx}: Where xxxx is either \verb+old+
 or \verb+empty+. The default is \verb+empty+.
 See later for what we mean by memory.
+\item {\bf -verbose n}: Sets the verbose level to $n$. The higher value
+of $n$ the more diagnostic information is printed. This is mainly
+for our own testing purposes, but verbose level one gives you a method
+to time offline production (see the Changes section for version 1.1).
+If $n$ is negative then the bytecodes being executed by the online
+phase are output (and no offline verbose output is produced).
 \item {\bf -max m,s,b}: Stop running the offline phase for each online
 thread when we have generated $m$ multiplication triples, $s$ square
 pairs and $b$ shared bits.
@@ -108,6 +114,10 @@ triples, $s$ square pairs and $b$ shared bits.
 However, these minimums need to be less than the maximum sacrificed
 list sizes defined in \verb+config.h+. Otherwise the maximums
 defined in that file will result in the program freezing.
+\item {\bf -f 2}: The number of FHE factories to run in parallel.
+This only applies (obviously) to the Full Threshold situation.
+How this affects your installation depends on the number of cores
+and how much memory you have. We set the default to two.
 \end{itemize}
 For example by using high values of the variables set to {\bf -min} you
 get the offline data queues full before you trigger the execution

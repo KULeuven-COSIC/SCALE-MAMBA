@@ -128,8 +128,8 @@ void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b,
   for (int i= 0; i < sz_offline_batch / amortize; i++)
     {
       /* Essentially run the square protocol to get amortize
-   number of sharing of a and sharing of b=a^2
-*/
+       * number of sharing of a and sharing of b=a^2
+       */
       vector<stringstream> ss(P.nplayers());
       for (int j= 0; j < amortize; j++)
         {
@@ -156,8 +156,8 @@ void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b,
       OP.Open_To_All_End(a2, bb, P);
 
       /* Now compute v=a/sqrt{a2} assuming a2<>0
- * and then    (v+1)/2
- */
+       * and then    (v+1)/2
+       */
       for (int j= 0; j < amortize; j++)
         {
           if (!a2[j].is_zero())

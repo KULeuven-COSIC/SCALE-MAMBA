@@ -10,32 +10,59 @@ All rights reserved
 #include <fstream>
 
 #include <iostream>
-SystemData::SystemData()
+SystemData::SystemData(const string &NetworkDataFileName)
 {
   unsigned int i, j;
-  ifstream inp("Data/NetworkData.txt");
+  ifstream inp(NetworkDataFileName.c_str());
   if (inp.fail())
     {
-      throw file_error("Data/NetworkData.txt");
+      throw file_error(NetworkDataFileName.c_str());
     }
 
-  inp >> RootCRT;
+  unsigned int numplayers;
+  string RootCertName;
+  vector<string> IP_Numbers, PlayerCertFiles, PlayerNames;
+  int fake_off, fake_sac;
 
-  inp >> n;
-  cout << "n=" << n << endl;
+  inp >> RootCertName;
+  inp >> numplayers;
 
+  IP_Numbers.resize(numplayers);
+  PlayerCertFiles.resize(numplayers);
+  PlayerNames.resize(numplayers);
+  for (i= 0; i < numplayers; i++)
+    {
+      inp >> j >> IP_Numbers[i] >> PlayerCertFiles[i] >> PlayerNames[i];
+      cout << j << endl;
+      cout << IP_Numbers[i] << endl;
+      cout << PlayerCertFiles[i] << endl;
+      cout << PlayerNames[i] << endl;
+    }
+
+  inp >> fake_off;
+  inp >> fake_sac;
+
+  init(numplayers, RootCertName, IP_Numbers, PlayerCertFiles, PlayerNames, fake_off, fake_sac);
+}
+
+void SystemData::init(unsigned int numplayers, const string &RootCertName,
+                      const vector<string> &IP_Numbers,
+                      const vector<string> &PlayerCertFiles,
+                      const vector<string> &PlayerNames,
+                      int fake_off, int fake_sac)
+{
+  n= numplayers;
+  RootCRT= RootCertName;
   IP.resize(n);
   PlayerCRT.resize(n);
   PlayerCN.resize(n);
-  for (i= 0; i < n; i++)
+  if (n != IP_Numbers.size() || n != PlayerCertFiles.size() || n != PlayerNames.size())
     {
-      inp >> j >> IP[i] >> PlayerCRT[i] >> PlayerCN[i];
-      cout << j << endl;
-      cout << IP[i] << endl;
-      cout << PlayerCRT[i] << endl;
-      cout << PlayerCN[i] << endl;
+      throw data_mismatch();
     }
-
-  inp >> fake_offline;
-  inp >> fake_sacrifice;
+  IP= IP_Numbers;
+  PlayerCRT= PlayerCertFiles;
+  PlayerCN= PlayerNames;
+  fake_offline= fake_off;
+  fake_sacrifice= fake_sac;
 }

@@ -19,7 +19,7 @@ All rights reserved
 #include <fstream>
 using namespace std;
 
-class Input_Output_Simple : Input_Output_Base
+class Input_Output_Simple : public Input_Output_Base
 {
   istream *inpf;
   ostream *outf;
@@ -27,6 +27,12 @@ class Input_Output_Simple : Input_Output_Base
   bool human; // Only affects share output
 
 public:
+  Input_Output_Simple()
+      : Input_Output_Base()
+  {
+    ;
+  }
+
   void init(istream &ifs, ostream &ofs, bool human_type)
   {
     inpf= &ifs;
@@ -34,16 +40,26 @@ public:
     human= human_type;
   }
 
+  virtual void open_channel(unsigned int channel);
+  virtual void close_channel(unsigned int channel);
+
   virtual gfp private_input_gfp(unsigned int channel);
   virtual void private_output_gfp(const gfp &output, unsigned int channel);
 
   virtual void public_output_gfp(const gfp &output, unsigned int channel);
   virtual gfp public_input_gfp(unsigned int channel);
 
+  virtual void public_output_int(const long output, unsigned int channel);
+  virtual long public_input_int(unsigned int channel);
+
   virtual void output_share(const Share &S, unsigned int channel);
   virtual Share input_share(unsigned int channel);
 
-  virtual void trigger();
+  virtual void trigger(Schedule &schedule);
+
+  virtual void debug_output(const stringstream &ss);
+
+  virtual void crash(unsigned int PC, unsigned int thread_num);
 };
 
 #endif

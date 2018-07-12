@@ -204,10 +204,10 @@ istream &operator>>(istream &s, imatrix &A)
 
 void print(const imatrix &S)
 {
-  int m= S.size(), n= S[0].size();
-  for (int i= 0; i < m; i++)
+  unsigned int m= S.size(), n= S[0].size();
+  for (unsigned int i= 0; i < m; i++)
     {
-      for (int j= 0; j < n; j++)
+      for (unsigned int j= 0; j < n; j++)
         {
           cout << S[i][j] << " ";
         }

@@ -18,7 +18,8 @@ using namespace std;
 Open_Protocol::Open_Protocol()
 {
   open_cnt= 0;
-  counter= 0; // Counts the balance of sends and receives
+  counter[0]= 0; // Counts the balance of sends and receives in each connection
+  counter[1]= 0; // Counts the balance of sends and receives in each connection
   macs.resize(Share::SD.nmacs);
   SHA256_Init(&sha256);
 }
@@ -41,23 +42,22 @@ void Open_Protocol::AddToValues(const vector<gfp> &values)
 
 void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
                                       const vector<Share> &S, Player &P,
+                                      int connection,
                                       bool verbose)
 {
-
   if (verbose)
     {
       cout << "Size: " << S.size() << " " << S[0].a.size() << endl;
     }
   if (Share::SD.type == Full)
     {
-      AddToMacs(S);
       stringstream ss;
       for (unsigned int i= 0; i < S.size(); i++)
         {
           values[i]= S[i].a[0];
           values[i].output(ss, false);
         }
-      P.send_all(ss.str());
+      P.send_all(ss.str(), connection);
     }
   else
     {
@@ -89,15 +89,19 @@ void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
                   printf("Sending from %d to %d : %s\n", P.whoami(), p,
                          ss.str().c_str());
                 }
-              P.send_to_player(p, ss.str());
+              P.send_to_player(p, ss.str(), connection);
             }
         }
-      counter+= S.size();
+      counter[connection]+= S.size();
     }
 }
 
+/* All data for the checkig is processed here to ensure 
+ * we get no inconsistency in check when swapping between
+ * connection zero and connection one
+ */
 void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
-                                    Player &P, bool verbose)
+                                    Player &P, int connection, bool verbose)
 {
   if (Share::SD.type == Full)
     {
@@ -108,7 +112,7 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
         {
           if (j != P.whoami())
             {
-              P.receive_from_player(j, ss);
+              P.receive_from_player(j, ss, connection);
               istringstream is(ss);
               for (unsigned int i= 0; i < S.size(); i++)
                 {
@@ -117,10 +121,11 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
                 }
             }
         }
+      AddToMacs(S);
       AddToValues(values);
       if (open_cnt > open_check_gap)
         {
-          RunOpenCheck(P);
+          RunOpenCheck(P, "", connection);
         }
     }
   else
@@ -132,7 +137,7 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
         {
           if (Share::SD.OpenC[i][p] == 1 && i != p)
             {
-              P.receive_from_player(i, ss);
+              P.receive_from_player(i, ss, connection, verbose);
               is[i] << ss;
               if (verbose)
                 {
@@ -180,21 +185,24 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
             }
           SHA256_Update(&sha256, ss.str().c_str(), ss.str().size());
         }
-      counter-= S.size();
+      counter[connection]-= S.size();
     }
   open_cnt+= values.size();
-  if (open_cnt > open_check_gap && counter == 0)
+  if (open_cnt > open_check_gap && counter[connection] == 0)
     {
-      RunOpenCheck(P);
+      RunOpenCheck(P, "", connection);
     }
 }
 
-void Open_Protocol::RunOpenCheck(Player &P, bool verbose)
+/* We run it on the connection c as connection 1-c might have
+ * some opening still to do
+ */
+void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, bool verbose)
 {
   if (Share::SD.type == Full)
     {
       uint8_t seed[SEED_SIZE];
-      Create_Random_Seed(seed, SEED_SIZE, P);
+      Create_Random_Seed(seed, SEED_SIZE, P, connection);
       PRNG G;
       G.SetSeed(seed);
 
@@ -223,7 +231,7 @@ void Open_Protocol::RunOpenCheck(Player &P, bool verbose)
         }
       vals.erase(vals.begin(), vals.begin() + open_cnt);
 
-      Commit_And_Open(tau, P);
+      Commit_And_Open(tau, P, connection);
 
       gfp t;
       for (int j= 0; j < neqs; j++)
@@ -244,7 +252,7 @@ void Open_Protocol::RunOpenCheck(Player &P, bool verbose)
       //   - Removes need for the Broadcast check in original SPDZ
       vector<string> OK(P.nplayers());
       OK[P.whoami()]= "Y";
-      P.Broadcast_Receive(OK);
+      P.Broadcast_Receive(OK, connection);
       for (unsigned int i= 0; i < P.nplayers(); i++)
         {
           if (OK[i].compare("Y") != 0)
@@ -268,13 +276,13 @@ void Open_Protocol::RunOpenCheck(Player &P, bool verbose)
           printf("\n");
           printf("%lu %d\n", ss.size(), SHA256_DIGEST_LENGTH);
         }
-      P.send_all(ss, verbose);
+      P.send_all(ss, connection, verbose);
       for (unsigned int i= 0; i < P.nplayers(); i++)
         {
           if (i != P.whoami())
             {
               string is;
-              P.receive_from_player(i, is, verbose);
+              P.receive_from_player(i, is, connection, verbose);
               if (verbose)
                 {
                   printf("Open Check: Received : %d : ", i);
@@ -292,6 +300,42 @@ void Open_Protocol::RunOpenCheck(Player &P, bool verbose)
             }
         }
       SHA256_Init(&sha256);
+    }
+
+  // Now deal with the auxillary string
+  if (aux.size() != 0)
+    {
+      if (verbose)
+        {
+          printf("Auxillary Check: Sending  : %d : ", P.whoami());
+          for (unsigned int i= 0; i < aux.size(); i++)
+            {
+              printf("%02x", (uint8_t) aux.c_str()[i]);
+            }
+          printf("\n");
+        }
+      P.send_all(aux, connection, verbose);
+      for (unsigned int i= 0; i < P.nplayers(); i++)
+        {
+          if (i != P.whoami())
+            {
+              string is;
+              P.receive_from_player(i, is, connection, verbose);
+              if (verbose)
+                {
+                  printf("Auxillary Check: Received : %d : ", i);
+                  for (unsigned int i= 0; i < is.size(); i++)
+                    {
+                      printf("%02x", (uint8_t) is.c_str()[i]);
+                    }
+                  printf("\n");
+                }
+              if (is != aux)
+                {
+                  throw inconsistent_inputs();
+                }
+            }
+        }
     }
   open_cnt= 0;
 }

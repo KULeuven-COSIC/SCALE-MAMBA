@@ -63,21 +63,22 @@ class ZKPoK
 
   condition PoKType;
 
-  int V;
+  unsigned int V;
 
-  vector<Random_Coins>
-      r; // Associated random coins for this player for the valid ciphertexts
+  // Associated random coins for this player for the valid ciphertexts
+  vector<Random_Coins> r;
 
   vector<int> e;
 
   vector<bool> used; // Vector to determine if an output is used yet
 
-  vector<Ciphertext>
-      A; // A[j] is the j-ciphertext of the test vectors in Step 1
-         // In Step1_Step we add in the other players A vectors one by one
+  // A[j] is the j-ciphertext of the test vectors in Step 1
+  // In Step1_Step we add in the other players A vectors one by one
+  vector<Ciphertext> A;
 
-  vector<Ciphertext> E; // E[j] is j th ciphertext from me in Step 1
+  // E[j] is j th ciphertext from me in Step 1
   // In Step1_Step we add in the other players E vectors one by one
+  vector<Ciphertext> E;
 
   vector<Rq_Element> Z;   // The vector of z's
   vector<Random_Coins> T; // The vector of T's
@@ -109,7 +110,7 @@ public:
   // Player calls this to enter the each other players vector vT
   void Step2_Step(istream &vT, istream &vZ, const FHE_PK &pk);
 
-  bool Step3(const FHE_PK &pk, const FFT_Data &PTD, int nplayers);
+  bool Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers);
 
   // Have we used up all the values yet of a completed proof?
   bool isempty() const;
@@ -118,7 +119,7 @@ public:
   int get_next_unused() const;
 
   // Get entry i, set it to be used (abort if already used)
-  void get_entry(Plaintext &mess, Ciphertext &ctx, int i);
+  void get_entry(Plaintext &mess, Ciphertext &ctx, unsigned int i);
 
   unsigned int size_batch() const
   {

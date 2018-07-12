@@ -12,4 +12,4 @@ def f(i, thread_mem):
     thread_mem[0].store_in_mem(i)
     test_mem(i, i)
 
-program.malloc(1000, 'ci')
+program.malloc(1000, 'r')

@@ -14,3 +14,9 @@ for i in $(seq 20 21); do
   ./Scripts/test_32.sh
 done
 
+for i in $(seq 22 24); do
+  cp -R Auto-Test-Data/$i/* Data/
+  echo Running testscript on set $i
+  ./Scripts/test.sh
+done
+

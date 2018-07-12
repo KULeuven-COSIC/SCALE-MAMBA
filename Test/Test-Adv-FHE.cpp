@@ -28,7 +28,7 @@ void Gen_FHE_Data(int &n, Ring &Rg, FFT_Data &PTD, FHE_Params &params,
 {
   n= 2;
   bigint p0, p1, pr;
-  int hwt= 64, N;
+  unsigned int hwt= 64, N;
   Generate_Parameters(N, p0, p1, pr, 128, hwt, n);
 
   Rg.initialize(2 * N);
@@ -68,7 +68,7 @@ void Read_FHE_Data(int &n, Ring &Rg, FFT_Data &PTD, FHE_Params &params,
   input >> n;
   input.close();
 
-  int N, hwt;
+  unsigned int N, hwt;
   bigint p0, p1, pr;
 
   sk= new FHE_SK *[n];
@@ -160,7 +160,7 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   Plaintext output(PTD);
   output.set_poly_mod(ans, params.p0());
 
-  for (int i= 0; i < Rg.phi_m(); i++)
+  for (unsigned int i= 0; i < Rg.phi_m(); i++)
     {
       if (mess.element(i) != output.element(i))
         {
@@ -171,7 +171,7 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   Ciphertext ctx2= ctx;
   ctx2.Scale((*pk).p());
   (*Msk).decrypt(output, ctx2);
-  for (int i= 0; i < Rg.phi_m(); i++)
+  for (unsigned int i= 0; i < Rg.phi_m(); i++)
     {
       if (mess.element(i) != output.element(i))
         {
@@ -198,7 +198,7 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   mess2.set_poly_mod(ans, params.p0());
 
   (*Msk).decrypt(output, ctx2);
-  for (int i= 0; i < Rg.phi_m(); i++)
+  for (unsigned int i= 0; i < Rg.phi_m(); i++)
     {
       gfp eq= mess.element(i);
       eq= eq * eq - output.element(i);
@@ -209,7 +209,7 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
         }
     }
 
-  for (int i= 0; i < Rg.phi_m(); i++)
+  for (unsigned int i= 0; i < Rg.phi_m(); i++)
     {
       gfp eq= mess.element(i);
       eq= eq * eq - mess2.element(i);

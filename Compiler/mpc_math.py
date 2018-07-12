@@ -8,7 +8,7 @@ import math
 from Compiler import floatingpoint
 from Compiler import types
 from Compiler import comparison
-
+from Compiler import program
 # polynomials as enumerated on Hart's book
 ##
 # @private
@@ -340,6 +340,140 @@ def floor_fx(x):
     return load_sint(floatingpoint.Trunc(x.v, x.k - x.f, x.f, x.kappa), type(x))
 
 
+### sqrt methods
+
+
+##
+# obtains the most significative bit (MSB) 
+# of a given input. The size of the vector
+# is tuned to the needs of sqrt. 
+# @param b: number from which you obtain the
+# most significative bit.
+# @param k:  number of bits for which
+# an output of size (k+1) if even
+#  is going to be produced.
+# @return z: index array for MSB of size
+# k or K+1 if even.
+def MSB(b, k):
+    # calculation of z
+    # x in order 0 - k
+    if (k > types.program.bit_length):
+        raise OverflowError("The supported bit \
+        lenght of the application is smaller than k")
+
+    x_order = b.bit_decompose(k)
+    x = [0] * k
+    # x i now inverted
+    for i in range(k - 1, -1, -1):
+        x[k - 1 - i] = x_order[i]
+    # y is inverted for PReOR and then restored
+    y_order = floatingpoint.PreOR(x)
+
+    # y in order (restored in orginal order
+    y = [0] * k
+    for i in range(k - 1, -1, -1):
+        y[k - 1 - i] = y_order[i]
+
+    # obtain z
+    z = [0] * (k + 1 - k % 2)
+    for i in range(k - 1):
+        z[i] = y[i] - y[i + 1]
+    z[k - 1] = y[k - 1]
+
+    return z
+
+
+##
+# Similar to norm_SQ, saves rounds by not 
+# calculating v and c. 
+#
+# @param b: sint input to be normalized. 
+# @param k: bitsize of the input, by definition
+# its value is either sfix.k or program.bit_lengthh 
+# @return m_odd: the parity of  most signficative bit index m
+# @return m: index of most significative bit
+# @return w: 2^m/2 or 2^ (m-1) /2
+def norm_simplified_SQ(b, k):
+    z = MSB(b, k)
+    # construct m
+    m = types.sint()
+    m_odd = 0
+    for i in range(k):
+        m = m + (i + 1) * z[i]
+        # determine the parity of the input
+        if (i % 2 == 0):
+            m_odd = m_odd + z[i]
+
+    # construct w,
+    k_over_2 = k / 2 + 1
+    w_array = [0] * (k_over_2)
+    w_array[0] = z[0]
+    for i in range(1, k_over_2):
+        w_array[i] = z[2 * i - 1] + z[2 * i]
+
+    # w aggregation
+    w = types.sint()
+    for i in range(k_over_2):
+        w += (2 ** i) * w_array[i]
+
+    # return computed values
+    return m_odd, m, w
+
+
+##
+# Obtains the sqrt using  our custom mechanism
+# for any sfix input value. 
+# no restrictions on the size of f. 
+#
+#  @param x: secret shared input from which the sqrt
+# is calucalted,
+#
+# @return g: approximated sqrt
+def sqrt_simplified_fx(x):
+    # fix theta (number of iterations)
+    theta = max(int(math.ceil(math.log(types.sfix.k))), 6)
+
+    # process to use 2^(m/2) approximation
+    m_odd, m, w = norm_simplified_SQ(x.v, x.k)
+    # process to set up the precision and allocate correct 2**f
+    m_odd =  (1 - 2 * m_odd) * ( x.f % 2) + m_odd
+    w = (w * 2 - w) * (1-m_odd) * (x.f % 2) + w
+    # map number to use sfix format and instantiate the number
+    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) / 2))
+    # obtains correct 2 ** (m/2)
+    w = (w * (types.cfix(2 ** (1/2.0))) - w) * m_odd + w
+    # produce x/ 2^(m/2)
+    y_0 = types.cfix(1.0) / w
+
+    # from this point on it sufices to work sfix-wise
+    g_0 = (y_0 * x)
+    h_0 = y_0 * types.cfix(0.5)
+    gh_0 = g_0 * h_0
+
+    ## initialization
+    g = g_0
+    h = h_0
+    gh = gh_0
+
+    for i in range(1, theta - 2):
+        r = (3 / 2.0) - gh
+        g = g * r
+        h = h * r
+        gh = g * h
+
+    # newton
+    r = (3 / 2.0) - gh
+    h = h * r
+    H = 4 * (h * h)
+    H = H * x
+    H = (3) - H
+    H = h * H
+    g = H * x
+    g = g
+
+    return g
+
+
 ##
 # Calculates the normSQ of a number
 # @param x: number from which the norm is going to be extracted
@@ -352,26 +486,7 @@ def floor_fx(x):
 def norm_SQ(b, k): 
     # calculation of z
     # x in order 0 - k
-    x_order = b.bit_decompose()
-    x= [0]*k
-    #x i now inverted
-    for i in range(k-1,-1,-1):
-        x[k-1-i] =x_order[i]
-    # y is inverted for PReOR and then restored
-    y_order = floatingpoint.PreOR(x)
-
-    # y in order (restored in orginal order
-    y =[0]*k
-    for i in range(k-1,-1,-1):
-        y[k-1-i] =y_order[i]
-    
-    # obtain z
-    z = [0] * k
-    for i in range(k - 1):
-        z[i] = y[i] - y[i + 1]
-
-    z[k - 1] = y[k - 1]
-  
+    z = MSB(b,k)
     # now reverse bits of z[i] to generate v
     v = types.sint()
     for i in range(k):
@@ -387,11 +502,11 @@ def norm_SQ(b, k):
     # and the documentation
     k_over_2= k/2+1#int(math.ceil((k/2.0)))+1
     w_array = [0]*(k_over_2 )
+    w_array[0] = z[0]
     for i in range(1, k_over_2):
-        w_array[i] = z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
+        w_array[i] = z[2 * i - 1] + z[2 * i]
 
-    w_array[0] = types.sfix(0)
-    w = types.sint()
+    w = types.sint(0)
     for i in range(k_over_2):
         w += (2 ** i) * w_array[i]
 
@@ -419,12 +534,12 @@ def lin_app_SQ(b, k, f):
     c, v, m, W = norm_SQ(types.sint(b), k)
 
     # c is now escalated
-    w = alpha * c + beta  # equation before b and reduction by order of k
+    w = alpha * load_sint(c,types.sfix) + beta  # equation before b and reduction by order of k
 
 
     # m even or odd determination
     m_bit = types.sint()
-    comparison.Mod2(m_bit, m, int(math.ceil(math.log(k, 2))), W.kappa, False)
+    comparison.Mod2(m_bit, m, int(math.ceil(math.log(k, 2))), w.kappa, False)
     m = load_sint(m_bit, types.sfix)
 
     # w times v  this way both terms have 2^3k and can be symplified
@@ -489,23 +604,23 @@ def sqrt_fx(x_l, k, f):
 
 ##
 # Returns the sqrt (sfix) of any given fractional
-#  value as long as it can be rounded to a integral value
-#  to 2^f precision.
+# value as long as it can be rounded to a integral value
+# to 2^f precision.
 #
 # Note that sqrt only works as long as this inequality is respected:
 # 3*k - 2 *f < x.f (x.f by default is 20)
 # @param x: fractional input (sfix).
 #
 # @return  returns the aTan of x (sifx).
-def sqrt(x, k, f):
+def sqrt(x, k = types.sfix.k, f = types.sfix.f):
 
-    if (3 *k -2 * f >= x.f):
-        raise OverflowError("bound for precision violated: 3 * k - 2 * f <  x.f ")
+    if (3 *k -2 * f >= types.sfix.f):
+        return sqrt_simplified_fx(x)
+        # raise OverflowError("bound for precision violated: 3 * k - 2 * f <  x.f ")
     else:
         param = trunc(x *(2 ** (f)))
         return sqrt_fx(param ,k ,f)
 
-    return 0
 
 ##
 # Returns the aTan (sfix) of any given fractional value.
@@ -566,12 +681,16 @@ def acos(x):
 
 
 ##
+# method devised to test sqrt
+# do not use directly
 # @private
-# method deviced just for testing purposes, do not use.
-# to accomodate the testing procedure on core.py
-# the number of parameters have to match the ones in
-# math.sqrt
-def sqrt_test(x):
-    k= 6
-    f= 0
+def test_sqrt_param(x, k, f):
     return sqrt(x, k, f)
+
+
+##
+# method devised to test sqrt
+# do not use directly
+# @private
+def test_sqrt_no_param(x):
+    return sqrt(x)

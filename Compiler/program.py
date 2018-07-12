@@ -278,6 +278,8 @@ class Program(object):
             tape.optimize(self.options)
             tape.write_bytes()
             tape.purge()
+        if self.options.asmoutfile:
+            tape.write_str(self.options.asmoutfile + '-' + tape.name)
     
     
     def restart_main_thread(self):
@@ -347,7 +349,7 @@ class Program(object):
         self.curr_tape.init_registers()
         for mem_type,size in self.allocated_mem.items():
             if size:
-                #print "Memory of type '%s' of size %d" % (mem_type, size)
+                print "Memory of type '%s' of size %d" % (mem_type, size)
                 if mem_type in self.types:
                     self.types[mem_type].load_mem(size - 1, mem_type)
                 else:

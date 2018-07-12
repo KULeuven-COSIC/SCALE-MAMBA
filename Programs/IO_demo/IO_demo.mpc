@@ -1,17 +1,28 @@
 
+open_channel(1000)
 # Write some data to file
 outp = [sint(1), sint(2), sint(3), sint(4)]
 output_shares(1000,*outp)
+close_channel(1000)
 
+open_channel(2000)
+open_channel(3000)
 print_ln("Enter a single share from each player")
 inp=[sint()]
 input_shares(2000,*inp)
 output_shares(3000,*inp)
+close_channel(2000)
+close_channel(3000)
+
+open_channel(0)
+open_channel(1)
+open_channel(10)
+open_channel(20)
 
 for i in range(5):
-  print_ln("Player zero enter a number")
+  print_ln("Player zero enter a private gfp number")
   a=sint.get_private_input_from(0)
-  print_ln("Player one enter a number")
+  print_ln("Player one enter a private gfp number")
   b=sint.get_private_input_from(1,13)
   c=a*b
   print_ln("The product is being sent to player one")
@@ -21,11 +32,16 @@ for i in range(5):
   print_reg(reveal(b))
   print_reg(reveal(c))
 
-  print_ln("Every one enter two values (should really be the same but this is not checked in this demo program)")
+  print_ln("Every one enter two values (these MUST be the same, otherwise an abort will occur)")
+  print_ln("The first input is a gfp element, the second is a regint value");
   d=cint.public_input()
-  e=cint.public_input(10)
+  e=regint.public_input(10)
   print_ln("Printing these values");
   d.public_output()
   e.public_output(20)
-  
 
+close_channel(0)
+close_channel(1)
+close_channel(10)
+close_channel(20)
+  

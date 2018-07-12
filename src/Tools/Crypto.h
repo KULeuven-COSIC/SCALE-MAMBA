@@ -26,9 +26,9 @@ bool Open(string &data, const string &comm, const string &open);
 /* Protocols for agreeing on random data */
 
 /* Create a random gfp element agreed between the players */
-void Create_Random(gfp &ans, Player &P);
+void Create_Random(gfp &ans, Player &P, int connectin= 0);
 /* Produce a random seed of length len */
-void Create_Random_Seed(uint8_t *seed, int len, Player &P);
+void Create_Random_Seed(uint8_t *seed, int len, Player &P, int connection= 0);
 
 /* Protocols to commit and open to data */
 
@@ -38,13 +38,13 @@ void Create_Random_Seed(uint8_t *seed, int len, Player &P);
  * On input data[i][j] is only defined for j=me
  */
 template<class T>
-void Commit_And_Open(vector<vector<T>> &data, Player &P);
+void Commit_And_Open(vector<vector<T>> &data, Player &P, int connection= 0);
 
 /* This runs the Commit and Open Protocol for data[j] of type T
  *   0 <= j < num_players
  * On input data[j] is only defined for j=me
  */
 template<class T>
-void Commit_And_Open(vector<T> &data, Player &P);
+void Commit_And_Open(vector<T> &data, Player &P, int connection= 0);
 
 #endif

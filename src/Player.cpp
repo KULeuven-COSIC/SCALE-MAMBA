@@ -10,6 +10,7 @@ All rights reserved
 #include <iomanip>
 #include <iostream>
 #include <list>
+#include <memory>
 #include <pthread.h>
 #include <sstream>
 #include <string>
@@ -17,53 +18,12 @@ All rights reserved
 #include <vector>
 using namespace std;
 
-#include "Offline/FHE_Factory.h"
-#include "Offline/offline_phases.h"
-#include "Online/Online.h"
 #include "System/Networking.h"
+#include "System/RunTime.h"
 #include "config.h"
-
-#include "LSSS/Open_Protocol.h"
-#include "Processor/Processor.h"
 
 #include "Tools/ezOptionParser.h"
 using namespace ez;
-
-class thread_info
-{
-public:
-  int thread_num;
-  SystemData *SD;
-  offline_control_data *OCD;
-  SSL_CTX *ctx;
-  int me;
-  vector<int> csockets;
-
-  // FHE Data
-  FHE_PK *pk;
-  FHE_SK *sk;
-  FFT_Data *PTD;
-
-  Machine *machine; // Pointer to the machine
-};
-
-// We have 5 threads per online phase
-//   - Online
-//   - Sacrifice (and input tuple production)
-//   - Mult Triple Production
-//   - Square Pair Production
-//   - Bit Production
-vector<pthread_t> threads;
-
-// Forward declarations to make code easier to read
-void *Main_Func(void *ptr);
-void online_phase(int online_num, Player &P, offline_control_data &OCD,
-                  Machine &machine);
-
-vector<triples_data> TriplesD;
-vector<squares_data> SquaresD;
-vector<bits_data> BitsD;
-vector<sacrificed_data> SacrificeD;
 
 void Usage(ezOptionParser &opt)
 {
@@ -88,37 +48,49 @@ int main(int argc, const char *argv[])
           0,      // Required?
           1,      // Number of args expected.
           0,      // Delimiter if expecting multiple args.
-          "Port number base to attempt to start connections from (default: "
-          "5000)",       // Help description.
-          "-pnb",        // Flag token.
-          "-portnumbase" // Flag token.
+          "Port number base to attempt to start connections"
+          " from (default: 5000)", // Help description.
+          "-pnb",                  // Flag token.
+          "-portnumbase"           // Flag token.
           );
   opt.add("",  // Default.
           0,   // Required?
           -1,  // Number of args expected.
           ',', // Delimiter if expecting multiple args.
-          "List of portnums, one per player\n\t"
-          "Must be the same on each machine\n\t"
-          "This option overides any defined portnumbase", // Help description.
-          "-pns",                                         // Flag token.
-          "-portnums"                                     // Flag token.
+          "List of portnums, one per player\n"
+          "\tMust be the same on each machine\n"
+          "\tThis option overides any defined portnumbase", // Help description.
+          "-pns",                                           // Flag token.
+          "-portnums"                                       // Flag token.
+          );
+  opt.add("0", // Default.
+          0,   // Required?
+          1,   // Number of args expected.
+          0,   // Delimiter if expecting multiple args.
+          "Set the verbose level.\n"
+          "\tIf positive the higher the value the more\n"
+          "\tstuff printed for offline.\n"
+          "\tIf negative we print verbose for the online\n"
+          "\tphase",  // Help description.
+          "-verbose", // Flag token.
+          "-v"        // Flag token.
           );
   opt.add("empty", // Default.
           0,       // Required?
           1,       // Number of args expected.
           0,       // Delimiter if expecting multiple args.
-          "Where to obtain memory, old|empty (default: empty)\n\t"
-          "old: reuse previous memory in Memory-P<i>\n\t"
-          "empty: create new empty memory", // Help description.
-          "-m",                             // Flag token.
-          "-memory"                         // Flag token.
+          "Where to obtain memory, old|empty (default: empty)\n"
+          "\told: reuse previous memory in Memory-P<i>\n"
+          "\tempty: create new empty memory", // Help description.
+          "-m",                               // Flag token.
+          "-memory"                           // Flag token.
           );
   opt.add("0,0,0", // Default.
           0,       // Required?
           3,       // Number of args expected.
           ',',     // Delimiter if expecting multiple args.
-          "Do not start online phase until we have m triples, s squares and b "
-          "bits\n"
+          "Do not start online phase until we have\n"
+          "\tm triples, s squares and b bits\n"
           "\tMust be the same on each machine", // Help description.
           "-min"                                // Flag token.
           );
@@ -126,20 +98,29 @@ int main(int argc, const char *argv[])
           0,       // Required?
           3,       // Number of args expected.
           ',',     // Delimiter if expecting multiple args.
-          "Stop the offline phase when m triples, s squares and b bits have "
-          "been produced\n"
+          "Stop the offline phase when\n"
+          "\tm triples, s squares and b bits\n"
+          "have been produced\n"
           "\tZero argument means infinity here\n"
           "\tMust be the same on each machine", // Help description.
           "-max"                                // Flag token.
           );
+  opt.add("2", // Default.
+          0,   // Required?
+          1,   // Number of args expected.
+          0,   // Delimiter if expecting multiple args.
+          "Number of FHE Factories we run in parallel\n",
+          "-f",           // Flag token.
+          "-fhefactories" // Flag token.
+          );
 
   opt.parse(argc, argv);
 
-  int my_number;
+  unsigned int my_number;
+  int verbose, fhefacts;
   string progname;
   string memtype;
-  int portnumbase;
-  vector<int> minimums, maximums;
+  unsigned int portnumbase;
 
   vector<string *> allArgs(opt.firstArgs);
   allArgs.insert(allArgs.end(), opt.lastArgs.begin(), opt.lastArgs.end());
@@ -159,7 +140,7 @@ int main(int argc, const char *argv[])
     }
   else
     {
-      my_number= atoi(allArgs[1]->c_str());
+      my_number= (unsigned int) atoi(allArgs[1]->c_str());
       progname= *allArgs[2];
     }
 
@@ -182,20 +163,27 @@ int main(int argc, const char *argv[])
       return 1;
     }
 
-  class offline_control_data OCD;
-
-  vector<int> pns;
-  opt.get("-portnumbase")->getInt(portnumbase);
-  opt.get("-pns")->getInts(pns);
+  vector<int> pns, minimums, maximums;
+  int te;
+  opt.get("-portnumbase")->getInt(te);
+  portnumbase= (unsigned int) te;
   opt.get("-memory")->getString(memtype);
+  opt.get("-verbose")->getInt(verbose);
+  opt.get("-fhefactories")->getInt(fhefacts);
+  opt.get("-pns")->getInts(pns);
   opt.get("-min")->getInts(minimums);
   opt.get("-max")->getInts(maximums);
-  OCD.minm= minimums[0];
-  OCD.mins= minimums[1];
-  OCD.minb= minimums[2];
-  OCD.maxm= maximums[0];
-  OCD.maxs= maximums[1];
-  OCD.maxb= maximums[2];
+
+  /*************************************
+   *  Setup offline_control_data OCD   *
+   *************************************/
+  offline_control_data OCD;
+  OCD.minm= (unsigned int) minimums[0];
+  OCD.mins= (unsigned int) minimums[1];
+  OCD.minb= (unsigned int) minimums[2];
+  OCD.maxm= (unsigned int) maximums[0];
+  OCD.maxs= (unsigned int) maximums[1];
+  OCD.maxb= (unsigned int) maximums[2];
 
   cout << "(Min,Max) number of ...\n";
   cout << "\t(" << OCD.minm << ",";
@@ -231,10 +219,40 @@ int main(int argc, const char *argv[])
     }
   cout << ") bits" << endl;
 
-  // Initialise the system data
-  SystemData SD;
+  /*************************************
+   *     Initialise the system data    *
+   *************************************/
+  SystemData SD("Data/NetworkData.txt");
+  if (my_number >= SD.n)
+    {
+      throw data_mismatch();
+    }
 
-  // Initialise the secret sharing data and the gfp field
+  if (SD.n != pns.size() && pns.size() != 0)
+    {
+      throw data_mismatch();
+    }
+
+  /*************************************
+   *    Initialize the portnums        *
+   *************************************/
+  vector<unsigned int> portnum(SD.n);
+  for (unsigned int i= 0; i < SD.n; i++)
+    {
+      if (pns.size() == 0)
+        {
+          portnum[i]= portnumbase + i;
+        }
+      else
+        {
+          portnum[i]= (unsigned int) pns[i];
+        }
+    }
+
+  /*************************************
+   * Initialise the secret sharing     *
+   * data and the gfp field data       *
+   *************************************/
   ifstream inp("Data/SharingData.txt");
   if (inp.fail())
     {
@@ -251,17 +269,33 @@ int main(int argc, const char *argv[])
     {
       throw data_mismatch();
     }
-  if (SD.n != pns.size() && pns.size() != 0)
-    {
-      throw data_mismatch();
-    }
   if (SD.fake_offline == 1)
     {
       ShD.Otype= Fake;
     }
   Share::init_share_data(ShD);
 
-  /* Now initialize the FHE data if needed */
+  /*************************************
+   *    Load in MAC keys (if any)      *
+   *************************************/
+  vector<gfp> MacK(Share::SD.nmacs);
+  stringstream ss;
+  ss << "Data/MKey-" << my_number << ".key";
+  inp.open(ss.str().c_str());
+  if (inp.fail())
+    {
+      throw file_error(ss.str());
+    }
+  for (unsigned int i= 0; i < Share::SD.nmacs; i++)
+    {
+      inp >> MacK[i];
+    }
+  inp.close();
+
+  /*************************************
+   * Now initialize the FHE data       *
+   *    - If needed                    *
+   *************************************/
   FHE_Params params;
   FFT_Data PTD;
   Ring Rg;
@@ -271,7 +305,7 @@ int main(int argc, const char *argv[])
       ss << "Data/FHE-Key-" << my_number << ".key";
       inp.open(ss.str().c_str());
       bigint p0, p1, pr;
-      int hwt, N;
+      unsigned int hwt, N;
       inp >> N >> p0 >> p1 >> pr >> hwt;
       if (p != pr)
         {
@@ -288,6 +322,10 @@ int main(int argc, const char *argv[])
       Rg.initialize(8);
       params.set(Rg, 17, 17, 1, false);
     }
+
+  /*************************************
+   * Load FHE keys                     *
+   *************************************/
   FHE_PK pk(params, p);
   FHE_SK sk(params, p);
   if (Share::SD.type == Full)
@@ -302,166 +340,46 @@ int main(int argc, const char *argv[])
       inp.close();
     }
 
+  /* Initialize SSL */
   SSL_CTX *ctx;
   Init_SSL_CTX(ctx, my_number, SD);
 
-  if (my_number < 0 || (unsigned int) my_number >= SD.n)
-    {
-      throw data_mismatch();
-    }
-
+  /* Initialize the machine */
   Machine machine;
+  if (verbose < 0)
+    {
+      machine.set_verbose();
+      verbose= 0;
+    }
   machine.SetUp_Memory(my_number, memtype);
 
   // Here you configure the IO in the machine
   //  - This depends on what IO machinary you are using
   //  - Here we are just using the simple IO class
-  machine.IO.init(cin, cout, true);
+  unique_ptr<Input_Output_Simple> io(new Input_Output_Simple);
+  io->init(cin, cout, true);
+  machine.Setup_IO(std::move(io));
 
-  int no_online_threads= machine.Load_Programs(progname);
+  // Load the initial tapes for the first program into the schedule
+  unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
 
-  OCD.resize(no_online_threads);
-
-  TriplesD.resize(no_online_threads);
-  SquaresD.resize(no_online_threads);
-  BitsD.resize(no_online_threads);
-  SacrificeD.resize(no_online_threads);
-  for (int i= 0; i < no_online_threads; i++)
-    {
-      SacrificeD[i].initialize(SD.n);
-    }
-
-  int nthreads= 5 * no_online_threads;
-  int tnthreads= nthreads;
+  unsigned int number_FHE_threads= 0;
   if (Share::SD.type == Full)
     {
-      tnthreads++;
-    } // Add one thread to do FHE ZKPoKs
-
-  /* Initialize the networking TCP sockets */
-  int ssocket;
-  vector<vector<int>> csockets(tnthreads, vector<int>(SD.n));
-  vector<int> portnum(SD.n);
-  for (unsigned int i= 0; i < SD.n; i++)
-    {
-      if (pns.size() == 0)
-        {
-          portnum[i]= portnumbase + i;
-        }
-      else
-        {
-          portnum[i]= pns[i];
-        }
-    }
-  Get_Connections(ssocket, csockets, portnum, my_number, SD);
-  printf("All connections now done\n");
-
-  printf("Setting up threads\n");
-  fflush(stdout);
-  threads.resize(tnthreads);
-  vector<thread_info> tinfo(tnthreads);
-  for (int i= 0; i < nthreads; i++)
-    {
-      tinfo[i].thread_num= i;
-      tinfo[i].SD= &SD;
-      tinfo[i].OCD= &OCD;
-      tinfo[i].ctx= ctx;
-      tinfo[i].me= my_number;
-      tinfo[i].csockets= csockets[i];
-      tinfo[i].machine= &machine;
-      tinfo[i].pk= &pk;
-      tinfo[i].sk= &sk;
-      tinfo[i].PTD= &PTD;
-      if (pthread_create(&threads[i], NULL, Main_Func, &tinfo[i]))
-        {
-          throw C_problem("Problem spawning thread");
-        }
-    }
-  if (tnthreads != nthreads)
-    {
-      i= nthreads;
-      tinfo[i].thread_num= 1000;
-      tinfo[i].SD= &SD;
-      tinfo[i].OCD= &OCD;
-      tinfo[i].ctx= ctx;
-      tinfo[i].me= my_number;
-      tinfo[i].csockets= csockets[nthreads];
-      tinfo[i].machine= &machine;
-      tinfo[i].pk= &pk;
-      tinfo[i].sk= &sk;
-      tinfo[i].PTD= &PTD;
-      pthread_create(&threads[i], NULL, Main_Func, &tinfo[i]);
+      number_FHE_threads= fhefacts;
     }
 
-  // Get all online threads in sync
-  machine.Synchronize();
-
-  // Now run the programs
-  machine.run();
-
-  printf("Waiting for all clients to finish\n");
-  fflush(stdout);
-  for (int i= 0; i < tnthreads; i++)
-    {
-      pthread_join(threads[i], NULL);
-    }
+  Run_Scale(my_number, no_online_threads,
+            PTD, pk, sk, MacK,
+            ctx, portnum,
+            SD, machine, OCD,
+            number_FHE_threads,
+            verbose);
 
   machine.Dump_Memory(my_number);
 
   Destroy_SSL_CTX(ctx);
 
-  Close_Connections(ssocket, csockets, my_number);
-
   printf("End of prog\n");
   fflush(stdout);
-}
-
-void *Main_Func(void *ptr)
-{
-  thread_info *tinfo= (thread_info *) ptr;
-  int num= tinfo->thread_num;
-  int me= tinfo->me;
-  printf("I am player %d in thread %d\n", me, num);
-  fflush(stdout);
-
-  Player P(me, *(tinfo->SD), num, (tinfo->ctx), (tinfo->csockets));
-  if (Share::SD.nmacs != 0)
-    {
-      P.load_mac_keys(Share::SD.nmacs);
-    }
-  printf("Set up player %d in thread %d \n", me, num);
-  fflush(stdout);
-
-  if (num < 1000)
-    {
-      int num5= num % 5;
-      int num_online= (num - num5) / 5;
-      switch (num5)
-        {
-          case 0:
-            mult_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
-                       *(tinfo->PTD));
-            break;
-          case 1:
-            square_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
-                         *(tinfo->PTD));
-            break;
-          case 2:
-            bit_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
-                      *(tinfo->PTD));
-            break;
-          case 3:
-            sacrifice_phase(num_online, P, (tinfo->SD)->fake_sacrifice, *(tinfo->OCD),
-                            *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD));
-            break;
-          case 4:
-            online_phase(num_online, P, *(tinfo->OCD), *(tinfo)->machine);
-            break;
-        }
-    }
-  else
-    {
-      FHE_Factory(P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->PTD));
-    }
-  return 0;
 }

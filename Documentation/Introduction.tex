@@ -124,19 +124,15 @@ list, called the sacrificed-list, for consumption by the online phase.
 thread we can avoid complex machinary to match produces with
 consumers. This however may (more like will) result in the 
 over-production of offline data for small applications.
-\item In the case of Full Threshold we have another global
-thread (called the FHE factory thread) which produces level one 
-random FHE ciphertexts which have passed the ZKPoK from the high 
-gear variant of Overdrive \cite{KPR}.
-This is done in a single global thread as the ZKPoK would
+\item In the case of Full Threshold we have another set of global
+threads (called the FHE Factory threads, or the FHE Industry) 
+which produces level one random FHE ciphertexts which have passed 
+the ZKPoK from the high gear variant of Overdrive \cite{KPR}.
+This is done in a small bunch of global threads as the ZKPoK would
 blow up memory if done for each thread that would consume 
 data from the FHE thread.
 Any thread (offline production thread) can request a new
-ciphertext/plaintext pair from the FHE factory thread.
-To ensure we always have data lieing around, we try 
-to get to the situation where we have have two 
-ZKPoK batches in memory (or being produced) at any
-one time.
+ciphertext/plaintext pair from the FHE factory threads.
 \end{itemize}
 
 

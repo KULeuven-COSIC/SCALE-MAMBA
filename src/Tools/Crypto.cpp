@@ -47,7 +47,7 @@ bool Open(string &data, const string &comm, const string &open)
   return true;
 }
 
-void Create_Random(gfp &ans, Player &P)
+void Create_Random(gfp &ans, Player &P, int connection)
 {
   vector<string> Comm_e(P.nplayers());
   vector<string> Open_e(P.nplayers());
@@ -58,8 +58,8 @@ void Create_Random(gfp &ans, Player &P)
   ans.output(ee, false);
   Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ee.str(), P.G);
 
-  P.Broadcast_Receive(Comm_e);
-  P.Broadcast_Receive(Open_e);
+  P.Broadcast_Receive(Comm_e, connection);
+  P.Broadcast_Receive(Open_e, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -77,7 +77,7 @@ void Create_Random(gfp &ans, Player &P)
     }
 }
 
-void Create_Random_Seed(uint8_t *seed, int len, Player &P)
+void Create_Random_Seed(uint8_t *seed, int len, Player &P, int connection)
 {
   vector<string> Comm_e(P.nplayers());
   vector<string> Open_e(P.nplayers());
@@ -87,8 +87,8 @@ void Create_Random_Seed(uint8_t *seed, int len, Player &P)
   string ss((char *) seed, len);
   Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ss, P.G);
 
-  P.Broadcast_Receive(Comm_e);
-  P.Broadcast_Receive(Open_e);
+  P.Broadcast_Receive(Comm_e, connection);
+  P.Broadcast_Receive(Open_e, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -108,7 +108,7 @@ void Create_Random_Seed(uint8_t *seed, int len, Player &P)
 }
 
 template<class T>
-void Commit_And_Open(vector<T> &data, Player &P)
+void Commit_And_Open(vector<T> &data, Player &P, int connection)
 {
   vector<string> Comm_data(P.nplayers());
   vector<string> Open_data(P.nplayers());
@@ -118,8 +118,8 @@ void Commit_And_Open(vector<T> &data, Player &P)
   string ee= ss.str();
   Commit(Comm_data[P.whoami()], Open_data[P.whoami()], ee, P.G);
 
-  P.Broadcast_Receive(Comm_data);
-  P.Broadcast_Receive(Open_data);
+  P.Broadcast_Receive(Comm_data, connection);
+  P.Broadcast_Receive(Open_data, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -136,7 +136,7 @@ void Commit_And_Open(vector<T> &data, Player &P)
 }
 
 template<class T>
-void Commit_And_Open(vector<vector<T>> &data, Player &P)
+void Commit_And_Open(vector<vector<T>> &data, Player &P, int connection)
 {
   vector<string> Comm_data(P.nplayers());
   vector<string> Open_data(P.nplayers());
@@ -150,8 +150,8 @@ void Commit_And_Open(vector<vector<T>> &data, Player &P)
     }
   Commit(Comm_data[P.whoami()], Open_data[P.whoami()], ee, P.G);
 
-  P.Broadcast_Receive(Comm_data);
-  P.Broadcast_Receive(Open_data);
+  P.Broadcast_Receive(Comm_data, connection);
+  P.Broadcast_Receive(Open_data, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -170,5 +170,5 @@ void Commit_And_Open(vector<vector<T>> &data, Player &P)
     }
 }
 
-template void Commit_And_Open(vector<gfp> &data, Player &P);
-template void Commit_And_Open(vector<vector<gfp>> &data, Player &P);
+template void Commit_And_Open(vector<gfp> &data, Player &P, int connection);
+template void Commit_And_Open(vector<vector<gfp>> &data, Player &P, int connection);

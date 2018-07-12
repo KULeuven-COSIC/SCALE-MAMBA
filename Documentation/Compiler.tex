@@ -71,6 +71,9 @@ Specify the algorithm used for comparison of secret integers. Can be one of:
 \end{itemize}
 Default is \verb|log|. 
 
+\func{-a --asm-output}
+Produces ASM output file for potential debugging use.
+
 \func{-D --dead-code-elimination}
 This eliminates instructions which produce an unused result.
 
@@ -247,7 +250,6 @@ Security parameter is fixed to $32$.
 Default security parameter is fixed to 40. Thus this will be the security parameter bit size for 128 bit finite
 fields (which is the recommended prime size for MAMBA programs).
 \end{itemize} 
-
 There is also \verb|regint| class, which works like normal 32-bit integer, and it can be used for example as array index, since values used in range-loops and some of while-loops are \verb|regint|s. Also value in MemValue(described later) is stored as \verb|regint|. Operations on regint are faster then on cint.
 \verb+regint+ values map directly to the integer values in the Bytecodes,
 where as \verb+cint+ map to the clear type in the Bytecode.
@@ -277,6 +279,17 @@ i = sint(5)
 \end{lstlisting}
 \begin{footnotesize}
 Note: value type can be: regint, int, sint and cint.
+\end{footnotesize}
+
+\func{regint(value)}
+Loads the integer \verb|value| into a \verb|regint| register and returns 
+the register.\\
+\textbf{Example:}
+\begin{lstlisting}
+i = regint(5)
+\end{lstlisting}
+\begin{footnotesize}
+Note: value type can be: regint and int.
 \end{footnotesize}
 
 %\func{sfix(value, exponent, bit_length)}
@@ -566,7 +579,7 @@ for i in range(n):
 \end{mylisting}
 This might seem useless - why do we want to do the same multiplication but 10 fold? Well we can put different data in each slot by first dumping same length arrays to $x$ and $y$ and then multiplication is going to be faster due to SIMD.
 
-\subsection{Detailed Data Type Revision}
+\subsection{Advanced Data Type Explanation}
 \subsubsection{sfloat}
 {\bf Note: We expect to upgrade the \verb+sfloat+ type in the next 
 release.}
@@ -1150,8 +1163,11 @@ list of strings taking one of the following:
 \item `c[w]': clear register, with the optional suffix `w' if the register is
 written to.
 \item `s[w]': secret register, as above.
-\item `i': 32-bit integer immediate value.
-\item `p': 32-bit number representing a player index.
+\item `r[w]': regint register, as above.
+\item `i'   : 32-bit integer signed immediate value.
+\item `int' : 64-bit integer unsigned immediate value.
+\item `p'   : 32-bit number representing a player index.
+\item `str' : A four byte string.
 \end{itemize}
 \end{description}
 
@@ -1166,6 +1182,11 @@ class addm(Instruction):
     arg_format = ['sw', 's', 'c']
 \end{mylisting}
 
+\end{class}
+
+\begin{class}{Memory}
+Memory comes in three varieties \verb+sint+, \verb+cint+, and
+\verb+regint+; denoted by \verb+S[i]+, \verb+C[i]+ and \verb+R[i]+.
 \end{class}
 
 \subsubsection{Optimizing Communication}

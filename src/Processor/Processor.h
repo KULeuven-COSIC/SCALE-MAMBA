@@ -37,7 +37,7 @@ class Processor
   // Registers of various types
   vector<gfp> Cp;
   vector<Share> Sp;
-  vector<long> Ci;
+  vector<long> Ri;
 
 // In DEBUG mode we keep track of valid/invalid read/writes on the registers
 #ifdef DEBUG
@@ -157,23 +157,23 @@ public:
     Sp.at(i)= x;
   }
 
-  const long &read_Ci(int i) const
+  const long &read_Ri(int i) const
   {
     if (rwi[i] == 0)
       {
         throw Processor_Error("Invalid read on integer register");
       }
-    return Ci.at(i);
+    return Ri.at(i);
   }
-  long &get_Ci_ref(int i)
+  long &get_Ri_ref(int i)
   {
     rwi[i]= 1;
-    return Ci.at(i);
+    return Ri.at(i);
   }
-  void write_Ci(int i, const long &x)
+  void write_Ri(int i, const long &x)
   {
     rwi[i]= 1;
-    Ci.at(i)= x;
+    Ri.at(i)= x;
   }
 #else
   const gfp &read_Cp(int i) const
@@ -201,26 +201,39 @@ public:
     Sp[i]= x;
   }
 
-  const long &read_Ci(int i) const
+  const long &read_Ri(int i) const
   {
-    return Ci[i];
+    return Ri[i];
   }
-  long &get_Ci_ref(int i)
+  long &get_Ri_ref(int i)
   {
-    return Ci[i];
+    return Ri[i];
   }
-  void write_Ci(int i, const long &x)
+  void write_Ri(int i, const long &x)
   {
-    Ci[i]= x;
+    Ri[i]= x;
   }
 #endif
 
   /* Run interaction with other players */
+
+  /* Direct access to PO class*/
+  void Open_To_All_Begin(vector<gfp> &values, const vector<Share> &S, Player &P, int connection)
+  {
+    OP.Open_To_All_Begin(values, S, P, connection);
+  }
+  void Open_To_All_End(vector<gfp> &values, const vector<Share> &S, Player &P, int connection)
+  {
+    OP.Open_To_All_End(values, S, P, connection);
+  }
+
+  /* Open/Close Registers*/
   void POpen_Start(const vector<int> &reg, int size, Player &P);
   void POpen_Stop(const vector<int> &reg, int size, Player &P);
-  void RunOpenCheck(Player &P)
+
+  void RunOpenCheck(Player &P, const string &aux, int connection= 0)
   {
-    OP.RunOpenCheck(P, false); // XXXX
+    OP.RunOpenCheck(P, aux, connection, false);
   }
 
   // Now the routine to execute a program with given argument

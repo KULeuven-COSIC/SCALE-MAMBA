@@ -5,7 +5,7 @@ CC = g++
 
 CFLAGS = -Wall -std=c++11 -pedantic -Wextra -g -pthread -I$(ROOT)/src -maes -mpclmul -msse4.1 -march=core2 $(FLAGS) $(OPT)
 CPPFLAGS = $(CFLAGS) 
-LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir
+LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir $(LDFLAGS)
 
 all: Test.x Test-FHE.x Test-Adv-FHE.x 
 

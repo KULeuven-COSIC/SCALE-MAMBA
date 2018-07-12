@@ -73,6 +73,18 @@ opcodes = dict(
     LEGENDREC = 0x38,
     DIGESTC = 0x39,
 
+    # IO
+    OUTPUT_CLEAR= 0x40,
+    INPUT_CLEAR= 0x41,
+    OUTPUT_SHARE= 0x42,
+    INPUT_SHARE= 0x43,
+    PRIVATE_INPUT= 0x44,
+    PRIVATE_OUTPUT= 0x46,
+    OUTPUT_INT = 0x48,
+    INPUT_INT = 0x49,
+    OPEN_CHAN = 0x4A,
+    CLOSE_CHAN = 0x4B,
+
     # Open
     STARTOPEN = 0xA0,
     STOPOPEN = 0xA1,
@@ -114,13 +126,12 @@ opcodes = dict(
     SUBINT = 0x9C,
     MULINT = 0x9D,
     DIVINT = 0x9E,
-    PRINTINT = 0x9F,
 
     # Conversion
     CONVINT = 0xC0,
     CONVMODP = 0xC1,
 
-    # IO
+    # Debug Printing
     PRINTMEM = 0xB0,
     PRINTREG = 0XB1,
     PRINTREGPLAIN = 0xB2,
@@ -129,18 +140,8 @@ opcodes = dict(
     PRINTCHRINT = 0xB5,
     PRINTSTRINT = 0xB6,
     PRINTFLOATPLAIN = 0xB7,
-    PRINTFIXPLAIN = 0xC7,
-
-    OUTPUT_CLEAR = 0xB8,
-    INPUT_CLEAR = 0xB9,
-    OUTPUT_SHARE = 0xBA,
-    INPUT_SHARE = 0xBB,
-
-    START_PRIVATE_INPUT = 0xBC,
-    STOP_PRIVATE_INPUT = 0xBD,
-
-    START_PRIVATE_OUTPUT = 0xBE,
-    STOP_PRIVATE_OUTPUT = 0xBF,
+    PRINTFIXPLAIN = 0xB8,
+    PRINTINT = 0xB9,
 
     # Others
     RAND = 0xE0,
@@ -238,7 +239,7 @@ class RegType(object):
     """ enum-like static class for Register types """
     ClearModp = 'c'
     SecretModp = 's'
-    ClearInt = 'ci'
+    ClearInt = 'r'
 
     Types = [ClearModp, SecretModp, ClearInt]
 
@@ -332,8 +333,8 @@ ArgFormats = {
     's': SecretModpAF,
     'cw': ClearModpAF,
     'sw': SecretModpAF,
-    'ci': ClearIntAF,
-    'ciw': ClearIntAF,
+    'r': ClearIntAF,
+    'rw': ClearIntAF,
     'i': ImmediateModpAF,
     'int': IntArgFormat,
     'p': PlayerNoAF,
@@ -532,22 +533,6 @@ class IOInstruction(DoNotEliminateInstruction):
             n += ord(c)
         return n
 
-class AsymmetricCommunicationInstruction(IOInstruction):
-    """ Instructions involving sending from or to only one party. """
-    __slots__ = []
-
-class RawInputInstruction(AsymmetricCommunicationInstruction):
-    """ Raw input instructions. 
-        These are linked to prevent instruction reordering during optimization. 
-    """
-    __slots__ = []
-
-class PublicFileIOInstruction(IOInstruction):
-    """ Instruction to reads/writes public information from/to files. 
-        These are linked to prevent instruction reordering during optimization. 
-    """
-    __slots__ = []
-
 ###
 ### Data access instructions
 ###
@@ -566,7 +551,7 @@ class DataInstruction(Instruction):
 class IntegerInstruction(Instruction):
     """ Base class for integer operations. """
     __slots__ = []
-    arg_format = ['ciw', 'ci', 'ci']
+    arg_format = ['rw', 'r', 'r']
 
 class StackInstruction(Instruction):
     """ Base class for thread-local stack instructions. """
@@ -579,7 +564,7 @@ class StackInstruction(Instruction):
 class UnaryComparisonInstruction(Instruction):
     """ Base class for unary comparisons. """
     __slots__ = []
-    arg_format = ['ciw', 'ci']
+    arg_format = ['rw', 'r']
 
 ### 
 ### Clear shift instructions

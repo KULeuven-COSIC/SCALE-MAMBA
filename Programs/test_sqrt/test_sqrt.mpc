@@ -1,8 +1,13 @@
-b = sfix(36)
-d = sfix(49)
+a = sfix(2)
+b = sint(36)
+c = sfix(25)
+d = sint(49)
 
 
 print_ln("test sqrt:")
 
-test(mpc_math.sqrt_test(b))
-test(mpc_math.sqrt_test(d))
+test(mpc_math.test_sqrt_no_param(a))
+test(mpc_math.test_sqrt_param(b, 6, 0))
+test(mpc_math.test_sqrt_no_param(c))
+test(mpc_math.test_sqrt_param(d, 6, 0))
+

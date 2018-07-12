@@ -216,21 +216,21 @@ int OpenConnection(const string &hostname, int port)
 }
 
 /* This gets nthreads connections between SD.n players
- * Returns the *connection* socket information in csocket[thread][player]
+ * Returns the *connection* socket information in csocket[thread][player][connection]
  * The variable ssocket contains the server socket number.
  * The server portnum for each player is in the vector portnum
  */
-void Get_Connections(int &ssocket, vector<vector<int>> &csocket,
-                     vector<int> &portnum, unsigned int me,
-                     const SystemData &SD, bool verbose)
+void Get_Connections(int &ssocket, vector<vector<vector<int>>> &csocket,
+                     const vector<unsigned int> &portnum, unsigned int me,
+                     const SystemData &SD, int verbose)
 {
   // create server socket
   unsigned int nthreads= csocket.size();
-  if (verbose)
+  if (verbose > 0)
     {
       printf("S: Player %d opening a server socket on port %d\n", me, portnum[me]);
     }
-  ssocket= OpenListener(portnum[me], SD.n * nthreads);
+  ssocket= OpenListener(portnum[me], 2 * SD.n * nthreads);
   for (unsigned int i= 0; i < SD.n; i++)
     {
       if (i != me)
@@ -248,30 +248,35 @@ nthreads here
 */
               for (unsigned int j= 0; j < nthreads; j++)
                 {
-                  int client= accept(ssocket, (struct sockaddr *) &addr,
-                                     &len); /* accept connection as usual */
-                  if (client == -1)
+                  for (unsigned int k= 0; k < 2; k++)
                     {
-                      string err= "Unable to accept connections : Error code " +
-                                  number_to_string(errno);
-                      throw Networking_error(err);
-                    }
-                  if (verbose)
-                    {
-                      printf("S: Connection: %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-                    }
+                      int client= accept(ssocket, (struct sockaddr *) &addr,
+                                         &len); /* accept connection as usual */
+                      if (client == -1)
+                        {
+                          string err= "Unable to accept connections : Error code " +
+                                      number_to_string(errno);
+                          throw Networking_error(err);
+                        }
+                      if (verbose > 0)
+                        {
+                          printf("S: Connection: %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+                        }
 
-                  // Receive the player connected and the thread number
-                  uint8_t buff[4];
-                  int p, t;
-                  receive(client, buff, 4);
-                  p= BYTES_TO_INT(buff);
-                  receive(client, buff, 4);
-                  t= BYTES_TO_INT(buff);
-                  csocket[t][p]= client;
-                  if (verbose)
-                    {
-                      printf("S: Player %d connected to %d for thread %d\n", me, p, t);
+                      // Receive the player connected, the thread number and the connection
+                      uint8_t buff[4];
+                      int p, t, c;
+                      receive(client, buff, 4);
+                      p= BYTES_TO_INT(buff);
+                      receive(client, buff, 4);
+                      t= BYTES_TO_INT(buff);
+                      receive(client, buff, 4);
+                      c= BYTES_TO_INT(buff);
+                      csocket[t][p][c]= client;
+                      if (verbose > 0)
+                        {
+                          printf("S: Player %d connected to %d on connection %d for thread %d\n", me, p, c, t);
+                        }
                     }
                 }
             }
@@ -279,30 +284,35 @@ nthreads here
             { // Now client side stuff
               for (unsigned int j= 0; j < nthreads; j++)
                 {
-                  if (verbose)
+                  for (unsigned int k= 0; k < 2; k++)
                     {
-                      printf("C: Player %d connecting to player %d at address %s for "
-                             "thread %d on port %d\n",
-                             me, i, SD.IP[i].c_str(), j, portnum[i]);
+                      if (verbose > 0)
+                        {
+                          printf("C: Player %d connecting to player %d on connection %d at address %s for "
+                                 "thread %d on port %d\n",
+                                 me, i, k, SD.IP[i].c_str(), j, portnum[i]);
+                        }
+                      csocket[j][i][k]= OpenConnection(SD.IP[i], portnum[i]);
+                      if (verbose > 0)
+                        {
+                          printf("C: Player %d connected to %d on connection %d for thread %d\n", me, i, k, j);
+                        }
+                      // Send my number, my thread number and my connection
+                      uint8_t buff[4];
+                      INT_TO_BYTES(buff, me);
+                      send(csocket[j][i][k], buff, 4);
+                      INT_TO_BYTES(buff, j);
+                      send(csocket[j][i][k], buff, 4);
+                      INT_TO_BYTES(buff, k);
+                      send(csocket[j][i][k], buff, 4);
                     }
-                  csocket[j][i]= OpenConnection(SD.IP[i], portnum[i]);
-                  if (verbose)
-                    {
-                      printf("C: Player %d connected to %d for thread %d\n", me, i, j);
-                    }
-                  // Send my number and my thread number
-                  uint8_t buff[4];
-                  INT_TO_BYTES(buff, me);
-                  send(csocket[j][i], buff, 4);
-                  INT_TO_BYTES(buff, j);
-                  send(csocket[j][i], buff, 4);
                 }
             }
         }
     }
 }
 
-void Close_Connections(int ssocket, vector<vector<int>> &csocket,
+void Close_Connections(int ssocket, vector<vector<vector<int>>> &csocket,
                        unsigned int me)
 {
   // Close connection sockets
@@ -312,7 +322,10 @@ void Close_Connections(int ssocket, vector<vector<int>> &csocket,
         {
           if (j != me)
             {
-              close(csocket[i][j]);
+              for (unsigned int k= 0; k < 2; k++)
+                {
+                  close(csocket[i][j][k]);
+                }
             }
         }
     }

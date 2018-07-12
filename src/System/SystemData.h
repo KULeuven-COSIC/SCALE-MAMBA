@@ -17,6 +17,11 @@ using namespace std;
 
 class SystemData
 {
+  void init(unsigned int numplayers, const string &RootCertName,
+            const vector<string> &IP_Numbers,
+            const vector<string> &PlayerCertFiles,
+            const vector<string> &PlayerNames,
+            int fake_off, int fake_sac);
 
 public:
   unsigned int n;
@@ -28,7 +33,18 @@ public:
   int fake_offline;
   int fake_sacrifice;
 
-  SystemData();
+  SystemData(unsigned int numplayers, const string &RootCertName,
+             const vector<string> &IP_Numbers,
+             const vector<string> &PlayerCertFiles,
+             const vector<string> &PlayerNames,
+             int fake_off= 0, int fake_sac= 0)
+  {
+    init(numplayers, RootCertName,
+         IP_Numbers, PlayerCertFiles, PlayerNames,
+         fake_off, fake_sac);
+  }
+
+  SystemData(const string &NetworkDataFileName);
 };
 
 #endif

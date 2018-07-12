@@ -429,7 +429,7 @@ void Test_2(const Ring &R, const Zp_Data &prD)
 
   cout << "Testing correctness of FFT mod x^n + 1\n";
   vector<modp> a(R.m()), b(R.phi_m());
-  for (int i= 0; i < R.phi_m(); i++)
+  for (unsigned int i= 0; i < R.phi_m(); i++)
     {
       a[i].randomize(G, prD);
       b[i]= a[i];
@@ -438,7 +438,7 @@ void Test_2(const Ring &R, const Zp_Data &prD)
   a.resize(R.m());
   FFT_Iter(a, R.m(), FFTD.get_root(0), prD);
   vector<modp> temp(R.phi_m());
-  for (int i= 0; i < R.phi_m(); i++)
+  for (unsigned int i= 0; i < R.phi_m(); i++)
     temp[i]= a[R.p(i)];
   a= temp;
 
@@ -446,7 +446,7 @@ void Test_2(const Ring &R, const Zp_Data &prD)
 
   /* Check results match */
   bigint ans;
-  for (int j= 0; j < R.phi_m(); j++)
+  for (unsigned int j= 0; j < R.phi_m(); j++)
     {
       if (!areEqual(a[j], b[j], prD))
         {
@@ -467,7 +467,7 @@ void Test_2(const Ring &R, const Zp_Data &prD)
 
   for (int i= 0; i < trials; i++)
     {
-      for (int j= 0; j < R.m(); j++)
+      for (unsigned int j= 0; j < R.m(); j++)
         {
           test_data[j].randomize(G, prD);
         }
@@ -538,7 +538,7 @@ int main()
 
   // Get some baby FHE parameters
   cout << "\n\nTesting Baby FHE parameters" << endl;
-  int N= 4;
+  unsigned int N= 4;
   bigint p= make_prime(10, N);
   bigint p0= make_prime(40, N);
   bigint p1= make_prime(45, N, p, p0);
@@ -552,7 +552,7 @@ int main()
 
   // Get some bigger parameters
   cout << "\n\nTesting Main FHE parameters" << endl;
-  int hwt= 64;
+  unsigned int hwt= 64;
   Generate_Parameters(N, p0, p1, p, 128, hwt, 3);
 
   Rg.initialize(2 * N);

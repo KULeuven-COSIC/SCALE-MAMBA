@@ -40,17 +40,26 @@ communication channels with the associated threads in all
 other players' runtime environments.
 These communication channels, like all communication channels
 in SCALE, are secured via TLS.
-In addition each online thread is supported by four other threads
+The threads actually have two channels to the correspond
+thread in the other parties; we call these different channels
+``connections''.
+For the online thread ``connection'' zero is used for standard
+opening of shared data, whereas ``connection'' one is used for
+private input and output. This is to avoid conflicts beween
+the two (for example a \verb+PRIVATE_OUTPUT+ coming between
+a \verb+STARTOPEN+ and a \verb+STOPOPEN+.
+Each online thread is supported by four other threads
 performing the offline phase, each again with pairwise 
-TLS secured point-to-point channels.
+TLS secured point-to-point channels. Currently the offline
+threads only communicate on ``connection'' zero.
 
-In the case of Full Threshold secret sharing another thread
-acts as a factory of FHE ciphertexts. Actively secure
+In the case of Full Threshold secret sharing another set of
+threads act as a factory for FHE ciphertexts. Actively secure
 production of such ciphertexts is expensive, requiring complex
 zero-knowledge proofs (see Section \ref{sec:fhe}). Thus
-the FHE-Factory thread locates this production into a
-single location. This saves memory, over a multiple factory
-design.
+the FHE-Factory threads locates this production into a
+single location. The number of FHE Factory threads can be
+controlled at run-time by the user.
 
 In addition to bytecode files, each program to be run must
 have a \emph{schedule}. This is a file detailing the execution
@@ -128,11 +137,17 @@ with the opcode created as described above.
 \end{itemize}
 The basic syntax used in the above html file is as follows:
 \begin{itemize}
-\item \verb|ci|: clear $\F_p$ register index $i$
-\item \verb|si|: secret $\F_p$ register index $i$
-\item \verb|v|: immediate value in $\F_p$
-\item \verb|n|: integer value
+\item `c[w]': clear register, with the optional suffix `w' if the register is
+written to.
+\item `s[w]': secret register, as above.
+\item `r[w]': regint register, as above.
+\item `i'   : 32-bit integer signed immediate value.
+\item `int' : 64-bit integer unsigned immediate value.
+\item `p'   : 32-bit number representing a player index.
+\item `str' : A four byte string.
 \end{itemize}
+Memory comes in three varieties \verb+sint+, \verb+cint+, and
+\verb+regint+; denoted by \verb+S[i]+, \verb+C[i]+ and \verb+R[i]+.
 
 \subsection{Load, Store and Memory Instructions}
 Being a RISC design the main operations are load/store
@@ -282,8 +297,9 @@ and
     \verb+DIGESTC+.
 
 \subsection{Debuging Output}
-To enable debugging we provide simple commands to print 
-values to standard output. These bytecodes are
+To enable debugging we provide simple commands to send
+debugging information to the \verb+Input_Output+ class.
+These bytecodes are
 \begin{verbatim}
     PRINTINT,           PRINTMEM,          PRINTREG,           PRINTREGPLAIN,
     PRINTCHR,           PRINTSTR,          PRINTCHRINT,        PRINTSTRINT,
@@ -296,8 +312,9 @@ The associated bytecodes are
 \begin{verbatim}
              OUTPUT_CLEAR,           INPUT_CLEAR, 
              OUTPUT_SHARE,           INPUT_SHARE, 
-             START_PRIVATE_INPUT,    STOP_PRIVATE_INPUT, 
-             START_PRIVATE_OUTPUT,   STOP_PRIVATE_OUTPUT. 
+             OUTPUT_INT,             INPUT_INT,
+             PRIVATE_INPUT,          PRIVATE_OUTPUT,
+             OPEN_CHAN,              CLOSE_CHAN
 \end{verbatim}
 
 \subsection{Branching}
@@ -334,9 +351,8 @@ The operation \verb+START_TIMER+ re-initializes a specified timer,
 whereas \verb+STOP_TIMER+ prints the elapsed time since the last
 initialization (it does not actually reinitialise/stop the timer itself).
 These are accessed from MAMBA via the functions
-\verb+start_clock(n)+ and \verb+stop_clock(n)+.
-The timers use the basic \verb+clock()+ command in C, and so have the
-same limitations as that function.
+\verb+start_timer(n)+ and \verb+stop_timer(n)+.
+The timers use an internal class to measure time command in the C runtime. 
 \end{itemize}
 
 

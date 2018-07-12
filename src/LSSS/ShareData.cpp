@@ -469,7 +469,7 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
       for (unsigned int i= 0; i < M.nplayers(); i++)
         {
           bool used= false;
-          for (unsigned int j= 0; j < M.shares_per_player(i) && !used; j++)
+          for (unsigned int j= 0; j < M.shares_per_player(i); j++)
             {
               int b_set= -1;
               for (unsigned int k= 0; k < M.col_dim(); k++)
@@ -486,22 +486,30 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
               unsigned int p= sets_to_parties[b_set];
               if (p == i)
                 {
-                  used= true;
-                  mult_proc[i][j]= 1;
-                  for (unsigned int k= 0; k < M.row_dim(); k++)
+                  if (used == false)
                     {
-                      if (k != (c + j) && M.G(k, b_set).is_one())
+                      used= true;
+                      mult_proc[i][j]= 1;
+                      for (unsigned int k= 0; k < M.row_dim(); k++)
                         {
-                          int pl= Gen_to_player_share[k][0];
-                          int sh= Gen_to_player_share[k][1];
-                          mult_chans[i][j].push_back(pl);
-                          mult_proc[pl][sh]= 2;
-                          mult_chans[pl][sh].push_back(i);
+                          if (k != (c + j) && M.G(k, b_set).is_one())
+                            {
+                              int pl= Gen_to_player_share[k][0];
+                              int sh= Gen_to_player_share[k][1];
+                              mult_chans[i][j].push_back(pl);
+                              mult_proc[pl][sh]= 2;
+                              mult_chans[pl][sh].push_back(i);
+                            }
                         }
+                    }
+                  else
+                    { // This is the share we need to delete in the PRSS
+                      mult_proc[i][j]= -1;
                     }
                 }
             }
           c+= M.shares_per_player(i);
+          // Deal with case when we need to use Maurer for this player
           if (used == false)
             {
               mult_proc[i][0]= 1;

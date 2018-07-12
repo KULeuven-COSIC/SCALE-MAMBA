@@ -126,7 +126,7 @@ bigint randomBnd(PRNG &G, const bigint &B)
 {
   bigint x;
   // Hash the seed again and again until we have a lot of len bytes
-  int len= ((2 * numBytes(B)) / RAND_SIZE + 1) * RAND_SIZE;
+  unsigned int len= ((2 * numBytes(B)) / RAND_SIZE + 1) * RAND_SIZE;
   uint8_t *bytes= new uint8_t[len];
   G.get_random_bytes(bytes, len);
   bigintFromBytes(x, bytes, len);

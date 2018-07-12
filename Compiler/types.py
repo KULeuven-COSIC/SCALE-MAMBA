@@ -475,9 +475,9 @@ class cint(_clear, _int):
         legendrec(res, self)
         return res
 
-    def digest(self, num_bytes):
+    def digest(self):
         res = cint()
-        digestc(res, self, num_bytes)
+        digestc(res, self)
         return res
 
 
@@ -486,7 +486,7 @@ cint.bit_type = cint
 class regint(_register, _int):
     """ Clear integer register type. """
     __slots__ = []
-    reg_type = 'ci'
+    reg_type = 'r'
     instruction_type = 'modp'
 
     @vectorized_classmethod
@@ -501,6 +501,22 @@ class regint(_register, _int):
               x.store_in_mem(address)
         """
         self._store_in_mem(address, stmint, stminti)
+
+    
+    @classmethod
+    def public_input(cls,channel=0):
+        r"""Get public input from IO channel c
+                x=regint.public_input(c)
+        """
+        res = cls()
+        input_int(res,channel)
+        return res
+    
+    def public_output(self,channel=0):
+        r"""Send public output to IO channel c
+                 x.public_output(c)
+        """
+        output_int(self,channel);
 
     @vectorized_classmethod
     def pop(cls):
@@ -782,9 +798,7 @@ class _secret(_register):
 
     @set_instruction_type
     def reveal_to(self, player,channel=0):
-        masked = self.__class__()
-        start_private_output(masked, self, player)
-        stop_private_output(masked.reveal(), player,channel)
+        private_output(self, player, channel)
 
 
 class sint(_secret, _int):
@@ -813,8 +827,7 @@ class sint(_secret, _int):
           obtains a from player p using IO channel c
         """
         res = cls()
-        start_private_input(player, 1,channel)
-        stop_private_input(player, res)
+        private_input(res,player,channel)
         return res
 
     @vectorized_classmethod
@@ -1640,7 +1653,7 @@ class cfloat(object):
 _types = {
     'c': cint,
     's': sint,
-    'ci': regint,
+    'r': regint,
 }
 
 

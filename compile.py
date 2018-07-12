@@ -17,6 +17,8 @@ def main():
                       help="don't attempt to merge open instructions")
     parser.add_option("-o", "--output", dest="outfile",
                       help="specify output file")
+    parser.add_option("-a", "--asm-output", dest="asmoutfile",
+                      help="asm output file for debugging")
     parser.add_option("-d", "--debug", action="store_true", dest="debug",
                       help="keep track of trace for debugging")
     parser.add_option("-c", "--comparison", dest="comparison", default="log",
@@ -50,6 +52,9 @@ def main():
                             merge_opens=options.merge_opens, 
                             debug=options.debug)
         prog.write_bytes(options.outfile)
+        if options.asmoutfile:
+            for tape in prog.tapes:
+                tape.write_str(options.asmoutfile + '-' + tape.name)
 
     if options.profile:
         import cProfile

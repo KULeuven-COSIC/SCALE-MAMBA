@@ -1,5 +1,6 @@
 # (C) 2017 University of Bristol. See License.txt
-
+# (C) 2018 KU Leuven. See License.txt
+ 
 def test(actual, expected):
     actual = actual.reveal()
     print_ln('expected %s, got %s', expected, actual)

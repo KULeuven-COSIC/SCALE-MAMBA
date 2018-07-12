@@ -12,12 +12,15 @@ All rights reserved
 #include "Math/Integer.h"
 #include "Processor/Memory.h"
 #include "Processor/Program.h"
+#include "Schedule.h"
+#include "Tools/Timer.h"
 #include "config.h"
-#include <time.h>
+#include <memory>
 
 /* The machine controls the entire evaluation engine.
  * The evaluation engine is made up of many processors (think
  * of cores). There is one processor per online thread.
+ * #include <memory>
  *
  * What the machine class does is coordinate these threads
  * via passing data via online_thread_info
@@ -52,19 +55,11 @@ class Machine
 
   vector<online_thread_info> OTI;
 
-  // The ifstream attached to the schedule file
-  ifstream i_schedule;
-
-  // Store of the program name being executed
-  //   - In long and short form
-  string progname, name;
-
-  // Open i_schedule file and load in the programs
-  unsigned int Load_Programs_Subroutine();
+  // Initialize Online Thread Info
   void Init_OTI(unsigned int nthreads);
 
   // Timing information (there are N_TIMERS timers)
-  vector<clock_t> timers;
+  vector<Timer> timers;
 
 public:
   // The vector of programs used by the schedule file
@@ -75,28 +70,53 @@ public:
     return OTI[i].arg;
   }
 
+  unsigned int max_n_threads() const
+  {
+    return OTI.size();
+  }
+
   // This defines the precise IO functionality used in this program
-  IO_FUNCTIONALITY IO;
+  unique_ptr<Input_Output_Base> io;
+
+  Input_Output_Base &get_IO()
+  {
+    return *io;
+  }
+
+  void Setup_IO(unique_ptr<Input_Output_Base> io_ptr)
+  {
+    io= move(io_ptr);
+  }
 
   // The memory
   Memory<gfp> Mc;
   Memory<Share> Ms;
-  Memory<Integer> Mi;
+  Memory<Integer> Mr;
+
+  // The Schedule process we are running
+  Schedule schedule;
+
+  bool verbose;
+  void set_verbose()
+  {
+    verbose= true;
+  }
 
   // -----------------------------------------------------
 
   // Now the member functions
 
+  Machine()
+  {
+    verbose= false;
+  }
+
   // Set up/store data
   void SetUp_Memory(unsigned int whoami, const string &memtype);
   void Dump_Memory(unsigned int whoami);
 
-  // Load progs and returns number of online threads needed
-  unsigned int Load_Programs(const string &pname);
-  // This is the same version, but keeps the progname
-  //   - Used for RESTART
-  //   - Abort if number of online threads needs to increase
-  unsigned int Load_Programs();
+  void Load_Schedule_Into_Memory();
+  void SetUp_Threads(unsigned int nthreads);
 
   // Synchronize the machine with the online threads
   void Synchronize();

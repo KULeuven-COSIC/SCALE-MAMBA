@@ -20,6 +20,10 @@ This directory contains files needed for the auto-testing of the system
  19 FHE Based 3 party 128-bit prime
  20 FHE Based 2 party 32-bit prime
  21 FHE Based 3 party 32-bit prime
+ 22 Shamir        (5,2)
+ 23 Replicated    (5,2) Maurer
+ 24 Replicated    (5,2) Reduced
+
 
 Where all bar the FHE examples use the prime
 

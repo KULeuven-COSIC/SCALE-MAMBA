@@ -37,21 +37,23 @@ int input_YN()
   while (0 == 0);
 }
 
-void init_FHE(bigint &pr, int lg2p, int n)
+/* Initializes gfp::init_field as well */
+void init_FHE_Params(FHE_Params &params, bigint &pr, bigint &p0, bigint &p1,
+                     unsigned int &N,
+                     int lg2p, unsigned int n, unsigned int hwt)
 {
-  bigint p0, p1;
-  int hwt= 64, N;
   Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n);
 
   Ring Rg(2 * N);
   gfp::init_field(pr);
-  FFT_Data PTD(Rg, gfp::get_ZpD());
 
-  FHE_Params params;
   params.set(Rg, p0, p1, hwt, n);
+}
 
+void init_FHE_Keys(vector<Rq_Element> &si, FHE_PK &pk,
+                   unsigned int n, const FHE_Params &params, const bigint &pr)
+{
   FHE_SK sk(params, pr);
-  FHE_PK pk(params, pr);
 
   PRNG G;
   G.ReSeed(0);
@@ -59,16 +61,23 @@ void init_FHE(bigint &pr, int lg2p, int n)
   KeyGen(pk, sk, G);
 
   // Now create the distributed secret key
-  vector<Rq_Element> si(n, Rq_Element(params.FFTD(), evaluation, evaluation));
-  si[0]= sk.s();
-  for (int i= 1; i < n; i++)
-    {
-      si[i].randomize(G, 0);
-      sub(si[0], si[0], si[i]);
-    }
+  si= sk.make_distributed_key(n, G);
+}
+
+void init_FHE(bigint &pr, int lg2p, unsigned int n)
+{
+  bigint p0, p1;
+  FHE_Params params;
+  unsigned int N, hwt= 64;
+  init_FHE_Params(params, pr, p0, p1, N, lg2p, n, hwt);
+
+  FHE_PK pk(params, pr);
+  vector<Rq_Element> si;
+  init_FHE_Keys(si, pk, n, params, pr);
 
   // Now output the data
-  for (int i= 0; i < n; i++)
+  FHE_SK sk(params, pr);
+  for (unsigned int i= 0; i < n; i++)
     {
       stringstream ss;
       ss << "Data/FHE-Key-" << i << ".key";
@@ -107,6 +116,7 @@ void init_certs()
   EVP_PKEY *pkey= X509_get_pubkey(x509);
   BIO_free(bio_mem);
   X509_free(x509);
+  cert_file.close();
 
   output << CAName << ".crt\n";
 
@@ -138,16 +148,16 @@ void init_certs()
       cin >> str;
       output << str << " ";
       str= "Cert-Store/" + str;
-      ifstream cert_file(str);
-      stringstream cert_buff;
-      cert_buff << cert_file.rdbuf();
+      ifstream player_cert_file(str);
+      stringstream player_cert_buff;
+      player_cert_buff << player_cert_file.rdbuf();
       cout << "Cert is\n"
-           << cert_buff.str() << endl;
+           << player_cert_buff.str() << endl;
       bio_mem= BIO_new(BIO_s_mem());
-      BIO_puts(bio_mem, cert_buff.str().c_str());
-      X509 *x509= PEM_read_bio_X509(bio_mem, NULL, NULL, NULL);
+      BIO_puts(bio_mem, player_cert_buff.str().c_str());
+      X509 *player_x509= PEM_read_bio_X509(bio_mem, NULL, NULL, NULL);
       char buffer[256];
-      X509_NAME_get_text_by_NID(X509_get_subject_name(x509), NID_commonName,
+      X509_NAME_get_text_by_NID(X509_get_subject_name(player_x509), NID_commonName,
                                 buffer, 256);
       cout << "Common name in certificate is " << buffer << endl;
       output << buffer << endl;
@@ -161,15 +171,15 @@ void init_certs()
             }
           j++;
         }
-      int fl= X509_verify(x509, pkey);
+      int fl= X509_verify(player_x509, pkey);
       if (fl == 0)
         {
           cout << "Cerfificate does not verify" << endl;
           abort();
         }
-      X509_free(x509);
+      X509_free(player_x509);
       BIO_free(bio_mem);
-      cert_file.close();
+      player_cert_file.close();
     }
   EVP_PKEY_free(pkey);
 
@@ -183,7 +193,7 @@ void init_certs()
 
 void enter_sets(imatrix &Sets, bool unqualified, unsigned int n)
 {
-  int v= -1;
+  unsigned int v= 0;
   while (v < 1)
     {
       cout << "How many ";
@@ -202,7 +212,7 @@ void enter_sets(imatrix &Sets, bool unqualified, unsigned int n)
   cout << "Would mean players 1 and 2 are the set, but players\n";
   cout << "zero and 3 are not." << endl;
 
-  for (int i= 0; i < v; i++)
+  for (unsigned int i= 0; i < v; i++)
     {
       Sets[i].resize(n);
       bool ok= false;
@@ -336,7 +346,7 @@ void init_secret_sharing()
   ifstream input("Data/NetworkData.txt");
   string str;
   input >> str;
-  int n;
+  unsigned int n;
   input >> n;
   input.close();
 
@@ -347,12 +357,11 @@ void init_secret_sharing()
   cout << "\t2) Shamir\n";
   cout << "\t3) Replicated\n";
   cout << "\t4) General Q2 MSP" << endl;
-  cout << "\t5) Other" << endl;
 
-  int v= -1, t, bd;
-  while (v < 1 || v > 5)
+  unsigned int v= 0, t, bd;
+  while (v < 1 || v > 4)
     {
-      cout << "Enter a number (1-5).." << endl;
+      cout << "Enter a number (1-4).." << endl;
       cin >> v;
     }
 
@@ -387,7 +396,7 @@ void init_secret_sharing()
         SD.Initialize_Full_Threshold(n);
         break;
       case 2:
-        t= -1;
+        t= 0;
         bd= n / 2;
         if ((n & 1) == 1)
           {
@@ -406,7 +415,7 @@ void init_secret_sharing()
       case 4:
         init_Q2_MSP(SD, n);
         break;
-      case 5:
+      default:
         throw not_implemented();
     }
 
@@ -417,7 +426,7 @@ void init_secret_sharing()
 
   PRNG G;
   G.ReSeed(0);
-  for (int i= 0; i < n; i++)
+  for (unsigned int i= 0; i < n; i++)
     {
       stringstream ss;
       ss << "Data/MKey-" << i << ".key";

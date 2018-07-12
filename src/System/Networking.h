@@ -18,15 +18,15 @@ int OpenListener(int port, int max= 1);
 int OpenConnection(const string &hostname, int port);
 
 /* This gets nthreads connections between SD.n players
- * Returns the *connection* socket information in csocket[thread][player]
+ * Returns the *connection* socket information in csocket[thread][player][connection]
  * The variable ssocket contains the server socket number.
  * The server portnum for each player is in the vector portnum
  */
-void Get_Connections(int &ssocket, vector<vector<int>> &csocket,
-                     vector<int> &portnum, unsigned int me,
-                     const SystemData &SD, bool verbose= false);
+void Get_Connections(int &ssocket, vector<vector<vector<int>>> &csocket,
+                     const vector<unsigned int> &portnum, unsigned int me,
+                     const SystemData &SD, int verbose);
 
-void Close_Connections(int ssocket, vector<vector<int>> &csocket,
+void Close_Connections(int ssocket, vector<vector<vector<int>>> &csocket,
                        unsigned int me);
 
 #endif

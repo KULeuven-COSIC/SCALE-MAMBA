@@ -81,6 +81,9 @@ public:
 
   void decrypt_any(Plaintext &mess, const Ciphertext &c);
 
+  // Make distributed secret key
+  vector<Rq_Element> make_distributed_key(unsigned int, PRNG &G) const;
+
   // Three stage procedure for Distributed Decryption
   //  - First stage produces my shares
   //  - Second stage adds in another players shares, do this once for each other

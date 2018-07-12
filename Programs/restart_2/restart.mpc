@@ -1,7 +1,7 @@
 
 # Write some data to file
 inp = [sint(1), sint(2), sint(3), sint(4)]
-output_shares(*inp)
+output_shares(3000,*inp)
 
 print_ln("Player zero enter a number")
 a=sint.get_private_input_from(0)

@@ -940,6 +940,22 @@ a_div_b = a/b
 \end{enumerate}
 This is not callable from MAMBA, it is here purely for documentation reasons.
 
+\msubsubsection{$\mathsf{MSB}(\sshare{b},k):$}
+Returns index array $\sshare{z}$ of size $k$, such that it holds a $1$ in the position of the most significative bit of $\sshare{b}$ and $\sshare{0}$ otherwise. This function is used internally on \verb|NormSQ| and \verb|SimplifiedNormSQ|.
+\begin{enumerate}
+
+\item $\sshare{s} \asn 1-2 \cdot \mathsf{LTZ}(\sshare{b},k)$.
+\item $\sshare{x} \asn \sshare{s} \cdot \sshare{b}$.
+\item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{x},k,k)$.
+\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
+\item For $i \in [0,\ldots,k-1]$ do 
+\item $z \asn (\sshare(0_{1}),...,\sshare(0_{k + 1 - k \% 2}))$
+\begin{enumerate}
+  \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
+\end{enumerate}
+\item $\sshare{z_{k-1}} \asn \sshare{y_{k-1}}$.
+\item Return $\sshare{z}$.
+\end{enumerate}
 
 \msubsubsection{$\mathsf{Norm}(\sshare{b},k,f):$}
 This returns the value $c$ such that $2^{k-1} \le c <2^k$
@@ -969,29 +985,49 @@ b = sfix(1.5)
  c, v = library.Norm(b, b.k, b.f, kappa, True)
 \end{lstlisting}
 
-\msubsubsection{$\mathsf{NormSQ}(\sshare{b},k,f):$}
+\msubsubsection{$\mathsf{NormSQ}(\sshare{b},k):$}
 As above, but now we assume $b \ge 0$, and we also
 output shares of $m$ and $w$ such that $w=2^{m/2}$
 if $m$ is even and $2^{(m-1)/2}$ if $m$ is odd. Furthermore $v = 2^{k-m}$. Note that we have introduced some adaptations from the original paper:
 \begin{enumerate}
-\item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{b},k,k)$.
-\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
-\item For $i \in [0,\ldots,k-2]$ do 
-\begin{enumerate}
-  \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
-\end{enumerate}
-\item $\sshare{z_{k-1}} \asn \sshare{y_{k-1}}$.
+\item $z \asn \mathsf{MSB}(\sshare{b},k,f)$.
 \item $\sshare{v} \asn \sum_{i=0}^{k-1} 2^{k-i-1} \cdot \sshare{z_i}$.
 \item $\sshare{c} \asn \sshare{b} \cdot \sshare{v}$.
 \item $\sshare{m} \asn \sum_{i=0}^{k-1} (i+1) \cdot \sshare{z_i}$. 
 %z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
 \item For $i \in [1,\ldots,k/2]$ do
 \begin{enumerate}
-	\item $\sshare{w_i}=\sshare{z_{2\cdot i-1 -(1 -k\%2)}}+\sshare{z_{2\cdot i - (1-k\%2)}}$.
+	\item $\sshare{w_i}=\sshare{z_{2\cdot i-1}}+\sshare{z_{2\cdot i}}$.
 \end{enumerate}
 \item $\sshare{w_0} \asn 0$. 
 \item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
-\item Return $(\sshare{c}, \sshare{v}, \sshare{m}, \sshare{w})$.
+\item Return $\sshare{c}, \sshare{v}, \sshare{m}, \sshare{w}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{SimplifiedNormSQ}(\sshare{b},k):$}
+Same as above, but in this case we only return $m$, and $w$, together with a $\{0,1\}$ bit signaling whether m is odd. 
+
+\begin{enumerate}
+\item $z \asn \mathsf{MSB}(\sshare{b},k,f)$.
+
+\item $\sshare{m} \asn \sum_{i=0}^{k-1} (i+1) \cdot \sshare{z_i}$. 
+\item For $i \in [0,\ldots,k-1]$ do
+\begin{enumerate}
+	\item $\sshare{m}=\sshare{m}+ (i+1) +\sshare{z_{i}}$.
+	\item If $(i \% 2 == 0)$:
+	\begin{enumerate}
+	    \item $\sshare{m_odd} \asn m_odd + \sshare{z_{i}}$
+	\end{enumerate}
+\end{enumerate}
+%z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
+\item For $i \in [1,\ldots,k/2]$ do
+\begin{enumerate}
+	\item $\sshare{w_i}=\sshare{z_{2\cdot i-1}}+\sshare{z_{2\cdot i}}$.
+\end{enumerate}
+\item $\sshare{w_0} \asn 0$. 
+\item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
+
+\item Return $\sshare{m_odd}, \sshare{m}, \sshare{w}$.
 \end{enumerate}
 
 
@@ -1444,7 +1480,7 @@ x = sfix(sfloat(5.5))
 \end{lstlisting}
 
 \msubsection{SQRT Functions}
-The fixed point square root algorithm is in
+Part of the protocols for the fixed point square root algorithm are included in
 \begin{itemize}
 \item Secure Distributed Computation of the Square Root and Applications, {\em ISPEC 2012}
 \cite{Liedel12}.
@@ -1465,7 +1501,9 @@ These are the solutions of the system of equations
    E\left( \frac{1}{2}\right) &= E(1) = -M.
 \end{align*}
 
-\msubsubsection{$\mathsf{FxSqrt}(\sshare{x},k,f)$:}
+We have also included a more practical SQRT construction, so that it could be used under global precision and bit size parameters.
+
+\msubsubsection{$\mathsf{ParamFxSqrt}(\sshare{x},k,f)$:}
 This algorithm uses the sub-algorithm $\mathsf{LinAppSQ}$ defined below, note that \verb|LinAppSQ| returns an scaled $1/\sqrt{x} \cdot 2^{f}$.
 The algorithm only works when $3 \cdot k -2 \cdot f$ is less than the system precision, which is by default equal to $20$.
 In a future release we will extend the sqrt function to cope with other input ranges.
@@ -1506,19 +1544,86 @@ In a future release we will extend the sqrt function to cope with other input ra
 \item Return $\sshare{g}$.
 \end{enumerate}
 
+\msubsubsection{$\mathsf{SimplifiedFxSqrt}(\sshare{x}, k, f)$:}
+This algorithm uses the sub-algorithm $\mathsf{NormSQ}$ defined above. In our case we make use of $w$, which is basically  $2^{m/2}$. From that point it approximates the  value of $\sqrt{x}$ by calculating $\frac{x}{2^{m/2}}$. To avoid any loss of precision, we reuse \verb|sfix| instantiation process.
+The algorithm work on the precision of the system and can solve values on any range. Its behaviour is still experimental. The function is designed in such a way that there is no restriction on the size $f$.
+\begin{enumerate}
+\item $\theta \asn \max{(\ceil{\log_2(k)},6)}$.
+\item $\sshare{m_odd}, \sshare{w} \asn \mathsf{SimplifiedNormSQ}(\sshare{x},k)$.
+\item $\sshare{m_odd} \asn (1 - 2 \cdot \sshare{m_odd}) \cdot f$.   
+ \item $\sshare{w} \asn (2 \cdot \sshare{w} -\sshare{w}) \cdot (1 - \sshare{m_odd}) \cdot (f \% 2) + \sshare{w}$.
+\item $\sshare{w} \asn sfix( \sshare{w} * 2 ^{\frac{f - f \% 2}{2}})$.
+\item $\sshare{w} \asn (\sqrt{2}\cdot \sshare{w} - \sshare{w})\cdot \sshare{m_odd} + \sshare{w}$.
+\item $\sshare{y_0} \asn \frac{1}{\sshare{w}} $.
+\item $\sshare{g_0} \asn \sshare{y_0} \cdot \sshare{x}$.
+\item $\sshare{g_0} \asn \sshare{y_0} \cdot 1/2$.
+\item $\sshare{gh_0} \asn \sshare{g_0} \cdot \sshare{h_0}$.
+\item $\sshare{g} \asn \sshare{g_0}$.
+\item $\sshare{h} \asn \sshare{h_0}$.
+\item $\sshare{gh} \asn \sshare{gh_0}$.
+\item For $i \in[1,\ldots,\theta-2]$ do
+\begin{enumerate}
+  \item $\sshare{r} \asn 3/2-\sshare{gh}$.
+  \item $\sshare{g} \asn \sshare{g} \cdot \sshare{r}$.
+  \item $\sshare{h} \asn \sshare{h} \cdot \sshare{r}$.
+  %\item $\sshare{g} \asn \mathsf{TruncPr}(\sshare{g},k,f)$.
+  %\item $\sshare{h} \asn sf{TruncPr}(\sshare{h},k,f)$.
+  \item $\sshare{gh} \asn \sshare{g} \cdot \sshare{h}$.
+  %\item $\sshare{gh} \asn \mathsf{TruncPr}(\sshare{gh},k,f)$.
+\end{enumerate}
+\item $\sshare{r} \asn 3/2-\sshare{gh}$.
+\item $\sshare{h} \asn \sshare{h} \cdot \sshare{r}$.
+%\item $\sshare{h} \asn \mathsf{TruncPr}(\sshare{h},k,f)$.
+\item $\sshare{H} \asn 4 \cdot (\sshare{h}^2)$.
+\item $\sshare{H} \asn \sshare{H}\cdot \sshare{x}$.
+\item $\sshare{H} \asn (3) - \sshare{H}$.
+\item $\sshare{H} \asn \sshare{h} \cdot \sshare{H}$.
+\item $\sshare{g} \asn \sshare{H} \cdot \sshare{x}$.
+%\item $\sshare{g} \asn \mathsf{FxDiv}(\sshare{g},2,k,f)$.
+%\item $\sshare{g} \asn \mathsf{TruncPr}(\sshare{g},4 \cdot k,4 \cdot f)$.
+\item Return $\sshare{g}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{FxSqrt}(\sshare{x}, k \asn sfix.k, f \asn sfix.f)$:}
+We can now provide a more simplified mechanism to call our \verb|FxSqrt| functionality. Note that our \verb|SimplifiedFxSqrt| requires some extra rounds, given the need of performing a division. We use it only when  the $3 \cdot k - 2 \cdot f < sfix.f$ bound is not met. 
+
+\begin{enumerate}
+\item if $(3 \cdot k - 2 \cdot f >= sfix.f)$:
+\begin{enumerate}
+	\item Return $\mathsf{SimplifiedFxSqrt}(\sshare{x}, k, f)$.
+\end{enumerate}
+\item else:
+\begin{enumerate}
+    \item $\sshare{x} \asn Trunc(\sshare{x} \cdot 2^{f}, sfix.k, sfix.k-sfix.f)$
+	\item Return $\mathsf{ParamFxSqrt}(\sshare{x}, k, f)$.
+\end{enumerate}
+\end{enumerate}
 
 \paragraph{MAMBA Example:} To obtain the \verb|sqrt| of any value, you could execute the following:
 \begin{lstlisting}[language={python}]
 from Compiler import mpc_math
- x = sfix(6.25)
- k = 5
- f = 2
+k = 5
+f = 2
+ 
+x = sfix(6.25)
+y = sfix(144)
+z = sfix (257.5)
+ 
 # returns the sqrt of the number, i.e. 2.5
 # inputs have to be expressed such that:
 # x * 2^f \in Z_q
 # and 3*k -2*f < sfix.f (system precision)
 # by default system precision is 20 bits. 
-y = mpc_math.sqrt(x, k, f)
+a = mpc_math.sqrt(x, k, f)
+
+# when you don't specify k and f, the system uses
+# the default sfix values, and hence the simplified
+# version for any value range, at the cost of an
+# additional division call.
+
+b = mpc_math.sqrt(y)
+c = mpc_math.sqrt(z)
+
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{LinAppSQ}(\sshare{b},k,f)$:}

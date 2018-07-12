@@ -24,7 +24,7 @@ using namespace std;
 
 #ifndef MAX_MOD_SZ
 #ifdef LargeM
-#define MAX_MOD_SZ 20
+#define MAX_MOD_SZ 10
 #else
 #define MAX_MOD_SZ 3
 #endif

@@ -214,7 +214,8 @@ void fake_offline_phase_bits(Player &P, list<Share> &b)
 void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
                            list<Share> &b, list<Share> &c, const FHE_PK &pk,
                            const FHE_SK &sk, const FFT_Data &PTD,
-                           int num_online, offline_control_data &OCD)
+                           int num_online, offline_control_data &OCD,
+                           FHE_Industry &industry)
 {
   if (Share::SD.Otype == Fake)
     {
@@ -230,14 +231,15 @@ void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
     }
   else
     {
-      offline_FHE_triples(P, a, b, c, pk, sk, PTD, num_online, OCD);
+      offline_FHE_triples(P, a, b, c, pk, sk, PTD, num_online, OCD, industry);
     }
 }
 
 void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
                            list<Share> &b, const FHE_PK &pk, const FHE_SK &sk,
                            const FFT_Data &PTD,
-                           int num_online, offline_control_data &OCD)
+                           int num_online, offline_control_data &OCD,
+                           FHE_Industry &industry)
 {
   if (Share::SD.Otype == Fake)
     {
@@ -253,14 +255,15 @@ void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
     }
   else
     {
-      offline_FHE_squares(P, a, b, pk, sk, PTD, num_online, OCD);
+      offline_FHE_squares(P, a, b, pk, sk, PTD, num_online, OCD, industry);
     }
 }
 
 void offline_phase_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b,
                         Open_Protocol &OP, const FHE_PK &pk, const FHE_SK &sk,
                         const FFT_Data &PTD,
-                        int num_online, offline_control_data &OCD)
+                        int num_online, offline_control_data &OCD,
+                        FHE_Industry &industry)
 {
   if (Share::SD.Otype == Fake)
     {
@@ -276,6 +279,6 @@ void offline_phase_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b,
     }
   else
     {
-      offline_FHE_bits(P, b, pk, sk, PTD, num_online, OCD);
+      offline_FHE_bits(P, b, pk, sk, PTD, num_online, OCD, industry);
     }
 }

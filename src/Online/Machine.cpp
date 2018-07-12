@@ -16,7 +16,7 @@ void Machine::SetUp_Memory(unsigned int whoami, const string &memtype)
 
   Mc.set_default(gfp(0));
   Ms.set_default(Share(whoami));
-  Mi.set_default(Integer(0));
+  Mr.set_default(Integer(0));
 
   // Initialize the global memory
   if (memtype.compare("old") == 0)
@@ -28,7 +28,7 @@ void Machine::SetUp_Memory(unsigned int whoami, const string &memtype)
           throw file_error(filename);
         }
       // See below for ordering here
-      inpf >> Mc >> Mi >> Ms;
+      inpf >> Mc >> Mr >> Ms;
       inpf.close();
     }
   else if (!(memtype.compare("empty") == 0))
@@ -46,8 +46,8 @@ void Machine::Dump_Memory(unsigned int whoami)
     Mc.resize(max_size);
   if (Ms.size() > max_size)
     Ms.resize(max_size);
-  if (Mi.size() > max_size)
-    Mi.resize(max_size);
+  if (Mr.size() > max_size)
+    Mr.resize(max_size);
 
   // Write out the memory to use next time
   char filename[2048];
@@ -55,52 +55,23 @@ void Machine::Dump_Memory(unsigned int whoami)
   ofstream outf(filename, ios::out | ios::binary);
   // We do it in this order as this is needed by Script/test_result.py
   // and we do not want that Script to worry about sizes of Shares
-  outf << Mc << Mi << Ms;
+  outf << Mc << Mr << Ms;
   outf.close();
 }
 
-unsigned int Machine::Load_Programs_Subroutine()
+void Machine::Load_Schedule_Into_Memory()
 {
-  char filename[2048];
-  sprintf(filename, "%s/%s.sch", progname.c_str(), name.c_str());
-  fprintf(stderr, "Opening file %s\n", filename);
-  i_schedule.open(filename);
-  if (i_schedule.fail())
-    {
-      throw file_error("Missing '" + string(filename) + "'. Did you compile '" +
-                       name + "'?");
-    }
-
-  unsigned int nthreads;
-  i_schedule >> nthreads;
-  fprintf(stderr, "Number of online threads I will run in parallel =  %d\n",
-          nthreads);
-
-  int nprogs;
-  i_schedule >> nprogs;
-  fprintf(stderr, "Number of program sequences I need to load =  %d\n", nprogs);
+  unsigned int nprogs= schedule.progs.size();
 
   // Load in the programs
   progs.resize(nprogs);
-  char threadname[1024];
-  for (int i= 0; i < nprogs; i++)
+  for (unsigned int i= 0; i < nprogs; i++)
     {
-      i_schedule >> threadname;
-      sprintf(filename, "%s/%s.bc", progname.c_str(), threadname);
-      fprintf(stderr, "Loading program %d from %s\n", i, filename);
-      ifstream pinp(filename);
-      if (pinp.fail())
-        {
-          throw file_error(filename);
-        }
-      progs[i].parse(pinp);
-      pinp.close();
-      Mc.minimum_size(progs[i].direct_mem(MODP)[CLEAR], threadname);
-      Ms.minimum_size(progs[i].direct_mem(MODP)[SECRET], threadname);
-      Mi.minimum_size(progs[i].direct_mem(INT)[CLEAR], threadname);
+      progs[i].parse(schedule.progs[i]);
+      Mc.minimum_size(progs[i].direct_mem(MODP)[CLEAR], schedule.tnames[i]);
+      Ms.minimum_size(progs[i].direct_mem(MODP)[SECRET], schedule.tnames[i]);
+      Mr.minimum_size(progs[i].direct_mem(INT)[CLEAR], schedule.tnames[i]);
     }
-
-  return nthreads;
 }
 
 void Machine::Init_OTI(unsigned int nthreads)
@@ -119,45 +90,16 @@ void Machine::Init_OTI(unsigned int nthreads)
     }
 }
 
-unsigned int Machine::Load_Programs()
+void Machine::SetUp_Threads(unsigned int nthreads)
 {
-  i_schedule.close();
-
-  unsigned int nthreads= Load_Programs_Subroutine();
-  if (OTI.size() < nthreads)
-    {
-      throw Processor_Error("Restart requires more threads, cannot do this");
-    }
-  return nthreads;
-}
-
-unsigned int Machine::Load_Programs(const string &pname)
-{
-  progname= pname;
-  /* First find progname itself, minus the directory path */
-  int pos= progname.size() - 1, tot= progname.size() - 1;
-  if (progname.c_str()[pos] == '/')
-    {
-      pos--;
-      tot--;
-    }
-  while (progname.c_str()[pos] != '/' && pos >= 0)
-    {
-      pos--;
-    }
-  name= progname.substr(pos + 1, tot - pos);
-
-  unsigned int nthreads= Load_Programs_Subroutine();
-
-  /* Set up the thread data */
+  // Set up the thread data
   OTI.resize(nthreads);
   online_mutex.resize(nthreads);
   online_thread_ready.resize(nthreads);
   machine_ready.resize(nthreads);
+  schedule.set_max_n_threads(nthreads);
 
   Init_OTI(nthreads);
-
-  return nthreads;
 }
 
 void Machine::Synchronize()
@@ -255,7 +197,7 @@ void Machine::run()
   timers.resize(N_TIMERS);
   for (unsigned int i= 0; i < N_TIMERS; i++)
     {
-      timers[i]= clock();
+      timers[i].start();
     }
 
   // First go through the schedule and execute what is there
@@ -263,7 +205,7 @@ void Machine::run()
   bool flag= true;
   while (flag)
     {
-      i_schedule >> threads_on_line;
+      schedule.i_schedule >> threads_on_line;
       if (threads_on_line == 0)
         {
           flag= false;
@@ -272,12 +214,12 @@ void Machine::run()
         {
           for (unsigned int i= 0; i < threads_on_line; i++)
             { // Now load up data
-              i_schedule >> tape_number;
+              schedule.i_schedule >> tape_number;
 
               // Cope with passing an integer parameter to a tape
               int arg;
-              if (i_schedule.get() == ':')
-                i_schedule >> arg;
+              if (schedule.i_schedule.get() == ':')
+                schedule.i_schedule >> arg;
               else
                 arg= 0;
 
@@ -296,13 +238,12 @@ void Machine::run()
 
   // What program did we run?
   char compiler_command[1000];
-  i_schedule.get();
-  i_schedule.getline(compiler_command, 1000);
+  schedule.i_schedule.get();
+  schedule.i_schedule.getline(compiler_command, 1000);
   if (compiler_command[0] != 0)
     {
       cerr << "Compiler: " << compiler_command << endl;
     }
-  i_schedule.close();
 
   // Tell all online threads to stop
   for (unsigned int i= 0; i < OTI.size(); i++)
@@ -331,7 +272,7 @@ void Machine::start_timer(unsigned int i)
     {
       throw invalid_length();
     }
-  timers[i]= clock();
+  timers[i].reset();
 }
 
 void Machine::stop_timer(unsigned int i)
@@ -340,7 +281,6 @@ void Machine::stop_timer(unsigned int i)
     {
       throw invalid_length();
     }
-  double time= clock() - timers[i];
-  time/= CLOCKS_PER_SEC;
-  printf("Elapsed time on timer %d is %.6f seconds \n", i, time);
+  double time= timers[i].elapsed();
+  printf("Elapsed time on timer %d is %lf seconds \n", i, time);
 }

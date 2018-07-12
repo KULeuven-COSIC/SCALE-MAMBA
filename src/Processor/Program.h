@@ -34,7 +34,7 @@ public:
   }
 
   // Read in a program
-  void parse(istream &s);
+  void parse(stringstream &s);
 
   int num_reg(RegType reg_type) const
   {

@@ -60,7 +60,7 @@ public:
 
   void assign(unsigned int i, vector<gfp> sv, vector<gfp> macs)
   {
-    p= i;
+    p= (int) i;
     a= sv;
     mac= macs;
     check();
@@ -118,21 +118,21 @@ public:
   {
     return mac;
   }
-  gfp get_share(int i) const
+  gfp get_share(unsigned int i) const
   {
     return a[i];
   }
-  gfp get_mac(int i) const
+  gfp get_mac(unsigned int i) const
   {
     return mac[i];
   }
   void set_shares(const vector<gfp> &aa);
   void set_macs(const vector<gfp> &aa);
-  void set_share(int i, const gfp &aa)
+  void set_share(unsigned int i, const gfp &aa)
   {
     a[i]= aa;
   }
-  void set_mac(int i, const gfp &aa)
+  void set_mac(unsigned int i, const gfp &aa)
   {
     mac[i]= aa;
   }

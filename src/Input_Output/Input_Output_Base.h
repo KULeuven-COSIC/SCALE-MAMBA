@@ -28,10 +28,34 @@ All rights reserved
  */
 
 #include "LSSS/Share.h"
+#include "Online/Schedule.h"
+#include <openssl/sha.h>
 
 class Input_Output_Base
 {
+  // This is a hash object to check public data is enterred
+  // consistently between the different players
+  //   - This does not give a form of active security
+  //     it simply protects against stupid users
+  SHA256_CTX sha256;
+
+  void Update_Checker(const stringstream &ss);
+
+protected:
+  void Update_Checker(const gfp &input, unsigned int channel);
+  void Update_Checker(const long input, unsigned int channel);
+
 public:
+  Input_Output_Base();
+  string Get_Check();
+
+  // Open and close channels
+  // Channels are assumed to be bidirectional, i.e. we can read and write
+  // to them. These calls are provided in case some IO derived classes
+  // require explicit opening and closing of channels
+  virtual void open_channel(unsigned int channel)= 0;
+  virtual void close_channel(unsigned int channel)= 0;
+
   // Allow a player to enter a gfp element
   virtual gfp private_input_gfp(unsigned int channel)= 0;
 
@@ -44,8 +68,16 @@ public:
   virtual void public_output_gfp(const gfp &output, unsigned int channel)= 0;
 
   // Gets a public input gfp element
-  //   - System much ensure this element is the same for each player
+  //   - System must ensure this element is the same for each player
   virtual gfp public_input_gfp(unsigned int channel)= 0;
+
+  // Allow a player to obtain a public regint element output
+  //   - This is a value known to all players
+  virtual void public_output_int(const long output, unsigned int channel)= 0;
+
+  // Gets a public input regint element
+  //   - System must ensure this element is the same for each player
+  virtual long public_input_int(unsigned int channel)= 0;
 
   // Next two functions need to be used with care, as ill use
   // could break the MPC security model
@@ -58,7 +90,13 @@ public:
   virtual Share input_share(unsigned int channel)= 0;
 
   // Trigger function for restarts
-  virtual void trigger()= 0;
+  virtual void trigger(Schedule &schedule)= 0;
+
+  // Debug output data sent here
+  virtual void debug_output(const stringstream &ss)= 0;
+
+  // Crash call sent here
+  virtual void crash(unsigned int PC, unsigned int thread_num)= 0;
 };
 
 #endif

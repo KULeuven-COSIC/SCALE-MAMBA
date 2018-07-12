@@ -1,0 +1,17 @@
+n=1
+
+# Create some dummy threads to ensure we have multiple threads
+
+def f():
+    a = cint(1)
+    b = a + a
+
+thread = MPCThread(f, 'test')
+
+for i in range(n):
+    thread.start()
+for i in range(n):
+    thread.join()
+
+print_ln("Player zero enter a private gfp number")
+a=sint.get_private_input_from(0)

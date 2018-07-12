@@ -56,7 +56,7 @@ void Instruction::parse(istream &s)
   int pos= s.tellg();
   opcode= get_int(s);
   size= opcode >> 9;
-  opcode&= 0x1FF; // XXXX Why have 9 bit opcodes?
+  opcode&= 0x1FF;
 
   if (size == 0)
     size= 1;
@@ -71,7 +71,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
   // dec << pos << endl;
   switch (opcode)
     {
-      // instructions with 3 register operands
+      // instructions with 3 register (or 3 integer) operands
       case ADDC:
       case ADDS:
       case ADDM:
@@ -96,7 +96,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case SUBINT:
       case MULINT:
       case DIVINT:
-      case PRINTFIXPLAIN:
+      case RUN_TAPE:
         r[0]= get_int(s);
         r[1]= get_int(s);
         r[2]= get_int(s);
@@ -117,18 +117,17 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case LTZC:
       case EQZC:
       case RAND:
+      case DIGESTC:
         r[0]= get_int(s);
         r[1]= get_int(s);
         break;
       // instructions with 1 register operand
       case BIT:
-      case PRINTMEM:
       case PRINTREGPLAIN:
       case LDTN:
       case LDARG:
       case STARG:
       case JMPI:
-      case JOIN_TAPE:
       case PUSHINT:
       case POPINT:
       case PRINTCHRINT:
@@ -154,9 +153,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case SHRCI:
       case NOTC:
       case CONVMODP:
-      case RUN_TAPE:
-      case START_PRIVATE_OUTPUT:
-      case DIGESTC:
         r[0]= get_int(s);
         r[1]= get_int(s);
         n= get_int(s);
@@ -176,12 +172,20 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case LDINT:
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
+      case INPUT_INT:
+      case OUTPUT_INT:
         r[0]= get_int(s);
         n= get_int(s);
         break;
-      // instructions with 1 register + 2 integer operand
-      case START_PRIVATE_INPUT:
-      case STOP_PRIVATE_OUTPUT:
+      // instructions with 1 reg + 1 player + 1 integer operand
+      case PRIVATE_INPUT:
+      case PRIVATE_OUTPUT:
+        r[0]= get_int(s);
+        p= get_int(s);
+        m= get_int(s);
+        break;
+      // instructions with 1 reg + 2 integer operand
+      case PRINTFIXPLAIN:
         r[0]= get_int(s);
         n= get_int(s);
         m= get_int(s);
@@ -192,6 +196,10 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case JMP:
       case START_TIMER:
       case STOP_TIMER:
+      case OPEN_CHAN:
+      case CLOSE_CHAN:
+      case PRINTMEM:
+      case JOIN_TAPE:
         n= get_int(s);
         break;
       // instructions with no operand
@@ -211,10 +219,9 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       // As above, but with a trailing int argument
       case OUTPUT_SHARE:
       case INPUT_SHARE:
-      case STOP_PRIVATE_INPUT:
-        // subtract player number/channel argument
+        // subtract player/channel number from the number of arguments
         num_var_args= get_int(s) - 1;
-        n= get_int(s);
+        p= get_int(s);
         get_vector(num_var_args, start, s);
         break;
       case REQBL:
@@ -236,24 +243,30 @@ void BaseInstruction::parse_operands(istream &s, int pos)
 int BaseInstruction::get_reg_type() const
 {
   switch (opcode)
-    {
+    { // List here commands which write to a regint register or regint memory
       case LDMINT:
-      case STMINT:
       case LDMINTI:
-      case STMINTI:
-      case PUSHINT:
-      case POPINT:
       case MOVINT:
+      case POPINT:
+      case LDTN:
       case LDARG:
+      case INPUT_INT:
+      case RAND:
       case LDINT:
       case CONVMODP:
-      case RAND:
+      case ADDINT:
+      case SUBINT:
+      case MULINT:
+      case DIVINT:
+      case LTZC:
+      case LTC:
+      case GTC:
+      case EQC:
+      case EQZC:
+      case STMINT:
         return INT;
       default:
-        if (opcode >> 4 == 0x9)
-          return INT;
-        else
-          return MODP;
+        return MODP;
     }
 }
 
@@ -308,19 +321,560 @@ bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
 
 ostream &operator<<(ostream &s, const Instruction &instr)
 {
-  s << instr.opcode << " : ";
-  for (int i= 0; i < 3; i++)
+  // First the opcode
+  switch (instr.opcode)
     {
-      s << instr.r[i] << " ";
+      case LDI:
+        s << "LDI";
+        break;
+      case LDSI:
+        s << "LDSI";
+        break;
+      case LDMC:
+        s << "LDMC";
+        break;
+      case LDMS:
+        s << "LDMS";
+        break;
+      case STMC:
+        s << "STMC";
+        break;
+      case STMS:
+        s << "STMS";
+        break;
+      case LDMCI:
+        s << "LDMCI";
+        break;
+      case LDMSI:
+        s << "LDMSI";
+        break;
+      case STMCI:
+        s << "STMCI";
+        break;
+      case STMSI:
+        s << "STMSI";
+        break;
+      case MOVC:
+        s << "MOVC";
+        break;
+      case MOVS:
+        s << "MOVS";
+        break;
+      case LDMINT:
+        s << "LDMINT";
+        break;
+      case STMINT:
+        s << "STMINT";
+        break;
+      case LDMINTI:
+        s << "LDMINTI";
+        break;
+      case STMINTI:
+        s << "STMINTI";
+        break;
+      case PUSHINT:
+        s << "PUSHINT";
+        break;
+      case POPINT:
+        s << "POPINT";
+        break;
+      case MOVINT:
+        s << "MOVINT";
+        break;
+      case LDTN:
+        s << "LDTN";
+        break;
+      case LDARG:
+        s << "LDARG";
+        break;
+      case REQBL:
+        s << "REQBL";
+        break;
+      case STARG:
+        s << "STARG";
+        break;
+      case RUN_TAPE:
+        s << "RUN_TAPE";
+        break;
+      case JOIN_TAPE:
+        s << "JOIN_TAPE";
+        break;
+      case CRASH:
+        s << "CRASH";
+        break;
+      case RESTART:
+        s << "RESTART";
+        break;
+      case ADDC:
+        s << "ADDC";
+        break;
+      case ADDS:
+        s << "ADDS";
+        break;
+      case ADDM:
+        s << "ADDM";
+        break;
+      case ADDCI:
+        s << "ADDCI";
+        break;
+      case ADDSI:
+        s << "ADDSI";
+        break;
+      case SUBC:
+        s << "SUBC";
+        break;
+      case SUBS:
+        s << "SUBS";
+        break;
+      case SUBML:
+        s << "SUBML";
+        break;
+      case SUBMR:
+        s << "SUBMR";
+        break;
+      case SUBCI:
+        s << "SUBCI";
+        break;
+      case SUBSI:
+        s << "SUBSI";
+        break;
+      case SUBCFI:
+        s << "SUBCFI";
+        break;
+      case SUBSFI:
+        s << "SUBSFI";
+        break;
+      case MULC:
+        s << "MULC";
+        break;
+      case MULM:
+        s << "MULM";
+        break;
+      case MULCI:
+        s << "MULCI";
+        break;
+      case MULSI:
+        s << "MULSI";
+        break;
+      case DIVC:
+        s << "DIVC";
+        break;
+      case DIVCI:
+        s << "DICI";
+        break;
+      case MODC:
+        s << "MODC";
+        break;
+      case MODCI:
+        s << "MODCI";
+        break;
+      case LEGENDREC:
+        s << "LEGENDREC";
+        break;
+      case DIGESTC:
+        s << "DIGESTC";
+        break;
+      case OUTPUT_CLEAR:
+        s << "OUTPUT_CLEAR";
+        break;
+      case INPUT_CLEAR:
+        s << "INPUT_CLEAR";
+        break;
+      case OUTPUT_SHARE:
+        s << "OUTPUT_SHARE";
+        break;
+      case INPUT_SHARE:
+        s << "INPUT_SHARE";
+        break;
+      case PRIVATE_INPUT:
+        s << "PRIVATE_INPUT";
+        break;
+      case PRIVATE_OUTPUT:
+        s << "PRIVATE_OUTPUT";
+        break;
+      case OUTPUT_INT:
+        s << "OUTPUT_INT";
+        break;
+      case INPUT_INT:
+        s << "INPUT_INT";
+        break;
+      case OPEN_CHAN:
+        s << "OPEN_CHAN";
+        break;
+      case CLOSE_CHAN:
+        s << "CLOSE_CHAN";
+        break;
+      case STARTOPEN:
+        s << "STARTOPEN";
+        break;
+      case STOPOPEN:
+        s << "STOPOPEN";
+        break;
+      case TRIPLE:
+        s << "TRIPLE";
+        break;
+      case BIT:
+        s << "BIT";
+        break;
+      case SQUARE:
+        s << "SQUARE";
+        break;
+      case ANDC:
+        s << "ANDC";
+        break;
+      case XORC:
+        s << "XORC";
+        break;
+      case ORC:
+        s << "ORC";
+        break;
+      case ANDCI:
+        s << "ANDCI";
+        break;
+      case XORCI:
+        s << "XORCI";
+        break;
+      case ORCI:
+        s << "ORCI";
+        break;
+      case NOTC:
+        s << "NOTC";
+        break;
+      case SHLC:
+        s << "SHLC";
+        break;
+      case SHRC:
+        s << "SHLR";
+        break;
+      case SHLCI:
+        s << "SHLCI";
+        break;
+      case SHRCI:
+        s << "SHRCI";
+        break;
+      case JMP:
+        s << "JMP";
+        break;
+      case JMPNZ:
+        s << "JMPNZ";
+        break;
+      case JMPEQZ:
+        s << "JMPEQZ";
+        break;
+      case EQZC:
+        s << "EQZC";
+        break;
+      case LTZC:
+        s << "LTZC";
+        break;
+      case LTC:
+        s << "LTC";
+        break;
+      case GTC:
+        s << "GTC";
+        break;
+      case EQC:
+        s << "EQC";
+        break;
+      case JMPI:
+        s << "JMPI";
+        break;
+      case LDINT:
+        s << "LDINT";
+        break;
+      case ADDINT:
+        s << "ADDINT";
+        break;
+      case SUBINT:
+        s << "SUBINT";
+        break;
+      case MULINT:
+        s << "MULINT";
+        break;
+      case DIVINT:
+        s << "DIVINT";
+        break;
+      case CONVINT:
+        s << "CONVINT";
+        break;
+      case CONVMODP:
+        s << "CONVMODP";
+        break;
+      case PRINTMEM:
+        s << "PRINTMEM";
+        break;
+      case PRINTREG:
+        s << "PRINTREG";
+        break;
+      case PRINTREGPLAIN:
+        s << "PRINTREGPLAIN";
+        break;
+      case PRINTCHR:
+        s << "PRINTCHR";
+        break;
+      case PRINTSTR:
+        s << "PRINTSTR";
+        break;
+      case PRINTCHRINT:
+        s << "PRINTCHRINT";
+        break;
+      case PRINTSTRINT:
+        s << "PRINTSTRINT";
+        break;
+      case PRINTFLOATPLAIN:
+        s << "PRINTFLOATPLAIN";
+        break;
+      case PRINTFIXPLAIN:
+        s << "PRINTFIXPLAIN";
+        break;
+      case PRINTINT:
+        s << "PRINTINT";
+        break;
+      case RAND:
+        s << "RAND";
+        break;
+      case START_TIMER:
+        s << "START_TIMER";
+        break;
+      case STOP_TIMER:
+        s << "STOP_TIMER";
+        break;
+      default:
+        s << instr.opcode;
+        throw Invalid_Instruction("Verbose Opcode Note Known");
     }
-  s << " : " << instr.n;
-  if (instr.start.size() != 0)
+  s << "  ";
+  // Now the arguments
+  
+
+  // First the register arguments
+  switch (instr.opcode)
     {
-      s << " : " << instr.start.size() << " : ";
-      for (unsigned int i= 0; i < instr.start.size(); i++)
-        {
-          s << instr.start[i] << " ";
-        }
+      // instructions with 3 cint register operands */
+      case ADDC:
+      case SUBC:
+      case MULC:
+      case DIVC:
+      case MODC:
+      case ANDC:
+      case XORC:
+      case ORC:
+      case SHLC:
+      case SHRC:
+	s << "c_" << instr.r[0] << " ";
+	s << "c_" << instr.r[1] << " ";
+	s << "c_" << instr.r[2] << " ";
+        break;
+      // instructions with 3 sint register operands */
+      case ADDS:
+      case SUBS:
+      case TRIPLE:
+        s << "s_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        s << "s_" << instr.r[2] << " ";
+        break;
+      // instructions with 3 rint register operands */
+      case ADDINT:
+      case SUBINT:
+      case MULINT:
+      case DIVINT:
+      case LTC:
+      case GTC:
+      case EQC:
+        s << "r_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        s << "r_" << instr.r[2] << " ";
+        break;
+      // instructions with 2 sint + 1 cint register operands */
+      case ADDM:
+      case SUBML:
+      case MULM:
+        s << "s_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        s << "c_" << instr.r[2] << " ";
+        break;
+      // instructions with 1 sint + 1 cint + 1 sint register operands */
+      case SUBMR:
+        s << "s_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        s << "s_" << instr.r[2] << " ";
+        break;
+      // instructions with 1 cint + 1 rint register operand
+      case LDMCI:
+      case CONVINT:
+      case STMCI:
+        s << "c_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 sint + 1 rint register operand
+      case LDMSI:
+      case STMSI:
+        s << "s_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        break;
+      // instructions with 2 cint register operands
+      case MOVC:
+      case LEGENDREC:
+      case DIGESTC:
+        s << "c_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        break;
+      // instructions with 2 sint register operands
+      case MOVS:
+      case SQUARE:
+        s << "s_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        break;
+      // instructions with 2 rint register operands
+      case MOVINT:
+      case LDMINTI:
+      case RAND:
+      case STMINTI:
+      case LTZC:
+      case EQZC:
+        s << "r_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 cint register operands
+      case PRINTREGPLAIN:
+        s << "c_" << instr.r[0] << " ";
+        break;
+      // instructions with 1 sint register operands
+      case BIT:
+        s << "s_" << instr.r[0] << " ";
+        break;
+      // instructions with 1 rint register operands
+      case PRINTINT:
+      case PRINTCHRINT:
+      case PRINTSTRINT:
+      case JMPI:
+      case PUSHINT:
+      case POPINT:
+      case STARG:
+      case LDTN:
+      case LDARG:
+        s << "r_" << instr.r[0] << " ";
+        break;
+      // instructions with 2 cint + 1 integer operand
+      case ADDCI:
+      case SUBCI:
+      case SUBCFI:
+      case MULCI:
+      case DIVCI:
+      case MODCI:
+      case ANDCI:
+      case XORCI:
+      case ORCI:
+      case SHLCI:
+      case NOTC:
+        s << "c_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 2 cint + 1 integer operand
+      case ADDSI:
+      case SUBSI:
+      case SUBSFI:
+      case MULSI:
+      case SHRCI:
+        s << "s_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 rint + 1 cint + 1 integer operand
+      case CONVMODP:
+        s << "r_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 rint + 1 integer operand
+      case LDINT:
+      case LDMINT:
+      case STMINT:
+      case JMPNZ:
+      case JMPEQZ:
+      case INPUT_INT:
+      case OUTPUT_INT:
+        s << "r_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 sint + 1 integer operand
+      case LDSI:
+      case LDMS:
+      case STMS:
+        s << "s_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 cint + 1 integer operand
+      case LDI:
+      case LDMC:
+      case STMC:
+      case PRINTREG:
+      case INPUT_CLEAR:
+      case OUTPUT_CLEAR:
+        s << "c_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 sint + 1 player + 1 integer operand
+      case PRIVATE_INPUT:
+      case PRIVATE_OUTPUT:
+        s << "s_" << instr.r[0] << " ";
+        s << instr.p << " ";
+        s << instr.m << " ";
+        break;
+      // instructions with 1 sint + 2 integer operands
+      case PRINTFIXPLAIN:
+        s << "c_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        s << instr.m << " ";
+        break;
+      // instructions with 1 integer operand
+      case PRINTSTR:
+      case PRINTCHR:
+      case REQBL:
+      case JMP:
+      case START_TIMER:
+      case STOP_TIMER:
+      case OPEN_CHAN:
+      case CLOSE_CHAN:
+      case PRINTMEM:
+      case JOIN_TAPE:
+        s << instr.n << " ";
+        break;
+      // instructions with no operand
+      case RESTART:
+      case CRASH:
+        break;
+      // Three integer operands
+      case RUN_TAPE:
+        s << instr.r[0] << " ";
+        s << instr.r[1] << " ";
+        s << instr.r[2] << " ";
+        break;
+      // Various variable length instructions
+      case PRINTFLOATPLAIN:
+      case STOPOPEN:
+        for (unsigned int i= 0; i < instr.start.size(); i++)
+          {
+            s << "c_" << instr.start[i] << " ";
+          }
+        break;
+      case STARTOPEN:
+        for (unsigned int i= 0; i < instr.start.size(); i++)
+          {
+            s << "s_" << instr.start[i] << " ";
+          }
+        break;
+      case OUTPUT_SHARE:
+      case INPUT_SHARE:
+        s << instr.p << " ";
+        for (unsigned int i= 0; i < instr.start.size(); i++)
+          {
+            s << "s_" << instr.start[i] << " ";
+          }
+        break;
+      default:
+        throw Invalid_Instruction("Cannot parse operarands in verbose mode");
     }
   return s;
 }
@@ -393,6 +947,9 @@ void Instruction::execute_using_sacrifice_data(
             Proc.get_Sp_ref(r[0]).assign(SacrificeD[thread].BD.bb.front());
             SacrificeD[thread].BD.bb.pop_front();
             break;
+          default:
+            throw bad_value();
+            break;
         }
       if (size > 1)
         {
@@ -407,7 +964,13 @@ void Instruction::execute_using_sacrifice_data(
 bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                           offline_control_data &OCD) const
 {
-  //printf("Executing thread=%d opcode=0x%02X\n",Proc.get_thread_num(),opcode); fflush(stdout);
+  if (machine.verbose)
+    {
+      stringstream s;
+      s << *this;
+      printf("Thread %d : %s\n", Proc.get_thread_num(), s.str().c_str());
+      fflush(stdout);
+    }
   bool restart= false;
 
   // First deal with the offline data input routines as these need thread locking
@@ -445,17 +1008,17 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             n++;
             break;
           case LDMINT:
-            Proc.write_Ci(r[0], machine.Mi.read(n).get());
+            Proc.write_Ri(r[0], machine.Mr.read(n).get());
             n++;
             break;
           case LDMCI:
-            Proc.write_Cp(r[0], machine.Mc.read(Proc.read_Ci(r[1])));
+            Proc.write_Cp(r[0], machine.Mc.read(Proc.read_Ri(r[1])));
             break;
           case LDMSI:
-            Proc.write_Sp(r[0], machine.Ms.read(Proc.read_Ci(r[1])));
+            Proc.write_Sp(r[0], machine.Ms.read(Proc.read_Ri(r[1])));
             break;
           case LDMINTI:
-            Proc.write_Ci(r[0], machine.Mi.read(Proc.read_Ci(r[1])).get());
+            Proc.write_Ri(r[0], machine.Mr.read(Proc.read_Ri(r[1])).get());
             break;
           case STMC:
             machine.Mc.write(n, Proc.read_Cp(r[0]), Proc.get_PC());
@@ -466,17 +1029,17 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             n++;
             break;
           case STMINT:
-            machine.Mi.write(n, Integer(Proc.read_Ci(r[0])), Proc.get_PC());
+            machine.Mr.write(n, Integer(Proc.read_Ri(r[0])), Proc.get_PC());
             n++;
             break;
           case STMCI:
-            machine.Mc.write(Proc.read_Ci(r[1]), Proc.read_Cp(r[0]), Proc.get_PC());
+            machine.Mc.write(Proc.read_Ri(r[1]), Proc.read_Cp(r[0]), Proc.get_PC());
             break;
           case STMSI:
-            machine.Ms.write(Proc.read_Ci(r[1]), Proc.read_Sp(r[0]), Proc.get_PC());
+            machine.Ms.write(Proc.read_Ri(r[1]), Proc.read_Sp(r[0]), Proc.get_PC());
             break;
           case STMINTI:
-            machine.Mi.write(Proc.read_Ci(r[1]), Integer(Proc.read_Ci(r[0])),
+            machine.Mr.write(Proc.read_Ri(r[1]), Integer(Proc.read_Ri(r[0])),
                              Proc.get_PC());
             break;
           case MOVC:
@@ -486,22 +1049,22 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             Proc.write_Sp(r[0], Proc.read_Sp(r[1]));
             break;
           case MOVINT:
-            Proc.write_Ci(r[0], Proc.read_Ci(r[1]));
+            Proc.write_Ri(r[0], Proc.read_Ri(r[1]));
             break;
           case PUSHINT:
-            Proc.pushi(Proc.read_Ci(r[0]));
+            Proc.pushi(Proc.read_Ri(r[0]));
             break;
           case POPINT:
-            Proc.popi(Proc.get_Ci_ref(r[0]));
+            Proc.popi(Proc.get_Ri_ref(r[0]));
             break;
           case LDTN:
-            Proc.write_Ci(r[0], Proc.get_thread_num());
+            Proc.write_Ri(r[0], Proc.get_thread_num());
             break;
           case LDARG:
-            Proc.write_Ci(r[0], Proc.get_arg());
+            Proc.write_Ri(r[0], Proc.get_arg());
             break;
           case STARG:
-            Proc.set_arg(Proc.read_Ci(r[0]));
+            Proc.set_arg(Proc.read_Ri(r[0]));
             break;
           case ADDC:
 #ifdef DEBUG
@@ -810,91 +1373,95 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             Proc.relative_jump((signed int) n);
             break;
           case JMPI:
-            Proc.relative_jump((signed int) Proc.read_Ci(r[0]));
+            Proc.relative_jump((signed int) Proc.read_Ri(r[0]));
             break;
           case JMPNZ:
-            if (Proc.read_Ci(r[0]) != 0)
+            if (Proc.read_Ri(r[0]) != 0)
               {
                 Proc.relative_jump((signed int) n);
               }
             break;
           case JMPEQZ:
-            if (Proc.read_Ci(r[0]) == 0)
+            if (Proc.read_Ri(r[0]) == 0)
               {
                 Proc.relative_jump((signed int) n);
               }
             break;
           case EQZC:
-            if (Proc.read_Ci(r[1]) == 0)
-              Proc.write_Ci(r[0], 1);
+            if (Proc.read_Ri(r[1]) == 0)
+              Proc.write_Ri(r[0], 1);
             else
-              Proc.write_Ci(r[0], 0);
+              Proc.write_Ri(r[0], 0);
             break;
           case LTZC:
-            if (Proc.read_Ci(r[1]) < 0)
-              Proc.write_Ci(r[0], 1);
+            if (Proc.read_Ri(r[1]) < 0)
+              Proc.write_Ri(r[0], 1);
             else
-              Proc.write_Ci(r[0], 0);
+              Proc.write_Ri(r[0], 0);
             break;
           case LTC:
-            if (Proc.read_Ci(r[1]) < Proc.read_Ci(r[2]))
-              Proc.write_Ci(r[0], 1);
+            if (Proc.read_Ri(r[1]) < Proc.read_Ri(r[2]))
+              Proc.write_Ri(r[0], 1);
             else
-              Proc.write_Ci(r[0], 0);
+              Proc.write_Ri(r[0], 0);
             break;
           case GTC:
-            if (Proc.read_Ci(r[1]) > Proc.read_Ci(r[2]))
-              Proc.write_Ci(r[0], 1);
+            if (Proc.read_Ri(r[1]) > Proc.read_Ri(r[2]))
+              Proc.write_Ri(r[0], 1);
             else
-              Proc.write_Ci(r[0], 0);
+              Proc.write_Ri(r[0], 0);
             break;
           case EQC:
-            if (Proc.read_Ci(r[1]) == Proc.read_Ci(r[2]))
-              Proc.write_Ci(r[0], 1);
+            if (Proc.read_Ri(r[1]) == Proc.read_Ri(r[2]))
+              Proc.write_Ri(r[0], 1);
             else
-              Proc.write_Ci(r[0], 0);
+              Proc.write_Ri(r[0], 0);
             break;
           case LDINT:
-            Proc.write_Ci(r[0], n);
+            Proc.write_Ri(r[0], n);
             break;
           case ADDINT:
-            Proc.get_Ci_ref(r[0])= Proc.read_Ci(r[1]) + Proc.read_Ci(r[2]);
+            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) + Proc.read_Ri(r[2]);
             break;
           case SUBINT:
-            Proc.get_Ci_ref(r[0])= Proc.read_Ci(r[1]) - Proc.read_Ci(r[2]);
+            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) - Proc.read_Ri(r[2]);
             break;
           case MULINT:
-            Proc.get_Ci_ref(r[0])= Proc.read_Ci(r[1]) * Proc.read_Ci(r[2]);
+            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) * Proc.read_Ri(r[2]);
             break;
           case DIVINT:
-            Proc.get_Ci_ref(r[0])= Proc.read_Ci(r[1]) / Proc.read_Ci(r[2]);
+            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) / Proc.read_Ri(r[2]);
             break;
           case CONVINT:
-            Proc.get_Cp_ref(r[0]).assign(Proc.read_Ci(r[1]));
+            Proc.get_Cp_ref(r[0]).assign(Proc.read_Ri(r[1]));
             break;
           case CONVMODP:
             to_signed_bigint(Proc.temp.aa, Proc.read_Cp(r[1]), n);
-            Proc.write_Ci(r[0], Proc.temp.aa.get_si());
+            Proc.write_Ri(r[0], Proc.temp.aa.get_si());
             break;
           case PRINTMEM:
             if (P.whoami() == 0)
               {
-                cout << "Mem[" << r[0] << "] = " << machine.Mc.read(r[0]) << endl
-                     << flush;
+                stringstream ss;
+                ss << "Mem[" << n << "] = " << machine.Mc.read(n) << endl;
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTREG:
             if (P.whoami() == 0)
               {
-                cout << "Reg[" << r[0] << "] = " << Proc.read_Cp(r[0]) << " # "
-                     << string((char *) &n, sizeof(n)) << endl
-                     << flush;
+                stringstream ss;
+                ss << "Reg[" << r[0] << "] = " << Proc.read_Cp(r[0]) << " # "
+                   << string((char *) &n, sizeof(n)) << endl;
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTREGPLAIN:
             if (P.whoami() == 0)
               {
-                cout << Proc.read_Cp(r[0]) << flush;
+                stringstream ss;
+                ss << Proc.read_Cp(r[0]);
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTFIXPLAIN:
@@ -902,14 +1469,16 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               {
                 gfp v= Proc.read_Cp(r[0]);
                 // immediate values
-                auto f= r[1];
-                auto k= r[2];
+                auto f= n;
+                auto k= m;
                 // v has k bits max
                 to_signed_bigint(Proc.temp.aa, v, k);
                 mpf_class res= Proc.temp.aa;
                 // compute v * 2^{-f}
                 mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), f);
-                cout << res << flush;
+                stringstream ss;
+                ss << res;
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTFLOATPLAIN:
@@ -934,41 +1503,53 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                   res*= -1;
                 if (not z.is_bit() or not s.is_bit())
                   throw Processor_Error("invalid floating point number");
-                cout << res << flush;
+                stringstream ss;
+                ss << res;
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTINT:
             if (P.whoami() == 0)
               {
-                cout << Proc.read_Ci(r[0]) << flush;
+                stringstream ss;
+                ss << Proc.read_Ri(r[0]);
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTSTR:
             if (P.whoami() == 0)
               {
-                cout << string((char *) &n, sizeof(n)) << flush;
+                stringstream ss;
+                ss << string((char *) &n, sizeof(n));
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTCHR:
             if (P.whoami() == 0)
               {
-                cout << string((char *) &n, 1) << flush;
+                stringstream ss;
+                ss << string((char *) &n, 1);
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTCHRINT:
             if (P.whoami() == 0)
               {
-                cout << string((char *) &(Proc.read_Ci(r[0])), 1) << flush;
+                stringstream ss;
+                ss << string((char *) &(Proc.read_Ri(r[0])), 1);
+                machine.get_IO().debug_output(ss);
               }
             break;
           case PRINTSTRINT:
             if (P.whoami() == 0)
               {
-                cout << string((char *) &(Proc.read_Ci(r[0])), sizeof(int)) << flush;
+                stringstream ss;
+                ss << string((char *) &(Proc.read_Ri(r[0])), sizeof(int));
+                machine.get_IO().debug_output(ss);
               }
             break;
           case RAND:
-            Proc.write_Ci(r[0], Proc.get_random_uint() % (1 << Proc.read_Ci(r[1])));
+            Proc.write_Ri(r[0], Proc.get_random_uint() % (1 << Proc.read_Ri(r[1])));
             break;
           case START_TIMER:
             machine.start_timer(n);
@@ -979,16 +1560,20 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case REQBL:
             break;
           case RUN_TAPE:
-            machine.run_tape(r[0], n, r[1]);
+            machine.run_tape(r[0], r[2], r[1]);
             break;
           case JOIN_TAPE:
-            machine.Lock_Until_Finished_Tape(r[0]);
+            machine.Lock_Until_Finished_Tape(n);
             break;
           case RESTART:
+            if (Proc.get_thread_num() != 0)
+              {
+                throw IO_thread();
+              }
             restart= true;
             break;
           case CRASH:
-            throw crash_requested();
+            machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
             break;
           case OUTPUT_SHARE:
             if (Proc.get_thread_num() != 0)
@@ -997,7 +1582,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               }
             for (unsigned int i= 0; i < start.size(); i++)
               {
-                machine.IO.output_share(Proc.get_Sp_ref(start[i]), n);
+                machine.get_IO().output_share(Proc.get_Sp_ref(start[i]), p);
               }
             break;
           case INPUT_SHARE:
@@ -1007,7 +1592,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               }
             for (unsigned int i= 0; i < start.size(); i++)
               {
-                Proc.get_Sp_ref(start[i])= machine.IO.input_share(n);
+                Proc.get_Sp_ref(start[i])= machine.get_IO().input_share(p);
               }
             break;
           case INPUT_CLEAR:
@@ -1015,38 +1600,56 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               {
                 throw IO_thread();
               }
-            Proc.get_Cp_ref(r[0])= machine.IO.public_input_gfp(n);
+            Proc.get_Cp_ref(r[0])= machine.get_IO().public_input_gfp(n);
+            break;
+          case INPUT_INT:
+            if (Proc.get_thread_num() != 0)
+              {
+                throw IO_thread();
+              }
+            Proc.get_Ri_ref(r[0])= machine.get_IO().public_input_int(n);
             break;
           case OUTPUT_CLEAR:
-            machine.IO.public_output_gfp(Proc.read_Cp(r[0]), n);
-            break;
-          case START_PRIVATE_OUTPUT:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
               }
-            Proc.iop.start_output(n, r[0], r[1], Proc, P, OCD);
+            machine.get_IO().public_output_gfp(Proc.read_Cp(r[0]), n);
             break;
-          case STOP_PRIVATE_OUTPUT:
+          case OUTPUT_INT:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
               }
-            Proc.iop.stop_output(n, r[0], m, Proc, P, machine);
+            machine.get_IO().public_output_int(Proc.read_Ri(r[0]), n);
             break;
-          case START_PRIVATE_INPUT:
+          case OPEN_CHAN:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
               }
-            Proc.iop.start_input(r[0], n, m, Proc, P, machine, OCD);
+            machine.get_IO().open_channel(n);
             break;
-          case STOP_PRIVATE_INPUT:
+          case CLOSE_CHAN:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
               }
-            Proc.iop.stop_input(n, start, Proc, P);
+            machine.get_IO().close_channel(n);
+            break;
+          case PRIVATE_OUTPUT:
+            if (Proc.get_thread_num() != 0)
+              {
+                throw IO_thread();
+              }
+            Proc.iop.private_output(p, r[0], m, Proc, P, machine, OCD);
+            break;
+          case PRIVATE_INPUT:
+            if (Proc.get_thread_num() != 0)
+              {
+                throw IO_thread();
+              }
+            Proc.iop.private_input(p, r[0], m, Proc, P, machine, OCD);
             break;
           default:
             printf("Case of opcode=%d not implemented yet\n", opcode);

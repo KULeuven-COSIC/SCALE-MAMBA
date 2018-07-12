@@ -1,0 +1,10 @@
+
+print_ln("Every one enter a value (these MUST be the same, otherwise an abort will occur)")
+d=cint.public_input()
+
+if_then(d)
+crash()
+else_then()
+crash()
+end_if()
+  

@@ -312,8 +312,8 @@ mpc_math.exp2_fx = lambda y: sfix(math.pow(2,y))
 mpc_math.asin = lambda x: sfix(math.asin(x))
 mpc_math.acos = lambda x: sfix(math.acos(x))
 mpc_math.atan = lambda x: sfix(math.atan(x))
-
-mpc_math.sqrt_test = lambda x: sfix(math.sqrt(x))
+mpc_math.test_sqrt_no_param = lambda x: sfix(math.sqrt(x))
+mpc_math.test_sqrt_param = lambda x, k, f: sfix(math.sqrt(x))
 
 sort = lambda x: x.sort()
 chunky_odd_even_merge_sort = sort

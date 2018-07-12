@@ -111,7 +111,9 @@ public:
 
   /* For each player i mult_proc[i][j] defines where share j should be
    *      0 Produced using PRSS in the mult protocol
+   *     -1 Produced using PRSS in the mult protocol and subtract
    *      1 Assigned the share value from the schur+PRZS and sent
+   *        or Maurer
    *      2 Received from another player
    *  (sum_j (mult_proc[i]=1)) = 1 for all i
    */

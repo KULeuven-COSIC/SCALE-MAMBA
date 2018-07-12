@@ -35,7 +35,7 @@ class Open_Protocol
 {
   /* Open Data */
   int open_cnt;
-  int counter;
+  int counter[2];
   vector<vector<gfp>> macs;
   vector<gfp> vals;
 
@@ -54,24 +54,28 @@ public:
    *    not overload the OS
    * Begin and End expect the same arrays values and S passed to them
    * and they expect values to be of the same size as S
+   * The connection is zero for START/STOP OPENs and one for private IO commands
    */
   void Open_To_All_Begin(vector<gfp> &values, const vector<Share> &S, Player &P,
-                         bool verbose= false);
+                         int connection= 0, bool verbose= false);
   void Open_To_All_End(vector<gfp> &values, const vector<Share> &S, Player &P,
-                       bool verbose= false);
+                       int connection= 0, bool verbose= false);
 
   /* First routine called by all bar player_num
    * Second routines called by player_num only
    * This is a naive method, with no checking etc
-   * Mainly used in the offline phase. Not for use in the online phase
+   * Used in the offline phase. Not for use in the online phase
    */
   void Open_To_One_Begin(unsigned int player_num, const vector<Share> &S,
                          Player &P);
   void Open_To_One_End(vector<gfp> &values, const vector<Share> &S, Player &P);
 
+  // Runs MAC check or Hash check
   // Usually called automatically, unless you need to do it
   // yourself (e.g. before an open/end of protocol)
-  void RunOpenCheck(Player &P, bool verbose= false); // Runs MAC check or Hash check
+  // Takes in some auxillary string which is also checked
+  void RunOpenCheck(Player &P, const string &aux, int connection= 0,
+                    bool verbose= false);
 };
 
 #endif
