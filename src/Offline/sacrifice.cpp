@@ -21,7 +21,7 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
                        list<Share> &c, Open_Protocol &OP)
 {
   // The number of sacrifice equations we need per item produced
-  int rep= 40 / numBits(gfp::pr()) + 1;
+  int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
   gfp t, te;
   Create_Random(t, P);
   list<Share> ao, bo, co;
@@ -126,7 +126,7 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
                        Open_Protocol &OP)
 {
   // The number of sacrifice equations we need per item produced
-  int rep= 40 / numBits(gfp::pr()) + 1;
+  int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
   gfp t, t2, te;
   Create_Random(t, P);
   t2.mul(t, t);
@@ -224,7 +224,7 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
                     list<Share> &s, Open_Protocol &OP)
 {
   // The number of sacrifice equations we need per item produced
-  int rep= 40 / numBits(gfp::pr()) + 1;
+  int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
   gfp t, t2, te;
   Create_Random(t, P);
   t2.mul(t, t);

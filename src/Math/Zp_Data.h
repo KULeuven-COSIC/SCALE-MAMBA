@@ -22,12 +22,13 @@ All rights reserved
 #include <smmintrin.h>
 using namespace std;
 
+/* If MAX_MOD_SZ is not defined then something is wrong in the compilation.
+ * Not having a default value helps application developers which are including
+ * this file as well as linking against the library
+ *   - Since the two values should be identical
+ */
 #ifndef MAX_MOD_SZ
-#ifdef LargeM
-#define MAX_MOD_SZ 10
-#else
-#define MAX_MOD_SZ 3
-#endif
+#error "MAX_MOD_SZ is not defined."
 #endif
 
 class modp;

@@ -78,6 +78,33 @@ void Processor::POpen_Stop(const vector<int> &reg, int size, Player &P)
   increment_counters(reg.size() * size);
 }
 
+void Processor::clear_registers()
+{
+  for (unsigned int i= 0; i < Cp.size(); i++)
+    {
+      Cp[i].assign_zero();
+    }
+  for (unsigned int i= 0; i < Sp.size(); i++)
+    {
+      Sp[i].assign_zero();
+    }
+  for (unsigned int i= 0; i < Ri.size(); i++)
+    {
+      Ri[i]= 0;
+    }
+
+#ifdef DEBUG
+  for (unsigned int i= 0; i < rwp.size(); i++)
+    {
+      rwp[i]= 0;
+    }
+  for (unsigned int i= 0; i < rwi.size(); i++)
+    {
+      rwi[i]= 0;
+    }
+#endif
+}
+
 // Now the routine to execute a program
 void Processor::execute(const Program &prog, int argument, Player &P,
                         Machine &machine, offline_control_data &OCD)

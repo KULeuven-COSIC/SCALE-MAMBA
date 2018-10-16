@@ -168,6 +168,20 @@ void PRSS::ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M)
 void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
 {
   whoami= P.whoami();
+  // If AS.delta.size()==0 then (for Shamir) things are too big
+  // to do via the AS data. So we use a protocol. To signal
+  // this we set Asets etc to be zero
+  if (AS.delta_plus.size() == 0)
+    {
+      Asets.resize(0);
+      G.resize(1);
+      G[0].ReSeed(2000 + whoami);
+      Shares_Of_One.resize(0);
+      batch_pos= 0;
+      batch.resize(1024, Share(whoami));
+      return;
+    }
+
   G.resize(AS.delta_plus.size());
   Asets.resize(AS.delta_plus.size(), vector<unsigned int>(AS.n));
   Shares_Of_One.resize(AS.delta_plus.size());
@@ -254,7 +268,7 @@ PRSS::PRSS(Player &P)
     }
 }
 
-Share PRSS::next_share()
+Share PRSS::next_share(Player &P)
 {
   Share S(whoami);
 
@@ -269,19 +283,76 @@ Share PRSS::next_share()
     }
   else
     {
-      gfp te;
-      Share temp;
-      S.assign_zero();
-      for (unsigned int i= 0; i < Asets.size(); i++)
+      // If Asets!=0 then use the PRSS, otherwise use a protocol
+      if (Asets.size() != 0)
         {
-          if (Asets[i][whoami] == 1)
+          gfp te;
+          Share temp;
+          S.assign_zero();
+          for (unsigned int i= 0; i < Asets.size(); i++)
             {
-              te.randomize(G[i]);
-              temp.mul(Shares_Of_One[i], te);
-              S.add(temp);
+              if (Asets[i][whoami] == 1)
+                {
+                  te.randomize(G[i]);
+                  temp.mul(Shares_Of_One[i], te);
+                  S.add(temp);
+                }
             }
+        }
+      else
+        {
+          if (batch_pos == batch.size())
+            {
+              batch_production(P);
+            }
+          batch_pos++;
+          return batch[batch_pos - 1];
         }
     }
 
   return S;
+}
+
+void PRSS::batch_production(Player &P)
+{
+  batch_pos= 0;
+
+  gfp te;
+  Share temp;
+  vector<Share> Sh(P.nplayers());
+  vector<stringstream> ss(P.nplayers());
+  for (unsigned int i= 0; i < batch.size(); i++)
+    {
+      te.randomize(G[0]);
+      make_shares(Sh, te, G[0]);
+      batch[i].assign(Sh[whoami]);
+      for (unsigned int j= 0; j < P.nplayers(); j++)
+        {
+          if (j != whoami)
+            {
+              Sh[j].output(ss[j], false);
+            }
+        }
+    }
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      if (j != whoami)
+        {
+          P.send_to_player(j, ss[j].str());
+        }
+    }
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      if (j != whoami)
+        {
+          string ss;
+          P.receive_from_player(j, ss);
+          stringstream is(ss);
+          for (unsigned int i= 0; i < batch.size(); i++)
+            {
+              temp.input(is, false);
+              batch[i].add(temp);
+            }
+        }
+    }
 }

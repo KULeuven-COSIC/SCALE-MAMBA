@@ -31,9 +31,19 @@ public:
   vector<stringstream> progs;
   vector<string> tnames;
 
-  // This points to after the initial header on start
-  // for a fresh version of a Schedule object
-  stringstream i_schedule;
+  /* A Sch is a vector
+   *   - Each line corresponds to an execution command
+   *   - Each line is executed in sequence
+   *   - Each line is itself a vector
+   *   - Each entry is then a vector of two things (tape number, tape argument)
+   *   - This corresponds to the items in the schedule file
+   *       1 1:8199
+   *       2 4 5
+   *     etc
+   */
+  vector<vector<vector<int>>> Sch;
+  char compiler_command[1000]; // Final entry in schedule file
+  unsigned int line_number;    // Current line number in schedule list
 
   void set_max_n_threads(unsigned int nt)
   {

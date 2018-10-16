@@ -20,13 +20,17 @@ of online threads you will ever need; this is because we do not
 want a restart operation to have to spawn new offline threads.
 You then ensure that the last operation performed by this
 program is a \verb+RESTART+/\verb+restart(Schedule &schedule)+.
-At this point the runtime waits for a trigger to be obtained
+This {\em must} be executed in thread zero, and to avoid undefined
+behaviour {\em should} only happen when all other thread programs
+are in a wait state.
+
+After calling \verb+RESTART+/\verb+restart(Schedule &schedule)+
+the runtime waits for a trigger to be obtained
 from {\em each} player on the IO functionality (see
 Section \ref{sec:IO}).
 This trigger can be anything, but in our default IO class it
 is simply each player needing to enter a value on the standard
 input.
-
 The reason for this triggering is that the system which is
 calling SCALE {\em may} want to replace the underlying
 schedule file and tapes; thus enabling the execution of
@@ -68,3 +72,43 @@ Now enter a number on each players console, and
 the second program should now run.
 Since it also ends with a \verb+RESTART+ bytecode, you can
 continue in this way forever.
+
+\subsection{Memory Management While Restarting}
+As part of the restart functionality we also add some extra commands to aid
+safety of the overall system.
+
+The first of these is \verb+clear_memory()+, which corresponds to the bytecode
+\verb+CLEAR_MEMORY+.
+What this does is initialize all system memory to zero. Thus before calling a 
+\verb+restart()+ one can zero out all the memory, meaning the memory cannot be
+used by the next program to be executed. This might be useful when you want to
+avoid the next program to be run accessing memory from the current state. This
+could be a concern if you are unsure if the byte-code to be executed does not
+contain invalid memory accesses by mistake. Thus \verb+CLEAR_MEMORY+ can be
+considered as an instruction which avoids security errors due to programmer
+mistakes.
+
+Note, that the \verb+clear_memory()+ MAMBA instruction can only be used when your
+program is compiled with \verb+-M+ as it relies on the memory operations being
+compiled in the correct order.
+Also note that if it is executed in one thread, then this means the memory
+in any other thread will now be not what is expected. So the instruction 
+should only really be executed in thread zero, once all other threads have
+finished.
+A demonstration of the \verb+clear_memory()+ command called from MAMBA is
+available in the program directory \verb+/Programs/mem_clear_demo+.
+
+The second command is \verb+clear_registers()+, which corresponds to the
+bytecode \verb+CLEAR_REGISTERS+.
+This resets the registers in the calling processor to zero; it does nothing
+to the register files in the other threads.
+The purpose is again to avoid mistakes from programmers. One should consider
+emitting this instruction at the end of the code of every thread.
+However, the instruction ordering when compiled from MAMBA {\em may} be
+erratic (we have not fully tested it); thus its usage should be considered
+experimental.
+The exact order of it being emitted can be checked by running the player
+with a negative verbose number (which outputs the instructions being executed
+in the order they are found).
+Again the usage is demonstrated in the program  directory \verb+/Programs/mem_clear_demo+.
+

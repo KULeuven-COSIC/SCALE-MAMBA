@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently version 1.1 of the SCALE and MAMBA software.
+This is currently {\bf version 1.2} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,36 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software. 
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.2 from 1.1}
+
+\begin{enumerate}
+\item A lot of internal re-writing to make things easier to maintain.
+\item There are more configuration options in \verb+config.h+ to enable;
+      e.g. you can now give different values to the different places
+      we use statistical security parameters.
+\item Minor correction to how FHE parameters are created. This means
+      that the FHE parameters are a bit bigger than they were before.
+      Probably a good idea to re-run setup to generate new keys etc
+      in the Full Threshold case.
+\item Minor change to how \verb+CRASH+ works. If the IO handler returns, 
+      then the \verb+RESTART+ instruction is automatically called.
+\item There is a new run time switch \verb+maxI+ for use when performing
+      timings etc. This is only for use when combined with the \verb+max+
+      switch below.
+\item Two new instructions \verb+CLEAR_MEMORY+ and \verb+CLEAR_REGISTERS+
+      have been added. 
+      These are called from MAMBA via \verb+clear_memory()+ and \verb+clear_registers()+.
+      The first can only be called with compilation is done with the flag \verb+-M+, whilst
+      the second {\em may} issue out of order (consider it experimental at present).
+\item Bug fix for \verb+sfix+ version of \verb+arcsin/arccos+ functions.
+\item When running Shamir with a large number of parties we now move to using
+      an interactive method to produce the PRSS as opposed to the non-interactive
+      method which could have exponential complexity. This means we can now cope
+      with larger numbers of parties in the Shamir sharing case. An example
+      ten party example is included to test these routines.
+\end{enumerate}
+
 
 \subsection{Changes in version 1.1 from 1.0}
 
@@ -55,7 +85,7 @@ is given for the online phase; i.e. it prints the bytecodes being
 executed.
 \item The fixed point square root functions have now been extended to
 cope with full precision fixed point numbers.
-\item The \verb+PRINTxxx+ bytecodes now pass there output via the
+\item The \verb+PRINTxxx+ bytecodes now pass their output via the
 \verb+Input_Output+ functionality. These bytecodes are meant for
 debugging purposes, and hence catching them via the IO functionality
 makes most sense. The relevant function in the IO class

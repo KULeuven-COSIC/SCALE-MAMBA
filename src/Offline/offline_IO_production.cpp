@@ -20,7 +20,7 @@ void make_IO_data_non_Full(Player &P, PRSS &prss, unsigned int player_num,
   for (int i= 0; i < sz_IO_batch; i++)
     {
       Share aa;
-      aa= prss.next_share();
+      aa= prss.next_share(P);
       a.push_back(aa);
       alist[i]= aa;
     }

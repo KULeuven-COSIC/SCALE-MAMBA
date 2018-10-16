@@ -55,6 +55,9 @@ public:
     (void) PC;
   }
 
+  /* Clears the memory */
+  void clear_memory();
+
   void minimum_size(int sz, string threadname);
 
   friend ostream &operator<<<>(ostream &s, const Memory<T> &M);

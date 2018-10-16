@@ -5,7 +5,8 @@ outp = [sint(1), sint(2), sint(3), sint(4)]
 output_shares(1000,*outp)
 close_channel(1000)
 
-open_channel(2000)
+a=open_channel(2000)
+print_ln("Return Value From Open_Channel 2000 = %s",a)
 open_channel(3000)
 print_ln("Enter a single share from each player")
 inp=[sint()]

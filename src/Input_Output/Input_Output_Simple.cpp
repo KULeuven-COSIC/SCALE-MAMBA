@@ -8,9 +8,10 @@ All rights reserved
 #include "Input_Output_Simple.h"
 #include "Exceptions/Exceptions.h"
 
-void Input_Output_Simple::open_channel(unsigned int channel)
+long Input_Output_Simple::open_channel(unsigned int channel)
 {
   cout << "Opening channel " << channel << endl;
+  return 0;
 }
 
 void Input_Output_Simple::close_channel(unsigned int channel)

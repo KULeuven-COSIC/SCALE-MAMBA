@@ -35,6 +35,8 @@
     JOIN_TAPE = 0x1A,
     CRASH = 0x1B,
     RESTART = 0x1C,
+    CLEAR_MEMORY = 0x1D,
+    CLEAR_REGISTERS = 0x1E,
 
     # Addition
     ADDC = 0x20,
@@ -522,6 +524,26 @@ class restart(base.IOInstruction):
      """
     code = base.opcodes['RESTART']
     arg_format = []
+
+class clear_memory(base.WriteMemoryInstruction):
+    r""" CLEAR_MEMORY
+         Clears the main memory. This can cause problems if executed in one thread
+         and the memory is still being used in another. It is really for usage in
+         thread zero, when all other threads are doing nothing. Say before a RESTART
+     """
+    code = base.opcodes['CLEAR_MEMORY']
+    arg_format = [] 
+
+class clear_registers(base.IOInstruction):
+    r""" CLEAR_REGISTERS
+         Like CLEAR_MEMORY but this clears the registers of the current processor,
+         i.e. within the current thread. The order that this instruction is output
+         by the MAMBA compiler may be a little erratic. It has mainly be added for
+         some external users who are compiling their own byte-codes, so think of
+         it as an experimental instruction.
+     """
+    code = base.opcodes['CLEAR_REGISTERS']
+    arg_format = [] 
 
 
 #
@@ -1157,16 +1179,17 @@ class input_int(base.IOInstruction):
     code = base.opcodes['INPUT_INT']
     arg_format = ['rw','i']
 
-class open_channel(base.IOInstruction):
+class open_chan(base.IOInstruction):
     r""" OPEN_CHAN n
          Opens channel number n for reading/writing on the IO class.
          Channels are assumed to be bi-directional, i.e. can read and write.
          This is provided as some IO classes may require this to be called explicitly, the default one does not need this.
+         The return value *can* be some error code which the IO class may want to return.
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['OPEN_CHAN']
-    arg_format = ['i']
+    arg_format = ['rw','i']
 
 class close_channel(base.IOInstruction):
     r""" CLOSE_CHAN n

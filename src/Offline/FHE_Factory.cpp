@@ -337,11 +337,11 @@ bool Do_ZKPoK(condition type, ZKPoK &ZK, Player &P,
       printf("ZKPoK %d Agree Random: %d\n", num, Industry.get_zkc(num));
       //printf("Time : %d %f \n",num,global_time.elapsed());
     }
-  uint8_t seed[stat_sec / 8];
-  AgreeRandom(P, seed, stat_sec / 8);
-  vector<int> e(stat_sec);
+  uint8_t seed[ZK_stat_sec / 8];
+  AgreeRandom(P, seed, ZK_stat_sec / 8);
+  vector<int> e(ZK_stat_sec);
   int c= 0;
-  for (unsigned int i= 0; i < stat_sec / 8; i++)
+  for (unsigned int i= 0; i < ZK_stat_sec / 8; i++)
     {
       for (unsigned int j= 0; j < 8; j++)
         {

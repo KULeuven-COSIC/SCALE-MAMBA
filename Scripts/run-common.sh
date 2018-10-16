@@ -5,7 +5,7 @@ run_player() {
     if ! test -e Scripts/logs; then
         mkdir Scripts/logs
     fi
-    params="$*"
+    params="-f 1 $*"
     rem=$(($players - 2))
     for i in $(seq 0 $rem); do
       echo "trying with player $i"

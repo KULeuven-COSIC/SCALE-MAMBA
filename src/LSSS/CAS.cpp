@@ -371,6 +371,30 @@ void CAS::generate_sets(unsigned int hw, int dim, vector<int> &v)
     }
 }
 
+unsigned int Combinations(unsigned int n, unsigned int r)
+{
+  if (r > n)
+    return 0;
+
+  /** We can use Pascal's triange to determine the amount
+      * of combinations. To calculate a single line:
+      *
+      * v(r) = (n - r) / r
+      *
+      * Since the triangle is symmetrical, we only need to calculate
+      * until r -column.
+      */
+
+  unsigned int v= n--;
+
+  for (unsigned int i= 2; i < r + 1; ++i, --n)
+    {
+      v= v * n / i;
+    }
+
+  return v;
+}
+
 void CAS::assign(unsigned int nn, unsigned int t)
 {
   if (t >= nn)
@@ -379,6 +403,19 @@ void CAS::assign(unsigned int nn, unsigned int t)
     }
   n= nn;
   delta.resize(0);
+  gamma.resize(0);
+  delta_plus.resize(0);
+  gamma_minus.resize(0);
+
+  unsigned int ncomb= Combinations(n, t);
+  if (ncomb > 50)
+    {
+      printf("\nAm not going to compute the CAS as number of combinations is too big\n");
+      printf("\t%d C %d = %d\n", n, t, ncomb);
+      printf("This will mean PRSS calls are replaced by a protocol\n\n");
+      return;
+    }
+
   vector<int> v(n);
   for (unsigned int i= 0; i < n; i++)
     {

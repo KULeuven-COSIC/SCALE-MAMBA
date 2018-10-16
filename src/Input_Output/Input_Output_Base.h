@@ -53,7 +53,7 @@ public:
   // Channels are assumed to be bidirectional, i.e. we can read and write
   // to them. These calls are provided in case some IO derived classes
   // require explicit opening and closing of channels
-  virtual void open_channel(unsigned int channel)= 0;
+  virtual long open_channel(unsigned int channel)= 0;
   virtual void close_channel(unsigned int channel)= 0;
 
   // Allow a player to enter a gfp element

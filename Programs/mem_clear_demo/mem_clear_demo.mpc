@@ -1,0 +1,11 @@
+# Requires compiling with -M flag set
+
+a=sint(5)
+a.store_in_mem(3)
+b=sint.load_mem(3)
+print_ln("b = %s", b.reveal())
+clear_memory()
+c= sint.load_mem(3)
+print_ln("c = %s", c.reveal())
+clear_registers()
+print_ln("b = %s", b.reveal())

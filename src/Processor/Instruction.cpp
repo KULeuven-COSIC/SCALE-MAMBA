@@ -173,6 +173,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
       case INPUT_INT:
+      case OPEN_CHAN:
       case OUTPUT_INT:
         r[0]= get_int(s);
         n= get_int(s);
@@ -196,13 +197,14 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case JMP:
       case START_TIMER:
       case STOP_TIMER:
-      case OPEN_CHAN:
       case CLOSE_CHAN:
       case PRINTMEM:
       case JOIN_TAPE:
         n= get_int(s);
         break;
       // instructions with no operand
+      case CLEAR_MEMORY:
+      case CLEAR_REGISTERS:
       case RESTART:
       case CRASH:
         break;
@@ -251,6 +253,7 @@ int BaseInstruction::get_reg_type() const
       case LDTN:
       case LDARG:
       case INPUT_INT:
+      case OPEN_CHAN:
       case RAND:
       case LDINT:
       case CONVMODP:
@@ -404,6 +407,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       case RESTART:
         s << "RESTART";
+        break;
+      case CLEAR_MEMORY:
+        s << "CLEAR_MEMORY";
+        break;
+      case CLEAR_REGISTERS:
+        s << "CLEAR_REGISTERS";
         break;
       case ADDC:
         s << "ADDC";
@@ -645,7 +654,6 @@ ostream &operator<<(ostream &s, const Instruction &instr)
     }
   s << "  ";
   // Now the arguments
-  
 
   // First the register arguments
   switch (instr.opcode)
@@ -661,9 +669,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case ORC:
       case SHLC:
       case SHRC:
-	s << "c_" << instr.r[0] << " ";
-	s << "c_" << instr.r[1] << " ";
-	s << "c_" << instr.r[2] << " ";
+        s << "c_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        s << "c_" << instr.r[2] << " ";
         break;
       // instructions with 3 sint register operands */
       case ADDS:
@@ -794,6 +802,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case JMPNZ:
       case JMPEQZ:
       case INPUT_INT:
+      case OPEN_CHAN:
       case OUTPUT_INT:
         s << "r_" << instr.r[0] << " ";
         s << instr.n << " ";
@@ -835,7 +844,6 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case JMP:
       case START_TIMER:
       case STOP_TIMER:
-      case OPEN_CHAN:
       case CLOSE_CHAN:
       case PRINTMEM:
       case JOIN_TAPE:
@@ -844,6 +852,8 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       // instructions with no operand
       case RESTART:
       case CRASH:
+      case CLEAR_MEMORY:
+      case CLEAR_REGISTERS:
         break;
       // Three integer operands
       case RUN_TAPE:
@@ -1565,6 +1575,10 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case JOIN_TAPE:
             machine.Lock_Until_Finished_Tape(n);
             break;
+          case CRASH:
+            machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
+            // Note deliberately no "break" to enable CRASH to call RESTART
+            // if the IO.crash returns
           case RESTART:
             if (Proc.get_thread_num() != 0)
               {
@@ -1572,8 +1586,13 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               }
             restart= true;
             break;
-          case CRASH:
-            machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
+          case CLEAR_MEMORY:
+            machine.Mc.clear_memory();
+            machine.Ms.clear_memory();
+            machine.Mr.clear_memory();
+            break;
+          case CLEAR_REGISTERS:
+            Proc.clear_registers();
             break;
           case OUTPUT_SHARE:
             if (Proc.get_thread_num() != 0)
@@ -1628,7 +1647,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               {
                 throw IO_thread();
               }
-            machine.get_IO().open_channel(n);
+            Proc.get_Ri_ref(r[0])= machine.get_IO().open_channel(n);
             break;
           case CLOSE_CHAN:
             if (Proc.get_thread_num() != 0)

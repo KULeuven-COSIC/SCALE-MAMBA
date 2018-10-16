@@ -1335,3 +1335,13 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     signed_acc = sign * acc
 
     return part_reciprocal, signed_acc
+
+
+def open_channel(channel=0):
+   r"""Open channel and return any possible error message
+   """
+   res = regint()
+   open_chan(res,channel)
+   return res
+
+

@@ -28,7 +28,7 @@ ostream &operator<<(ostream &s, const Memory<T> &M)
 {
   s << M.M.size() << endl;
 
-// printf("Memory %s : size = %d\n",T::type_string().c_str(),M.M.size());
+  // printf("Memory %s : size = %d\n",T::type_string().c_str(),M.M.size());
 
 #ifdef DEBUG
   for (unsigned int i= 0; i < M.M.size(); i++)
@@ -65,6 +65,15 @@ istream &operator>>(istream &s, Memory<T> &M)
     }
 
   return s;
+}
+
+template<class T>
+void Memory<T>::clear_memory()
+{
+  for (unsigned int i= 0; i < M.size(); i++)
+    {
+      M[i].assign_zero();
+    }
 }
 
 template<class T>

@@ -33,26 +33,21 @@ unsigned int Schedule::Load_Programs()
   char filename[2048];
   sprintf(filename, "%s/%s.sch", progname.c_str(), name.c_str());
   fprintf(stderr, "Opening file %s\n", filename);
-  ifstream ifs;
+  ifstream ifs, tfs;
   ifs.open(filename);
   if (ifs.fail())
     {
       throw file_error("Missing '" + string(filename) + "'. Did you compile '" +
                        name + "'?");
     }
-  i_schedule= stringstream(read_file(ifs));
-  ifs.close();
-  /*
-  printf("i_schedule : \n------\n%s\n------\n",i_schedule.str().c_str());
-*/
 
   unsigned int nthreads;
-  i_schedule >> nthreads;
+  ifs >> nthreads;
   fprintf(stderr, "Number of online threads I will run in parallel =  %d\n",
           nthreads);
 
   int nprogs;
-  i_schedule >> nprogs;
+  ifs >> nprogs;
   fprintf(stderr, "Number of program sequences I need to load =  %d\n", nprogs);
 
   // Load in the programs
@@ -61,22 +56,58 @@ unsigned int Schedule::Load_Programs()
   char threadname[1024];
   for (int i= 0; i < nprogs; i++)
     {
-      i_schedule >> threadname;
+      ifs >> threadname;
       sprintf(filename, "%s/%s.bc", progname.c_str(), threadname);
       tnames[i]= string(threadname);
       fprintf(stderr, "Loading program %d from %s\n", i, filename);
-      ifs.open(filename, ifstream::binary);
-      if (ifs.fail())
+      tfs.open(filename, ifstream::binary);
+      if (tfs.fail())
         {
           throw file_error(filename);
         }
-      progs[i]= stringstream(read_file(ifs));
-      ifs.close();
+      progs[i]= stringstream(read_file(tfs));
+      tfs.close();
       /*
       printf("%d\n",progs[i].str().size());
       printf("progs[%d] : \n------\n",i); print_hex(progs[i].str().c_str(),progs[i].str().size()); printf("\n------\n");
-*/
+      */
     }
+
+  // Load in the schedule
+  Sch.resize(0);
+  bool done= false;
+  unsigned int nt, tape_number;
+  while (!done)
+    {
+      ifs >> nt;
+      if (nt == 0)
+        {
+          done= true;
+        }
+      else
+        {
+          vector<vector<int>> line(nt, vector<int>(2));
+          for (unsigned int i= 0; i < nt; i++)
+            {
+              ifs >> tape_number;
+
+              // Cope with passing an integer parameter to a tape
+              int arg;
+              if (ifs.get() == ':')
+                ifs >> arg;
+              else
+                arg= 0;
+
+              line[i][0]= tape_number;
+              line[i][1]= arg;
+            }
+          Sch.push_back(line);
+        }
+    }
+  ifs.get();
+  ifs.getline(compiler_command, 1000);
+  line_number= 0;
+  ifs.close();
 
   return nthreads;
 }

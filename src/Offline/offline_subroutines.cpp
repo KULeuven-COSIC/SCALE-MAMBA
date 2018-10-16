@@ -41,25 +41,6 @@ void make_shares(vector<Share> &share, const gfp &val, const vector<gfp> &macs,
     }
 }
 
-/* Same but does no MACs at all */
-void make_shares(vector<Share> &share, const gfp &val, PRNG &G)
-{
-  vector<gfp> ss= Share::SD.M.Random_Sharing(val, G);
-
-  vector<gfp> sv;
-  int c= 0;
-  for (unsigned int i= 0; i < share.size(); i++)
-    {
-      sv.resize(Share::SD.M.shares_per_player(i));
-      for (unsigned int j= 0; j < Share::SD.M.shares_per_player(i); j++)
-        {
-          sv[j]= ss[c + j];
-        }
-      c+= Share::SD.M.shares_per_player(i);
-      share[i].set_player_and_shares(i, sv);
-    }
-}
-
 /* This produces the sum of Schur products needed by
  * each party in Maurer and Reduced protocols
  */

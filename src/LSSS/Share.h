@@ -177,4 +177,7 @@ public:
   friend class Open_Protocol;
 };
 
+/* Makes shares of a value val, but ignores the MAC values if any */
+void make_shares(vector<Share> &share, const gfp &val, PRNG &G);
+
 #endif

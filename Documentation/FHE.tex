@@ -4,11 +4,62 @@ The first part deals with how the basic ``sizes'' are derived,
 and the second part gives the mathematical justification (i.e.
 noise analysis) for the equations used in the code for setting
 up parameters.
+Before proceeding it is perhaps worth detailing how
+different security parameters are used within the code.
 
+\begin{itemize}
+\item $\Sacsecp$ (default $40$): 
+This defined how many sacrifices we do per triple, 
+to get the precise number you compute $\ceil{\Sacsecp/\log_2 p}$.
+Thus this statistical security parameter is effectively
+$1/\log_2 p$ unless $p$ is very small.
+\item $\Macsecp$ (default $40$):
+For the full threshold case this defined how many MACs are held
+per data item, again to get the precise number you compute 
+$\ceil{\Macsecp/\log_2 p}$.
+Thus, again, this statistical security parameter is effectively
+$1/\log_2 p$ unless $p$ is very small.
+\item $\ZKsecp$ (default $40$):
+This defines the soundness error of the ZKPoKs below.
+Increasing this significantly increases data sizes and runtimes
+for the full threshold case.
+However, the information leakage if the adversary does manage
+to produce input which defeats the ZKPoKs is tiny (the distributed
+noise flooding reduces this information leakage as well). Thus
+we believe we can live with such a value as it is mitigated
+in other ways.
+\item $\DDsecp$ (default $40$):
+This defines the closeness of the distribution produced
+in the distributed decryption protocol below to the uniform
+distribution (only affects the full threshold case).
+\item \verb+comp_sec+ (default $128$):
+This defines the computational security parameter for the
+FHE scheme. 
+\item $\epsilon$ (default $55$):
+This defines the noise bounds for the FHE scheme below in
+the following sense.
+A FHE ciphertext in the protocol is gauranteed to decrypt
+correctly, even under adversarial inputs assuming the
+ZKPoKs are applied correctly, with probability $1-2^{-\epsilon}$.
+In fact this is an under-estimate of the probability.
+From $\epsilon$ we define $e_i$ such that 
+$\mathsf{erfc}(e_i)^i \approx 2^{-\epsilon}$ and then we set $c_i = e_i^i$.
+\end{itemize}
+All of these parameters can be tweaked in the file
+\verb+config.h+.
+Another two parameters related to the FHE scheme are
+\verb+hwt+, which is defined in \verb+Setup.cpp+ to
+be equal to $h=64$.
+This defines the number of non-zero coefficients in the
+FHE secret key.
+Another parameter is $\sigma$ which is the standard deviation
+for our approximate discrete Gaussians, which we
+hardwire to be $3.16 = \sqrt{10}$ (as we use the NewHope method
+of producing approximate Gaussians).
 
 \subsection{Main Security Parameters}
 Our Ring-LWE samples are (essentially) always from an
-approximate Gaussian distribution with standard deviation 3.16
+approximate Gaussian distribution with standard deviation $3.16$
 and from a ring with a two-power degree of $N$.
 This is not strictly true as some noise samples come
 from small Hamming Weight distributions, and some come
@@ -24,18 +75,18 @@ be found at
 \url{https://bitbucket.org/malb/lwe-estimator}
 \end{center}
 For various values of $n$ and (symmetric equivalent)
-security levels \verb+sec+ we then find the minimum secure
+security levels \verb+comp_sec+ we then find the minimum secure
 value of $q$.
 This is done by running the following \verb+sage+ code
 \begin{verbatim}
 load("estimator.py")
 n = 1024
-sec = 128
+comp_sec = 128
 for i in range(10, 500, 5):
    q= 2^i
    costs = estimate_lwe(n, 3.16*sqrt(2*pi)/q, q, reduction_cost_model=BKZ.sieve,  \
                         skip=["arora-gb", "bkw", "dec", "mitm"])
-   if any([cost.values()[0]<2^sec for cost in costs.values()]):
+   if any([cost.values()[0]<2^comp_sec for cost in costs.values()]):
        break
 print i-5
 \end{verbatim}
@@ -47,7 +98,7 @@ values of $q$ in the form of $2^x$ for the value $x$ from the following table.
 \begin{center}
 \begin{tabular}{|c|c|c|c|}
 \hline
-$N$   & \verb+sec+=80 & \verb+sec+=128 & \verb+sec+=256 \\
+$N$   & \verb+comp_sec+=80 & \verb+comp_sec+=128 & \verb+comp_sec+=256 \\
 \hline
 1024  &  44 &    29        & 16 \\
 2048  &  86 &    56        & 31 \\
@@ -81,11 +132,10 @@ The key three relationships are that
    \norm{a}_1 \le \phi(m) \cdot \norm{a}_\infty.
 \]
 for some constant $c_m$ depending on $m$.
-Since in our protocol we select $m$ to be a power of two then we have $c_m=1$.
+Since in our protocol we select $m$ to be a power of two, we have $c_m=1$.
 In particular (which will be important later in measuring the
 noise of potentially dishonestly generated ciphertexts) we have
 \[ \norm{a}_{\infty}^{\can} \le \phi(m) \cdot \norm{a}_{\infty}. \]
-
 We also define the \emph{canonical embedding norm reduced modulo~$q$} 
 of an element $a\in R$ as the smallest canonical embedding norm of any
 $a'$ which is congruent to $a$ modulo~$q$. We denote it as
@@ -123,19 +173,15 @@ from $\ZO(0.5,\phi(m))$ we obtain variance $\phi(m)/2$,
 when sampled from $\dN(\sigma^2,\phi(m))$ we obtain variance
 $\sigma^2 \cdot \phi(m)$ and when sampled from $\calU(q,\phi(m))$
 we obtain variance $q^2 \cdot \phi(m)/12$.
-By the law of large numbers we can use $6 \cdot \sqrt{V}$,
+By the law of large numbers we can use $c_1 \cdot \sqrt{V}$,
 where $V$ is the above variance, as a high probability bound
-on the size of $a(\zeta_m)$, and this provides a bound on the
-canonical embedding norm of $a$.
+on the size of $a(\zeta_m)$ (the probability is $1-2^{-\epsilon}$, 
+and this provides a bound on the canonical embedding norm of $a$.
 
-If we take a product of two, three, or four such
-elements with variances $V_1, V_2, \ldots, V_4$ we use
-$16 \cdot \sqrt{V_1 \cdot V_2}$,
-$9.6 \cdot \sqrt{V_1 \cdot V_2 \cdot V_3}$ and
-$7.3 \cdot \sqrt{V_1 \cdot V_2 \cdot V_3 \cdot V_4}$
-as the resulting bounds since 
-\[  \mathsf{erfc}(4)^2  \approx \mathsf{erfc}(3.1)^3 
-    \approx  \mathsf{erfc}(2.7)^4 \approx  2^{-50}. \]
+If we take a product of $t$ such
+elements with variances $V_1, V_2, \ldots, V_t$
+then we use $c_t \cdot \sqrt{V_1 \cdot V_2 \cdots V_t}$
+as the resulting bounds.
 In our implementation we approximate $\dN(\sigma^2,n)$ using
 the binomial method from the NewHope paper, with a standard
 deviation of $3.16 = \sqrt{10}$. In particular this means
@@ -168,7 +214,7 @@ The secret key $\sk$ is selected from a distribution with
 Hamming weight $h$, i.e. $\HWT(h,\phi(m))$, 
 and then it is distributed amongst the $n$ parties by simply producing a random 
 linear combination, and assigning each party one of the sums.
-And the switching key data is produced in the standard way, i.e.
+The switching key data is produced in the standard way, i.e.
 in a non-distributed trusted manner.
 We assume a two-leveled scheme with moduli $p_0$ and $p_1$ with $q_1=p_0 \cdot p_1$
 and $q_0=p_0$.
@@ -207,9 +253,9 @@ an honestly generated ciphertext to be
                   \right) \\
      &\le \phi(m) \cdot p/2
 	  + p \cdot \sigma \cdot 
-             \left( 16 \cdot \phi(m) / \sqrt{2}
-			  + 6 \cdot \sqrt{\phi(m)}
-			  +16 \cdot \sqrt{h \cdot \phi(m)}
+             \left( c_2 \cdot \phi(m) / \sqrt{2}
+			  + c_1 \cdot \sqrt{\phi(m)}
+			  + c_2 \cdot \sqrt{h \cdot \phi(m)}
 		    \right) = B_\clean.
 \end{align*}
 Note this is a probablistic bound and not an absolute bound.
@@ -217,15 +263,17 @@ Note this is a probablistic bound and not an absolute bound.
 \vspace{5mm}
 
 \noindent
-However, below we will only be able to gaurantee $m, v, e_0$ and $e_1$
-are selected subject to
-\[ \norm{v}_\infty \le 2^{3 \cdot \secp/2+1} \cdot n \quad 
+However, below we will only be able to guarantee the
+$m, v, e_0$ and $e_1$ values of a {\bf sum} of $n$ fresh ciphertexts
+(one from each party) are selected subject to
+\[ \norm{v}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad 
     \mbox{  and  } \quad
-   \norm{e_0}_\infty, \norm{e_1}_\infty \le 20 \cdot 2^{3 \cdot \secp/2+1} \cdot n \quad
+   \norm{e_0}_\infty, \norm{e_1}_\infty \le 20 \cdot 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad
     \mbox{  and  } \quad
-   \norm{m}_\infty \le 2^{3 \cdot \secp/2+1} \cdot n \cdot p/2,
+   \norm{m}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \cdot p/2,
 \]
-where $\secp$ is our statistical security parameter.
+where $\ZKsecp$ is our soundness parameter for the 
+zero-knowledge proofs.
 In this situation we obtain the bound, using the inequality above
 between the infinity norm in the polynomial embedding
 and the infinity norm in the canonical embeddig,
@@ -241,24 +289,24 @@ and the infinity norm in the canonical embeddig,
                        + \norm{e_0}_\infty^\can
                        + \norm{e_1}_\infty^\can \cdot \norm{ \sk}_\infty^\can
                   \right)  \\
-   &\le \phi(m) \cdot 2^{3 \cdot \secp/2+1} \cdot  n  \cdot p \cdot
-	\left( 1/2 + 20 \cdot 6 \cdot \sigma \cdot \sqrt{\phi(m)}
+   &\le \phi(m) \cdot 2^{3 \cdot \ZKsecp/2+1} \cdot  n  \cdot p \cdot
+	\left( 1/2 + 20 \cdot c_1 \cdot \sigma \cdot \sqrt{\phi(m)}
 		   + 20 
-		   + 20 \cdot 6 \cdot \sqrt{h}
+		   + 20 \cdot c_1 \cdot \sqrt{h}
         \right) = B_\clean^\dishonest
 \end{align*}
 Again this is a probabilistic bound (assuming validly
 distributed key generation), but assumes the worst case
-we the ciphertext bounds.
+ciphertext bounds.
 
-\subsubsection{$\SwitchModulus((c_0,c_1),\lev)$:}
-This takes as input a ciphertext modulo $q_\lev$ and outputs a ciphertext mod $q_{\lev-1}$".
+\subsubsection{$\SwitchModulus((c_0,c_1))$:}
+This takes as input a ciphertext modulo $q_1$ and outputs a ciphertext mod $q_0$.
 The initial ciphertext is at level $q_1=p_0 \cdot p_1$, with $q_0=p_0$.
 If the input ciphertext has noise bounded by $\nu$
 in the canonical embedding
 then the output ciphertext will have noise bounded by $\nu'$ in
 the canonical embedding, where
-\[ \nu' = \frac{\nu}{p_\lev} + B_\scale. \]
+\[ \nu' = \frac{\nu}{p_1} + B_\scale. \]
 The value $B_\scale$ is an upper bound on the quantity
 $\norm{\tau_0+\tau_1 \cdot \sk}_\infty^\can$, where
 $\kappa(\tau_i)$ is drawn from a distribution
@@ -267,17 +315,15 @@ We therefore, we can (with high probability) take the upper
 bound to be
 \begin{align*}
     B_\scale 
-	&= 6 \cdot p \cdot \sqrt{ \phi(m)/12}
-	+ 16 \cdot p \cdot \sqrt{ \phi(m) \cdot h/12}, \\
-        &= p \cdot \sqrt{3 \cdot \phi(m)} \cdot 
-		\left( 1 + 8 \cdot \sqrt{h}/3 \right).
+	&= c_1 \cdot p \cdot \sqrt{ \phi(m)/12}
+	+  c_2 \cdot p \cdot \sqrt{ \phi(m) \cdot h/12}, \\
 \end{align*}
 This is again a probabilistic analysis, assuming validly generated
 public keys.
 
 \subsubsection{$\Dec_{\sk}(\ct)$:}
 As explained in \cite{SPDZ2,GHS12c} this procedure works when the noise 
-$\nu$ (in the canonical embedding) associated with a ciphertext satisfies $c_m \cdot \nu  < q_{\ell}/2$.
+$\nu$ (in the canonical embedding) associated with a ciphertext satisfies $c_m \cdot \nu  < q_{0}/2$.
 However, as we always take power of two cyclotomics we have $c_m=1$
 
 \subsubsection{$\DistDec_{\{\sk_i\}}(\ct)$:}
@@ -307,14 +353,14 @@ and if successful each player obtains $e_\vf\asn e_{\vf_1}\boxplus\dots\boxplus 
 \item Player one computes $\vv_1 = e_{\vm+\vf}^{(0)}-\sk_1 \cdot e_{\vm+\vf}^{(1)}$ and player $i \ne 1$ computes.
 $\vv_i = -\sk_i \cdot e_{\vm+\vf}^{(1)}$.
 \item All players compute $\vt_i = \vv_i + p \cdot \vr_i$ for some random element
-with infinity norm given by $2^\secp \cdot B/p$.
+with infinity norm given by $2^\DDsecp \cdot B/p$, where $\DDsecp$ is the parameter defining statistical distance for the distributed decryption.
 \item The parties broadcast $\vt_i$.
 \item The parties compute $\vm+\vf = \sum \vt_i \pmod{p}$.
 \end{enumerate}
 \item $P_1$ sets $\vm_1\asn \vm+\vf-\vf_1$, and
 each player $P_i$ ($i\neq 1$) sets $\vm_i\asn -\vf_i$.
 %\item Each player $P_i$ now holds a share $m_i$ of the secret value $m$.
-\item All players set $e'_\vm \asn \Enc_{pk}(\vm+\vf)\boxminus e_{\vf_1} \boxminus \dots \boxminus e_{\vf_n}$,
+\item All players set $e'_\vm \asn \Enc_{pk}(\vm+\vf)\boxminus e_{\vf}$,
 where a default value for the randomness is used when computing $\Enc_{pk}(\vm+\vf)$.
 \end{enumerate}
 \end{Boxfig}
@@ -325,15 +371,15 @@ This is described in Figure \ref{reshare}.
 The value $B$ in the protocol is an upper bound on the noise in the canonical embedding
 $\nu$ associated with a ciphertext we will decrypt in our protocols.
 To ensure valid distributed decryption we require
-\[ 2 \cdot (1+n \cdot 2^\secp) \cdot B < q_{\ell}. \]
+\[ 2 \cdot (1+n \cdot 2^\DDsecp) \cdot B < q_{0}. \]
 
 Given a value of $B$, we therefore will obtain a lower bound
 on $p_0$ by the above inequality.
 The addition of a random term with infinity norm bounded by
-$2^\secp \cdot B/p$ in the distributed decryption procedure
+$2^\DDsecp \cdot B/p$ in the distributed decryption procedure
 ensures that the individual {\em coefficients} of the sum
 $\vt_1+\cdots+\vt_n$ are statistically indistinguishable from
-random, with probability $2^{-\secp}$.
+random, with probability $2^{-\DDsecp}$.
 This does not imply that the adversary has this probability of
 distinguishing the simulated execution in \cite{SPDZ} from the
 real execution; since each run consists of the exchange of 
@@ -355,7 +401,7 @@ to execute the ZKPoK needed in the previous protocol.
     sharing}{distdec}{$\mathsf{Reshare-2}$}
 Furthermore, let $B$ denote a bound on the noise, that is $\norm{c_0 - s \cdot c_1}_\infty$.
 \begin{enumerate}
-\item Party $i$ samples $\vf_i \asn [0,B\cdot 2^\secp]^N$.
+\item Party $i$ samples $\vf_i \asn [0,B\cdot 2^\DDsecp]^N$.
 \item Party $1$ computes
   $\vv_i := (c_0 - s_1 \cdot c_1) - \vf_1 \bmod q$, and every other
   party $i$ computes $\vv_i :=  -s_i \cdot c_1- \vf_i$.
@@ -376,33 +422,22 @@ in the canonical embedding we need first to estimate the size of the term
 (again probabilistically assuming validly generated public
 keys)
 \[ \norm{p \cdot d_2 \cdot \epsilon_{\sk,\sk^2}}_\infty^\can. \]
+Following \cite{GHS12c} we assume heuristically that $d_2$
+behaves like a uniform polynomial with coefficients drawn from
+$[-q_0/2,\ldots,q_0/2]$ (remember we apply $\SwitchKey$ at level
+zero).
+So we expect
 \begin{align*}
- \norm{ p \cdot d_2 \cdot e_{\sk,\sk^2}}_\infty^\can /q_0
-     &\le p \cdot \sqrt{\frac{\phi(m)}{12}} \cdot
-          \left[ \sigma \cdot \left(
-                        7.3 \cdot \sqrt{h \cdot \phi(m)^2/2}  %  7.3 e vj si 
-	              + 9.6 \cdot \sqrt{h \cdot \phi(m)}              % 9.6 e0 si
-			\right. \right. \\
-                &~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ \left. \left.
-                      + 7.3 \cdot h \cdot \sqrt{\phi(m)}      % 7.3 s si e1
-			   \right) \right.  \\
-		&~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\left. + \left(
-			9.6 \cdot \sigma \cdot \sqrt{\phi(m)^2/2}          % 9.6 e vi'
-                      + 16  \cdot \sigma \cdot \sqrt{\phi(m)}                      % 16 e0'
-			\right. \right. \\
-                & ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ \left. \left.
-                      + 7.6 \cdot \sigma \cdot \sqrt{\phi(m) \cdot h}      % 7.6 e1' s
-			  \right)  \right] \\
-     &\le  p \cdot \phi(m) \cdot \sigma  \cdot
-          \left[              1.49 \cdot \sqrt{h \cdot \phi(m)} + 2.11 \cdot h + 5.54 \cdot \sqrt{h} 
-			   +  1.96 \cdot \sqrt{\phi(m)}  
-                      + 4.62 
-	  \right] \\
-     & = B_\KS.
+ \norm{ p \cdot d_2 \cdot e_{\sk,\sk^2}}_\infty^\can 
+     &\le p \cdot c_2 \cdot \sqrt{q_0^2/12 \cdot \sigma^2 \cdot \phi(m)^2} \\
+     & = p \cdot c_2 \cdot q_0 \cdot \sigma \cdot \phi(m)/\sqrt{12} \\
+     & = B_\KS \cdot q_0.
 \end{align*}
+Thus
+\[ B_\KS = p \cdot c_2 \cdot \sigma \cdot \phi(m)/\sqrt{12}. \]
 Then if the input to $\SwitchKey$ has noise bounded by $\nu$ then the output 
 noise value in the canonical embedding will be bounded by
-\[ \nu+\frac{B_\KS \cdot q_0}{p_1} + B_\scale. \]
+\[ \nu+\frac{B_\KS \cdot p_0}{p_1} + B_\scale. \]
 
 
 \subsubsection{$\Mult(\ct,\ct')$:}
@@ -412,7 +447,7 @@ from multiplication will be bounded by
 \[ \nu'' =      \left( \frac{\nu}{p_1} + B_\scale \right)
 	  \cdot 
                 \left( \frac{\nu'}{p_1} + B_\scale \right)
-		+ \frac{B_\KS}{p_1}+B_\scale.
+		+ \frac{B_\KS \cdot p_0}{p_1}+B_\scale.
 \]
 
 \subsubsection{Application to the Offline Phase:}
@@ -422,16 +457,18 @@ We first add $n$ ciphertexts together and perform a multiplication, giving a
 ciphertext with respect to modulus $p_0$ with noise in the canonical
 embedding bounded by
 \[
-  U_1 = \left( \frac{n \cdot B_\clean^\dishonest}{p_1}+B_\scale \right)^2
+  U_1 = \left( \frac{B_\clean^\dishonest}{p_1}+B_\scale \right)^2
 		+ \frac{B_{\KS} \cdot p_0}{p_1} + B_\scale.
 \]
+Recall that $B_\clean^\dishonest$ is the bound for a sum of 
+$n$ ciphertexts, one from each party.
 We then add on another $n$ ciphertexts, which are added at 
 level one and then reduced to level zero.
 We therefore obtain a final upper bound on the noise 
 in the canonical embedding for our adversarially generated ciphertexts of
-\[ U_2 = U_1 +  \frac{n \cdot B_\clean^\dishonest}{p_1} + B_\scale. \]
+\[ U_2 = U_1 +  \frac{B_\clean^\dishonest}{p_1} + B_\scale. \]
 To ensure valid (distributed) decryption, we require
-\[ 2 \cdot U_2 \cdot (1+n \cdot 2^\secp) < p_0, \]
+\[ 2 \cdot U_2 \cdot (1+n \cdot 2^\DDsecp) < p_0, \]
 i.e. we take $B=U_2$ in our distributed decryption protocol.
 Note, that here we take the worst case bound for the ciphertext
 noise, but probabilistic analysis everywhere else. Since 
@@ -466,32 +503,32 @@ Being diagonal equates to the input plaintext polynomial being the constant
 polynomial.
 
 \begin{Boxfig}{Protocol for global proof of knowledge of a ciphertext}{Pgpok}{$\Pgpok$}
-We wish to prove that a set of $\secp$ ciphertexts $\vct\ui=\ct\ui_j$ for $j=1,\ldots, \sec$
+We wish to prove that a set of $\ZKsecp$ ciphertexts $\vct\ui=\ct\ui_j$ for $j=1,\ldots, \sec$
 input by party $i$ (for all $i$) are generated such that
-\[ \norm{v\ui_j}_\infty \le 2^{3 \cdot \secp/2+1} \cdot n \quad 
+\[ \norm{v\ui_j}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad 
     \mbox{  and  } \quad
-   \norm{e\ui_{0,j}}_\infty, \norm{e\ui_{1,j}}_\infty \le 20 \cdot 2^{3 \cdot \secp/2+1} \cdot n \quad
+   \norm{e\ui_{0,j}}_\infty, \norm{e\ui_{1,j}}_\infty \le 20 \cdot 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad
     \mbox{  and  } \quad
-   \norm{m\ui_j}_\infty \le 2^{3 \cdot \secp/2+1} \cdot n \cdot p/2,
+   \norm{m\ui_j}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \cdot p/2,
 \]
 We will write $\vr\ui_j=(v\ui_j, e\ui_{0,j}, e\ui_{1,j})$
-and $\vx\ui_j=(m\ui_1,\ldots,m\ui_\secp)$.
-Thus $\vx\ui \in R^\secp$, $\vr\ui \in R^{\secp \cdot 3}$ and $\ct\ui\in R^{\secp \cdot 2}$.
+and $\vx\ui_j=(m\ui_1,\ldots,m\ui_\ZKsecp)$.
+Thus $\vx\ui \in R^\ZKsecp$, $\vr\ui \in R^{\ZKsecp \cdot 3}$ and $\ct\ui\in R^{\ZKsecp \cdot 2}$.
 \begin{enumerate}
-\item Set $V= 2 \cdot \secp-1$.
+\item Set $V= 2 \cdot \ZKsecp-1$.
 \item \label{stage1} 
 Each party $P_i$ samples a new set of ``plaintexts'' $\vy\ui \in R^V$ and ``randomness vectors''
 $\vs\ui \in R^{V \times 3} $ such that
-\[ \norm{y_j}_\infty \le 2^\secp \cdot p/2 \quad \mbox{  and  } \quad
-   \norm{s_{j,1}}_\infty \le 2^\secp \quad \mbox{  and   } \quad
-   \norm{s_{j,2}}_\infty, \norm{s_{j,3}}_\infty \le 2^\secp \cdot 20.
+\[ \norm{y_j}_\infty \le 2^\ZKsecp \cdot p/2 \quad \mbox{  and  } \quad
+   \norm{s_{j,1}}_\infty \le 2^\ZKsecp \quad \mbox{  and   } \quad
+   \norm{s_{j,2}}_\infty, \norm{s_{j,3}}_\infty \le 2^\ZKsecp \cdot 20.
 \]
 for $j=1,\ldots,V$.
 If \verb+diag+ is set to true, then the $y_j$ are selected to be diagonal.
 \item Each $P_i$ computes $\va\ui \asn \Enc_\pk(\vy\ui,\vs\ui)$ and broadcasts the $\va\ui$.
-\item The parties jointly sample a vector $\ve \in \{0,1\}^\secp$.
-\item Define $M_\ve \in \{0,1\}^{V \times \secp}$ to be the matrix associated with the challenge $\ve$ 
-such that $M_{kl} = e_{k-l+1}$ for $1 \leq k-l+1 \leq \secp$ and $0$ in all other entries.
+\item The parties jointly sample a vector $\ve \in \{0,1\}^\ZKsecp$.
+\item Define $M_\ve \in \{0,1\}^{V \times \ZKsecp}$ to be the matrix associated with the challenge $\ve$ 
+such that $M_{kl} = e_{k-l+1}$ for $1 \leq k-l+1 \leq \ZKsecp$ and $0$ in all other entries.
 \item Each party $P_i$ computes $\vz\uti = \vy\uti + M_\ve \cdot \vx\uti \in R^{V}$ 
 and $T\ui=\vs\ui + M_\ve \cdot \vr\ui \in R^{V \times 3}$ and broadcasts $(\vz\ui,T\ui)$.
 \item \label{stage20} Each party $P_i$ computes $\vd\ui = \Enc_\pk(\vz\ui, T\ui)$ 
@@ -500,9 +537,9 @@ and then stores the sum $\vd = \sum_{i=1}^n \vd\ui$.
 The parties compute $\vct =\sum_i \vct\ui$,~ $\va = \sum_i \va\ui$,~ $\vz = \sum_i \vz\ui$ and $T = \sum_i T\ui$ and 
 conduct the checks (allowing the norms to be $2n$ times bigger to accommodate the summations):
 \[\transpose{\vd} = \transpose{\va} + (M_\ve \cdot \vct), \quad
-  \norm{\vz}_\infty \leq 2 \cdot n \cdot 2^\secp \cdot p/2, \quad
-  \norm{t_{i,1}}_\infty \leq 2 \cdot n \cdot 2^{\secp}, \quad
-  \norm{t_{i,2}}_\infty, \norm{t_{i,3}}_\infty \leq 2 \cdot 20 \cdot n \cdot 2^{\secp}, \quad
+  \norm{\vz}_\infty \leq 2 \cdot n \cdot 2^\ZKsecp \cdot p/2, \quad
+  \norm{t_{i,1}}_\infty \leq 2 \cdot n \cdot 2^{\ZKsecp}, \quad
+  \norm{t_{i,2}}_\infty, \norm{t_{i,3}}_\infty \leq 2 \cdot 20 \cdot n \cdot 2^{\ZKsecp}, \quad
 \]
 where $t_{i,j}$ is the $(i,j)$-th element of $T$.
 \item If \verb+diag+ is true and the $\vz\ui$ are not diagonal plaintexts then the
@@ -525,11 +562,11 @@ Remember that the honestly generated $\ct\ui$ are ciphertexts
 generated according to the true distribution (i.e. without the slack).
 
 The bound check for the plaintext component will succeed if the 
-infinity norm of $\sum_{i=1}^n (\vy^{(i)} + \sum_{k=1}^{\secp}(M_{e_{jk}} \cdot
-\vx^{(i)}))$ is at most $2 \cdot n \cdot 2^\secp \cdot p/2$. 
+infinity norm of $\sum_{i=1}^n (\vy^{(i)} + \sum_{k=1}^{\ZKsecp}(M_{e_{jk}} \cdot
+\vx^{(i)}))$ is at most $2 \cdot n \cdot 2^\ZKsecp \cdot p/2$. 
 This is always true because $\vy^{(i)}$ is sampled such that 
-$\norm{\vy^{(i)}}_\infty \leq 2^{\secp} \cdot p/2$ and 
-$\norm{M_\ve \cdot \vx^{(i)}}_\infty \le \secp \cdot p/2 \le 2^\secp \cdot p/2$. 
+$\norm{\vy^{(i)}}_\infty \leq 2^{\ZKsecp} \cdot p/2$ and 
+$\norm{M_\ve \cdot \vx^{(i)}}_\infty \le \ZKsecp \cdot p/2 \le 2^\ZKsecp \cdot p/2$. 
 A similar argument holds regarding $\rho$.
 
 \paragraph{Special soundness.} To prove this property one must be able to extract the witness given responses from 
@@ -542,25 +579,25 @@ Because both challenges have passed the bound checks during the protocol, we get
 \end{align*}
 
 To solve the equation for $\vct$ notice that $M_\ve - M_{\ve'}$ is a matrix with entries in $\{-1,0,1\}$ so we 
-must solve a linear system where $\vct = \Enc_\pk(\vx_k, \vr_k)$ for $k = 1,\dots,\secp$. 
-This can be done in two steps: solve the linear system for the first half: $\vc_1, \dots, \vc_{\secp/2}$ and 
-then for the second half: $\vc_{\secp/2+1}, \dots, \vc_{\secp}$. 
-For the first step identify a square submatrix of $\secp \times \secp$ entries in $M_\ve - M_{\ve'}$ which 
+must solve a linear system where $\vct = \Enc_\pk(\vx_k, \vr_k)$ for $k = 1,\dots,\ZKsecp$. 
+This can be done in two steps: solve the linear system for the first half: $\vc_1, \dots, \vc_{\ZKsecp/2}$ and 
+then for the second half: $\vc_{\ZKsecp/2+1}, \dots, \vc_{\ZKsecp}$. 
+For the first step identify a square submatrix of $\ZKsecp \times \ZKsecp$ entries in $M_\ve - M_{\ve'}$ which 
 has a diagonal full of $1$'s or $-1$'s and it is lower triangular. 
 This can be done since there is at least one component $j$ such that $e_j \neq e'_j$. 
-Recall that the plaintexts $\vz_k, \vz'_k$ have norms less than $2^\secp \cdot p/2$ and 
+Recall that the plaintexts $\vz_k, \vz'_k$ have norms less than $2^\ZKsecp \cdot p/2$ and 
 the randomness used for encrypting them, $\vt_k, \vt'_k$, have norms less than 
-$2^\secp$ in the first coordinate and $2^\secp \cdot 20$ in the last two coordinates where $k$ ranges 
-through $1, \dots, \secp$.
+$2^\ZKsecp$ in the first coordinate and $2^\ZKsecp \cdot 20$ in the last two coordinates where $k$ ranges 
+through $1, \dots, \ZKsecp$.
 
 Solving the linear system from the top row to the middle row via substitution we obtain in the worst case: 
-$\norm{\vx_k}_\infty \leq 2^k \cdot n \cdot 2^\secp \cdot p/2$ and the infinity norm of
-$\vy_k$ is less than $2^k \cdot n \cdot 2^\secp$ in the first coordinate
-and less than $2^k \cdot n \cdot 2^\secp \cdot 20$ in the last two coodinates,
-where $k$ ranges through $1, \dots, \secp/2$. 
+$\norm{\vx_k}_\infty \leq 2^k \cdot n \cdot 2^\ZKsecp \cdot p/2$ and the infinity norm of
+$\vy_k$ is less than $2^k \cdot n \cdot 2^\ZKsecp$ in the first coordinate
+and less than $2^k \cdot n \cdot 2^\ZKsecp \cdot 20$ in the last two coodinates,
+where $k$ ranges through $1, \dots, \ZKsecp/2$. 
 
 The second step is similar to the first with the exception that now we have to look for an 
-upper triangular matrix of $\secp \times \secp$. 
+upper triangular matrix of $\ZKsecp \times \ZKsecp$. 
 Then solve the linear system from the last row to the middle row. 
 In this way we extract $\vx_k, \vr_k$ which we can only gaurantee satisfy the 
 bounds given in Figure \ref{Pgpok}.
@@ -569,7 +606,7 @@ bounds given in Figure \ref{Pgpok}.
 Here we give a simulator $\Sim$ for an honest verifier (each party $P_i$ acts as one at one point during the protocol). 
 The simulator's purpose is to create a transcript with the verifier which is indistinguishable from the real 
 interaction between the prover and the verifier. 
-To achieve this, $\Sim$ samples uniformly $\ve \asn \{0,1\}^{\secp}$ and then creates the transcript accordingly: 
+To achieve this, $\Sim$ samples uniformly $\ve \asn \{0,1\}^{\ZKsecp}$ and then creates the transcript accordingly: 
 sample $\vz\ui$ and $T\ui$ with respect to the bounds in the final check.
-The simulator then fixes $\va\ui = \Enc_\pk(\vz\ui, T\ui) - (M_\ve \cdot \vct\ui)$, where the encryption is applied component-wise. Clearly the produced transcript $(\va\ui, \ve\ui, \vz\ui, T\ui)$ passes the final checks and the statistical distance to the real one is $2^{-\secp}$, which is negligible with respect to $\secp$.
+The simulator then fixes $\va\ui = \Enc_\pk(\vz\ui, T\ui) - (M_\ve \cdot \vct\ui)$, where the encryption is applied component-wise. Clearly the produced transcript $(\va\ui, \ve\ui, \vz\ui, T\ui)$ passes the final checks and the statistical distance to the real one is $2^{-\ZKsecp}$, which is negligible with respect to $\ZKsecp$.
 

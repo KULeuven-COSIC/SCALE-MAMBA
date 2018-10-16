@@ -175,7 +175,12 @@ istream &operator>>(istream &s, gfp_matrix &A)
 
 ostream &operator<<(ostream &s, const imatrix &A)
 {
-  s << A.size() << " " << A[0].size() << endl;
+  s << A.size();
+  if (A.size() != 0)
+    {
+      s << " " << A[0].size();
+    }
+  s << endl;
   for (unsigned int i= 0; i < A.size(); i++)
     {
       for (unsigned int j= 0; j < A[0].size(); j++)
@@ -190,14 +195,22 @@ ostream &operator<<(ostream &s, const imatrix &A)
 istream &operator>>(istream &s, imatrix &A)
 {
   int r, c;
-  s >> r >> c;
-  A.resize(r, vector<int>(c));
-  for (int i= 0; i < r; i++)
+  s >> r;
+  if (r != 0)
     {
-      for (int j= 0; j < c; j++)
+      s >> c;
+      A.resize(r, vector<int>(c));
+      for (int i= 0; i < r; i++)
         {
-          s >> A[i][j];
+          for (int j= 0; j < c; j++)
+            {
+              s >> A[i][j];
+            }
         }
+    }
+  else
+    {
+      A.resize(0);
     }
   return s;
 }

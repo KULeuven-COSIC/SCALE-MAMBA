@@ -224,7 +224,7 @@ void FHE_SK::dist_decrypt_1(vector<bigint> &vv, const Ciphertext &ctx, int playe
     }
 
   // Now convert to a vector of bigint's and add the required randomness
-  bigint Bd= ((*params).B() << stat_sec) / pr;
+  bigint Bd= ((*params).B() << DD_stat_sec) / pr;
   Bd= Bd / 2; // make slightly smaller due to rounding issues
 
   dec_sh.to_vec_bigint(vv);
@@ -269,7 +269,7 @@ void FHE_SK::dist_decrypt_1a(vector<bigint> &vv, vector<bigint> &f,
     }
 
   // Now convert to a vector of bigint's and add the required randomness
-  bigint Bd= ((*params).B() << stat_sec);
+  bigint Bd= ((*params).B() << DD_stat_sec);
   Bd= Bd / 2; // make slightly smaller due to rounding issues
 
   dec_sh.to_vec_bigint(vv);

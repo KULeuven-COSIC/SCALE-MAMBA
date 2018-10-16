@@ -30,22 +30,9 @@ test(mpc_math.cos(f))
 test(mpc_math.cos(g))
 test(mpc_math.cos(h))
 
-# # Test tan
-# test(mpc_math.tan(a), lower=-2.707, upper=-2.705)
-# test(mpc_math.tan(b), lower=0.291004, upper=0.291007)
-# # precision problem here < 1e-3 but > 1e-4
-# test(mpc_math.tan(c), lower=-4.6374, upper=-4.6370)
-# test(mpc_math.tan(d), lower=0.142545, upper=0.142549)
-#
-# test(mpc_math.tan(e), lower=-0.142549, upper=-0.142545)
-# test(mpc_math.tan(f), lower=4.6370, upper=4.6374)
-# test(mpc_math.tan(g), lower=-0.291007, upper=-0.291004)
-# test(mpc_math.tan(h), lower=2.705, upper=2.707)
-
 # Test tan
 test(mpc_math.tan(a))
 test(mpc_math.tan(b))
-# precision problem here < 1e-3 but > 1e-4
 test(mpc_math.tan(c))
 test(mpc_math.tan(d))
 
@@ -53,16 +40,48 @@ test(mpc_math.tan(f))
 test(mpc_math.tan(e))
 test(mpc_math.tan(g))
 test(mpc_math.tan(h))
-# Test asin
-i = sfix(0.5)
-j = sfix(-0.5)
 
-test(mpc_math.asin(i))
-test(mpc_math.asin(j))
+# Test atan
+test(mpc_math.atan(a))
+test(mpc_math.atan(b))
+test(mpc_math.atan(c))
+test(mpc_math.atan(d))
+
+test(mpc_math.atan(f))
+test(mpc_math.atan(e))
+test(mpc_math.atan(g))
+test(mpc_math.atan(h))
+
+# Test asin
+a = sfix(0.1)
+b = sfix(0.3)
+c = sfix(0.5)
+d = sfix(0.9)
+e = sfix(-0.1)
+f = sfix(-0.3)
+g = sfix(-0.5)
+h = sfix(-0.9)
+
+test(mpc_math.asin(a))
+test(mpc_math.asin(b))
+test(mpc_math.asin(c))
+test(mpc_math.asin(d))
+test(mpc_math.asin(e))
+test(mpc_math.asin(f))
+test(mpc_math.asin(g))
+test(mpc_math.asin(h))
+
 
 # Test acos
-test(mpc_math.acos(i))
-test(mpc_math.acos(j))
+test(mpc_math.acos(a))
+test(mpc_math.acos(b))
+test(mpc_math.acos(c))
+test(mpc_math.acos(d))
+test(mpc_math.acos(e))
+test(mpc_math.acos(f))
+test(mpc_math.acos(g))
+test(mpc_math.acos(h))
+
 
 a = sfix(2)
 b = sfix(3)
@@ -96,14 +115,3 @@ test(mpc_math.log_fx(b,3))
 test(mpc_math.log_fx(c,3))
 test(mpc_math.log_fx(d,3))
 
-# Test sqrt
-# Fix the signature in Compiler.mpc_math
-# a = sfix(25)
-# b = sfix(36)
-# c = sfix(6.25)
-# d = sfix(49)
-
-# test(mpc_math.sqrt(a))
-# test(mpc_math.sqrt(b))
-# test(mpc_math.sqrt(c))
-# test(mpc_math.sqrt(d))

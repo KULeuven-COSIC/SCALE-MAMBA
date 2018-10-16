@@ -68,7 +68,7 @@ void mult_inner_subroutine_one(const Share &aa, const Share &bb, Share &cc,
   /* Call the PRSS in case we need it */
   if (need_prss)
     {
-      dd= prss.next_share();
+      dd= prss.next_share(P);
     }
 
   /* Adjust product if we are using a PRSS on one of our shares
@@ -211,8 +211,8 @@ void offline_Reduced_triples(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
           ss_r; // This line is here to make sure ss is reinitialized every loop
       for (int j= 0; j < amortize; j++)
         {
-          aa= prss.next_share();
-          bb= prss.next_share();
+          aa= prss.next_share(P);
+          bb= prss.next_share(P);
           a.push_back(aa);
           b.push_back(bb);
           cc[j].set_player(P.whoami());
@@ -249,7 +249,7 @@ void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
           ss_r; // This line is here to make sure ss is reinitialized every loop
       for (int j= 0; j < amortize; j++)
         {
-          aa= prss.next_share();
+          aa= prss.next_share(P);
           a.push_back(aa);
           cc[j].set_player(P.whoami());
 
@@ -292,7 +292,7 @@ number of sharing of a and sharing of b=a^2
           ss_r; // This line is here to make sure ss is reinitialized every loop
       for (int j= 0; j < amortize; j++)
         {
-          aa[j]= prss.next_share();
+          aa[j]= prss.next_share(P);
           bb[j].set_player(P.whoami());
 
           mult_inner_subroutine_one(aa[j], aa[j], bb[j], bb_m[j], ss_m, ss_r, P,

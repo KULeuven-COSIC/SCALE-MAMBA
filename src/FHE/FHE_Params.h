@@ -23,6 +23,8 @@ All rights reserved
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers
  *   - Uses statistical/computational security parameters from config.h
+ *   - If p=0 this generates a new prime, otherwise it tries to use the
+ *     the input prime. Will throw an error if this is not compatible
  */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
                          unsigned int h, unsigned int n);

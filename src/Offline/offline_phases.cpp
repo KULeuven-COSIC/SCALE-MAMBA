@@ -273,8 +273,8 @@ void bit_phase(int num_online, Player &P, offline_control_data &OCD,
 }
 
 /* This proposes a number of things to sacrifice to get
- * agreement amongst all players. Player one proposes
- * the value and sends it to the others
+ * agreement amongst all players. All players propose
+ * and then they take the minumum
  */
 bool propose_numbers_sacrifice(int num_online, Player &P, int &nm, int &ns,
                                int &nb, vector<int> &make_inputs,
@@ -282,7 +282,7 @@ bool propose_numbers_sacrifice(int num_online, Player &P, int &nm, int &ns,
                                int verbose)
 {
   // The number of sacrifice equations we need per item produced
-  int rep= stat_sec / numBits(gfp::pr()) + 1;
+  int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
 
   // Each player first either proposes a set of numbers or an exit
   nm= 0;
@@ -297,14 +297,16 @@ bool propose_numbers_sacrifice(int num_online, Player &P, int &nm, int &ns,
   while (nm == 0 && ns == 0 && nb == 0 && minputs == false)
     {
       OCD.mult_mutex[num_online].lock();
-      OCD.square_mutex[num_online].lock();
-      OCD.bit_mutex[num_online].lock();
       int ta= TriplesD[num_online].ta.size();
+      OCD.mult_mutex[num_online].unlock();
+
+      OCD.square_mutex[num_online].lock();
       int sa= SquaresD[num_online].sa.size();
+      OCD.square_mutex[num_online].unlock();
+
+      OCD.bit_mutex[num_online].lock();
       int bb= BitsD[num_online].bb.size();
       OCD.bit_mutex[num_online].unlock();
-      OCD.square_mutex[num_online].unlock();
-      OCD.mult_mutex[num_online].unlock();
 
       nm= min((rep + 1) * sz_triples_sacrifice, ta) - 1;
       nm= (nm / (rep + 1)) * (rep + 1); // Make a round mult of (rep+1)
@@ -364,7 +366,7 @@ bool propose_numbers_sacrifice(int num_online, Player &P, int &nm, int &ns,
         {
           for (unsigned int i= 0; i < P.nplayers(); i++)
             {
-              if (SacrificeD[num_online].ID.ios[i].size() < max_IO_sacrifice)
+              if ((OCD.maxI == 0 && SacrificeD[num_online].ID.ios[i].size() < max_IO_sacrifice) || (OCD.totI < OCD.maxI))
                 {
                   make_inputs[i]= 1;
                   minputs= true;
@@ -412,6 +414,10 @@ bool propose_numbers_sacrifice(int num_online, Player &P, int &nm, int &ns,
                 {
                   is >> ni;
                   make_inputs[i]= max(make_inputs[i], ni);
+                  if (make_inputs[i] == 1)
+                    {
+                      minputs= true;
+                    }
                 }
             }
         }
@@ -437,7 +443,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
                      int verbose)
 {
   int nm, ns, nb;
-  int rep= stat_sec / numBits(gfp::pr()) + 1;
+  int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
 
   // Initialize PRSS stuff for IO production
   //   - We do IO production here as it is rarely done, and hence this
@@ -449,7 +455,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
 
   list<Share> a, b, c;
   list<gfp> opened;
-  list<Share>::iterator it, first, last;
+  list<Share>::iterator first, last, it;
   list<gfp>::iterator it_g;
   vector<int> minputs(P.nplayers());
   bool exit= false, ready= false;
@@ -468,6 +474,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
 
               /* Add to queues */
               OCD.sacrifice_mutex[num_online].lock();
+              OCD.totI+= a.size();
               it= SacrificeD[num_online].ID.ios[i].end();
               SacrificeD[num_online].ID.ios[i].splice(it, a);
               if (i == P.whoami())
@@ -480,31 +487,33 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
         }
 
       // Wait until we have enough offline data in this thread to be able to do
-      // the required sacrifice (after all Player 0 may be a little ahead of us).
-      if (P.whoami() != 0 && !exit)
+      // the required sacrifice
+      if (!exit)
         {
           ready= false;
           while (ready == false && !exit)
             {
               ready= true;
               OCD.mult_mutex[num_online].lock();
-              OCD.square_mutex[num_online].lock();
-              OCD.bit_mutex[num_online].lock();
               if ((int) TriplesD[num_online].ta.size() < nm)
                 {
                   ready= false;
                 }
+              OCD.mult_mutex[num_online].unlock();
+
+              OCD.square_mutex[num_online].lock();
               if ((int) SquaresD[num_online].sa.size() < rep * nb + ns)
                 {
                   ready= false;
                 }
+              OCD.square_mutex[num_online].unlock();
+
+              OCD.bit_mutex[num_online].lock();
               if ((int) BitsD[num_online].bb.size() < nb)
                 {
                   ready= false;
                 }
               OCD.bit_mutex[num_online].unlock();
-              OCD.square_mutex[num_online].unlock();
-              OCD.mult_mutex[num_online].unlock();
 
               /* Wait if nothing to do */
               if (ready == false)
@@ -528,16 +537,19 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
           first= TriplesD[num_online].ta.begin();
           last= TriplesD[num_online].ta.begin();
           advance(last, nm);
+          a.clear();
           a.splice(a.begin(), TriplesD[num_online].ta, first, last);
 
           first= TriplesD[num_online].tb.begin();
           last= TriplesD[num_online].tb.begin();
           advance(last, nm);
+          b.clear();
           b.splice(b.begin(), TriplesD[num_online].tb, first, last);
 
           first= TriplesD[num_online].tc.begin();
           last= TriplesD[num_online].tc.begin();
           advance(last, nm);
+          c.clear();
           c.splice(c.begin(), TriplesD[num_online].tc, first, last);
 
           OCD.mult_mutex[num_online].unlock();
@@ -565,17 +577,17 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
 
           OCD.square_mutex[num_online].lock();
 
-          it= a.begin();
           first= SquaresD[num_online].sa.begin();
           last= SquaresD[num_online].sa.begin();
           advance(last, ns);
-          a.splice(it, SquaresD[num_online].sa, first, last);
+          a.clear();
+          a.splice(a.begin(), SquaresD[num_online].sa, first, last);
 
-          it= b.begin();
           first= SquaresD[num_online].sb.begin();
           last= SquaresD[num_online].sb.begin();
           advance(last, ns);
-          b.splice(it, SquaresD[num_online].sb, first, last);
+          b.clear();
+          b.splice(b.begin(), SquaresD[num_online].sb, first, last);
 
           OCD.square_mutex[num_online].unlock();
 
@@ -600,27 +612,27 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
 
           OCD.bit_mutex[num_online].lock();
 
-          it= a.begin();
           first= BitsD[num_online].bb.begin();
           last= BitsD[num_online].bb.begin();
           advance(last, nb);
-          a.splice(it, BitsD[num_online].bb, first, last);
+          a.clear();
+          a.splice(a.begin(), BitsD[num_online].bb, first, last);
 
           OCD.bit_mutex[num_online].unlock();
 
           OCD.square_mutex[num_online].lock();
 
-          it= b.begin();
           first= SquaresD[num_online].sa.begin();
           last= SquaresD[num_online].sa.begin();
           advance(last, rep * nb);
-          b.splice(it, SquaresD[num_online].sa, first, last);
+          b.clear();
+          b.splice(b.begin(), SquaresD[num_online].sa, first, last);
 
-          it= c.begin();
           first= SquaresD[num_online].sb.begin();
           last= SquaresD[num_online].sb.begin();
           advance(last, rep * nb);
-          c.splice(it, SquaresD[num_online].sb, first, last);
+          c.clear();
+          c.splice(c.begin(), SquaresD[num_online].sb, first, last);
 
           OCD.square_mutex[num_online].unlock();
 
@@ -682,7 +694,8 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
       /* Check whether we should kill the offline phase as we have now enough data */
       if (OCD.totm[num_online] > OCD.maxm && OCD.maxm != 0 &&
           OCD.tots[num_online] > OCD.maxs && OCD.maxs != 0 &&
-          OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0)
+          OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0 &&
+          OCD.totI > OCD.maxI)
         {
           OCD.finish_offline[num_online]= 1;
           printf("We have enough data to stop offline phase now\n");

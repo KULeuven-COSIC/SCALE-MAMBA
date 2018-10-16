@@ -33,10 +33,17 @@ class PRSS
   void ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M);
   void MSP_SetUp(Player &P, const CAS &AS, const MSP &M);
 
+  // When using a protocol we do batch production to save time
+  vector<Share> batch;
+  unsigned int batch_pos;
+
+  // Protocol to produce a batch
+  void batch_production(Player &P);
+
 public:
   PRSS(Player &P);
 
-  Share next_share();
+  Share next_share(Player &P);
 };
 
 /* Some helper functions, useful elsewhere */

@@ -344,6 +344,10 @@ clear register. This is not a true random number, as all
 parties output the same random number at this point.
 \item \verb+RESTART+ which restarts the online runtime.
 See Section \ref{sec:restart} for how this intended to be used.
+\item \verb+CLEAR_MEMORY+ which clears the current memory.
+See Section \ref{sec:restart} for more details on how this is used.
+\item \verb+CLEAR_REGISTERS+ which clears the registers of this processor core (i.e. thread).
+See Section \ref{sec:restart} for more details on how this is used.
 \item \verb+START_TIMER+ and \verb+STOP_TIMER+ are used to time different
 parts of the code. There are 100 times available in the system;
 each is initialized to zero at the start of the machine running.

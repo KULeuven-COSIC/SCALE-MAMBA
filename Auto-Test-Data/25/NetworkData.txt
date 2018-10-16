@@ -1,0 +1,14 @@
+RootCA.crt
+10
+0 127.0.0.1 Player1.crt P1
+1 127.0.0.1 Player2.crt P2
+2 127.0.0.1 Player3.crt P3
+3 127.0.0.1 Player4.crt P4
+4 127.0.0.1 Player5.crt P5
+5 127.0.0.1 Player6.crt P6
+6 127.0.0.1 Player7.crt P7
+7 127.0.0.1 Player8.crt P8
+8 127.0.0.1 Player9.crt P9
+9 127.0.0.1 Player10.crt P10
+0
+0

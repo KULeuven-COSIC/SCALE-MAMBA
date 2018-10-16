@@ -65,6 +65,8 @@ public:
   Processor(int online_thread_num, unsigned int nplayers);
   ~Processor();
 
+  void clear_registers();
+
   int get_thread_num() const
   {
     return online_thread_num;

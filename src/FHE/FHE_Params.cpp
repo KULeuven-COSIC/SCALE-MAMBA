@@ -22,7 +22,28 @@ int FHE_Sec_Params[num_params][4]= {
 
 #define sigma 3.16
 
-// Make a prime of lg2 bits for which N-1 is divisible by 2*N
+void produce_epsilon_constants(double C[3])
+{
+  for (int i= 0; i < 3; i++)
+    {
+      C[i]= -1;
+    }
+  for (double x= 0.1; x < 10.0; x+= .1)
+    {
+      double t= erfc(x), tp= 1;
+      for (int i= 1; i < 3; i++)
+        {
+          tp*= t;
+          double lgtp= log(tp) / log(2.0);
+          if (C[i] < 0 && lgtp < FHE_epsilon)
+            {
+              C[i]= pow(x, i);
+            }
+        }
+    }
+}
+
+// Make a prime of lg2 bits for which p-1 is divisible by 2*N
 //   We ensure that p!=not_x
 //   We also ensure that p=1 mod q if q!=0
 bigint make_prime(int lg2, int N, const bigint &q= 0,
@@ -46,11 +67,13 @@ bigint make_prime(int lg2, int N, const bigint &q= 0,
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
                          unsigned int h, unsigned int n)
 {
-  double pp= exp2((double) lg2p), ss= exp2((double) stat_sec),
-         S= exp2(stat_sec);
+  double pp= exp2((double) lg2p), ss= exp2((double) DD_stat_sec), S= exp2((double) ZK_stat_sec);
   double S32= S * sqrt(S);
-  double lgp0, lgp1, lgq;
-  double hh= h;
+  double lgp0, lgp1, lgq, hh= h;
+
+  double C[3];
+  produce_epsilon_constants(C);
+
   int index;
   switch (comp_sec)
     {
@@ -69,7 +92,6 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
     }
   /* We first go through the possible N values */
   bool done= false;
-  p= -1;
   for (int i= 0; i < num_params && !done; i++)
     {
       N= FHE_Sec_Params[i][0];
@@ -77,13 +99,11 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
 
       // New
       double B_Clean=
-          1.0 / 2 + 20 * 6 * sigma * sqrt(phim) + 20 + 20 * 6 * sqrt(h);
+          1.0 / 2 + 20 * C[1] * sigma * sqrt(phim) + 20 + 20 * C[1] * sqrt(h);
       B_Clean*= phim * S32 * 2 * n * pp;
 
-      double B_Scale= pp * sqrt(3 * phim) * (1 + 8 * sqrt(hh / 3));
-      double B_KS=
-          pp * phim * sigma * (1.49 * sqrt(hh * phim) + 2.11 * hh +
-                               5.54 * sqrt(hh) + 1.96 * sqrt(phim) + 4.62);
+      double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim * hh / 12));
+      double B_KS= pp * C[2] * sigma * phim / sqrt(12);
       for (lgq= 10; lgq < FHE_Sec_Params[i][index] && !done; lgq+= 10)
         {
           for (lgp0= 0; lgp0 < lgq - 1 && !done; lgp0++)
@@ -91,16 +111,24 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
               lgp1= lgq - lgp0;
               double pp0= exp2(lgp0), pp1= exp2(lgp1);
 
-              double v= n * B_Clean;
-
-              double U1= (v / pp1 + B_Scale);
+              double U1= (B_Clean / pp1 + B_Scale);
               U1= U1 * U1 + B_KS * pp0 / pp1 + B_Scale;
-              double U2= U1 + n * B_Clean / pp1 + B_Scale;
+              double U2= U1 + B_Clean / pp1 + B_Scale;
 
               double LHS= 2 * U2 * (1 + n * ss);
               if (LHS < pp0)
                 {
-                  p= make_prime(lg2p, N);
+                  if (p == 0)
+                    {
+                      p= make_prime(lg2p, N);
+                    }
+                  else
+                    {
+                      if (!probPrime(p) || ((p - 1) % (2 * N)) != 0)
+                        {
+                          throw FHE_params();
+                        }
+                    }
                   p0= make_prime(lgp0, N);
                   p1= make_prime(lgp1, N, p, p0);
                   done= true;
@@ -108,7 +136,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
             }
         }
     }
-  if (p < 0)
+  if (!done)
     {
       throw FHE_params();
     }
@@ -135,7 +163,7 @@ void FHE_Params::set(const Ring &R, const bigint &p0, const bigint &p1,
   hwt= h;
 
   Bval= 1;
-  Bval= Bval << stat_sec;
+  Bval= Bval << DD_stat_sec;
   Bval= FFTData[0].get_prime() / (2 * (1 + n * Bval));
   if (Bval == 0 && check)
     throw runtime_error("distributed decryption bound is zero");

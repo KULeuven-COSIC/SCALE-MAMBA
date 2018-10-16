@@ -52,7 +52,7 @@ int main(int argc, const char *argv[])
           " from (default: 5000)", // Help description.
           "-pnb",                  // Flag token.
           "-portnumbase"           // Flag token.
-          );
+  );
   opt.add("",  // Default.
           0,   // Required?
           -1,  // Number of args expected.
@@ -62,7 +62,7 @@ int main(int argc, const char *argv[])
           "\tThis option overides any defined portnumbase", // Help description.
           "-pns",                                           // Flag token.
           "-portnums"                                       // Flag token.
-          );
+  );
   opt.add("0", // Default.
           0,   // Required?
           1,   // Number of args expected.
@@ -74,7 +74,7 @@ int main(int argc, const char *argv[])
           "\tphase",  // Help description.
           "-verbose", // Flag token.
           "-v"        // Flag token.
-          );
+  );
   opt.add("empty", // Default.
           0,       // Required?
           1,       // Number of args expected.
@@ -84,7 +84,7 @@ int main(int argc, const char *argv[])
           "\tempty: create new empty memory", // Help description.
           "-m",                               // Flag token.
           "-memory"                           // Flag token.
-          );
+  );
   opt.add("0,0,0", // Default.
           0,       // Required?
           3,       // Number of args expected.
@@ -93,7 +93,7 @@ int main(int argc, const char *argv[])
           "\tm triples, s squares and b bits\n"
           "\tMust be the same on each machine", // Help description.
           "-min"                                // Flag token.
-          );
+  );
   opt.add("0,0,0", // Default.
           0,       // Required?
           3,       // Number of args expected.
@@ -104,7 +104,14 @@ int main(int argc, const char *argv[])
           "\tZero argument means infinity here\n"
           "\tMust be the same on each machine", // Help description.
           "-max"                                // Flag token.
-          );
+  );
+  opt.add("0", // Default.
+          0,   // Required?
+          1,   // Number of args expected.
+          0,   // Delimiter if expecting multiple args.
+          "Similar to -max but for the input queue only",
+          "-maxI" // Flag token.
+  );
   opt.add("2", // Default.
           0,   // Required?
           1,   // Number of args expected.
@@ -112,7 +119,7 @@ int main(int argc, const char *argv[])
           "Number of FHE Factories we run in parallel\n",
           "-f",           // Flag token.
           "-fhefactories" // Flag token.
-          );
+  );
 
   opt.parse(argc, argv);
 
@@ -184,6 +191,8 @@ int main(int argc, const char *argv[])
   OCD.maxm= (unsigned int) maximums[0];
   OCD.maxs= (unsigned int) maximums[1];
   OCD.maxb= (unsigned int) maximums[2];
+  opt.get("-maxI")->getInt(te);
+  OCD.maxI= (unsigned int) te;
 
   cout << "(Min,Max) number of ...\n";
   cout << "\t(" << OCD.minm << ",";
@@ -364,7 +373,7 @@ int main(int argc, const char *argv[])
   unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
 
   unsigned int number_FHE_threads= 0;
-  if (Share::SD.type == Full)
+  if (Share::SD.type == Full && SD.fake_offline == 0)
     {
       number_FHE_threads= fhefacts;
     }

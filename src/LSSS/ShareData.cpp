@@ -6,6 +6,7 @@ All rights reserved
 */
 
 #include "ShareData.h"
+#include "config.h"
 
 void ShareData::assign(const ShareData &SD)
 {
@@ -48,7 +49,7 @@ void ShareData::Initialize_Full_Threshold(unsigned int nn)
   type= Full;
   Otype= SPDZ;
   M.Initialize_Full_Threshold(nn);
-  nmacs= 40 / numBits(gfp::pr()) + 1;
+  nmacs= macs_stat_sec / numBits(gfp::pr()) + 1;
 }
 
 /* This finds ReconS, ReconSS, Parity and OpenC given RCt

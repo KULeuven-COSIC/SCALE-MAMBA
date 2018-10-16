@@ -56,8 +56,8 @@ void offline_Maurer_triples(Player &P, PRSS &prss, list<Share> &a,
                                              // is reinitialized every loop
       for (int j= 0; j < amortize; j++)
         {
-          aa= prss.next_share();
-          bb= prss.next_share();
+          aa= prss.next_share(P);
+          bb= prss.next_share(P);
           a.push_back(aa);
           b.push_back(bb);
 
@@ -93,7 +93,7 @@ void offline_Maurer_squares(Player &P, PRSS &prss, list<Share> &a,
                                              // is reinitialized every loop
       for (int j= 0; j < amortize; j++)
         {
-          aa= prss.next_share();
+          aa= prss.next_share(P);
           a.push_back(aa);
 
           mult_inner_subroutine_one(aa, aa, bb[j], ss, P);
@@ -133,7 +133,7 @@ void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b,
       vector<stringstream> ss(P.nplayers());
       for (int j= 0; j < amortize; j++)
         {
-          aa[j]= prss.next_share();
+          aa[j]= prss.next_share(P);
 
           mult_inner_subroutine_one(aa[j], aa[j], br[j], ss, P);
         }

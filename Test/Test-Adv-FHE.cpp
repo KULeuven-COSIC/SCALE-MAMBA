@@ -267,8 +267,8 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   }
 
   // Generate stat_sec random bits
-  vector<int> e(stat_sec);
-  for (int i= 0; i < stat_sec; i++)
+  vector<int> e(ZK_stat_sec);
+  for (int i= 0; i < ZK_stat_sec; i++)
     {
       e[i]= rand() % 2;
     }
@@ -360,7 +360,7 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   }
 
   // Generate stat_sec random bits
-  for (int i= 0; i < stat_sec; i++)
+  for (int i= 0; i < ZK_stat_sec; i++)
     {
       e[i]= rand() % 2;
     }

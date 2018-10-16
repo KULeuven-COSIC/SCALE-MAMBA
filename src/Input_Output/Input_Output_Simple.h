@@ -40,7 +40,7 @@ public:
     human= human_type;
   }
 
-  virtual void open_channel(unsigned int channel);
+  virtual long open_channel(unsigned int channel);
   virtual void close_channel(unsigned int channel);
 
   virtual gfp private_input_gfp(unsigned int channel);

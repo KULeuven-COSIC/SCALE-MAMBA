@@ -20,24 +20,24 @@ All rights reserved
  * the flag of type condition (from Plaintext.h) which
  * is either General or Diagonal
  *
- * It then generates stat_sec plaintexts and randomness'
+ * It then generates ZK_stat_sec plaintexts and randomness'
  * for this player, as well as V test "fake" ciphertexts
  *    - Fake as the distributions are all screwy from
  *      a valid ciphertext. This is to get the proof to
  *      work
- *    - If Diagonal then the stat_sec test ciphertexts
+ *    - If Diagonal then the ZK_stat_sec test ciphertexts
  *      are all identical, and we set the Diagonal element
  *      to be "alpha" (which in the end will be the MAC key)
  *
  * The encryptions of the V fake ciphertexts (A) are then
- * returned, along with the stat_sec ones (E) we are going
+ * returned, along with the ZK_stat_sec ones (E) we are going
  * to be using later on.
  *
  *
  * Step 2:
  *
  * The players then agree on a random vector e of size
- * stat_sec consisting of zeros and ones.
+ * ZK_stat_sec consisting of zeros and ones.
  *
  * This stage then computes the z^{(i)},^{(i)}T pairs for
  * each player to compute (see the documentation Line 6 of
@@ -50,7 +50,7 @@ All rights reserved
  *
  * Step 4:
  *
- * This allows one (up to stat_sec) times to recover both
+ * This allows one (up to ZK_stat_sec) times to recover both
  * the ciphertext sum, and the plaintext for this player
  * for the valid ciphertexts selected at the beginiing.
  */
@@ -123,7 +123,7 @@ public:
 
   unsigned int size_batch() const
   {
-    return stat_sec;
+    return ZK_stat_sec;
   }
   unsigned int size_checkset() const
   {

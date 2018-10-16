@@ -59,7 +59,7 @@ public:
 
   MSP M;
 
-  // Number of MAC values (when needed assume stat parameter is 40)
+  // Number of MAC values (when needed assume stat parameter is macs_stat_sec)
   unsigned int nmacs;
   unsigned int threshold; // When Shamir
 

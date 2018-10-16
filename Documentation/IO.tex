@@ -161,6 +161,8 @@ using a channel.
 However, it is good programming practice to do so, just
 in case the default IO functionality is replaced by another
 user of your code.
+The \verb+open_channel+ command returns a \verb+regint+
+value which could be used to signal a problem opening a channel.
 
 \subsubsection{Trigger}
 There is a special function \verb+IO.trigger(Schedule& schedule)+ 
@@ -179,6 +181,12 @@ The bytecode \verb+CRASH+ calls the function
 \verb+IO.crash(unsigned int PC, unsigned int thread_num)+.
 This enables the IO class to be able to process any crash
 in an application specific way if needs be.
+If the \verb+IO.crash+ command returns, as opposed to causing
+a system shut-down, then the \verb+RESTART+ instruction will
+be called immediately.
+This means an online program can crash, and then a new one
+can be restarted without loosing all the offline data that
+has been produced.
 
 \subsection{MAMBA Hooks}
 These functions can be called from the MAMBA language via,

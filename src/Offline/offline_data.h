@@ -98,10 +98,14 @@ public:
   mutex *bit_mutex;       // Lock for bit threads
   mutex *sacrifice_mutex; // Lock for sacrifice threads
 
-  unsigned int minm, mins, minb; // Min number produced before we start online
-  unsigned int maxm, maxs, maxb; // Max number to ever produce
-  vector<unsigned int> totm, tots,
-      totb;                     // Actual numbers computed by sacrifice phase so far
+  // Min number produced before we start online
+  unsigned int minm, mins, minb;
+  // Max number to ever produce
+  unsigned int maxm, maxs, maxb, maxI;
+  // Actual numbers computed by sacrifice phase so far
+  vector<unsigned int> totm, tots, totb;
+  unsigned int totI; // Not an array as only associated with thread zero
+
   vector<int> finish_offline;   // Flag to say whether we SHOULD finish offline
   vector<int> finished_offline; // Counts how many threads HAVE died
 
@@ -125,6 +129,7 @@ public:
         finish_offline[i]= 0;
         finished_offline[i]= 0;
       }
+    totI= 0;
   }
 
   offline_control_data()

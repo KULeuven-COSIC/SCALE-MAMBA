@@ -45,6 +45,8 @@ opcodes = dict(
     JOIN_TAPE = 0x1A,
     CRASH = 0x1B,
     RESTART = 0x1C,
+    CLEAR_MEMORY = 0x1D,
+    CLEAR_REGISTERS = 0x1E,
 
     # Addition
     ADDC = 0x20,

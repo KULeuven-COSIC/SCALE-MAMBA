@@ -201,31 +201,26 @@ void Machine::run()
     }
 
   // First go through the schedule and execute what is there
-  unsigned int tape_number, threads_on_line;
   bool flag= true;
   while (flag)
     {
-      schedule.i_schedule >> threads_on_line;
-      if (threads_on_line == 0)
+      // First check if reached end of Schedule file..
+      if (schedule.line_number == schedule.Sch.size())
         {
           flag= false;
         }
       else
         {
+          unsigned int threads_on_line= schedule.Sch[schedule.line_number].size();
           for (unsigned int i= 0; i < threads_on_line; i++)
             { // Now load up data
-              schedule.i_schedule >> tape_number;
-
-              // Cope with passing an integer parameter to a tape
-              int arg;
-              if (schedule.i_schedule.get() == ':')
-                schedule.i_schedule >> arg;
-              else
-                arg= 0;
+              unsigned int tape_number= schedule.Sch[schedule.line_number][i][0];
+              int arg= schedule.Sch[schedule.line_number][i][1];
 
               // cerr << "Run scheduled tape " << tn << " in thread " << i << endl;
               run_tape(i, tape_number, arg);
             }
+          schedule.line_number++;
           // Make sure all terminate before we continue
           for (unsigned int i= 0; i < threads_on_line; i++)
             {
@@ -237,12 +232,9 @@ void Machine::run()
   // Now we have finished the schedule file output what we have done
 
   // What program did we run?
-  char compiler_command[1000];
-  schedule.i_schedule.get();
-  schedule.i_schedule.getline(compiler_command, 1000);
-  if (compiler_command[0] != 0)
+  if (schedule.compiler_command[0] != 0)
     {
-      cerr << "Compiler: " << compiler_command << endl;
+      cerr << "Compiler: " << schedule.compiler_command << endl;
     }
 
   // Tell all online threads to stop

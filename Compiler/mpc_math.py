@@ -69,6 +69,13 @@ q_4737 =[-9338.550897341021522505384935, +45279.10524333925315190231067,
          -70581.74909396877350961227976, +28972.22947326672977624954443,
          -7044.002024719172700685571406, +935.7104153502806086331621628,
          -56.83369358538071475796209327, 1]
+##
+# @private
+p_4754 = [-6.90859801, +12.85564644, -5.94939208]
+
+##
+# @private
+q_4754 = [-6.92529156, +14.20305096, -8.27925501, 1]
 
 # all inputs are calcualted in radians hence we need some conversion.
 pi = math.radians(180)
@@ -293,8 +300,13 @@ def log2_fx(x):
 #
 # @return returns the value of x^y
 def pow_fx(x, y):
+    log2_x =0
     # obtains log2(x)
-    log2_x = log2_fx(x)
+    if (type(x) == int or type(x) == float):
+        log2_x = math.log(x,2)
+        log2_x = types.cfix(log2_x)
+    else:
+        log2_x = log2_fx(x)
     # obtains y * log2(x)
     exp = y * log2_x
     # returns 2^(y*log2(x))
@@ -654,20 +666,17 @@ def atan(x):
 ##
 # Returns the aSin (sfix) of any given fractional value.
 #
-# @param x: fractional input (sfix). valid interval is -1.0 < x < 1
+# @param x: fractional input (sfix). valid interval is -1.0 <= x <= 1
 #
 # @return  returns the aSin of x (sfix).
 def asin(x):
     # Square x
     x_2 = x*x
-    #  padding
+    # trignometric identities
+    sqrt_l = sqrt(1- (x_2))
+    x_sqrt_l =x / sqrt_l
+    return atan(x_sqrt_l)
 
-    P = p_eval(p_4737, x_2)
-    Q = p_eval(q_4737, x_2)
-
-    y = x*(P / Q)
-
-    return y
 
 ##
 # Returns the aCos (sfix) of any given fractional value.

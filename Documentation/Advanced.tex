@@ -497,7 +497,7 @@ kappa = 20
 b=floatingpoint.TruncPr(a, k, m, kappa)
 \end{lstlisting}
 
-\msubsubsection{$\mathsf{Mod2m}(\sshare{a_prime}, \sshare{a},k,m, \kappa, signed)$:}
+\msubsubsection{$\mathsf{Mod2m}(\sshare{a_{prime}}, \sshare{a},k,m, \kappa, signed)$:}
 Given $a \in \Zk$, $m \in [1,\ldots,k-1]$ this outputs $a \pmod{2^m}$.
 Use this protocol when $m>1$, for $m=1$ use $\mathsf{Mod2}$ below.
 \begin{enumerate}
@@ -513,14 +513,14 @@ Use this protocol when $m>1$, for $m=1$ use $\mathsf{Mod2}$ below.
 \begin{lstlisting}[language={python}]
 from Compiler import comparison
 
-a_prime = 3 a % 2 ^ m
+a_prime = sint(0) # a % 2 ^ m
 a = sint(100)
 k = 16 # bit length of a
-m = 2 # compile-time integer
+m = 2 # modulo of 2^m
 kappa = 8 
-signed = True # True/False, describes a
+signed = True # True/False
 
-# where b is a register of type sint
+# where a is a register of type sint
 r_dprime, r_prime, c, c_prime, u, t, c2k1 = \
     comparison.Mod2m(a_prime, a, k, m, kappa, signed)
 \end{lstlisting}
@@ -601,6 +601,24 @@ kappa=40
 # b stores the result of x < 0
 comparison.LTZ(b, a, k, kappa)
 \end{lstlisting}
+Like many commands in this section this can be abbreviated to
+\begin{lstlisting}[language={python}]
+b=a<0
+\end{lstlisting}
+In which case the default value of $\kappa=40$ is chosen
+(when using a $128$-bit prime modulus), this default value can be 
+altered by using the command
+\begin{lstlisting}[language={python}]
+program.security = 100
+\end{lstlisting}
+The default value of $k=64$ is used in this setting, and
+this can be altered by executing
+\begin{lstlisting}[language={python}]
+program.bit_length = 40
+\end{lstlisting}
+The requirement is that $k+\kappa$ must be less than the bit length
+of the prime $p$.
+
 
 \msubsubsection{$\mathsf{EQZ}(\sshare{a},k, \kappa)$:}
 Given $a \in \Zk$ this tests whether $a=0$ or not,
@@ -949,7 +967,7 @@ Returns index array $\sshare{z}$ of size $k$, such that it holds a $1$ in the po
 \item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{x},k,k)$.
 \item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
 \item For $i \in [0,\ldots,k-1]$ do 
-\item $z \asn (\sshare(0_{1}),...,\sshare(0_{k + 1 - k \% 2}))$
+\item $z \asn (\sshare(0_{1}),...,\sshare(0_{k + 1 - k \quad \% \quad 2}))$
 \begin{enumerate}
   \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
 \end{enumerate}
@@ -1014,9 +1032,9 @@ Same as above, but in this case we only return $m$, and $w$, together with a $\{
 \item For $i \in [0,\ldots,k-1]$ do
 \begin{enumerate}
 	\item $\sshare{m}=\sshare{m}+ (i+1) +\sshare{z_{i}}$.
-	\item If $(i \% 2 == 0)$:
+	\item If $(i \quad \% \quad 2 == 0)$:
 	\begin{enumerate}
-	    \item $\sshare{m_odd} \asn m_odd + \sshare{z_{i}}$
+	    \item $\sshare{m_{odd}} \asn m_{odd} + \sshare{z_{i}}$
 	\end{enumerate}
 \end{enumerate}
 %z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
@@ -1027,7 +1045,7 @@ Same as above, but in this case we only return $m$, and $w$, together with a $\{
 \item $\sshare{w_0} \asn 0$. 
 \item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
 
-\item Return $\sshare{m_odd}, \sshare{m}, \sshare{w}$.
+\item Return $\sshare{m_{odd}}, \sshare{m}, \sshare{w}$.
 \end{enumerate}
 
 
@@ -1545,15 +1563,15 @@ In a future release we will extend the sqrt function to cope with other input ra
 \end{enumerate}
 
 \msubsubsection{$\mathsf{SimplifiedFxSqrt}(\sshare{x}, k, f)$:}
-This algorithm uses the sub-algorithm $\mathsf{NormSQ}$ defined above. In our case we make use of $w$, which is basically  $2^{m/2}$. From that point it approximates the  value of $\sqrt{x}$ by calculating $\frac{x}{2^{m/2}}$. To avoid any loss of precision, we reuse \verb|sfix| instantiation process.
+This algorithm uses the sub-algorithm $\mathsf{NormSQ}$ defined above. Among the values it returns, we base our approximation by directly using $w =2^{m/2}$. From that point it approximates the  value of $\sqrt{x}$ by calculating $\frac{x}{2^{m/2}}$. To avoid any loss of precision, we reuse \verb|sfix| instantiation process.
 The algorithm work on the precision of the system and can solve values on any range. Its behaviour is still experimental. The function is designed in such a way that there is no restriction on the size $f$.
 \begin{enumerate}
 \item $\theta \asn \max{(\ceil{\log_2(k)},6)}$.
-\item $\sshare{m_odd}, \sshare{w} \asn \mathsf{SimplifiedNormSQ}(\sshare{x},k)$.
-\item $\sshare{m_odd} \asn (1 - 2 \cdot \sshare{m_odd}) \cdot f$.   
- \item $\sshare{w} \asn (2 \cdot \sshare{w} -\sshare{w}) \cdot (1 - \sshare{m_odd}) \cdot (f \% 2) + \sshare{w}$.
-\item $\sshare{w} \asn sfix( \sshare{w} * 2 ^{\frac{f - f \% 2}{2}})$.
-\item $\sshare{w} \asn (\sqrt{2}\cdot \sshare{w} - \sshare{w})\cdot \sshare{m_odd} + \sshare{w}$.
+\item $\sshare{m_{odd}}, \sshare{w} \asn \mathsf{SimplifiedNormSQ}(\sshare{x},k)$.
+\item $\sshare{m_{odd}} \asn (1 - 2 \cdot \sshare{m_{odd}}) \cdot f$.   
+ \item $\sshare{w} \asn (2 \cdot \sshare{w} -\sshare{w}) \cdot (1 - \sshare{m_{odd}}) \cdot (f \quad \% \quad 2) + \sshare{w}$.
+\item $\sshare{w} \asn sfix( \sshare{w} * 2 ^{\frac{f - f \quad \% \quad 2}{2}})$.
+\item $\sshare{w} \asn (\sqrt{2}\cdot \sshare{w} - \sshare{w})\cdot \sshare{m_{odd}} + \sshare{w}$.
 \item $\sshare{y_0} \asn \frac{1}{\sshare{w}} $.
 \item $\sshare{g_0} \asn \sshare{y_0} \cdot \sshare{x}$.
 \item $\sshare{g_0} \asn \sshare{y_0} \cdot 1/2$.
@@ -1584,11 +1602,11 @@ The algorithm work on the precision of the system and can solve values on any ra
 \item Return $\sshare{g}$.
 \end{enumerate}
 
-\msubsubsection{$\mathsf{FxSqrt}(\sshare{x}, k \asn sfix.k, f \asn sfix.f)$:}
-We can now provide a more simplified mechanism to call our \verb|FxSqrt| functionality. Note that our \verb|SimplifiedFxSqrt| requires some extra rounds, given the need of performing a division. We use it only when  the $3 \cdot k - 2 \cdot f < sfix.f$ bound is not met. 
+\msubsubsection{$\mathsf{FxSqrt}(\sshare{x}, k \asn \mathtt{sfix.k}, f \asn \mathtt{sfix.f})$:}
+We can now provide a more simplified mechanism to call our \verb|FxSqrt| functionality. Note that our \verb|SimplifiedFxSqrt| requires some extra rounds, given the need of performing a division. We use it only when  the $3 \cdot k - 2 \cdot f < \mathtt{sfix.f}$ bound is not met. 
 
 \begin{enumerate}
-\item if $(3 \cdot k - 2 \cdot f >= sfix.f)$:
+\item if $(3 \cdot k - 2 \cdot f >= \mathtt{sfix.f})$:
 \begin{enumerate}
 	\item Return $\mathsf{SimplifiedFxSqrt}(\sshare{x}, k, f)$.
 \end{enumerate}
@@ -2115,7 +2133,7 @@ y = mpc_math.tan(x)
 \end{lstlisting}
 
 \msubsection{Inverse Trigonometric Functions}
-Initially, for $\arcsin$ and $\arccos$, a nice way to do it would be by making use of the formula:
+To obtain  $\arcsin$ and $\arccos$ one makes use of the formula:
 \begin{align*}
  \arcsin (x) &= \arctan \left( \frac{x}{\sqrt{1-x^2}} \right), \\
  \arccos (x) &= \frac{\pi}{2} - \arcsin (x). 
@@ -2123,7 +2141,7 @@ Initially, for $\arcsin$ and $\arccos$, a nice way to do it would be by making u
 Note, that $\arcsin$ and $\arccos$ are only defined when 
 $|x|\le 1$.
 The value of $\arctan(x)$ is however defined for all real $x$.
-We first reduce to positive values of $x$ by using the formula
+For $\arctan(x)$ we first reduce to positive values of $x$ by using the formula
 \[ \arctan(-x) = - \arctan(x). \]
 We then reduce to the interval $[0,1)$ using the formula
 \[ \arctan(x) = \frac{\pi}{2} - \arctan\left(\frac{1}{x} \right). \]
@@ -2149,33 +2167,10 @@ descriptions.
 \hline
 \end{tabular}
 \end{center}
-However, since the square root function is not defined over all possible
-input values currently, we currently use 
-the following Pade approximation to compute $\arcsin(x)= P_{4737}(x)/Q_{4737}(x)$,
-where the approximations are again obtained from Hart~\cite{Hart:1978:CA:540084}.
 
-\begin{center}
-\begin{tabular}{|c||c|l||c|l|}
-\hline
-& \multicolumn{2}{c||}{$P_{4737}$} & \multicolumn{2}{c|}{$Q_{4737}$}  \\
-\hline
-0  &  4  & -.93385 50897 34102 15225 05385 079 & 4 & -.93385 50897 34102 15225 05384 935 \\
-1  &  5  & +.43722 68009 37824 16231 48489 754 & 5 & +.45279 10524 33392 53151 90231 067 \\
-2  &  5  & -.86008 12066 37080 48650 47446 067 & 5 & -.92854 24688 69640 14228 24346 529\\ 
-3  &  5  & +.92190 57592 17549 68438 98184 959 & 6 & +.10468 72504 36629 82242 57408 682 \\
-4  &  5  & -.58360 27724 53392 81220 75635 101 & 5 & -.70581 74909 39687 73509 61227 976 \\ 
-5  &  5  & +.22081 61324 17802 71613 53562 222  & 5 & +.28972 22947 32667 29776 24954 443 \\ 
-6  &  4  & -.48055 41226 76169 96615 64427 739 & 4 & -.70440 02024 71917 27006 85571 406 \\ 
-7  &  3  & +.54221 48323 25522 09437 42314 911 & 3 & +.93571 04153 50280 60863 31621 628 \\
-8  & 2  & -.24949 28894 42250 24662 05102 672 & 2 & -.56833 69358 53 807 14757 96209 327 \\
-9  & 0  & +.22223 61619 46113 15787 97029 272 & 1 & +.1 \\
-\hline
-\end{tabular}
-\end{center}
-These observations then give us the following routines.
-
-\iffalse
-First a protocol for \verb|arcsin| based on square root, that is not currently implemented, a version of the protocol using polynomial approximation, which is implemented, and methods for \verb|arccos| and \verb|arctan|.
+The following protocol for \verb|arcsin| implements the formulas from before. 
+The protocol and its implementation, make use of our secure implementation of Square Root. 
+This method is implemented, and it is used to derive \verb|arccos|.
 
 \msubsubsection{$\mathsf{F\star ArcSin}(\sshare{x})$}
 \begin{enumerate}
@@ -2190,15 +2185,6 @@ First a protocol for \verb|arcsin| based on square root, that is not currently i
   \item $\sshare{|x|} \asn \mathsf{FLAbs}(\sshare{x})$.
   \item $\sshare{y_\err} \asn \mathsf{FLGT}(\sshare{|x|},1.0)$.
 \end{enumerate}
-\item Return $\sshare{y}$.
-\end{enumerate}
-\fi
-
-\msubsubsection{$\mathsf{F\star ArcSin}(\sshare{x})$}
-\begin{enumerate}
-\item $\sshare{x^2} \asn \mathsf{F\star Mul}(\sshare{x},\sshare{x})$.
-\item $\sshare{y} \asn \mathsf{FxPade}(P_{4737},Q_{4737},\sshare{x^2})$.
-\item $\sshare{y} \asn \mathsf{F\star Mul}(\sshare{x},\sshare{y})$.
 \item Return $\sshare{y}$.
 \end{enumerate}
 
