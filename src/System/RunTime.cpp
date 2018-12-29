@@ -14,6 +14,7 @@ All rights reserved
 #include "Offline/offline_phases.h"
 #include "Online/Online.h"
 #include "System/Networking.h"
+#include "Tools/MatrixMeasurement.h"
 #include "Tools/Timer.h"
 
 #include <algorithm>
@@ -48,6 +49,8 @@ public:
 
   Machine *machine;       // Pointer to the machine
   FHE_Industry *industry; // Pointer to the FHE set of factories
+
+  MatrixMeasurement *matrix_log; // pointer to MATRIX logger
 };
 
 // We have 5 threads per online phase
@@ -123,6 +126,20 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
 
   printf("Setting up threads\n");
   fflush(stdout);
+
+  /**
+    Init MATRIX logger.
+  */
+  char * argv[3];
+  argv[0] = (char*)"offline";
+  argv[1] = (char*)malloc(16);
+  sprintf(argv[1], "%d", my_number);
+  argv[2] = (char*)malloc(16);
+  sprintf(argv[2], "%d", numBits(gfp::pr()));
+
+  vector<string> subTaskNames{"Triples", "Online"};
+  MatrixMeasurement matrix_log(3, argv, subTaskNames);
+
   threads.resize(tnthreads);
   vector<thread_info> tinfo(tnthreads);
   for (int i= 0; i < tnthreads; i++)
@@ -147,6 +164,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
       tinfo[i].sk= &sk;
       tinfo[i].PTD= &PTD;
       tinfo[i].verbose= verbose;
+      tinfo[i].matrix_log = &matrix_log;
       if (pthread_create(&threads[i], NULL, Main_Func, &tinfo[i]))
         {
           throw C_problem("Problem spawning thread");
@@ -166,6 +184,8 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
       pthread_join(threads[i], NULL);
     }
 
+  matrix_log.write_log();
+
   Close_Connections(ssocket, csockets, my_number);
 }
 
@@ -182,6 +202,8 @@ void *Main_Func(void *ptr)
   printf("Set up player %d in thread %d \n", me, num);
   fflush(stdout);
 
+  MatrixMeasurement *matrix_log = tinfo->matrix_log;
+
   if (num < 1000)
     {
       int num5= num % 5;
@@ -189,8 +211,12 @@ void *Main_Func(void *ptr)
       switch (num5)
         {
           case 0:
+            matrix_log->startSubTask("Triples", num);
+
             mult_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
                        *(tinfo->PTD), *(tinfo)->industry, verbose);
+
+            matrix_log->endSubTask("Triples", num);
             break;
           case 1:
             square_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
@@ -205,7 +231,11 @@ void *Main_Func(void *ptr)
                             *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD), *(tinfo)->industry, verbose);
             break;
           case 4:
+            matrix_log->startSubTask("Online", num);
+
             online_phase(num_online, P, *(tinfo->OCD), *(tinfo)->machine);
+
+            matrix_log->endSubTask("Online", num);
             break;
           default:
             throw bad_value();
