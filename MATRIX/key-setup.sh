@@ -49,17 +49,15 @@ done
 
 # set fake offline and fake sacrifice
 cert_command="$cert_command N N"
-echo ${cert_command}
 ./Setup.x <<< ${cert_command}
 
-if test $(wc -l HOSTS.public | cut -f 1 -d ' ') -lt $1; then
-    echo not enough instances: $(wc -l HOSTS.public)
+if test $(wc -l MATRIX/HOSTS.public | cut -f 1 -d ' ') -lt $1; then
+    echo not enough instances: $(wc -l MATRIX/HOSTS.public)
     exit 1
 fi
 
 #Now take test configuration and put it into Data/ main directory
-cd ~/SCALE-MAMBA/
-cp Auto-Test-Data/${test_suite}/SharingData.txt Data/
+cp "Auto-Test-Data/${test_suite}/SharingData.txt" Data/
 
 scale_dir=$PWD
 matrix_dir=${scale_dir}/MATRIX
