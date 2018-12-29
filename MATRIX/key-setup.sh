@@ -3,7 +3,7 @@
 source config_paths.sh
 
 num_parties=${1}
-prime_size=${2}
+test_suite=${2}
 
 # Usage: aws-key-setup.sh num_parties prime_no
 
@@ -20,6 +20,9 @@ echo "${num_parties}" >> $network_data_file
 # Generate OpenSSL certificates
 SUBJ="/CN=www.example.com"
 
+# create directory for logs
+mkdir -p logs
+
 cd ~/SCALE-MAMBA/Cert-Store/
 SUBJ="/CN=www.example.com"
 openssl genrsa -out RootCA.key 4096
@@ -35,8 +38,6 @@ for (( ID=1; ID<=${num_parties}; ID++ )) do
 		-in csr/Player$ID.csr -out Player$ID.crt 
 done
 
-# create directory for logs
-mkdir -p logs
 
 cd ~/SCALE-MAMBA
 # now put the cert in place into Networkdata using Setup.x
@@ -56,9 +57,10 @@ if test $(wc -l HOSTS.public | cut -f 1 -d ' ') -lt $1; then
     exit 1
 fi
 
-#Now run Setup.x for Sharing Data file; Assuming FHE
+#Now take test configuration and put it into Data/ main directory
 cd ~/SCALE-MAMBA/
-./Setup.x <<< "2 1 ${prime_size}"
+cp Auto-Test-Data/${test_suite}/SharingData.txt Data/
+
 scale_dir=$PWD
 matrix_dir=${scale_dir}/MATRIX
 
