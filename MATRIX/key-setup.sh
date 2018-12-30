@@ -50,7 +50,7 @@ done
 cert_command="$cert_command N N"
 ./Setup.x <<< ${cert_command}
 
-if test $(wc -l MATRIX/HOSTS.public | cut -f 1 -d ' ') -lt $1; then
+if test $(wc -l MATRIX/HOSTS.public | cut -f 1 -d ' ') -lt ${num_parties}; then
     echo not enough instances: $(wc -l MATRIX/HOSTS.public)
     exit 1
 fi
