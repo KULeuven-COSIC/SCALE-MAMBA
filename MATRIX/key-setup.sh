@@ -2,14 +2,13 @@
 
 source config_paths.sh
 
-num_parties=${1}
-test_suite=${2}
+test_suite=${1}
 
 # Usage: aws-key-setup.sh num_parties prime_no
 
 # put default network data into place
 cd ~/SCALE-MAMBA/MATRIX
-
+num_parties=$(cat "../Auto-Test-Data/${test_suite}/NetworkData.txt" | sed -n '2p')
 
 network_data_file=~/SCALE-MAMBA/Data/NetworkData.txt
 rm $network_data_file
