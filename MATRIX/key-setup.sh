@@ -8,6 +8,10 @@ test_suite=${1}
 
 # put default network data into place
 cd ~/SCALE-MAMBA/MATRIX
+
+#Now take test configuration and put it into Data/ main directory
+cp -R "../Auto-Test-Data/${test_suite}/." "../Data/."
+
 num_parties=$(cat "../Auto-Test-Data/${test_suite}/NetworkData.txt" | sed -n '2p')
 
 network_data_file=~/SCALE-MAMBA/Data/NetworkData.txt
@@ -55,8 +59,6 @@ if test $(wc -l MATRIX/HOSTS.public | cut -f 1 -d ' ') -lt ${num_parties}; then
     exit 1
 fi
 
-#Now take test configuration and put it into Data/ main directory
-cp "Auto-Test-Data/${test_suite}/SharingData.txt" Data/
 
 scale_dir=$PWD
 matrix_dir=${scale_dir}/MATRIX
