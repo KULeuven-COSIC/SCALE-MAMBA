@@ -12,7 +12,7 @@ matrix_dir=${scale_dir}/MATRIX
 
 {
 
-    sudo cp ${matrix_dir}/aws.pem ~/.ssh/id_rsa
+    sudo cp ${matrix_dir}/matrix.pem ~/.ssh/id_rsa
     echo StrictHostKeyChecking no >> ~/.ssh/config;
     echo UserKnownHostsFile /dev/null >> ~/.ssh/config
     files="${matrix_dir}/./HOSTS.private ${matrix_dir}/./HOSTS.public"
