@@ -134,6 +134,13 @@ public:
     return res;
   }
 
+  // Multiply by X^i
+  friend void mul_by_X_i(Ciphertext &ans, const Ciphertext &a, unsigned int j)
+  {
+    mul_by_X_i(ans.cc0, a.cc0, j);
+    mul_by_X_i(ans.cc1, a.cc1, j);
+  }
+
   bool operator==(const Ciphertext &c)
   {
     return cc0.equals(c.cc0) && cc1.equals(c.cc1);

@@ -9,48 +9,88 @@ g = sfix(6)
 h = sfix(7.5)
 
 # Test sin
-test(mpc_math.sin(a))
-test(mpc_math.sin(b))
-test(mpc_math.sin(c))
-test(mpc_math.sin(d))
+test(mpc_math.test_sin_fx(a))
+test(mpc_math.test_sin_fx(b))
+test(mpc_math.test_sin_fx(c))
+test(mpc_math.test_sin_fx(d))
 
-test(mpc_math.sin(e))
-test(mpc_math.sin(f))
-test(mpc_math.sin(g))
-test(mpc_math.sin(h))
+test(mpc_math.test_sin_fx(e))
+test(mpc_math.test_sin_fx(f))
+test(mpc_math.test_sin_fx(g))
+test(mpc_math.test_sin_fx(h))
 
 ## Test cos
-test(mpc_math.cos(a))
-test(mpc_math.cos(b))
-test(mpc_math.cos(c))
-test(mpc_math.cos(d))
+test(mpc_math.test_cos_fx(a))
+test(mpc_math.test_cos_fx(b))
+test(mpc_math.test_cos_fx(c))
+test(mpc_math.test_cos_fx(d))
 
-test(mpc_math.cos(e))
-test(mpc_math.cos(f))
-test(mpc_math.cos(g))
-test(mpc_math.cos(h))
+test(mpc_math.test_cos_fx(e))
+test(mpc_math.test_cos_fx(f))
+test(mpc_math.test_cos_fx(g))
+test(mpc_math.test_cos_fx(h))
 
 # Test tan
-test(mpc_math.tan(a))
-test(mpc_math.tan(b))
-test(mpc_math.tan(c))
-test(mpc_math.tan(d))
+test(mpc_math.test_tan_fx(a))
+test(mpc_math.test_tan_fx(b))
+test(mpc_math.test_tan_fx(c))
+test(mpc_math.test_tan_fx(d))
 
-test(mpc_math.tan(f))
-test(mpc_math.tan(e))
-test(mpc_math.tan(g))
-test(mpc_math.tan(h))
+test(mpc_math.test_tan_fx(f))
+test(mpc_math.test_tan_fx(e))
+test(mpc_math.test_tan_fx(g))
+test(mpc_math.test_tan_fx(h))
 
-# Test atan
-test(mpc_math.atan(a))
-test(mpc_math.atan(b))
-test(mpc_math.atan(c))
-test(mpc_math.atan(d))
+a = sfloat(-7.5)
+b = sfloat(-6)
+c = sfloat(-4.5)
+d = sfloat(-3)
 
-test(mpc_math.atan(f))
-test(mpc_math.atan(e))
-test(mpc_math.atan(g))
-test(mpc_math.atan(h))
+e = sfloat(3)
+f = sfloat(4.5)
+g = sfloat(6)
+h = sfloat(7.5)
+
+## Test sin
+test(mpc_math.test_sin_float(a))
+test(mpc_math.test_sin_float(b))
+test(mpc_math.test_sin_float(c))
+test(mpc_math.test_sin_float(d))
+
+test(mpc_math.test_sin_float(e))
+test(mpc_math.test_sin_float(f))
+test(mpc_math.test_sin_float(g))
+test(mpc_math.test_sin_float(h))
+
+## Test cos
+test(mpc_math.test_cos_float(a))
+test(mpc_math.test_cos_float(b))
+test(mpc_math.test_cos_float(c))
+test(mpc_math.test_cos_float(d))
+
+test(mpc_math.test_cos_float(e))
+test(mpc_math.test_cos_float(f))
+test(mpc_math.test_cos_float(g))
+test(mpc_math.test_cos_float(h))
+
+# Test tan
+# prec = -4  means that it tolerates a 
+# 4 bits loose of precision out of 
+# the 24, currently supported by this 
+# instantiation.
+# Effective precision is 20 bits for tan
+# under this configuration
+test(mpc_math.test_tan_float(a), prec = -4)
+test(mpc_math.test_tan_float(b))
+test(mpc_math.test_tan_float(c), prec = -4)
+test(mpc_math.test_tan_float(d))
+
+test(mpc_math.test_tan_float(f), prec = -4)
+test(mpc_math.test_tan_float(e))
+test(mpc_math.test_tan_float(g))
+test(mpc_math.test_tan_float(h), prec = -4)
+
+#test arc functions
 
 # Test asin
 a = sfix(0.1)
@@ -82,6 +122,16 @@ test(mpc_math.acos(f))
 test(mpc_math.acos(g))
 test(mpc_math.acos(h))
 
+# Test atan
+test(mpc_math.atan(a))
+test(mpc_math.atan(b))
+test(mpc_math.atan(c))
+test(mpc_math.atan(d))
+
+test(mpc_math.atan(f))
+test(mpc_math.atan(e))
+test(mpc_math.atan(g))
+test(mpc_math.atan(h))
 
 a = sfix(2)
 b = sfix(3)

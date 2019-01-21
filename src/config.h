@@ -62,7 +62,7 @@ All rights reserved
  * divide by log_2 p to get the number of sacrifices)
  *   - So it is basically log_2 p unless p is small
  */
-#define sacrifice_stat_sec 40
+#define sacrifice_stat_sec 80
 
 /* Number of macs stat_sec.
  * This defines how many macs we use in the full threshold case
@@ -70,25 +70,33 @@ All rights reserved
  * So for log_2 p>macs_stat_sec this then makes 1 MAC
  *   - So it is basically log_2 p unless p is small
  */
-#define macs_stat_sec 40
+#define macs_stat_sec 80
 
-/* The ZKPoK stat_sec.
- * Basically gives the soundness error of the ZKPoKs
- * in the full threshold case. This is the one which
- * affects offline runtime the most
+/* The ZKPoK sound_sec.
+ * Gives the soundness error of the ZKPoKs in the full 
+ * threshold case. This is the one which affects offline 
+ * runtime the most
  */
-#define ZK_stat_sec 40
+#define ZK_sound_sec 128
+
+/* The ZKPoK ZK_sec. This gives the statistical
+ * distance between the ZK simulation and the real
+ * distribution of transcripts. This does not affect
+ * parameters or run time that much
+ */
+#define ZK_ZK_sec 80
+
 
 /* The Distributed Decryption stat_sec
  * This defines the closeness of the distribution produced
  * during distributed decryption to uniform in the full
  * threshold case.
  */
-#define DD_stat_sec 40
+#define DD_stat_sec 80
 
 
 /* Note stat security parameter for fixed/floating point numbers
- * is defined in the compiler. Do alter this from the default
+ * is defined in the compiler. To alter this from the default
  * of 40 you need to use the following command in MAMBA...
  *     program.security = 80
  */
@@ -107,6 +115,22 @@ All rights reserved
  */   
 #define comp_sec 128
 
+/* The OT_comp_sec has to be equal to 128, as we only support
+ * gf2n over 128 bit fields. Fix this and this can be any value
+ * you want.
+ */
+#define OT_comp_sec 128
+
+/* This is the value rho from the paper of Wang, Ranellucci and Katz 
+ *  - This can be any value we want, it basically defines the size
+ *    of the buckets used in the aAND protocol
+ * Wang et al choose 40 here, so we will too
+ */
+#define OT_stat_sec 40
+
 #define MEMORY_DIR "Data/"
+
+/* This tells the runtime to use the TopGear variant of the ZKPoKs */
+#define TOP_GEAR
 
 #endif

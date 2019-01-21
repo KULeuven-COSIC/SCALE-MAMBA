@@ -277,8 +277,6 @@ where as \verb+cint+ map to the clear type in the Bytecode.
 
 Fixed and floating point types can be instantiated using the \verb|sfix| and \verb|sfloat| classes, and are described in later part of documentation about Advanced Algorithms.
 
-\newpage
-
 \subsubsection{Creating data}
 
 
@@ -326,7 +324,8 @@ Note: value type can be of any clear or secret numeric type.
 \end{footnotesize}
 
 \func{cfix(value)}
-It instantiates  an \verb|sfix| register based on \verb|value|. Note that \verb|value| is a publicly available value, it loads it as a secret fix point. 
+It instantiates  an \verb|sfix| register based on \verb|value|. 
+Note that \verb|value| is a publicly available value, it loads it as a secret fix point. 
 \\
 \textbf{Example:}
 \begin{lstlisting}
@@ -340,10 +339,25 @@ Note: value type can be of any clear numeric type.
 \func{sfloat(value)}
 It instantiates  an \verb|sfloat| register based on \verb|value| and returns an \verb|sfloat| object. 
 Its instantiation logic mimics its fixed point counterpart. 
-The default floating point format is IEEE single precision.\\
+Current implementation supports basic logical and arithmetic operations with all data-types.
+We describe the formatting later in this section.\\
 \textbf{Example:}
 \begin{lstlisting}
 i = sfloat(5.5)
+\end{lstlisting}
+\begin{footnotesize}
+Note: value type can be: int, float, sint, sfloat and sfix.
+\end{footnotesize}
+
+\func{cfloat(value)}
+It is the clear register counterpart of \verb|sfloat|.
+It instantiates a \verb|cfloat| register based on \verb|value| and returns a \verb|cfloat| object. 
+It mimics \verb|sfloat| number representation, 
+and its main function is to serve as an interface when operating 
+between \verb|sfloat| instances and clear types and registers.\\
+\textbf{Example:}
+\begin{lstlisting}
+i = cfloat(5.5)
 \end{lstlisting}
 \begin{footnotesize}
 Note: value type can be: int, float, sint, sfloat and sfix.
@@ -389,7 +403,8 @@ Note: operation supported for sint, cint, sfix and sfloat.
 \end{footnotesize}
 
 \func{x.load_mem(address)}
-Loads the value stored in memory \verb|address| to the register. The address is selected during the invocation of a \verb|store_in_mem|call. \\
+Loads the value stored in memory \verb|address| to the register. 
+The address is selected during the invocation of a \verb|store_in_mem|call. \\
 \textbf{Example:}
 \begin{lstlisting}
 i =sint(5)
@@ -404,7 +419,8 @@ Note: operation supported for sint, cint, sfix and sfloat.
 
 
 \func{x.reveal()}
-Opens the value in a secret register and returns a clear data-type, also referred as register for the now publicly available register.\\
+Opens the value in a secret register and returns a clear data-type, 
+also referred as register for the now publicly available register.\\
 \textbf{Example:}
 \begin{lstlisting}
 si= sint(5)
@@ -443,11 +459,23 @@ register is no longer accessible. The reason for this is to simplify the
 register allocation procedure, details of which are in section
 \ref{sec:regalloc}.
 
+When operating between different types, the result will be 
+secret if one of the operands was a secret register. 
+Additionally, as in any other conventional programming language, 
+the returned type will correspond to the type of the strongest precision. 
 
-We now provide some basic examples of basic operations. Both, integer and fractional data-types, can behave in different ways. To better exemplify their use, we utilize \verb|sint| and \verb|sfix|, but these examples can be extended for any other integer and fractional type i.e., (\verb|cint| and \verb|cfix|).
+The goal of providing clear registers, is to provide the means 
+to the user to interact and operate with secret values. 
+Our examples make use of secret registers, but as mentioned, 
+We now provide some examples for some basic operations. 
+All of these operations are supported also in between secret and clear registers.
+As a cautionary note, although supported, 
+multiplication between fixed and secret float registers 
+might cause some loss of precision, hence discouraged.
 
 \paragraph{Multiplication:}
-As before, multiplication is supported for secret and non-secret, integer and fractional data-types. They can be invoked as follows: 
+As before, multiplication is supported for secret and non-secret, 
+integer and fractional data-types. They can be invoked as follows: 
 
 \begin{lstlisting}
 c = sint(12)
@@ -455,9 +483,16 @@ c = c * c
 f = sfix(12)
 f = f * f
 d = c * f
+g = sfloat(12)
+g = g * g
+h = c * g
+i = f * g 
 \end{lstlisting}
-In this small example, we can see how to multiply among different and the same data types. As a result $c=12^2$ and $f=12.0^{2}$ and $d=12.0^{4}$. Note that \verb|d| is of type \verb|sfix|.  
-\\
+In this small example, we can see how to multiply among different and the same data types. 
+As a result $c=12^2$, $f=12.0^{2}$, $d=12.0^{4}$, $g = 12.0^{2}$, 
+$h= 12.0^{4}$, and $i=12.0^{4} $. Note that \verb|d| is of type \verb|sfix|, 
+whereas \verb|g|, \verb|h| and \verb|i| are of type \verb|sfloat|.
+\\  
 \paragraph{Additions and Substractions:}
 We follow the same principle as before:
 \begin{lstlisting}
@@ -466,18 +501,31 @@ c = c + c
 f = sfix(12)
 f = f - f
 d = c + f
+g = sfloat (12)
+g = g - g 
+h = c + g
+i = f + g
 \end{lstlisting}
-As before in this case the type fo \verb|d| is \verb|sfix|.
+As before in this case the type fo \verb|d| is \verb|sfix|, 
+whereas the type of \verb|g|, \verb|h| and \verb|i| is \verb|sfloat|
 \\
 \paragraph{Division and Modulus:}
-The Compiler can handle also division and modulus operations. However, these are not generic operations. Let us start by showing some basic constructions for division: 
+The Compiler can handle also division and modulus operations. 
+However, these are not generic operations. 
+Let us start by showing some basic constructions for division: 
 \begin{lstlisting}
 c= sint(12)
 c= c / 3
 f = sfix(3)
-f = f/2		
+f = f/2	
+g = sfloat(3)
+g = g/2	
 \end{lstlisting}
-The results for \verb|c| and \verb|f| are $4$ and $1.5$. Indeed, this is a quite natural way to call division on integers and decimal types. But it has to be noted that the division on integers is constructed as a multiplication in-between the numerator and the multiplicative inverse of the denominator. This is because of the modulo arithmetic the protocols are built upon. 
+The results for \verb|c|, \verb|f| and \verb|g| are $4$, $1.5$ and $1.5$. 
+Indeed, this is a quite natural way to call division on integers and decimal types. 
+But it has to be noted that the division on integers is constructed as a multiplication 
+between the numerator and the multiplicative inverse of the denominator. 
+This is because of the modulo arithmetic the protocols are built upon. 
 \\ 
 Moreover,  modulus operations are indeed somewhat different as we may see: 
 \begin{lstlisting}
@@ -486,19 +534,33 @@ d = sint(3)
 c = c \% 2
 d = d \% 2
 \end{lstlisting}
-The operations will return, in the case of \verb|c| 0 and for \verb|d| 1. As with divisions, there are some observations: modulo operations can only be performed to powers of 2. Furthermore, note that modulo operations cannot be performed on non-integer types: \verb|sfix| and \verb|sfloat|.
+The operations will return, in the case of \verb|c| 0 and for \verb|d| 1. 
+As with divisions, there are some observations: 
+modulo operations can only be performed to powers of 2. 
+Furthermore, note that modulo operations cannot be performed 
+on non-integer types: \verb|sfix| and \verb|sfloat|.
 \\
 \paragraph{Shift operations}:
-We have included bit shifts operations for our basic integer data-types. Such shifts do not work on fractional types. 
+We have included bit shifts operations for our basic integer data-types. 
+Such shifts do not work on fractional types. 
 \begin{lstlisting}
 c = sint(2)
 d = c << 1
 e = e >> 1 
 \end{lstlisting}
-In this case, the output of \verb|d| is 4 as expected and from \verb|e| 1. Note that bit shifts only work on integer data-types.
+In this case, the output of \verb|d| is 4 as expected and from \verb|e| 1. 
+Note that bit shifts only work on integer data-types.
 \\
 \paragraph{Exponentiation:}
-We also provide a built-in exponentiation operator for exponentiation over integer and fractional data-types ($**$) when the base is secret shared. For the integer case, the exponent can be also secret shared, however the base and the exponent cannot be both secrets on the same operation execution. We show how these cases can be easily implemented: 
+We also provide a built-in exponentiation operator for exponentiation over integer and 
+fractional data-types ($**$) when the base is secret shared. 
+For the fractional case, 
+This overload provides a simple implementation for successive multiplications. 
+We provide more comprehensive protocols for exponentiation of fractional inputs 
+in the following sections. 
+Note that, for integer registers, the exponent can be also secret shared, 
+however the base and the exponent cannot be both secrets on the same operation execution. 
+We show how these cases can be easily implemented: 
 \begin{lstlisting}
 a = sint(2)
 b = cint(3)
@@ -508,15 +570,24 @@ c = a**b 	#returns $2**3$
 c = b**a 	#returns $3**2$
 f = f**2	#returns $1.5**2$
 \end{lstlisting}
-\textbf{NOTE}: For fractional types, the exponent has to be of \textit{native Python integer} type. This is not the case for integer types.
+\textbf{NOTE}: For the reasons exposed in this section, and with respect to fractional types, 
+the exponent has to be of \textit{native Python integer} type. 
+This is not the case for integer types. We invite the reader to revise the Advance Protocols 
+section for a revision of alternatives to compute the exponent on fractional data-types.
 \\
 \paragraph{Comparisons (Inequality Tests)}:
-We have in-built operators for comparisons as well. Indeed, comparison of secret values is supported, and returns a secret output containing 0 (false) or 1 (true).They work on both integer and fractional data-types. In this sense, they can be used as follows: \\
+We have in-built operators for comparisons as well. 
+Indeed, comparison of secret values is supported, 
+and returns a secret output containing 0 (false) or 1 (true).
+They work on both integer and fractional data-types. 
+In this sense, they can be used as follows: \\
 \textbf{Example:}
 \begin{lstlisting}
-	a=sint(1)
-	b=sint(2)
-	c= a<b
+	a = sint(1)
+	b = sint(2)
+	c = a < b
+        d = sfloat(3)
+        f = a < d
 \end{lstlisting}
 
 \noindent
@@ -527,7 +598,10 @@ so any comparison operation returns a clear register value of 0
 (false) or 1 (true).
 
 \noindent
-\textbf{Secret Data-types.}  The bit length of the comparison operators defaults to the parameter $t$, which is set-up by the compiler based on the input modulus, but if a different length is required it can be specified with the following functions:
+\textbf{Secret Data-types.}  
+The bit length of the comparison operators defaults to the parameter $t$, 
+which is set-up by the compiler based on the input modulus, 
+but if a different length is required it can be specified with the following functions:
 
 \begin{lstlisting}
 x.less_than(y, bit_length, sec_param)
@@ -631,7 +705,7 @@ The results might be slightly different given the truncation of the information 
 	\func{v}
 	\textbf{Accessed by:} \verb|Default|.\\
 	\textbf{Type:} \verb|sint|.\\
-	S	Stores an integer on the $\{-2^k-1, 2^k-1\}$ interval, encoding of the rational original value.
+	S	Stores a register of type \verb|sint| on the $\{-2^k-1, 2^k-1\}$ interval, encoding of the rational original value.
 	\func{f}
 	\textbf{Accessed by:} \verb|Default|.\\
 	\textbf{Type:} \verb|int|.\\
@@ -704,14 +778,14 @@ The results might be slightly different given the truncation of the information 
 			\textbf{Returns:}
 				 Python native \verb|int| value corresponding to the size of memory slots occupied by the instance. \\
 			\textbf{Description:}
-				It returns the global_vector_size times 4. \\
+				It returns the global_vector_size times 1. \\
 	     	\textbf{Example:}
     		    To obtain reciprocal you can execute:
 		     	\begin{mylisting}
 				a =sfix()
 				a.load_int(4.5)
 				r = a.sizeof()
-				print_ln(r)  # the output is 4. By Default the global_vector
+				print_ln(r)  # the output is 1. By Default the global_vector
 				_size is set to 1.    	
      			\end{mylisting}	 
 \func{sfix.compute_reciprocal()}		
@@ -753,7 +827,7 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 	\func{v}
 	\textbf{Accessed by:} \verb|Default|.\\
 	\textbf{Type:} \verb|int|.\\
-	Stores an integer on the $\{-2^k-1, 2^k-1\}$ interval, encoding of the rational original value.
+	Stores a register on the $\{-2^k-1, 2^k-1\}$ interval, encoding of the rational original value.
 	\func{f}
 	\textbf{Accessed by:} \verb|Default|.\\
 	\textbf{Type:} \verb|int|.\\
@@ -775,8 +849,8 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
     		\end{description}
     		\textbf{Returns:} No return value. \\
      		\textbf{Description:}
-				Let you change the precision for \verb|cfix|. 
-                                The requirement is that $f<k$ and $2 \cdot k + \kappa < \log_2 p$.
+				Let you change the precision for \verb|cfix|. The precision parameters should be in line with those of \verb|cfix|, given that this class is used to interface operations between public available values and \verb|sfix| instances.
+        
                                 By default the values $(f,k)=(20,41)$ are chosen internally in the compiler.
                                 It is used to fix the default precision on \verb|types.py|. \\
 			\textbf{Example:}
@@ -827,7 +901,7 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 			\textbf{Returns:}
 				 Python native \verb|int| value corresponding to the size of memory slots occupied by the instance. \\
 			\textbf{Description:}
-				It returns the global_vector_size times 4. \\
+				It returns the global_vector_size times 1. \\
 	     	\textbf{Example:}
     		    To obtain reciprocal you can execute:
 		     	\begin{mylisting}
@@ -862,39 +936,74 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 	\end{description}
 
 \subsubsection{class sfloat}
-{\bf Note: We expect to upgrade the \verb+sfloat+ type in the next 
-release.}
-
-\vspace{5mm}
 
 \noindent
-Floating point numbers are represented by an integer tuples $(v,p)$ and a base $beta$ ( In our implementation $\beta$ is a constant value i.e., $2$). The elements of the tuple is typically called  the \textit{significand} or \textit{mantissa} and the \textit{exponent}, accordingly. Typically a float number $x$ could be represented as $x \approx v_{x} \cdot \beta^{p_{x}}$. We also have to keep track of the sign value ($s$) and whether or not $x$ is zero ($z$), so that we can provide some additional complex functionality. In SCALE, a number $x$ can be represented as follows: 
-	\[
+A floating point number $x$ is represented as 
+\[
 			x\approx (1-2 \cdot s)\cdot (1-z)\cdot v\cdot 2^{p}.
-	\]
-	This is of course an approximation. And how much error you are willing to tolerate can be parametrized. 
-There is also a statistical security parameter $\kappa$ associated with an \verb+sfloat+ which needs
+\]
+where $s$ is the sign bit,
+$z$ is a bit to signal a zero or not,
+$v$ is the \textit{significand} or \textit{mantissa},
+and $p$ is the \textit{exponent}.
+We also maintain a flag $\err$ which determines whether
+some form of error state in the floating point variable
+has occured (e.g. underflow, overflow, division by zero, taking
+square roots of negative numbers etc).
+Note, like all floating point representations such an encoding is 
+an approximation.
+The reader should note that our encoding does not directly
+emulate IEEE floating point standards, but tries to mimic them
+(thus precision etc of results will be different from IEEE
+standard).
+Our encoding is in line with the one described in detail 
+by Aliasgari et. al~\cite{ABZS13} and used across various 
+complex protocols for mathematical operations on MPC.
+The values $s$, $z$, $v$, $p$ and $\err$ are kept in
+secret shared format.
+
+We also maintain a statistical security parameter $\kappa$ 
+associated with an \verb+sfloat+ which needs
 to satisfy
 \[ 2 \cdot \verb+vlen+  + \kappa < \log_2 p. \]
-You can change the default sizes for \verb+sfloat+ values using the commands.
-	                \begin{mylisting}
+You can change the default sizes for \verb|sfloat| values using the commands.
+\begin{mylisting}
     sfloat.plen=5 
     sfloat.vlen=10
     sfloat.kappa=20
-     			\end{mylisting}
+\endd{mylisting}
 The default values being $8$, $24$ and $40$ respectively.
 
-		\paragraph{Data Components}
-		The following is a detailed description of the most important member state variables of \verb|sfloat|, and how it stores its value representation:
-		
+The $\err$ flag needs to be treated with some care.
+For efficiency reasons this can be {\em any} integer, but only
+a value of zero represents a valid number.
+The flag is initialized to $0$ and this value would only change in case an error is produce. 
+We propagate the error by adding the $\err$ flags of the operating instances.
+Thus any positive value indicates an error, and also could, if revealed, reveal how
+many errors have occured in a calculation.
+Thus before revealing an \verb|sfloat| instance, we first obtain the bit $ b = (err == 0)$, 
+and multiply it by the data components of the instance. So an \verb|sfloat| value
+will equal zero if {\em any} error has occured.
+That way we guarantee that the output would not leak any information 
+related to the inputs or any intermediary value during the calculations. 
+
+The \verb|sfloat| type supports basic arithmetic and logic operations with 
+any clear or secret register, as well as standard data-types. 
+Public values, as well as standard types are implicitly cast to \verb|cfloat| 
+before operating on an \verb|sfloat| instance. The result will always be of type \verb|sfloat|. 
+It is not recommended to utilize fixed and floating point operations unless
+precision loss is taken into account.
+ 
+\paragraph{Data Components}
+The following is a detailed description of the most important member state variables of \verb|sfloat|, their behaviour, and properties:		
 		\func{v}
 		\textbf{Accessed by:} \verb|Default|.\\
 		\textbf{Type:} \verb|sint|.\\
-		Stores the significand in secret form.
+		Stores the mantissa/significand of the encoding in secret form.
 		\func{p}
 		\textbf{Accessed by:} \verb|Default|.\\
 		\textbf{Type:} \verb|sint|.\\
-		Stores the  exponent in secret form.
+		Stores the exponent of the encoding in secret form.
 		\func{s}
 		\textbf{Accessed by:} \verb|Default|.\\
 		\textbf{Type:} \verb|sint|.\\
@@ -904,7 +1013,18 @@ The default values being $8$, $24$ and $40$ respectively.
 		\textbf{Type:} \verb|sint|.\\
 		Stores a $\{0,1\}$ value to flag when the \verb|sfloat| instance's value is zero. 
 		When this variable takes a value of $\sshare{0}$, it means that, the \verb|sfloat| instance is a non-zero value and $\sshare{1}$ otherwise.		
-
+		\func{err}
+		\textbf{Accessed by:} \verb|Default|.\\
+		\textbf{Type:} \verb|sint|.\\
+		Stores a register of type \verb|sint|, 
+		that serves to flag whether the instance is reporting a numeric error. 
+		When this variable takes a value of $\sshare{0}$, 
+		it means that the \verb|sfloat| instance is valid and non-zero otherwise. 
+		Although not recommended, 
+		in case of an error, if this value is later opened, 
+		it would disclose the number of chained operations executed on t
+		op its operation tree since the error was produced.
+		
 \paragraph{Special Operations:}
 
 %\func{sfloat.load_mem(address, mem_type)}
@@ -913,10 +1033,11 @@ The default values being $8$, $24$ and $40$ respectively.
 			\textbf{Accessed by:} \verb|Default|.		 \\
 			\textbf{Parameters:}
 			\begin{description}
-				\item[]\verb|error|:  parameter to be added to the baseline. 
+				\item[]\verb|error|:  sets the default precision error. 
 			\end{description}
 			\textbf{Returns:} N/A. \\
-			\textbf{Description:} The error signals the precision of the representation which is initialized in 0. It can be increased as follows:
+			\textbf{Description:} Not to be confused with the 
+$\err$ flag. The error, in this case, pertains to the precision of the representation which is initialized in 0. It can be increased as follows:
 			\begin{mylisting}							
 					cls.error += error - cls.error * error
 			\end{mylisting}
@@ -932,37 +1053,103 @@ The default values being $8$, $24$ and $40$ respectively.
 		      \textbf{Accessed by:} \verb|Default|. \\
 		      \textbf{Parameters:}
 		      \begin{description}
-			     \item[]\verb|v|: data value to be transformed into float representation.
-			     \item[]\verb|vlen|: bit-lenght of the integer part of \verb|v|.
-			     \item[]\verb|plen|: bit-lenght of the decimal part of \verb|v|.
+			     \item[]\verb|v|: data publicly available value (numeric Python data-type) to be transformed into float representation.
+			     \item[]\verb|vlen|: bit-lenght of the mantissa that will encode \verb|v|.
+			     \item[]\verb|plen|: bit-lenght of the exponential encoding of \verb|v|.
 		      \end{description}
-		      \textbf{Returns:} Tuple composed of the $4$ data points to construct \verb|v| to the float representation used by \verb|sfloat|. \\
-		      \textbf{Description:} Function uses inputs to obtain a representation on Python native types of \verb|v|. Note that the bit-wise sizes fo the inputs has to be aligned with how \verb|v| looks like.	 \\
+		      \textbf{Returns:} A tuple composed by the $5$ data components of a \verb|sfloat|. 
+		      It can be used to instantiate a new \verb|sfloat| obtect.\\
+		      \textbf{Description:} Transforms and secret shares an input 
+		      in plain text to our floating point representation. 
+		      Note that both \verb|vlen| and \verb|plen| parameters should 
+		      be sufficiently large to handle \verb|v|.\\
 		\textbf{Example:}
-		An example with native Python types would look as follows:
+		An examplle, using  would look as follows:
 		\begin{mylisting}
-		   float_value= sfloat(9999,14,1) 
-	 	   print_ln("The float representation of 9999 is \%s", float_value)		
+		   float_value= sfloat(9999, 14 ,1 ,0 , 0) 
+	 	   print_ln("The float representation of 9999 is \%s", float_value.reveal())		
 		\end{mylisting}
 %\func {store_in_mem}
 \func{sfloat.sizeof()}
                         \textbf{Accessed by:} \verb|Default|. \\
                         \textbf{Parameters:} N/A \\
                         \textbf{Returns:}
-                                 Python native \verb|int| value corresponding to the size of memory slots occupied by the instance. \\
+                                 Python native \verb|int| value corresponding to the size of 
+                                 memory slots occupied by the instance. \\
                         \textbf{Description:}
-                                Note that each \verb|sfloat| instance is composed by 4 different values (v, p, z and f), it returns the global_vector_size times 4. \\
+                                Note that each \verb|sfloat| instance is composed by 5 
+                                different values (v, p, z, s, and err), 
+                                it returns the \verb|global_vector_size| times 5. 
+                                In case the instance is vectorized, 
+                                it would return the vector size time 5.\\
                 \textbf{Example:}
                     To obtain reciprocal you can execute:
                         \begin{mylisting}
-                                a =sfloat()
-                                a.load_int(4.5)
+                                a =sfloat(4.5)
+                                r = a.sizeof()
+                                print_ln(r)  # the output is 5. By Default the global_vector
+                                _size is set to 1.
+                        \end{mylisting}
+                        
+\subsubsection{class cfloat}
+The main purpose of this class is to offer interoperability between public registers 
+and Python numeric types, and instances of our secret \verb|sfloat| register. 
+We use the same representation as it secret shared counterpart, 
+this way we are able to perform operations in between \verb|sfloat| and publicly available values, 
+once they are cast into \verb|cfloat| values.
+This basically means that an instance of the same number, on \verb|sfloat| and \verb|cfloat|, 
+would  encode the number in the same fashion, 
+as long as they are using the same precision parameters. 
+However, \verb|cfloat| values do not include an $\err$ parameter, 
+given that such flag is not necessary.
+
+\paragraph{Data Components}
+		The following is a detailed description of the most important member state variables of \verb|cfloat|, and how it stores its value representation:
+		
+		\func{v}
+		\textbf{Accessed by:} \verb|Default|.\\
+		\textbf{Type:} \verb|cint|.\\
+		Stores the significand in clear form.
+		\func{p}
+		\textbf{Accessed by:} \verb|Default|.\\
+		\textbf{Type:} \verb|cint|.\\
+		Stores the  exponent in clear form.
+		\func{s}
+		\textbf{Accessed by:} \verb|Default|.\\
+		\textbf{Type:} \verb|cint|.\\
+		Stores a $\{0,1\}$ value storing the sign of the instance, 
+		where $0$ means is positive and $1$ otherwise. 
+		Our aim is to mimic the behaviour of its secret shared counterpart.
+		\func{z}
+		\textbf{Accessed by:} \verb|Default|.\\
+		\textbf{Type:} \verb|cint|.\\
+		Stores a $\{0,1\}$ value to flag when the \verb|cfloat| 
+		instance's value is zero. 
+		When this variable takes a value of $0$, it means that the \verb|cfloat| 
+		instance is a non-zero value and $1$ otherwise. 
+		Our aim is to mimic the behaviour of its secret shared counterpart.
+
+\paragraph{Special Operations:}
+\func{cfloat.sizeof()}
+                        \textbf{Accessed by:} \verb|Default|. \\
+                        \textbf{Parameters:} N/A \\
+                        \textbf{Returns:}
+                                 Python native \verb|int| value corresponding to the size of memory slots occupied by the instance. \\
+                        \textbf{Description:}
+                                Note that each \verb|sfloat| instance is composed by 4 
+                                different values (v, p, z and s), 
+                                it returns the \verb|global_vector_size| times 4. 
+                                In case the instance is vectorized, 
+                                it would return the vector size time 4.\\
+                \textbf{Example:}
+                    To obtain reciprocal you can execute:
+                        \begin{mylisting}
+                                a =cfloat(4.5)             
                                 r = a.sizeof()
                                 print_ln(r)  # the output is 4. By Default the global_vector
                                 _size is set to 1.
                         \end{mylisting}
-			
-	
+
 \subsubsection{Branching and Looping}
 As discussed earlier, all native Python loops and branches are evaluated at
 compile time. So to allow for control flow breaks depending on register values
@@ -974,8 +1161,6 @@ possibilities for both branching and looping.
 Some of them require that the body of a loop or branch is written
 in a separate function. The loop or branch is then initiated by a special
 function call, taking the loop or branch function as a parameter.
-
-\newpage
 
 \paragraph{Branching}
 There are two ways of doing the if statement: 

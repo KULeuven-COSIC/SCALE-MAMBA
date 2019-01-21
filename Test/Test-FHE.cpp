@@ -416,6 +416,26 @@ void Test_Rq_Element(int num, const vector<FFT_Data> &prd)
             }
         }
     }
+
+  /* Do test of mult by a power of X 
+   * Only run when degree is small
+   */
+  cout << "Testing mult by powers of X" << endl;
+  if (prd[0].phi_m() < 1024)
+    {
+      Rq_Element xx(prd), yy(prd);
+      xx.assign_one();
+      cout << " xx = ";
+      xx.output(cout, true);
+      cout << endl;
+      for (int i= 0; i < 2 * prd[0].phi_m(); i++)
+        {
+          mul_by_X_i(yy, xx, i);
+          cout << i << " : ";
+          yy.output(cout, true);
+          cout << endl;
+        }
+    }
 }
 
 /*  Tests power of two FFT routines  */
@@ -553,7 +573,8 @@ int main()
   // Get some bigger parameters
   cout << "\n\nTesting Main FHE parameters" << endl;
   unsigned int hwt= 64;
-  Generate_Parameters(N, p0, p1, p, 128, hwt, 3);
+  p= 0;
+  Generate_Parameters(N, p0, p1, p, 128, hwt, 3, TopGear);
 
   Rg.initialize(2 * N);
 

@@ -1,0 +1,87 @@
+
+
+\begin{Boxfig}{Protocol for global proof of knowledge of a set of ciphertexts: Part I}{PZK1}{Protocol $\Pi_{\gZKPoK}$: Commitment, Challenge and Response Phases}
+The protocol is parametrized by an integer parameter $U$ and 
+a $\flag  \in \left\{ \Diag, \perp \right\}$.
+
+\vspace{3mm}
+
+\noindent
+\textsc{Input}:
+Each (honest) party $P_i$ enters $U$ plaintexts $\vm_i \in \R_p^U$ (considered
+as elements of $\R_{q_1}^U$) and $U$ randomness triples
+$R_i \in \R_{q_1}^{U \times 3}$, where each row of $R_i$ 
+$(r_i^{(j,1)},r_i^{(j,2)},r_i^{(j,3)})$ is generated from $\RC\left( \sigma^2, 0.5, N \right)$.
+For honest $P_i$  we therefore have, for all $j \in [U]$, 
+$\norm{\vm_i^{(j)}}_\infty \le \frac{p}{2}$
+and 
+$\norm{r_i^{(j,k)}}_\infty \le \rho_k$,
+where $\rho_1 = \rho_2 =20 $ and $\rho_3=1$.
+We write $V=2 \cdot U-1$.
+
+\vspace{3mm}
+
+\noindent{Commitment Phase: $\Comm$}
+\begin{enumerate}
+\item $P_i$ computes the BGV encryptions by applying the BGV encryption algorithm 
+  to the $j$ plaintext/randomness vectors in turn to obtain 
+  $C_i \asn \Enc(\vm_i,R_i; \pk) \in \R_{q_1}^{U \times 2}$.
+\item The players broadcast $C_i$.
+\item Each $P_i$ samples $V$ pseudo-plaintexts $\vy_i \in \R_{q_1}^V$
+  and pseudo-randomness vectors $S_i = (s_i^{(j,k)}) \in \R_{q_1}^{V \times 3}$ such that,
+for all $j \in [V]$,
+$\norm{\vy_i^{(j)}}_\infty \le 2^{\ZKsecp-1} \cdot p$
+and
+$\norm{s_i^{(j,k)}}_\infty \le 2^\ZKsecp \cdot \rho_k$.
+\item Party $P_i$ computes
+  $A_i \asn \Enc(\vy_i,S_i; \pk) \in \R_{q_1}^{V \times 2}$.
+\item The players broadcast $A_i$.
+\end{enumerate}
+
+\noindent{Challenge Phase: $\Challenge$}
+\begin{enumerate}
+  \item Parties call agree on a random vector $\ve=(e_i)$
+    such that $\ve \in \left\{ \left\{ X^i \right\}_{i=0 \ldots, 2 \cdot N-1} \right\}^U$ if $\flag=\perp$ and $\ve \in \{0,1\}^U$ if $\flag=\Diag$.
+\end{enumerate}
+
+\noindent{Response Phase: $\Resp$}
+\begin{enumerate}
+\item Parties define the $V \times U$ matrix $M_\ve$ where
+\[
+  M_{\ve}^{(k,l)} = \left\{ \begin{array}{ll}
+                 e_{k-l+1} & \textrm{if }1\leq k-l+1 \leq U\\
+                 0 & \textrm{otherwise}
+                     \end{array}
+\right.
+\]
+\item Each $P_i$ computes $ \vz_i \asn \vy_i + M_\ve \cdot \vm_i$
+  and $T_i \asn S_i + M_\ve \cdot R_i$. 
+\item Party $P_i$ sets $\resp_i \asn \left( \vz_i, T_i \right)$, and broadcasts $\resp_i$.
+\end{enumerate}
+\end{Boxfig}
+
+
+\begin{Boxfig}{Protocol for global proof of knowledge of a set of ciphertexts: Part II}{PZK2}{Protocol $\Pi_{\gZKPoK}$: Verification Phase}
+
+\noindent{Verification Phase: $\Verify$}
+\begin{enumerate}
+\item Each party $P_i$ computes $D_i \asn \Enc( \vz_i, T_i; \pk)$.
+\item The parties compute
+$A \asn \sum_{i=1}^n A_i$,
+$C \asn \sum_{i=1}^n C_i$,
+$D \asn \sum_{i=1}^n D_i$,
+$T \asn \sum_{i=1}^n T_i$ and
+$\vz \asn \sum_{i=1}^n \vz_i$. 
+\item The parties check whether $ D = A + M_\ve \cdot C$, and then whether 
+  the following inequalities hold, for $j \in [V]$,
+\[
+    \norm{\vz^{(j)}}_\infty \le n \cdot 2^\ZKsecp \cdot p,
+    \quad
+    \norm{T^{(j,k)}}_\infty \le 2 \cdot n \cdot 2^\ZKsecp \cdot \rho_k \mbox{ for } k=1,2,3.
+\]
+\item If $\flag=\Diag$ then the proof is rejected if 
+  $\vz^{(j)}$ is not a constant polynomial (i.e. a ``diagonal'' plaintext element).
+\item If all checks pass, the parties output $C$.
+\end{enumerate}
+\end{Boxfig}
+

@@ -105,11 +105,11 @@
     JMP= 0x90,
     JMPNZ= 0x91,
     JMPEQZ= 0x92,
-    EQZC= 0x93,
-    LTZC= 0x94,
-    LTC= 0x95,
-    GTC= 0x96,
-    EQC= 0x97,
+    EQZINT= 0x93,
+    LTZINT= 0x94,
+    LTINT= 0x95,
+    GTINT= 0x96,
+    EQINT= 0x97,
     JMPI= 0x98,
 
     # Integer Operations
@@ -1339,12 +1339,12 @@ class divint(base.IntegerInstruction):
 
 @base.vectorize
 class eqzc(base.UnaryComparisonInstruction):
-    r""" EQZC i j
+    r""" EQZINT i j
          Clear comparison to zero test of regint registers r_i = (r_j == 0).
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['EQZC']
+    code = base.opcodes['EQZINT']
 
     def execute(self):
         if self.args[1].value == 0:
@@ -1355,42 +1355,42 @@ class eqzc(base.UnaryComparisonInstruction):
 
 @base.vectorize
 class ltzc(base.UnaryComparisonInstruction):
-    r""" LTZC i j
+    r""" LTZINT i j
          Clear comparison of regint registers r_i = (r_j < 0).
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['LTZC']
+    code = base.opcodes['LTZINT']
 
 
 @base.vectorize
 class ltc(base.IntegerInstruction):
-    r""" LTC i j k
+    r""" LTINT i j k
          Clear comparison of regint registers r_i = (r_j < r_k).
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['LTC']
+    code = base.opcodes['LTINT']
 
 
 @base.vectorize
 class gtc(base.IntegerInstruction):
-    r""" GTC i j k
+    r""" GTINT i j k
          Clear comparison of regint registers r_i = (r_j > r_k).
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['GTC']
+    code = base.opcodes['GTINT']
 
 
 @base.vectorize
 class eqc(base.IntegerInstruction):
-    r""" EQC i j k
+    r""" EQINT i j k
          Clear comparison of regint registers r_i = (r_j == r_k).
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['EQC']
+    code = base.opcodes['EQINT']
 
 
 #

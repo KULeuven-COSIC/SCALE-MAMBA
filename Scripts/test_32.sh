@@ -40,8 +40,8 @@ if test "$1"; then
 else
     test_opts="-s"
     compile_opts="--stop"
-    # We do not run sfix, sqrt and custom_array tests for 32 bit inputs 
-    for test in test_all test_array test_branch test_branching test_comparison test_count test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_for_range_multithread test_function test_idle_threads test_lib test_loop test_map_reduce test_mem_order test_new_threads test_threads test_vector; do
+    # We do not run sfix, float, math, sqrt and custom_array tests for 32 bit inputs 
+    for test in test_all test_array test_branch test_branching test_comparison test_count test_empty_tape test_flex test_for_range_multithread test_function test_idle_threads test_lib test_loop test_map_reduce test_mem_order test_new_threads test_threads test_vector; do
 	run_test $test
     done
 fi

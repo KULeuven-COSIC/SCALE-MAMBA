@@ -159,6 +159,15 @@ unsigned int PRNG::get_uint()
   return ans;
 }
 
+__m128i PRNG::get_doubleword()
+{
+  if (cnt > RAND_SIZE - 16)
+    next();
+  __m128i ans= _mm_loadu_si128((__m128i *) &random[cnt]);
+  cnt+= 16;
+  return ans;
+}
+
 unsigned char PRNG::get_uchar()
 {
   if (cnt >= RAND_SIZE)
@@ -179,6 +188,26 @@ void PRNG::get_random_bytes(uint8_t *ans, int len)
     {
       int step= min(len, RAND_SIZE - cnt);
       memcpy(ans + pos, random + cnt, step);
+      pos+= step;
+      len-= step;
+      cnt+= step;
+      if (cnt == RAND_SIZE)
+        next();
+    }
+}
+
+/* Returns len random bytes */
+void PRNG::get_random_bytes(vector<uint8_t> &ans)
+{
+  int pos= 0;
+  int len= ans.size();
+  while (len)
+    {
+      int step= min(len, RAND_SIZE - cnt);
+      for (int i= 0; i < step; i++)
+        {
+          ans[pos + i]= random[cnt + i];
+        }
       pos+= step;
       len-= step;
       cnt+= step;

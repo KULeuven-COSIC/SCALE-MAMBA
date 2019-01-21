@@ -24,12 +24,12 @@ using namespace std;
 #include "config.h"
 
 void Gen_FHE_Data(int &n, Ring &Rg, FFT_Data &PTD, FHE_Params &params,
-                  FHE_PK *&pk, FHE_SK **&sk, FHE_SK *&Msk)
+                  FHE_PK *&pk, FHE_SK **&sk, FHE_SK *&Msk, PoKVersion version)
 {
   n= 2;
-  bigint p0, p1, pr;
+  bigint p0, p1, pr= 0;
   unsigned int hwt= 64, N;
-  Generate_Parameters(N, p0, p1, pr, 128, hwt, n);
+  Generate_Parameters(N, p0, p1, pr, 128, hwt, n, version);
 
   Rg.initialize(2 * N);
   gfp::init_field(pr);
@@ -129,7 +129,8 @@ void Read_FHE_Data(int &n, Ring &Rg, FFT_Data &PTD, FHE_Params &params,
 }
 
 void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
-              const FHE_Params &params, FHE_PK *pk, FHE_SK **sk, FHE_SK *Msk)
+              const FHE_Params &params, FHE_PK *pk, FHE_SK **sk, FHE_SK *Msk,
+              PoKVersion version)
 {
   // Make an identifiable plaintext
   Plaintext mess(PTD);
@@ -224,11 +225,12 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
 
   unsigned int max= 0, total= 0;
   // The ZKPoK stuff (first do non-Diagonal method)
-  cout << "Doing Step 1 of ZK PoK" << endl;
+  cout << "Doing Step 0/1 of ZK PoK" << endl;
   vector<ZKPoK> ZK(n);
   for (int i= 0; i < n; i++)
     {
-      ZK[i].Step1(General, *pk, PTD, G);
+      ZK[i].Step0(General, version, *pk, PTD, G);
+      ZK[i].Step1(*pk, PTD, G);
     }
 
   // Emulate the transmission of data
@@ -260,22 +262,25 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
               {
                 istringstream isE(osE[j].str());
                 istringstream isA(osA[j].str());
-                ZK[i].Step1_Step(isE, isA, *pk);
+                ZK[i].Step0_Step(isE, *pk);
+                ZK[i].Step1_Step(isA, *pk);
               }
           }
       }
   }
 
-  // Generate stat_sec random bits
-  vector<int> e(ZK_stat_sec);
-  for (int i= 0; i < ZK_stat_sec; i++)
+  // Generate challenge
+  uint8_t seed[SEED_SIZE];
+  for (unsigned int i= 0; i < SEED_SIZE; i++)
     {
-      e[i]= rand() % 2;
+      seed[i]= (uint8_t)(rand());
     }
+  vector<int> e;
 
   cout << "Doing Step 2 of ZK PoK" << endl;
   for (int i= 0; i < n; i++)
     {
+      ZK[i].Generate_e(e, seed);
       ZK[i].Step2(e, *pk);
     }
 
@@ -321,9 +326,10 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
         {
           cout << "Player " << i << " rejects the ZKPoK" << endl;
         }
+      cout << "Soundness Parameter for Player " << i << " is " << ZK[i].get_sound_sec() << endl;
     }
-  cout << "\n\nLargest message has size " << max << " bytes\n";
-  cout << "\n\nTotal message size sent per player " << total << " bytes\n\n";
+  cout << "\nLargest message has size " << max << " bytes\n";
+  cout << "\nTotal message size sent per player " << total << " bytes\n\n";
 
   cout << "\nTesting Diagonal ZKPoK routines" << endl;
 
@@ -333,7 +339,8 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   alpha[0].randomize(G);
   for (int i= 0; i < n; i++)
     {
-      ZK[i].Step1(Diagonal, *pk, PTD, G, alpha);
+      ZK[i].Step0(Diagonal, version, *pk, PTD, G, alpha);
+      ZK[i].Step1(*pk, PTD, G);
     }
 
   // Emulate the transmission of data
@@ -353,21 +360,23 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
               {
                 istringstream isE(osE[j].str());
                 istringstream isA(osA[j].str());
-                ZK[i].Step1_Step(isE, isA, *pk);
+                ZK[i].Step0_Step(isE, *pk);
+                ZK[i].Step1_Step(isA, *pk);
               }
           }
       }
   }
 
-  // Generate stat_sec random bits
-  for (int i= 0; i < ZK_stat_sec; i++)
+  // Generate challenge
+  for (unsigned int i= 0; i < SEED_SIZE; i++)
     {
-      e[i]= rand() % 2;
+      seed[i]= (uint8_t)(rand());
     }
 
   cout << "Doing Step 2 of ZK PoK" << endl;
   for (int i= 0; i < n; i++)
     {
+      ZK[i].Generate_e(e, seed);
       ZK[i].Step2(e, *pk);
     }
 
@@ -401,6 +410,7 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
         {
           cout << "Player " << i << " rejects the ZKPoK" << endl;
         }
+      cout << "Soundness Parameter for Player " << i << " is " << ZK[i].get_sound_sec() << endl;
     }
 }
 
@@ -415,18 +425,18 @@ int main()
   FHE_SK **sk;
   FHE_SK *Msk;
 
-  cout << "Internally Generated Example" << endl;
-  Gen_FHE_Data(n, Rg, PTD, params, pk, sk, Msk);
-  Test_All(n, Rg, PTD, params, pk, sk, Msk);
+  cout << "First testing TopGear" << endl;
+  Gen_FHE_Data(n, Rg, PTD, params, pk, sk, Msk, TopGear);
+  Test_All(n, Rg, PTD, params, pk, sk, Msk, TopGear);
 
-  delete[] pk;
+  cout << "\n\n\nThen testing HighGear" << endl;
+  Gen_FHE_Data(n, Rg, PTD, params, pk, sk, Msk, HighGear);
+  Test_All(n, Rg, PTD, params, pk, sk, Msk, HighGear);
+
+  delete pk;
   for (int i= 0; i < n; i++)
     {
       delete sk[i];
     }
   delete[] sk;
-
-  cout << "Externally Generated Example" << endl;
-  Read_FHE_Data(n, Rg, PTD, params, pk, sk, Msk);
-  Test_All(n, Rg, PTD, params, pk, sk, Msk);
 }

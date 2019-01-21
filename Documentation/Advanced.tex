@@ -53,7 +53,7 @@ If this is not the case, obvious tweaks can be made to the protocols.
 
 Due to experience with the SPDZ system we prefer logarithmic
 round protocols over constant round protocols, it appears that in
-practice the logarithmic round protocols outperform the contant
+practice the logarithmic round protocols outperform the constant
 round ones.
 The MAMBA compiler can execute non-constant round protocols, by 
 flicking a compile time switch. But here we only document
@@ -1050,23 +1050,24 @@ Same as above, but in this case we only return $m$, and $w$, together with a $\{
 
 
 \msubsection{Arithmetic with Floating Point Numbers}
-\todo{This section is currently not fully implemented. We aim to 
-implement it fully in the next release.}
 
 For floating point numbers we utilize the methods described in
 \begin{itemize}
 \item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
 \end{itemize}
 However we make explicit use of an error flag which we carry throughout
-a computation.
-\todo{This error flag is not currently implemented in MAMBA system 
-we need to add it}
-As discussed in the above paper for overflow and underflow detection
-one can choose to use the flag or not, thus we isolate the underflow/overflow
-detection below in the routine $\mathsf{FlowDetect}$ and allow a compile
-time flag $\mathsf{fdflag}$ to turn this option off or on.
+a computation, as detailed in previous sections.
+The processing of overflow and underflow detection is expensive,
+and thus we enable the user to turn this off via
+means of a compile time flag \verb+fdflag+ by passing the option 
+\verb+-f+ or \verb+--fdflag+ when using \verb|compile.py|.
+This can also be turned on/off within a program by assigning
+to the variable \verb+program.fdflag+.
 The error flag is still needed however to catch other forms of errors
-in computations.
+in computations (such as division by zero, taking square roots of
+negative numbers etc). 
+Thus setting \verb+fdflag+ equal to $\false$
+does not necessarily result in $\err$ always equaling zero.
 
 Floating point numbers are defined by two global, public integer parameters
 $(\ell,k)$ which define the size of the mantissa and the exponent respectively.
@@ -1077,21 +1078,27 @@ most bit always set to one.
 \item $p \in \Zk$ is the signed exponent.
 \item $z$ is a bit to define whether the number is zero or not.
 \item $s$ is a sign bit (equal to zero if non-negative).
-\item $\err$ is an error bit (equal to zero if no error has occured).
+\item $\err$ is the error flag (equal to zero if no error has occurred, it holds a non-zero value otherwise).
 \end{itemize}
 Thus assuming $\err=0$ this tuple represents the value
 \[ u=(1- 2 \cdot s) \cdot (1-z) \cdot v \cdot 2^p. \]
 We adopt the conventions that when $u=0$ we also have $z=1, v=0$ and $p=0$,
 and when $\err=1$ then the values of $v,p,z$ and $s$ are meaningless.
 
-\msubsubsection{$\mathsf{FlowDetect}(\sshare{p},\sshare{\err})$:}
+The standard arithmetic operations of addition, multiplication and
+comparison are then implemented in MAMBA for this datetype using
+operator overloading. The precise algorithms which are executed
+are detailed below.
+
+\msubsubsection{$\mathsf{FlowDetect}(\sshare{p})$:}
 \begin{enumerate}
 \item If $\mathsf{fdflag}$ then
 \begin{enumerate}
-\item $\sshare{of} \asn \mathsf{GT}(\sshare{p},2^{k-1}-1,k+1)$.
-\item $\sshare{uf} \asn \mathsf{LT}(\sshare{p},-2^{k-1}-1,k+1)$.
-\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{of})$.
-\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{uf})$.
+\item $\sshare{s} \asn -2 \cdot (\sshare {p} < 0) + 1$.
+%\item $\sshare{of} \asn \mathsf{GT}(\sshare{p},2^{k-1}-1,k+1)$.
+%\item $\sshare{uf} \asn \mathsf{LT}(\sshare{p},-2^{k-1}-1,k+1)$.
+\item $\sshare{\err} \asn \mathsf{GT}(\sshare{p} \cdot \sshare{s},2^{k-1}-1,k+1)$. 
+%\sshare{of} + \sshare{uf}.
 \end{enumerate}
 \item Return $\sshare{\err}$.
 \end{enumerate}
@@ -1123,8 +1130,7 @@ this first.
 \item $\sshare{z} \asn \mathsf{OR}(\sshare{z_1},\sshare{z_2})$.
 \item $\sshare{s} \asn \mathsf{XOR}(\sshare{s_1},\sshare{s_2})$.
 \item $\sshare{p} \asn (\sshare{p_1}+\sshare{p_2}+\ell-\sshare{b}) \cdot (1-\sshare{z})$.
-\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_1},\sshare{\err_2})$.
-\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
+\item $\sshare{\err} \asn \sshare{\err_1} + \sshare{\err_2} + \mathsf{FlowDetect}(\sshare{p})$.
 \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
 \end{enumerate}
 
@@ -1174,7 +1180,7 @@ this first.
 \item $\sshare{s} \asn (1-\sshare{z_1}-\sshare{z_2}+\sshare{z_1 \cdot z_2}) \cdot \sshare{s}
 	             + (\sshare{z_2}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_1}
 		     + (\sshare{z_1}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_2}$.
-\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_1},\sshare{\err_2})$.
+\item $\sshare{\err} \asn \sshare{\err_1} + \sshare{\err_2} + \mathsf{FlowDetect}(\sshare{p})$.
 \item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
 \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
 \end{enumerate}
@@ -1207,36 +1213,36 @@ this first.
 \item $\sshare{z} \asn \sshare{z_1}$.
 \item $\sshare{s} \mathsf{XOR}(\sshare{s_1},\sshare{s_2})$.
 \item $\sshare{p} \asn (\sshare{p_1}-\sshare{p_2}-\ell+1-\sshare{b}) \cdot (1-\sshare{z})$.
-\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_1},\sshare{\err_2})$.
-\item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{z_2})$.
-\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
+\item $\sshare{\err} \asn \sshare{\err_1} + \sshare{\err_2}$.
+\item $\sshare{\err} \asn \sshare{\err} + \sshare{z_2}$.
+\item $\sshare{\err} \asn \sshare{\err} + \mathsf{FlowDetect}(\sshare{p})$.
 \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
 \end{enumerate}
 
 
 \msubsubsection{$\mathsf{FLLTZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
 \begin{enumerate}
-\item Return $\sshare{s} \cdot (1-\sshare{z})$.
+\item Return $\sshare{s} \cdot (1-\sshare{z}) \cdot \mathsf{EQZ}(\sshare{\err}, k)$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLEQZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
 \begin{enumerate}
-\item Return $\sshare{z})$.
+\item Return $\sshare{z} \cdot \mathsf{EQZ}(\sshare{\err}, k)$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLGTZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
 \begin{enumerate}
-\item Return $(1-\sshare{s}) \cdot (1-\sshare{z})$.
+\item Return $(1-\sshare{s}) \cdot (1-\sshare{z}) \mathsf{EQZ}(\sshare{\err}, k)$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLLEZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
 \begin{enumerate}
-\item Return $\sshare{s}$.
+\item Return $\sshare{s} \cdot (1 - \mathsf{EQZ}(\sshare{\err}, k))$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLGEZ}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}))$:}
 \begin{enumerate}
-\item Return $1-\sshare{s}$.
+\item Return $(1-\sshare{s}) \cdot \mathsf{EQZ}(\sshare{\err}, k)$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLEQ}(
@@ -1247,7 +1253,9 @@ this first.
 \item $\sshare{b_2} \asn \mathsf{EQ}(\sshare{p_1},\sshare{p_2},k)$.
 \item $\sshare{b_3} \asn \sshare{z_1} \cdot \sshare{z_2}$.
 \item $\sshare{b_4} \asn \sshare{s_1} \cdot \sshare{s_2}$.
-\item Return $\sshare{b_1} \cdot \sshare{b_2} \cdot \sshare{b_3} \cdot \sshare{b_4}$.
+\item $\sshare{t} \asn \sshare{err_1} + \sshare{err_2}$.
+\item $\sshare{t} \asn (\mathsf{EQZ}(\sshare{t}, k)$.
+\item Return $(\sshare{b_1} \cdot \sshare{b_2} \cdot \sshare{b_3} \cdot (1 - \sshare{b_4}) + \sshare{b_4}) \cdot \sshare{t}$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLLT}(
@@ -1268,10 +1276,12 @@ this first.
 	             + \sshare{s_1 \cdot s_2} \cdot (\sshare{z_1}+\sshare{z_2}-1)
 		     + \sshare{z_1}\cdot (1-\sshare{s1}-\sshare{s_2})
 		     + \sshare{s_1}$.
+\item $\sshare{t} \asn \sshare{err_1} + \sshare{err_2}$.
+\item $\sshare{t} \asn \mathsf{EQZ}(\sshare{t}, k)$.
 \item $\sshare{b} \asn \sshare{b}+
 	(1-\sshare{z_1}-\sshare{z_2}+\sshare{z_1 \cdot z_2} \cdot 
 	((1-\sshare{s_1}-\sshare{s_2}+\sshare{s_1 \cdot s_2}) \cdot \sshare{b^+}
-	+\sshare{s_1 \cdot s_2} \cdot \sshare{b^-})$.
+	+\sshare{s_1 \cdot s_2} \cdot \sshare{b^-}) \cdot \sshare{t}$.
 \item Return $\sshare{b}$.
 \end{enumerate}
 
@@ -1280,42 +1290,40 @@ this first.
 	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
         (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
 \begin{enumerate}
-\item Return $\mathsf{FLLT}(
-	(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),
-        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$.
+\item $\sshare{v_r}, \sshare{p_r}, \sshare{z_r}, \sshare{s_r}, \sshare{err_r} \asn
+\mathsf{FLAdd}(
+	(\sshare{v_2},\sshare{p_2},\sshare{z_2},1 -\sshare{s_2},\sshare{\err_2}),
+    (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$.
+ \item Return $\mathsf{FLLTZ}(\sshare{v_r}, \sshare{p_r}, \sshare{z_r}, \sshare{s_r}, \sshare{err_r})$.   
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLLET}(
 	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
         (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
 \begin{enumerate}
-\item $\sshare{b_1} \asn \mathsf{FLLT}(
+\item $\sshare{b} \asn \mathsf{FLGT}(
         (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
         (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
-\item $\sshare{b_2} \asn \mathsf{FLEQ}(
-        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
-        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
-\item Return $\mathsf{OR}(\sshare{b_1},\sshare{b_2})$.
+%\item $\sshare{b_2} \asn \mathsf{FLEQ}(
+%        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+%        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
+\item Return $1 - \sshare{b}$%$\mathsf{OR}(\sshare{b_1},\sshare{b_2})$.
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FLGET}(
 	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
         (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
 \begin{enumerate}
-\item $\sshare{b_1} \asn \mathsf{FLGT}(
+\item $\sshare{b} \asn \mathsf{FLLT}(
         (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
         (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
-\item $\sshare{b_2} \asn \mathsf{FLEQ}(
-        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
-        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
-\item Return $\mathsf{OR}(\sshare{b_1},\sshare{b_2})$.
+%\item $\sshare{b_2} \asn \mathsf{FLEQ}(
+%        (\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
+%        (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$.
+\item Return $1 - \sshare{b}$%$\mathsf{OR}(\sshare{b_1},\sshare{b_2})$.
 \end{enumerate}
 
-
 \msubsection{Conversion Routines}
-\todo{As floating point is not yet fully implemented, the
-references in this section to floating point operations should
-be considered ``experimental''.}
 
 \msubsubsection{$\mathsf{FLRound}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1},\mathsf{mode})$:}
 This, depending on $\mathsf{mode}$, computes either the floating point
@@ -1404,6 +1412,7 @@ x = sfloat(5.5)
 y = sfloat(x)
 \end{lstlisting}
 
+
 \msubsubsection{$\mathsf{Fx2Int}(\sshare{a},k,f)$:}
 Given a value $a \in \Qk{f}$ this gives the integer
 $\floor{\overline{a}/2^f}$.
@@ -1411,7 +1420,8 @@ $\floor{\overline{a}/2^f}$.
 \item Return $\mathsf{Trunc}(\sshare{a},k,f)$.
 \end{enumerate}
 
-\paragraph{MAMBA Example:} To cast an \verb|sfix| register into a \verb|sint| one, you could execute the following: 
+\paragraph{MAMBA Example:} To extract the integral component of a \verb|sfix| register, which is then encapsulated on a \verb|sint| register, 
+and taking into account what is currently implemented, you could execute the following: 
 \begin{lstlisting}[language={python}]
 from Compiler import floatingpoint
 x = sifx(5.5)
@@ -1441,11 +1451,14 @@ Converts $g \in \Qk{f}$ into a floating point number
 \item $\sshare{p} \asn (\sshare{p}-f) \cdot (1-\sshare{z})$.
 \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
 \end{enumerate}
-\paragraph{MAMBA Example:} To cast an \verb|sfix| register into a \verb|sint| one, you could execute the following: 
+\paragraph{MAMBA Example:} To cast from \verb|sfix| to \verb|sfloat|, you could execute the following: 
 \begin{lstlisting}[language={python}]
 # stores 5.5 on a sfloat register
-x = sfloat(sifx(5.5))
+x = sfloat(sfix(5.5))
 \end{lstlisting}
+
+\iffalse
+% this seems not to be used elsewhere
 \msubsubsection{$\mathsf{FL2Int}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}),\ell,k,\gamma)$:}
 Note the two calls to $\mathsf{Mod2m}$ below can be combined into
 one, as can the two calls to $\mathsf{Pow2}$.
@@ -1475,7 +1488,8 @@ The output here is in $\Zgam$.
 			\cdot \sshare{v'}$.
 \item Return $\sshare{g}$.
 \end{enumerate}
-\paragraph{MAMBA Example:} To cast an \verb|sfloor| register into a \verb|sint| one, you could execute the following: 
+\paragraph{MAMBA Example:} To extract the integral component of a \verb|sfloat| input,  
+given the current implementation, you could execute the following: 
 \begin{lstlisting}[language={python}]
 from Compiler import floatingpoint
 # v, p, z, s, err are extracted from x and l, k, gamma are system parameters 
@@ -1483,6 +1497,8 @@ x = sfloat(5.5)
 # retunrs the floor of x
 y = floatingpoint.FLRound(x,0)
 \end{lstlisting}
+\fi
+
 \msubsubsection{$\mathsf{FL2Fx}((\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}),\ell,k,\gamma,f)$:}
 \begin{enumerate}
 \item $\sshare{b} \asn \mathsf{LT}(\sshare{p},2^{k-1}-f,k)$.
@@ -1498,15 +1514,17 @@ x = sfix(sfloat(5.5))
 \end{lstlisting}
 
 \msubsection{SQRT Functions}
-Part of the protocols for the fixed point square root algorithm are included in
+\todo{These functions are only currently supported in their fixed point versions.}
+The original description of the protocols for the fixed point square root algorithm are included in:
 \begin{itemize}
 \item Secure Distributed Computation of the Square Root and Applications, {\em ISPEC 2012}
 \cite{Liedel12}.
 \end{itemize}
 The floating point variant is in
 \begin{itemize}
-\item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
+\item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.\todo{This is not currently implemented}
 \end{itemize}
+Additionally, we provide a simplified implementation for the Square Root on fixed point variables, that is appropriate for inputs of any size. We make use Liedel's protocol, when the input's size makes it possible, as we explain later in this section.
 Both algorithms makes use of two constants
 \[ \alpha = -0.8099868542, \quad \beta  =  1.787727479.  \]
 These are the solutions of the system of equations
@@ -1518,8 +1536,6 @@ These are the solutions of the system of equations
 	    \right), \\
    E\left( \frac{1}{2}\right) &= E(1) = -M.
 \end{align*}
-
-We have also included a more practical SQRT construction, so that it could be used under global precision and bit size parameters.
 
 \msubsubsection{$\mathsf{ParamFxSqrt}(\sshare{x},k,f)$:}
 This algorithm uses the sub-algorithm $\mathsf{LinAppSQ}$ defined below, note that \verb|LinAppSQ| returns an scaled $1/\sqrt{x} \cdot 2^{f}$.
@@ -1570,7 +1586,7 @@ The algorithm work on the precision of the system and can solve values on any ra
 \item $\sshare{m_{odd}}, \sshare{w} \asn \mathsf{SimplifiedNormSQ}(\sshare{x},k)$.
 \item $\sshare{m_{odd}} \asn (1 - 2 \cdot \sshare{m_{odd}}) \cdot f$.   
  \item $\sshare{w} \asn (2 \cdot \sshare{w} -\sshare{w}) \cdot (1 - \sshare{m_{odd}}) \cdot (f \quad \% \quad 2) + \sshare{w}$.
-\item $\sshare{w} \asn sfix( \sshare{w} * 2 ^{\frac{f - f \quad \% \quad 2}{2}})$.
+\item $\sshare{w} \asn sfix( \sshare{w} \cdot 2 ^{\frac{f - f \quad \% \quad 2}{2}})$.
 \item $\sshare{w} \asn (\sqrt{2}\cdot \sshare{w} - \sshare{w})\cdot \sshare{m_{odd}} + \sshare{w}$.
 \item $\sshare{y_0} \asn \frac{1}{\sshare{w}} $.
 \item $\sshare{g_0} \asn \sshare{y_0} \cdot \sshare{x}$.
@@ -1603,7 +1619,7 @@ The algorithm work on the precision of the system and can solve values on any ra
 \end{enumerate}
 
 \msubsubsection{$\mathsf{FxSqrt}(\sshare{x}, k \asn \mathtt{sfix.k}, f \asn \mathtt{sfix.f})$:}
-We can now provide a more simplified mechanism to call our \verb|FxSqrt| functionality. Note that our \verb|SimplifiedFxSqrt| requires some extra rounds, given the need of performing a division. We use it only when  the $3 \cdot k - 2 \cdot f < \mathtt{sfix.f}$ bound is not met. 
+Our \verb|FxSqrt| functionality returns the square root of any fixed point input. It receives an input value $\sshare{x}$, from which it calculates the square root, and optional parameters regarding its bit-length and bit-wise precision. The functionality is going to make use of our \verb|SimplifiedFxSqrt| process by default, and the somewhat more efficient Liedel's method instead when the $3 \cdot k - 2 \cdot f < \mathtt{sfix.f}$ bound, provided by his paper, is met. 
 
 \begin{enumerate}
 \item if $(3 \cdot k - 2 \cdot f >= \mathtt{sfix.f})$:
@@ -1645,7 +1661,8 @@ c = mpc_math.sqrt(z)
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{LinAppSQ}(\sshare{b},k,f)$:}
-We based this section on the contents of the original paper, and capture the spirit of what the author tries to achieve. However we corrected the typos and other items alike from the original work, the result is as follows:
+We based this section on the contents of the original paper, \cite{Liedel12}.
+However we corrected the typos from the original work, the result is as follows:
 \begin{enumerate}
 \item $\alpha \asn (-0.8099868542) \cdot 2^k$.  
 \item $\beta \asn (1.787727479) \cdot 2^{2\cdot k}$.
@@ -1660,6 +1677,7 @@ We based this section on the contents of the original paper, and capture the spi
 			+(\sqrt{2} \cdot 2^f) \cdot \sshare{m}\cdot \sshare{w}$.
 \item Return $\sshare{w}$ % \asn \mathsf{TruncPr}(\sshare{w},k,f)$.
 \end{enumerate}
+
 
 \msubsubsection{$\mathsf{FLSqrt}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$:}
 Below we let $\ell_0$ denote the lsb of $\ell$,
@@ -1742,8 +1760,7 @@ $\sqrt{2}$ in floating point representation.
 \todo{Have we picked up $\err$ correctly here?}
 
 \msubsection{EXP and LOG Functions}
-\todo{These functions are only currently supported in their
-fixed point versions.}
+\todo{These functions are only currently supported in their fixed point versions.}
 
 A secure fixed point exponentiation and logarithm algorithm is not found anywhere, so
 this is our own one derived from the identities in the book.
@@ -1967,13 +1984,15 @@ constant $(2 \cdot \log_2 e)/(2 \cdot i+1)$.
 
 
 \msubsection{Trigonometic Functions}
-\todo{In the current version, all trigonometric functionality is implemented for fixed-point types only.
-Extension to floating point values will come soon.}
-
+All three basic trigonometric functions support inputs of either 
+fixed point or floating point precision. 
+With the output type being equal to the input type.
+The computation of $\sin(x)$ and $\cos(x)$ are performed
+using polnoymial approximations, with the computation of $\tan(x)$ 
+done via $\sin(x)/\cos(x)$.
 The basic idea for $\sin(x)$ and $\cos(x)$ is to first reduce
-the argument $x$ into the range $[0,\ldots,2 \pi)$,
-with the result being $y$\footnote{The computation
-of $\tan(x)$ is done via $\sin(x)/\cos(x)$.}.
+the argument $x$ into the range $[0,\ldots,2 \pi)$, so
+as to obtain a new argument (which we call $y$)
 We then compute a bit $b_1$ to test as to whether
 $y \in [0,\pi)$ or $[\pi,2 \pi)$ (with $0$ being
 the former).
@@ -2043,7 +2062,7 @@ NOTE: Polynomial tables are described by the monomial number, the degree of the 
 \paragraph{MAMBA Example:} To reduce the angle you could execute the following (note that this function call is meant to be used internally):
 \begin{lstlisting}[language={python}]
 from Compiler import mpc_math
-x = sfix(4)
+x = sfix(4) # sfloat(4)
 # returns an angle in the [0,pi/2) interval in w and flags b1 and b2. 
 w, b1, b2 = mpc_math.sTrigSub_fx(x)
 \end{lstlisting}
@@ -2082,7 +2101,7 @@ For floating point representations this becomes
 \paragraph{MAMBA Example:} To obtain the \verb|sin| of any value, you could execute the following:
 \begin{lstlisting}[language={python}]
 from Compiler import mpc_math
-x = sfix(4)
+x = sfix(4) # sfloat(4)
 # returns the sin of a number of any interval
 y = mpc_math.sin(x)
 \end{lstlisting}
@@ -2102,7 +2121,7 @@ Likewise this becomes
 \paragraph{MAMBA Example:} To obtain the \verb|sin| of any value, you could execute the following:
 \begin{lstlisting}[language={python}]
 from Compiler import mpc_math
-x =sfix(4)
+x = sfix(4) # sfloat(4)
 # returns the cos of an angle on any interval
 y = mpc_math.cos(x)
 \end{lstlisting}
@@ -2127,12 +2146,14 @@ Likewise this becomes
 \paragraph{MAMBA Example:} To obtain the \verb|tan| of any value, you could execute the following:
 \begin{lstlisting}[language={python}]
 from Compiler import mpc_math
-x =sfix(4)
+x = sfix(4) # sfloat(4)
 # returns the tan of an angle on any interval
 y = mpc_math.tan(x)
 \end{lstlisting}
 
 \msubsection{Inverse Trigonometric Functions}
+\todo{Given that SCALE-MAMBA currently only supports square root operations for sfix inputs, 
+inverse trigonometric functions are restricted to sfix inputs.}
 To obtain  $\arcsin$ and $\arccos$ one makes use of the formula:
 \begin{align*}
  \arcsin (x) &= \arctan \left( \frac{x}{\sqrt{1-x^2}} \right), \\

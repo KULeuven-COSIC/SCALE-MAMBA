@@ -65,17 +65,22 @@ bigint make_prime(int lg2, int N, const bigint &q= 0,
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-                         unsigned int h, unsigned int n)
+                         unsigned int h, unsigned int n,
+                         PoKVersion version,
+                         int comp_sec_t,
+                         int DD_stat_sec_t,
+                         int ZK_sound_sec_t,
+                         int ZK_slack_sec_t)
 {
-  double pp= exp2((double) lg2p), ss= exp2((double) DD_stat_sec), S= exp2((double) ZK_stat_sec);
-  double S32= S * sqrt(S);
+  double pp= exp2((double) lg2p), ss= exp2((double) DD_stat_sec_t);
+  double Sslack= exp2((double) ZK_slack_sec_t);
   double lgp0, lgp1, lgq, hh= h;
 
   double C[3];
   produce_epsilon_constants(C);
 
   int index;
-  switch (comp_sec)
+  switch (comp_sec_t)
     {
       case 80:
         index= 1;
@@ -90,6 +95,11 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
         throw invalid_params();
         break;
     }
+
+  int lg2N, U= 0; // Assign U to avoid a compiler warning
+  double Ssound= exp2((double) ZK_sound_sec_t);
+  double S32= Sslack * sqrt(Ssound);
+
   /* We first go through the possible N values */
   bool done= false;
   for (int i= 0; i < num_params && !done; i++)
@@ -100,7 +110,17 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
       // New
       double B_Clean=
           1.0 / 2 + 20 * C[1] * sigma * sqrt(phim) + 20 + 20 * C[1] * sqrt(h);
-      B_Clean*= phim * S32 * 2 * n * pp;
+      if (version == HighGear)
+        {
+          B_Clean*= phim * S32 * 2 * n * pp;
+        }
+      else
+        {
+          lg2N= CEIL_LOG2(N);
+          U= DIV_CEIL(ZK_sound_sec_t, lg2N + 1);
+          double SU= exp2(2 + ((double) U) / 2.0);
+          B_Clean*= phim * Sslack * SU * n * pp;
+        }
 
       double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim * hh / 12));
       double B_KS= pp * C[2] * sigma * phim / sqrt(12);
@@ -141,6 +161,10 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
       throw FHE_params();
     }
   cout << "N  = " << N << endl;
+  if (version == TopGear)
+    {
+      cout << "U = " << U << endl;
+    }
   cout << "p  = " << p << " : " << lg2p << " " << numBits(p) << " "
        << p % (2 * N) << endl;
   cout << "p0 = " << p0 << " : " << lgp0 << " " << numBits(p0) << " "

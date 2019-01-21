@@ -8,22 +8,23 @@ import math
 import util
 import operator
 
+
 class MPCThread(object):
-    def __init__(self, target, name, args = [], runtime_arg = None):
+    def __init__(self, target, name, args=[], runtime_arg=None):
         """ Create a thread from a callable object. """
         if not callable(target):
-            raise CompilerError('Target %s for thread %s is not callable' % (target,name))
+            raise CompilerError('Target %s for thread %s is not callable' % (target, name))
         self.name = name
         self.tape = Tape(program.name + '-' + name, program)
         self.target = target
         self.args = args
         self.runtime_arg = runtime_arg
         self.running = 0
-    
-    def start(self, runtime_arg = None):
+
+    def start(self, runtime_arg=None):
         self.running += 1
         program.start_thread(self, runtime_arg or self.runtime_arg)
-    
+
     def join(self):
         if not self.running:
             raise CompilerError('Thread %s is not running' % self.name)
@@ -41,7 +42,9 @@ def vectorize(operation):
         res = operation(self, *args, **kwargs)
         reset_global_vector_size()
         return res
+
     return vectorized_operation
+
 
 def vectorized_classmethod(function):
     def vectorized_function(cls, *args, **kwargs):
@@ -55,13 +58,15 @@ def vectorized_classmethod(function):
         else:
             res = function(cls, *args, **kwargs)
         return res
+
     return classmethod(vectorized_function)
+
 
 def vectorize_init(function):
     def vectorized_init(*args, **kwargs):
         size = None
         if len(args) > 1 and (isinstance(args[1], Tape.Register) or \
-                    isinstance(args[1], sfloat)):
+                              isinstance(args[1], sfloat)):
             size = args[1].size
             if 'size' in kwargs and kwargs['size'] is not None \
                     and kwargs['size'] != size:
@@ -75,7 +80,9 @@ def vectorize_init(function):
         else:
             res = function(*args, **kwargs)
         return res
+
     return vectorized_init
+
 
 def set_instruction_type(operation):
     def instruction_typed_operation(self, *args, **kwargs):
@@ -83,20 +90,23 @@ def set_instruction_type(operation):
         res = operation(self, *args, **kwargs)
         reset_global_instruction_type()
         return res
+
     return instruction_typed_operation
+
 
 def read_mem_value(operation):
     def read_mem_operation(self, other, *args, **kwargs):
         if isinstance(other, MemValue):
             other = other.read()
         return operation(self, other, *args, **kwargs)
+
     return read_mem_operation
 
 
 class _number(object):
     @staticmethod
     def bit_compose(bits):
-        return sum(b << i for i,b in enumerate(bits))
+        return sum(b << i for i, b in enumerate(bits))
 
     def square(self):
         return self * self
@@ -133,6 +143,7 @@ class _number(object):
         else:
             return NotImplemented
 
+
 class _int(object):
     def if_else(self, a, b):
         return self * (a - b) + b
@@ -140,6 +151,7 @@ class _int(object):
     def cond_swap(self, a, b):
         prod = self * (a - b)
         return a - prod, b + prod
+
 
 class _register(Tape.Register, _number):
     @vectorized_classmethod
@@ -291,7 +303,7 @@ class _clear(_register):
         return self.coerce_op(other, divc, True)
 
     def __eq__(self, other):
-        if isinstance(other, (_clear,int,long)):
+        if isinstance(other, (_clear, int, long)):
             return regint(self) == other
         else:
             return NotImplemented
@@ -330,32 +342,32 @@ class cint(_clear, _int):
         return cls._load_mem(address, ldmc, ldmci)
 
     def store_in_mem(self, address):
-        r"""Stores the cint value x to the address 
+        r"""Stores the cint value x to the address
               x.store_in_mem(address)
         """
         self._store_in_mem(address, stmc, stmci)
 
     @staticmethod
     def in_immediate_range(value):
-        return value < 2**31 and value >= -2**31
+        return value < 2 ** 31 and value >= -2 ** 31
 
     def __init__(self, val=None, size=None):
         super(cint, self).__init__('c', val=val, size=size)
 
     @classmethod
-    def public_input(cls,channel=0):
+    def public_input(cls, channel=0):
         r"""Get public input from IO channel c
                 x=cint.public_input(c)
         """
         res = cls()
-        input_clear(res,channel)
+        input_clear(res, channel)
         return res
-    
-    def public_output(self,channel=0):
+
+    def public_output(self, channel=0):
         r"""Send public output to IO channel c
                  x.public_output(c)
         """
-        output_clear(self,channel);
+        output_clear(self, channel);
 
     @vectorize
     def load_int(self, val):
@@ -365,7 +377,7 @@ class cint(_clear, _int):
         if self.in_immediate_range(val):
             ldi(self, val)
         else:
-            max = 2**31 - 1
+            max = 2 ** 31 - 1
             sign = abs(val) / val
             val = abs(val)
             chunks = []
@@ -374,7 +386,7 @@ class cint(_clear, _int):
                 val = (val - mod) / max
                 chunks.append(mod)
             sum = cint(sign * chunks.pop())
-            for i,chunk in enumerate(reversed(chunks)):
+            for i, chunk in enumerate(reversed(chunks)):
                 sum *= max
                 if i == len(chunks) - 1:
                     addci(self, sum, sign * chunk)
@@ -388,21 +400,33 @@ class cint(_clear, _int):
         return self.coerce_op(other, modc, True)
 
     def __lt__(self, other):
-        if isinstance(other, (type(self),int,long)):
+        if isinstance(other,(sfloat)):
+            return other > self
+
+        if isinstance(other, (type(self), int, long)):
             return regint(self) < other
         else:
             return NotImplemented
 
     def __gt__(self, other):
-        if isinstance(other, (type(self),int,long)):
+        if isinstance(other, (sfloat)):
+            return other < self
+
+        if isinstance(other, (type(self), int, long)):
             return regint(self) > other
         else:
             return NotImplemented
 
     def __le__(self, other):
+        if isinstance(other, (sfloat)):
+            return other >= self
+
         return 1 - (self > other)
 
     def __ge__(self, other):
+        if isinstance(other, (sfloat)):
+            return other <= self
+
         return 1 - (self < other)
 
     def __lshift__(self, other):
@@ -439,7 +463,7 @@ class cint(_clear, _int):
         r"""Returns x modulo 2^other
                x.mod2m(other)
          """
-        return self % 2**other
+        return self % 2 ** other
 
     @read_mem_value
     def right_shift(self, other, bit_length=None):
@@ -459,7 +483,7 @@ class cint(_clear, _int):
         r"""Returns 2^x
                   x.pow2()
         """
-        return 2**self
+        return 2 ** self
 
     def bit_decompose(self, bit_length=None):
         if bit_length == 0:
@@ -483,6 +507,7 @@ class cint(_clear, _int):
 
 cint.bit_type = cint
 
+
 class regint(_register, _int):
     """ Clear integer register type. """
     __slots__ = []
@@ -497,26 +522,25 @@ class regint(_register, _int):
         return cls._load_mem(address, ldmint, ldminti)
 
     def store_in_mem(self, address):
-        r"""Stores the regint value x to the address 
+        r"""Stores the regint value x to the address
               x.store_in_mem(address)
         """
         self._store_in_mem(address, stmint, stminti)
 
-    
     @classmethod
-    def public_input(cls,channel=0):
+    def public_input(cls, channel=0):
         r"""Get public input from IO channel c
                 x=regint.public_input(c)
         """
         res = cls()
-        input_int(res,channel)
+        input_int(res, channel)
         return res
-    
-    def public_output(self,channel=0):
+
+    def public_output(self, channel=0):
         r"""Send public output to IO channel c
                  x.public_output(c)
         """
-        output_int(self,channel);
+        output_int(self, channel);
 
     @vectorized_classmethod
     def pop(cls):
@@ -540,12 +564,12 @@ class regint(_register, _int):
         if cint.in_immediate_range(val):
             ldint(self, val)
         else:
-            lower = val % 2**32
+            lower = val % 2 ** 32
             upper = val >> 32
-            if lower >= 2**31:
-                lower -= 2**32
+            if lower >= 2 ** 31:
+                lower -= 2 ** 32
                 upper += 1
-            addint(self, regint(upper) * regint(2**16)**2, regint(lower))
+            addint(self, regint(upper) * regint(2 ** 16) ** 2, regint(lower))
 
     @read_mem_value
     def load_other(self, val):
@@ -602,7 +626,7 @@ class regint(_register, _int):
         return regint(other) % self
 
     def __rpow__(self, other):
-        return other**cint(self)
+        return other ** cint(self)
 
     def __eq__(self, other):
         return self.int_op(other, eqc)
@@ -624,13 +648,13 @@ class regint(_register, _int):
 
     def __lshift__(self, other):
         if isinstance(other, (int, long)):
-            return self * 2**other
+            return self * 2 ** other
         else:
             return regint(cint(self) << other)
 
     def __rshift__(self, other):
         if isinstance(other, (int, long)):
-            return self / 2**other
+            return self / 2 ** other
         else:
             return regint(cint(self) >> other)
 
@@ -779,7 +803,7 @@ class _secret(_register):
 
     @vectorize
     def __rdiv__(self, other):
-        a,b = self.get_random_square()
+        a, b = self.get_random_square()
         return other * a / (a * self).reveal()
 
     @set_instruction_type
@@ -797,7 +821,7 @@ class _secret(_register):
         return res
 
     @set_instruction_type
-    def reveal_to(self, player,channel=0):
+    def reveal_to(self, player, channel=0):
         private_output(self, player, channel)
 
 
@@ -810,7 +834,7 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def get_random_int(cls, bits):
-        r""" 
+        r"""
           Usage
                a=sint.get_private_input_from(n)
           assigns a to be a random integer in the range [0..,2^n]
@@ -820,14 +844,14 @@ class sint(_secret, _int):
         return res
 
     @classmethod
-    def get_private_input_from(cls, player,channel=0):
-        r""" 
+    def get_private_input_from(cls, player, channel=0):
+        r"""
           Usage
                a=sint.get_private_input_from(p,c)
           obtains a from player p using IO channel c
         """
         res = cls()
-        private_input(res,player,channel)
+        private_input(res, player, channel)
         return res
 
     @vectorized_classmethod
@@ -838,7 +862,7 @@ class sint(_secret, _int):
         return cls._load_mem(address, ldms, ldmsi)
 
     def store_in_mem(self, address):
-        r"""Stores the sint value x to the address 
+        r"""Stores the sint value x to the address
               x.store_in_mem(address)
         """
         self._store_in_mem(address, stms, stmsi)
@@ -853,6 +877,9 @@ class sint(_secret, _int):
     @read_mem_value
     @vectorize
     def __lt__(self, other, bit_length=None, security=None):
+        if isinstance(other,(cfloat, sfloat)):
+            return other > self
+
         res = sint()
         comparison.LTZ(res, self - other, bit_length or program.bit_length + 1,
                        security or program.security)
@@ -861,24 +888,36 @@ class sint(_secret, _int):
     @read_mem_value
     @vectorize
     def __gt__(self, other, bit_length=None, security=None):
+        if isinstance(other,(cfloat, sfloat)):
+            return other < self
+
         res = sint()
         comparison.LTZ(res, other - self, bit_length or program.bit_length + 1,
                        security or program.security)
         return res
 
     def __le__(self, other, bit_length=None, security=None):
+        if isinstance(other,(cfloat, sfloat)):
+            return other >= self
         return 1 - self.greater_than(other, bit_length, security)
 
     def __ge__(self, other, bit_length=None, security=None):
+        if isinstance(other,(cfloat, sfloat)):
+            return other <= self
+
         return 1 - self.less_than(other, bit_length, security)
 
     @read_mem_value
     @vectorize
     def __eq__(self, other, bit_length=None, security=None):
+        if isinstance(other,(cfloat, sfloat)):
+            return other == self
         return floatingpoint.EQZ(self - other, bit_length or program.bit_length,
                                  security or program.security)
 
     def __ne__(self, other, bit_length=None, security=None):
+        if isinstance(other,(cfloat, sfloat)):
+            return other != self
         return 1 - self.equal(other, bit_length, security)
 
     less_than = __lt__
@@ -892,7 +931,7 @@ class sint(_secret, _int):
     def __mod__(self, modulus):
         if isinstance(modulus, (int, long)):
             l = math.log(modulus, 2)
-            if 2**int(round(l)) == modulus:
+            if 2 ** int(round(l)) == modulus:
                 return self.mod2m(int(l))
         raise NotImplementedError('Modulo only implemented for powers of two.')
 
@@ -923,10 +962,10 @@ class sint(_secret, _int):
 
     def pow2(self, bit_length=None, security=None):
         return floatingpoint.Pow2(self, bit_length or program.bit_length, \
-                                      security or program.security)
+                                  security or program.security)
 
     def __lshift__(self, other):
-        return self * 2**other
+        return self * 2 ** other
 
     @vectorize
     @read_mem_value
@@ -947,7 +986,7 @@ class sint(_secret, _int):
     right_shift = __rshift__
 
     def __rlshift__(self, other):
-        return other * 2**self
+        return other * 2 ** self
 
     @vectorize
     def __rrshift__(self, other):
@@ -960,6 +999,7 @@ class sint(_secret, _int):
         security = security or program.security
         return floatingpoint.BitDec(self, bit_length, bit_length, security)
 
+
 sint.bit_type = sint
 sint.basic_type = sint
 
@@ -969,11 +1009,11 @@ def parse_type(other):
     if isinstance(other, cfix.scalars):
         return cfix(other)
     elif isinstance(other, cint):
-        tmp = cfix()
+        tmp = cfix(0)
         tmp.load_int(other)
         return tmp
     elif isinstance(other, sint):
-        tmp = sfix()
+        tmp = sfix(0)
         tmp.load_int(other)
         return tmp
     elif isinstance(other, sfloat):
@@ -982,13 +1022,36 @@ def parse_type(other):
     else:
         return other
 
+
+##
+# parses any input into some float type
+# depending on whether the input was either
+# a scalar, a clear register or a secret shared register
+#
+# @param other: input of  any of supported scalar, clear and secret types
+# @return cfloat/sfloat cast input.
+def parse_float(other):
+    # converts type to cfloat/sfloat depending on the case
+    if isinstance(other, cfloat.scalars):
+        return cfloat(other)
+    elif isinstance(other, cfloat.clears):
+        return cfloat(other)
+    elif isinstance(other, cfloat.secrets):
+        return sfloat(other)
+    elif isinstance(other, (cfloat, sfloat)):
+        return other
+    else:
+        raise CompilerError('Missmatching input type')
+
+
 class cfix(_number):
     """ Clear fixed point type. """
     __slots__ = ['value', 'f', 'k', 'size']
     reg_type = 'c'
     scalars = (int, long, float)
+
     @classmethod
-    def set_precision(cls, f, k = None):
+    def set_precision(cls, f, k=None):
         r"""Defines k as the bitlength of the fixed point system and f as the bitlength of the decimal part
         So a cfix x is held as an integer y in [0,...,2^k-1] and
                     x = y/2^f
@@ -1022,9 +1085,9 @@ class cfix(_number):
             self.size = size
 
         if isinstance(v, cint):
-            self.v = cint(v,size=self.size)
+            self.v = cint(v, size=self.size)
         elif isinstance(v, cfix.scalars):
-            self.v = cint(int(round(v * (2 ** f))),size=self.size)
+            self.v = cint(int(round(v * (2 ** f))), size=self.size)
         elif isinstance(v, cfix):
             self.v = v.v
         elif isinstance(v, MemValue):
@@ -1041,117 +1104,161 @@ class cfix(_number):
         return self
 
     def store_in_mem(self, address):
-        r"""Stores the cfix value x to the cint memory with address 
+        r"""Stores the cfix value x to the cint memory with address
               x.store_in_mem(address)
         """
         self.v.store_in_mem(address)
 
     def sizeof(self):
-        return self.size * 4
+        return self.size * 1
 
     @vectorize
     def add(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return cfix(self.v + other.v)
-        elif isinstance(other, sfix):
-            return sfix(self.v + other.v)
+        if isinstance(other,sfloat):
+            return other + self
         else:
-            raise CompilerError('Invalid type %s for cfix.__add__' % type(other))
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return cfix(self.v + other.v)
+            elif isinstance(other, sfix):
+                return sfix(self.v + other.v)
+            else:
+                raise CompilerError('Invalid type %s for cfix.__add__' % type(other))
 
-    @vectorize 
+    @vectorize
     def mul(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            sgn = cint(1 - 2 * (self.v * other.v < 0))
-            absolute = self.v * other.v * sgn
-            val = sgn * (absolute >> self.f)
-            return cfix(val)
-        elif isinstance(other, sfix):
-            res = sfix((self.v * other.v) >> self.f)
-            return res
+        if isinstance(other,sfloat):
+            return other *  self
         else:
-            raise CompilerError('Invalid type %s for cfix.__mul__' % type(other))
-    
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                sgn = cint(1 - 2 * (self.v * other.v < 0))
+                absolute = self.v * other.v * sgn
+                val = sgn * (absolute >> self.f)
+                return cfix(val)
+            elif isinstance(other, sfix):
+                res = sfix((self.v * other.v) >> self.f)
+                return res
+            else:
+                raise CompilerError('Invalid type %s for cfix.__mul__' % type(other))
+
     @vectorize
     def __sub__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return cfix(self.v - other.v)
-        elif isinstance(other, sfix):
-            return sfix(self.v - other.v)
+        if isinstance(other, sfloat):
+            return -other + self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return cfix(self.v - other.v)
+            elif isinstance(other, sfix):
+                return sfix(self.v - other.v)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __neg__(self):
         # cfix type always has .v
         return cfix(-self.v)
-    
+
     def __rsub__(self, other):
         return -self + other
 
     @vectorize
     def __eq__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return self.v == other.v
-        elif isinstance(other, sfix):
-            return other.v.equal(self.v, self.k, other.kappa)
+        """ parses all types to  fix registers and performs test.
+        in case is performed against a sfloat use equality test from sfloat
+        """
+        if isinstance(other, sfloat):
+            return other == self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return self.v == other.v
+            elif isinstance(other, sfix):
+                return other.v.equal(self.v, self.k, other.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __lt__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return self.v < other.v
-        elif isinstance(other, sfix):
-            if(self.k != other.k or self.f != other.f):
-                raise TypeError('Incompatible fixed point types in comparison')
-            return other.v.greater_than(self.v, self.k, other.kappa)
+        """ parses all types to  fix registers and performs test.
+        in case is performed against a sfloat use inequality test from sfloat
+        """
+
+        if isinstance(other,sfloat):
+            return other > self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return self.v < other.v
+            elif isinstance(other, sfix):
+                if (self.k != other.k or self.f != other.f):
+                    raise TypeError('Incompatible fixed point types in comparison')
+                return other.v.greater_than(self.v, self.k, other.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __le__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return self.v <= other.v
-        elif isinstance(other, sfix):
-            return other.v.greater_equal(self.v, self.k, other.kappa)
+        """ parses all types to  fix registers and performs test.
+        in case is performed against a sfloat use inequality test from sfloat
+        """
+
+        if isinstance(other,sfloat):
+            return other >= self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return self.v <= other.v
+            elif isinstance(other, sfix):
+                return other.v.greater_equal(self.v, self.k, other.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __gt__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return self.v > other.v
-        elif isinstance(other, sfix):
-            return other.v.less_than(self.v, self.k, other.kappa)
+        """ parses all types to  fix registers and performs test.
+        in case is performed against a sfloat use inequality test from sfloat
+        """
+        if isinstance(other,sfloat):
+            return other <= self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return self.v > other.v
+            elif isinstance(other, sfix):
+                return other.v.less_than(self.v, self.k, other.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __ge__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return self.v >= other.v
-        elif isinstance(other, sfix):
-            return other.v.less_equal(self.v, self.k, other.kappa)
+        """ parses all types to  fix registers and performs test.
+        in case is performed against a sfloat use inequality test from sfloat
+        """
+        if isinstance(other,sfloat):
+            return other < self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return self.v >= other.v
+            elif isinstance(other, sfix):
+                return other.v.less_equal(self.v, self.k, other.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __ne__(self, other):
-        other = parse_type(other)
-        if isinstance(other, cfix):
-            return self.v != other.v
-        elif isinstance(other, sfix):
-            return other.v.not_equal(self.v, self.k, other.kappa)
+        if isinstance(other,sfloat):
+            return other != self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, cfix):
+                return self.v != other.v
+            elif isinstance(other, sfix):
+                return other.v.not_equal(self.v, self.k, other.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __div__(self, other):
@@ -1174,8 +1281,9 @@ class sfix(_number):
     __slots__ = ['v', 'f', 'k', 'size']
     reg_type = 's'
     kappa = 40
+
     @classmethod
-    def set_precision(cls, f, k = None):
+    def set_precision(cls, f, k=None):
         cls.f = f
         # default bitlength = 2*precision
         if k is None:
@@ -1219,112 +1327,148 @@ class sfix(_number):
         elif isinstance(_v, sfloat):
             p = (f + _v.p)
             b = (p >= 0)
-            a = b*(_v.v << (p)) + (1-b)*(_v.v >> (-p))
-            self.v = (1-2*_v.s)*a
+            a = b * (_v.v << (p)) + (1 - b) * (_v.v >> (-p))
+            self.v = (1 - 2 * _v.s) * a
         elif isinstance(_v, sfix):
             self.v = _v.v
         elif isinstance(_v, MemFix):
-            #this is a memvalue object
+            # this is a memvalue object
             self.v = _v.v
         elif isinstance(_v, regint):
-            self.v = sint(_v, size=self.size) * 2**f
-        self.kappa = sfix.kappa 
+            self.v = sint(_v, size=self.size) * 2 ** f
+        self.kappa = sfix.kappa
 
     @vectorize
     def load_int(self, v):
-        self.v = sint(v) * (2**self.f)
+        self.v = sint(v) * (2 ** self.f)
+
 
     def store_in_mem(self, address):
-        r"""Stores the sfix value x to the sint memory with address 
+        r"""Stores the sfix value x to the sint memory with address
               x.store_in_mem(address)
         """
         self.v.store_in_mem(address)
 
+    ##
+    # returns the number of registers being stored.
+    # given that only parameter v is stored
+    # the function returns the vector size.
+    # @return number of registers  engaged in memory.
     def sizeof(self):
-        return self.size * 4
 
-    @vectorize 
+        return self.size * 1
+
+
+    @vectorize
     def add(self, other):
-        other = parse_type(other)
-        if isinstance(other, (sfix, cfix)):
-            return sfix(self.v + other.v)
-        elif isinstance(other, cfix.scalars):
-            tmp = cfix(other)
-            return self + tmp
+        if isinstance(other,sfloat):
+            return other + self
         else:
-            raise CompilerError('Invalid type %s for sfix.__add__' % type(other))
+            other = parse_type(other)
+            if isinstance(other, (sfix, cfix)):
+                return sfix(self.v + other.v)
+            elif isinstance(other, cfix.scalars):
+                tmp = cfix(other)
+                return self + tmp
+            else:
+                raise CompilerError('Invalid type %s for sfix.__add__' % type(other))
 
-    @vectorize 
+
+    @vectorize
     def mul(self, other):
-        other = parse_type(other)
-        if isinstance(other, (sfix, cfix)):
-            val = floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
-            return sfix(val)
-        elif isinstance(other, cfix.scalars):
-            scalar_fix = cfix(other)
-            return self * scalar_fix
+        if isinstance(other,sfloat):
+            return other * self
         else:
-            raise CompilerError('Invalid type %s for sfix.__mul__' % type(other))
+            other = parse_type(other)
+            if isinstance(other, (sfix, cfix)):
+                val = floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
+                return sfix(val)
+            elif isinstance(other, cfix.scalars):
+                scalar_fix = cfix(other)
+                return self * scalar_fix
+            else:
+                raise CompilerError('Invalid type %s for sfix.__mul__' % type(other))
 
-    @vectorize 
+    @vectorize
     def __sub__(self, other):
-        other = parse_type(other)
-        return self + (-other)
+        if isinstance(other,sfloat):
+            return (-other) + self
+        else:
+            other = parse_type(other)
+            return self + (-other)
 
     @vectorize
     def __neg__(self):
         return sfix(-self.v)
 
     def __rsub__(self, other):
-        return -self + other
+        return -(self) + other
 
     @vectorize
-    def __eq__(self, other):
-        other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
-            return self.v.equal(other.v, self.k, self.kappa)
+    def __eq__(self, other):        
+        if isinstance(other,sfloat):
+            return other == self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, (cfix, sfix)):
+                return self.v.equal(other.v, self.k, self.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __le__(self, other):
-        other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
-            return self.v.less_equal(other.v, self.k, self.kappa)
+        if isinstance(other,sfloat):
+            return other >= self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, (cfix, sfix)):
+                return self.v.less_equal(other.v, self.k, self.kappa)
+            else:
+                raise NotImplementedError
 
-    @vectorize 
+    @vectorize
     def __lt__(self, other):
-        other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
-            return self.v.less_than(other.v, self.k, self.kappa)
+        if isinstance(other,sfloat):
+            return other < self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, (cfix, sfix)):
+                return self.v.less_than(other.v, self.k, self.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __ge__(self, other):
-        other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
-            return self.v.greater_equal(other.v, self.k, self.kappa)
+        if isinstance(other,sfloat):
+            return other <= self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, (cfix, sfix)):
+                return self.v.greater_equal(other.v, self.k, self.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __gt__(self, other):
-        other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
-            return self.v.greater_than(other.v, self.k, self.kappa)
+        if isinstance(other,sfloat):
+            return other < self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, (cfix, sfix)):
+                return self.v.greater_than(other.v, self.k, self.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __ne__(self, other):
-        other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
-            return self.v.not_equal(other.v, self.k, self.kappa)
+        if isinstance(other,sfloat):
+            return other != self
         else:
-            raise NotImplementedError
+            other = parse_type(other)
+            if isinstance(other, (cfix, sfix)):
+                return self.v.not_equal(other.v, self.k, self.kappa)
+            else:
+                raise NotImplementedError
 
     @vectorize
     def __div__(self, other):
@@ -1344,6 +1488,7 @@ class sfix(_number):
         val = self.v.reveal()
         return cfix(val, size=self.size)
 
+
 # this is for 20 bit decimal precision
 # with 40 bitlength of entire number
 # these constants have been chosen for multiplications to fit in 128 bit prime field
@@ -1354,15 +1499,16 @@ fixed_upper = 41
 sfix.set_precision(fixed_lower, fixed_upper)
 cfix.set_precision(fixed_lower, fixed_upper)
 
+
 class sfloat(_number):
     """ Shared floating point data type, representing (1 - 2s)*(1 - z)*v*2^p.
-        
         v: significand
         p: exponent
         z: zero flag
         s: sign bit
+        err: error flag
         """
-    __slots__ = ['v', 'p', 'z', 's', 'size']
+    __slots__ = ['v', 'p', 'z', 's', 'err', 'size']
     # single precision
     vlen = 24
     plen = 8
@@ -1370,51 +1516,49 @@ class sfloat(_number):
     round_nearest = False
     error = 0
 
+
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
         r"""Loads the value stored in address (and the following three locations) of the sint memory to the sfloat x
               x.load_mem(address)
         """
         res = []
-        for i in range(4):
+        for i in range(5):
             res.append(sint.load_mem(address + i * get_global_vector_size()))
         return sfloat(*res)
 
+
     @classmethod
     def set_error(cls, error):
-        cls.error += error - cls.error * error
+        cls.error += error
+
+
+    @classmethod
+    def add_err(self, flag):
+        self.err += flag
+
 
     @staticmethod
     def convert_float(v, vlen, plen):
-        if v < 0:
-            s = 1
-        else:
-            s = 0
-        if v == 0:
-            v = 0
-            p = 0
-            z = 1
-        else:
-            p = int(math.floor(math.log(abs(v), 2))) - vlen + 1
-            vv = v
-            v = int(round(abs(v) * 2 ** (-p)))
-            if v == 2 ** vlen:
-                p += 1
-                v /= 2
-            z = 0
-            if p < -2 ** (plen - 1):
-                print 'Warning: %e truncated to zero' % vv
-                v, p, z = 0, 0, 1
-            if p >= 2 ** (plen - 1):
-                raise CompilerError('Cannot convert %s to float ' \
-                                        'with %d exponent bits' % (vv, plen))
-        return v, p, z, s
+        v, p, z, s = floatingpoint.convert_float(v, vlen, plen)
+        err = sint(0)
+        return v, p, z, s, err
 
+    ##
+    # Constructor that receives the basic 5 slots.
+    # If it only receives v, it casts v to the float representation in use, 
+    # otherwise it uses the parametrization to instanciate a cfloat register.
+    # @param v basic input or significand of IEEE floating point representation
+    # @param p exponent. Optional parameter
+    # @param z zero flag. Optional parameter
+    # @param s sign. Optional parameter
+    # @param size number of vectorized instances. Optional parameter
     @vectorize_init
-    def __init__(self, v, p=None, z=None, s=None, size=None):
+    def __init__(self, v, p=None, z=None, s=None, err = None, size=None):
         self.size = get_global_vector_size()
         if p is None:
             if isinstance(v, sfloat):
+                err = v.err
                 p = v.p
                 z = v.z
                 s = v.s
@@ -1422,22 +1566,29 @@ class sfloat(_number):
             elif isinstance(v, sint):
                 v, p, z, s = floatingpoint.Int2FL(v, program.bit_length,
                                                   self.vlen, self.kappa)
+                
+                err = self.__flow_detect__(p)
+
             elif isinstance(v, sfix):
                 f = v.f
                 v, p, z, s = floatingpoint.Int2FL(v.v, v.k,
                                                   self.vlen, self.kappa)
                 p = p - f
+                err = self.__flow_detect__(p)
+
             else:
-                v, p, z, s = self.convert_float(v, self.vlen, self.plen)
+                v, p, z, s, err = self.convert_float(v, self.vlen, self.plen)
+
         if isinstance(v, int):
-            if not ((v >= 2**(self.vlen-1) and v < 2**(self.vlen)) or v == 0):
+            if not ((v >= 2 ** (self.vlen - 1) and v < 2 ** (self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
             self.v = library.load_int_to_secret(v)
         else:
             self.v = v
         if isinstance(p, int):
-            if not (p >= -2**(self.plen - 1) and p < 2**(self.plen - 1)):
-                raise CompilerError('Floating point number malformed: exponent %d not unsigned %d-bit integer' % (p, self.plen))
+            if not (p >= -2 ** (self.plen - 1) and p < 2 ** (self.plen - 1)):
+                raise CompilerError(
+                    'Floating point number malformed: exponent %d not unsigned %d-bit integer' % (p, self.plen))
             self.p = library.load_int_to_secret(p)
         else:
             self.p = p
@@ -1454,28 +1605,47 @@ class sfloat(_number):
             self.s = sint()
             ldsi(self.s, s)
         else:
-            self.s = s
+            self.s = s     
+        if isinstance(err, int):
+            if not (err >=0):
+                raise CompilerError('Floating point number malformed: err')                       
+            self.err = library.load_int_to_secret(err)
+        else:
+            self.err = err
 
     def __iter__(self):
         yield self.v
         yield self.p
         yield self.z
         yield self.s
+        yield self.err
 
     def store_in_mem(self, address):
         r"""Stores the sfloat value x to the sint memory with address (and the following three locations)
               x.store_in_mem(address)
         """
-        for i,x in enumerate((self.v, self.p, self.z, self.s)):
+        for i, x in enumerate((self.v, self.p, self.z, self.s)):
             x.store_in_mem(address + i * get_global_vector_size())
 
-    def sizeof(self):
-        return self.size * 4
 
+    ##
+    # returns the number of registers being stored.
+    # given that the parameters v, p, s, z, err are stored
+    # in memory, the function returns the vector size times 5.
+    # @return number of registers engaged in memory.
+    def sizeof(self):
+        return self.size * 5
+
+
+    ##
+    # realizes the addition protocol for several different types.
+    # @param other: value adding to self, could be any type
+    # @return sloat: new sfloat instance
     @vectorize
     def add(self, other):
-        if isinstance(other, sfloat):
-            a,c,d,e = [sint() for i in range(4)]
+
+        if isinstance(other, (cfloat, sfloat)):
+            a, c, d, e = [sint() for i in range(4)]
             t = sint()
             t2 = sint()
             v1 = self.v
@@ -1489,19 +1659,19 @@ class sfloat(_number):
             a = p1.less_than(p2, self.plen, self.kappa)
             b = floatingpoint.EQZ(p1 - p2, self.plen, self.kappa)
             c = v1.less_than(v2, self.vlen, self.kappa)
-            ap1 = a*p1
-            ap2 = a*p2
+            ap1 = a * p1
+            ap2 = a * p2
             aneg = 1 - a
             bneg = 1 - b
             cneg = 1 - c
-            av1 = a*v1
-            av2 = a*v2
-            cv1 = c*v1
-            cv2 = c*v2
+            av1 = a * v1
+            av2 = a * v2
+            cv1 = c * v1
+            cv2 = c * v2
             pmax = ap2 + p1 - ap1
             pmin = p2 - ap2 + ap1
-            vmax = bneg*(av2 + v1 - av1) + b*(cv2 + v1 - cv1)
-            vmin = bneg*(av1 + v2 - av2) + b*(cv1 + v2 - cv2)
+            vmax = bneg * (av2 + v1 - av1) + b * (cv2 + v1 - cv1)
+            vmin = bneg * (av1 + v2 - av2) + b * (cv1 + v2 - cv2)
             s3 = s1 + s2 - 2 * s1 * s2
             comparison.LTZ(d, self.vlen + pmin - pmax + sfloat.round_nearest,
                            self.plen, self.kappa)
@@ -1509,7 +1679,7 @@ class sfloat(_number):
                                            self.vlen + 1 + sfloat.round_nearest,
                                            self.kappa)
             # deviate from paper for more precision
-            #v3 = 2 * (vmax - s3) + 1
+            # v3 = 2 * (vmax - s3) + 1
             v3 = vmax
             v4 = vmax * pow_delta + (1 - 2 * s3) * vmin
             v = (d * v3 + (1 - d) * v4) * two_power(self.vlen + sfloat.round_nearest) \
@@ -1536,119 +1706,404 @@ class sfloat(_number):
                 comparison.Trunc(t2, pow_p0 * v, self.vlen + 2, 2, self.kappa, False)
             v = t2
             # deviate for more precision
-            #p = pmax - p0 + 1 - d
+            # p = pmax - p0 + 1 - d
             p = pmax - p0 + 1
-            zz = self.z*other.z
+            zz = self.z * other.z
             zprod = 1 - self.z - other.z + zz
-            v = zprod*t2 + self.z*v2 + other.z*v1
+            v = zprod * t2 + self.z * v2 + other.z * v1
             z = floatingpoint.EQZ(v, self.vlen, self.kappa)
-            p = (zprod*p + self.z*p2 + other.z*p1)*(1 - z)
-            s = (1 - b)*(a*other.s + aneg*self.s) + b*(c*other.s + cneg*self.s)
-            s = zprod*s + (other.z - zz)*self.s + (self.z - zz)*other.s
-            return sfloat(v, p, z, s)
+            p = (zprod * p + self.z * p2 + other.z * p1) * (1 - z)
+            s = (1 - b) * (a * other.s + aneg * self.s) + b * (c * other.s + cneg * self.s)
+            s = zprod * s + (other.z - zz) * self.s + (self.z - zz) * other.s
+            err = sint(0)
+            if (isinstance(other,sfloat)):    
+                err = err + other.err
+            err = err + self.err
+            err = err + self.__flow_detect__(p)
+            return sfloat(v, p, z, s, err)
+        # in case is not a register
         else:
-            return NotImplemented
-    
+            other_parse = parse_float(other)
+            return self + other_parse
+
+
+    ##
+    # realizes the multiplication protocol for several different types.
+    # @param other: value multiplying self, could be any type
+    # @return sloat: new sfloat instance
     @vectorize
     def mul(self, other):
-        if isinstance(other, sfloat):
+
+        if isinstance(other, (cfloat, sfloat)):
+            #return sint(-1)
             v1 = sint()
             v2 = sint()
             b = sint()
             c2expl = cint()
             comparison.ld2i(c2expl, self.vlen)
             if sfloat.round_nearest:
-                v1 = comparison.TruncRoundNearest(self.v*other.v, 2*self.vlen,
-                                             self.vlen-1, self.kappa)
+                v1 = comparison.TruncRoundNearest(self.v * other.v, 2 * self.vlen,
+                                                  self.vlen - 1, self.kappa)
             else:
-                comparison.Trunc(v1, self.v*other.v, 2*self.vlen, self.vlen-1, self.kappa, False)
+                comparison.Trunc(v1, self.v * other.v, 2 * self.vlen, self.vlen - 1, self.kappa, False)
             t = v1 - c2expl
-            comparison.LTZ(b, t, self.vlen+1, self.kappa)
-            comparison.Trunc(v2, b*v1 + v1, self.vlen+1, 1, self.kappa, False)
-            z = self.z + other.z - self.z*other.z       # = OR(z1, z2)
-            s = self.s + other.s - 2*self.s*other.s     # = XOR(s1,s2)
-            p = (self.p + other.p - b + self.vlen)*(1 - z)
-            return sfloat(v2, p, z, s)
-        else:
-            return NotImplemented
-    
-    def __sub__(self, other):
-        return self + -other
-    
-    def __rsub__(self, other):
-        raise NotImplementedError()
+            comparison.LTZ(b, t, self.vlen + 1, self.kappa)
+            comparison.Trunc(v2, b * v1 + v1, self.vlen + 1, 1, self.kappa, False)
+            z = self.z + other.z - self.z * other.z  # = OR(z1, z2)
+            s = self.s + other.s - 2 * self.s * other.s  # = XOR(s1,s2)
+            p = (self.p + other.p - b + self.vlen) * (1 - z)
+            err = sint(0)
+            if isinstance(other, sfloat):
+                err = other.err
+            err = err + self.err
+            err = err + self.__flow_detect__(p)
+            return sfloat(v2, p, z, s, err)
 
+        # in case is not a register
+        else:
+            other_parse = parse_float(other)
+            return self * other_parse #self.mul(scalar_float)
+
+
+    def __sub__(self, other):
+        return (self + -other)
+
+
+    def __rsub__(self, other):
+        return -1 * self + other
+
+
+    ##
+    # realizes the division protocol for several different types.
+    # @param other: value dividing self, could be any type
+    # @return sloat: new sfloat instance
     def __div__(self, other):
-        v = floatingpoint.SDiv(self.v, other.v + other.z * (2**self.vlen - 1),
-                               self.vlen, self.kappa)
-        b = v.less_than(two_power(self.vlen-1), self.vlen + 1, self.kappa)
-        overflow = v.greater_equal(two_power(self.vlen), self.vlen + 1, self.kappa)
-        underflow = v.less_than(two_power(self.vlen-2), self.vlen + 1, self.kappa)
-        v = (v + b * v) * (1 - overflow) * (1 - underflow) + \
-            overflow * (2**self.vlen - 1) + \
-            underflow * (2**(self.vlen-1)) * (1 - self.z)
-        p = (1 - self.z) * (self.p - other.p - self.vlen - b + 1)
-        z = self.z
-        s = self.s + other.s - 2 * self.s * other.s
-        sfloat.set_error(other.z)
-        return sfloat(v, p, z, s)
+
+        if isinstance(other, (cfloat, sfloat)):
+            v = floatingpoint.SDiv(self.v, other.v + other.z * (2 ** self.vlen - 1),
+                                   self.vlen, self.kappa)
+            b = v.less_than(two_power(self.vlen - 1), self.vlen + 1, self.kappa)
+            overflow = v.greater_equal(two_power(self.vlen), self.vlen + 1, self.kappa)
+            underflow = v.less_than(two_power(self.vlen - 2), self.vlen + 1, self.kappa)
+            v = (v + b * v) * (1 - overflow) * (1 - underflow) + \
+                overflow * (2 ** self.vlen - 1) + \
+                underflow * (2 ** (self.vlen - 1)) * (1 - self.z)
+            p = (1 - self.z) * (self.p - other.p - self.vlen - b + 1)
+            z = self.z
+            s = self.s + other.s - 2 * self.s * other.s
+            # self.add_err(other.z)
+
+            #error management
+            if isinstance(other, sfloat):
+                err = other.err
+            err = err + self.err
+            err = err + self.__flow_detect__(p)
+            err = err + other.z
+            return sfloat(v, p, z, s, err)
+
+        else:
+
+            other_parse = parse_float(other)
+            return self / other_parse
+
+
+
 
     @vectorize
     def __neg__(self):
-        return sfloat(self.v, self.p,  self.z, (1 - self.s) * (1 - self.z))
-    
+        return sfloat(self.v, self.p, self.z, (1 - self.s) * (1 - self.z), self.err)
+
+
+    ##
+    # realizes the less than thest protocol for several different types.
+    # Basic Method, should resolve directly < operator.
+    # this is the base for all comparison operations
+    # @param other: value comparing self, could be any type
+    # @return sint: new sint bitwise instance
     @vectorize
     def __lt__(self, other):
-        if isinstance(other, sfloat):
-            z1 = self.z
-            z2 = other.z
-            s1 = self.s
-            s2 = other.s
-            a = self.p.less_than(other.p, self.plen, self.kappa)
-            c = floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa)
-            d = ((1 - 2*self.s)*self.v).less_than((1 - 2*other.s)*other.v, self.vlen + 1, self.kappa)
-            cd = c*d
-            ca = c*a
-            b1 = cd + a - ca
-            b2 = cd + 1 + ca - c - a
-            s12 = self.s*other.s
-            z12 = self.z*other.z
-            b = (z1 - z12)*(1 - s2) + (z2 - z12)*s1 + (1 + z12 - z1 - z2)*(s1 - s12 + (1 + s12 - s1 - s2)*b1 + s12*b2)
-            return b
+        if isinstance(other, (cfloat,sfloat)):
+            return floatingpoint.FLLT(self,other)
         else:
-            return NotImplemented
-    
+            other_parse = parse_float(other)
+            return self < other_parse
+
+
+    ##
+    # realizes the greater than  protocol for several different types.
+    # Basic Method, should resolve directly > operator.
+    # @param other: value comparing self, could be any type
+    # @return sint: new sint bitwise instance
+    def __gt__(self, other):
+            #return floatingpoint.FLLT(other, self)
+            return  (other - self) < 0#floatingpoint.FLLTZ(other - self)
+
+
+    ##
+    # realizes the less equal  protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new sint bitwise instance
+    def __le__(self, other):
+        return 1 - (self > other)
+
+    ##
+    # realizes the great than  protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new sint bitwise instance
     def __ge__(self, other):
         return 1 - (self < other)
 
+
+    ##
+    # realizes the equality test protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new sint bitwise instance
     @vectorize
     def __eq__(self, other):
-        # the sign can be both ways for zeroes
-        both_zero = self.z * other.z
-        return floatingpoint.EQZ(self.v - other.v, self.vlen, self.kappa) * \
-            floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
-            (1 - self.s - other.s + 2 * self.s * other.s) * \
-            (1 - both_zero) + both_zero
+        if isinstance(other, (cfloat, sfloat)):
+            t = self.err
+            if isinstance(other,  sfloat):
+                t = t + other.err
+            t =  t == 0
+            # the sign can be both ways for zeroes
+            both_zero = self.z * other.z
+            return (floatingpoint.EQZ(self.v - other.v, self.vlen, self.kappa) * \
+                   floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
+                   (1 - self.s - other.s + 2 * self.s * other.s) * \
+                   (1 - both_zero) + both_zero) * t
+        else:
+            other_parse = parse_float(other)
+            return self == other_parse
 
+    ##
+    # realizes the  not equal  protocol for several different types.
+    # Basic Method, should resolve directly > operator.
+    # @param other: value comparing self, could be any type
+    # @return sint: new sint bitwise instance
     def __ne__(self, other):
         return 1 - (self == other)
 
+
+
     def value(self):
         """ Gets actual floating point value, if emulation is enabled. """
-        return (1 - 2*self.s.value)*(1 - self.z.value)*self.v.value/float(2**self.p.value)
+        return (1 - 2 * self.s.value) * (1 - self.z.value) * self.v.value / float(2 ** self.p.value)
 
+
+    ##
+    # reveals instance as a floating point number, by creating an instance of cfloat.
+    # in case there was an error during the circuit execution, it returns 0 in all
+    # state elements of the instance. 
+    # @return a cfloat value with the corresponding state elements in plain text. 
     def reveal(self):
-        return cfloat(self.v.reveal(), self.p.reveal(), self.z.reveal(), self.s.reveal())
+        """ Reveals instance as a floating point number, by creating an instance of cfloat.
+        in case there was an error during the circuit execution, it returns 0 in all
+    	state elements of the instance.
+    	"""
+        signal = self.err == 0
+        return cfloat((self.v * signal).reveal(), (self.p * signal).reveal(), (self.z * signal).reveal(),
+                      (self.s * signal).reveal())
+
+
+    ##
+    # detects overflow by or underflow. Implementation saves one multiplication,
+    # by simply  calculating the |p|> 2^{k-1}
+    # @param p  pre-calculated secret shared exponent p
+    # @return secret shared \{0,1\} flag. Returns 1 if p under or over flows, 0 otherwise
+    def __flow_detect__(self, p):
+        """ detects overflow by or underflow. Implementation saves one multiplication,
+            by simply  calculating the |p|> 2^{k-1}"""
+        if(program.fdflag):
+            s = (p < 0) * (-2) + 1
+            return (s * p) >= (2 ** (self.plen - 1))
+        else:
+            return sint(0)
+
 
 class cfloat(object):
-    # Helper class used for printing sfloats
-    __slots__ = ['v', 'p', 'z', 's']
+    """
+    Helper class used for printing sfloats
+    and to perform operations with clear and secret registers
+    open register floating point data type, representing (1 - 2s)*(1 - z)*v*2^p.
 
-    def __init__(self, v, p, z, s):
-        self.v, self.p, self.z, self.s = [cint.conv(x) for x in (v, p, z, s)]
+        v: significand
+        p: exponent
+        z: zero flag
+        s: sign bit
+    """
+    __slots__ = ['v', 'p', 'z', 's', 'size']
 
+    scalars = (int, long, float)
+    clears =(cfix, cint)
+    secrets=(sfix, sint)
+
+    # single precision
+    vlen = 24
+    plen = 8
+    kappa = 40
+    round_nearest = False
+    error = 0
+
+
+    ##
+    # Constructor that receives the basic 4 slots.
+    # If it only receives v, it casts v to the float representation in use, 
+    # otherwise it uses the parametrization to instanciate a cfloat register.
+    # @param v basic input or significand of IEEE floating point representation
+    # @param p exponent. Optional parameter
+    # @param z zero flag. Optional parameter
+    # @param s sign. Optional parameter
+    # @param size number of vectorized instances. Optional parameter
+    @vectorize_init
+    def __init__(self, v, p= None, z=None, s=None, size =None):
+        self.size = get_global_vector_size()
+        if p is None:
+            #copy instance
+            if isinstance(v, cfloat):
+                p = v.p
+                z = v.z
+                s = v.s
+                v = v.v
+            elif isinstance(v, cfloat.clears):
+                #something like this should be done for fix:
+                # raise CompilerError('Unsupported operation for clear registries')
+                v_clear = parse_type(v)
+                f = v_clear.f
+                v, p, z, s = library.int2FL_plain(v_clear.v, program.bit_length, self.vlen, self.kappa)
+                p = p - f
+                #v, p, z, s = library.int2FL_plain(v, program.bit_length, self.vlen, self.kappa)
+
+            # instantiate v, p z, s as int
+            elif isinstance(v, cfloat.scalars):
+                # convert float verfies p < 2** vlen, which is then done again here.
+                # this is for legacy reasons, the method is a geacy method embedded in sfloat
+                v, p, z, s = floatingpoint.convert_float(v, self.vlen, self.plen)
+
+            else: # missmatch of types validation
+                raise CompilerError('Missmatching input type')
+
+        # validation of v
+        if isinstance(v, int):
+            if not ((v >= 2 ** (self.vlen - 1) and v < 2 ** (self.vlen)) or v == 0):
+                raise CompilerError('Floating point number malformed: significand')
+            self.v = cint(v)
+        elif isinstance(v,cint):
+            self.v = v
+        else: # missmatch of types validation
+            raise CompilerError('Missmatching input type ')
+
+        # validation of p
+        if isinstance(p, int):
+            if not (p >= -2 ** (self.plen - 1) and p < 2 ** (self.plen - 1)):
+                raise CompilerError(
+                    'Floating point number malformed: exponent %d not unsigned %d-bit integer' % (p, self.plen))
+            self.p = cint(p)
+        elif isinstance(p,cint):
+            self.p = p
+        else:  # missmatch of types validation
+            raise CompilerError('Missmatching input type')
+
+        # validation of z
+        if isinstance(z, int):
+            if not (z == 0 or z == 1):
+                raise CompilerError('Floating point number malformed: zero bit')
+            self.z = cint(0)
+            if (z == 1):
+                self.set_zero(z)
+                self.z = cint(1)
+        elif isinstance(z,cint):
+            self.z = z
+        else:  # missmatch of types validation
+             raise CompilerError('Missmatching input type')
+
+        # validation of s
+        if isinstance(s, int):
+            if not (s == 0 or s == 1):
+                self.set_zero(1)
+                raise CompilerError('Floating point number malformed: sign')
+            self.s = cint(s)
+        elif isinstance(s,cint):
+            self.s= s
+        else:  # missmatch of types validation
+            raise CompilerError('Missmatching input type')
+
+
+    ##
+    # @private
+    # sets records to zero
+    # @param flag: whether or not it has to set up records to 0
+    def set_zero(self, flag):
+        if(flag ==1):
+            self.v = cint(0)
+            self.p = cint(0)
+            self.s = cint(0)
+            self.z = cint(0)
+
+
+    ##
+    # facade method that evokes low level instructions
+    # to print float number.
+    # No params, uses instance records.
     def print_float_plain(self):
         print_float_plain(self.v, self.p, self.z, self.s)
+
+
+    ##
+    # computes the product times -1 of the cfloat
+    # @return:  new cfloat instance of the negation of input
+    @vectorize
+    def __neg__(self):
+        return cfloat(self.v, self.p, self.z, (1 - self.s) * (1 - self.z))
+
+    ##
+    # returns the number of registers being stored.
+    # given that the parameters v, p, s, z are stored
+    # in memory, the function returns the vector size times 4.
+    # @return number of registers engaged in memory.
+    def sizeof(self):
+        return self.size * 4
+
+
+    ##
+    # realizes the less than protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new cint bitwise instance
+    def __lt__(self, other):
+        if(isinstance(other,sfloat)):
+            return other > self
+        raise NotImplemented
+
+
+    ##
+    # realizes the great than protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new cint bitwise instance
+    def __gt__(self, other):
+        if(isinstance(other,sfloat)):
+            return other < self
+        raise NotImplemented
+
+
+    ##
+    # realizes the less equal protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new cint bitwise instance
+    def __le__(self, other):
+        if(isinstance(other,sfloat)):
+            return other >= self
+        raise NotImplemented
+
+
+    ##
+    # realizes the great equal protocol for several different types.
+    # @param other: value comparing self, could be any type
+    # @return sint: new cint bitwise instance
+    def __ge__(self, other):
+        if(isinstance(other,sfloat)):
+            return other <= self
+        raise  NotImplemented
+
+
 
 _types = {
     'c': cint,
@@ -1659,6 +2114,7 @@ _types = {
 
 class Array(object):
     """ Array objects """
+
     def __init__(self, length, value_type, address=None):
         if value_type in _types:
             value_type = _types[value_type]
@@ -1680,7 +2136,7 @@ class Array(object):
             index += self.length * (index < 0)
             if index >= self.length or index < 0:
                 raise IndexError('index %s, length %s' % \
-                                     (str(index), str(self.length)))
+                                 (str(index), str(self.length)))
         return self.address + index
 
     def get_slice(self, index):
@@ -1693,9 +2149,11 @@ class Array(object):
             start, stop, step = self.get_slice(index)
             res_length = (stop - start - 1) / step + 1
             res = Array(res_length, self.value_type)
+
             @library.for_range(res_length)
             def f(i):
-                res[i] = self[start+i*step]
+                res[i] = self[start + i * step]
+
             return res
         return self._load(self.get_address(index))
 
@@ -1703,10 +2161,12 @@ class Array(object):
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
             source_index = MemValue(0)
+
             @library.for_range(start, stop, step)
             def f(i):
                 self[i] = value[source_index]
                 source_index.iadd(1)
+
             return
         self._store(self.value_type.conv(value), self.get_address(index))
 
@@ -1727,6 +2187,7 @@ class Array(object):
         if isinstance(other, Array):
             def loop(i):
                 self[i] = other[i]
+
             library.range_loop(loop, len(self))
         elif isinstance(other, Tape.Register):
             if len(other) == self.length:
@@ -1734,19 +2195,23 @@ class Array(object):
             else:
                 raise CompilerError('Length mismatch between array and vector')
         else:
-            for i,j in enumerate(other):
+            for i, j in enumerate(other):
                 self[i] = j
         return self
 
     def assign_all(self, value):
         mem_value = MemValue(value)
-        n_loops = 8 if len(self) > 2**20 else 1
+        n_loops = 8 if len(self) > 2 ** 20 else 1
+
         @library.for_range_multithread(n_loops, 1024, len(self))
         def f(i):
             self[i] = mem_value
+
         return self
 
+
 sint.dynamic_array = Array
+
 
 class Matrix(object):
     def __init__(self, rows, columns, value_type, address=None):
@@ -1758,11 +2223,11 @@ class Matrix(object):
         if address is None:
             self.address = Array(rows * columns, value_type).address
         else:
-            self.address = Array(rows * columns, value_type, address)
+            self.address = Array(rows * columns, value_type, address).address
 
     def __getitem__(self, index):
         return Array(self.columns, self.value_type, \
-                         self.address + index * self.columns)
+                     self.address + index * self.columns)
 
     def __len__(self):
         return self.rows
@@ -1771,6 +2236,7 @@ class Matrix(object):
         @library.for_range(len(self))
         def f(i):
             self[i].assign_all(value)
+
         return self
 
 
@@ -1783,10 +2249,11 @@ class SubMultiArray(object):
     def __getitem__(self, index):
         if len(self.sizes) == 2:
             return self.value_type.Array(self.sizes[1], \
-                             self.address + index * self.sizes[1])
+                                         self.address + index * self.sizes[1])
         else:
             return SubMultiArray(self.sizes[1:], self.value_type, \
-                                     self.address, index)
+                                 self.address, index)
+
 
 class MultiArray(object):
     def __init__(self, sizes, value_type):
@@ -1798,7 +2265,8 @@ class MultiArray(object):
 
     def __getitem__(self, index):
         return SubMultiArray(self.sizes[1:], self.value_type, \
-                                 self.array.address, index)
+                             self.array.address, index)
+
 
 class VectorArray(object):
     def __init__(self, length, value_type, vector_size, address=None):
@@ -1816,10 +2284,11 @@ class VectorArray(object):
             raise CompilerError('vector size mismatch')
         value.store_in_mem(self.array.address + index * self.vector_size)
 
+
 class sfloatArray(Array):
     def __init__(self, length, address=None):
         print length, address
-        self.matrix = Matrix(length, 4, sint, address)
+        self.matrix = Matrix(length, 5, sint, address)
         self.length = length
         self.value_type = sfloat
 
@@ -1833,14 +2302,16 @@ class sfloatArray(Array):
             return Array.__setitem__(self, index, value)
         self.matrix[index].assign(iter(sfloat(value)))
 
+
 class sfloatMatrix(Matrix):
     def __init__(self, rows, columns):
         self.rows = rows
         self.columns = columns
-        self.multi_array = MultiArray([rows, columns, 4], sint)
+        self.multi_array = MultiArray([rows, columns, 5], sint)
 
     def __getitem__(self, index):
         return sfloatArray(self.columns, self.multi_array[index].address)
+
 
 class sfixArray(Array):
     def __init__(self, length, address=None):
@@ -1863,6 +2334,7 @@ class sfixArray(Array):
     def get_address(self, index):
         return self.array.get_address(index)
 
+
 class sfixMatrix(Matrix):
     def __init__(self, rows, columns, address=None):
         self.rows = rows
@@ -1872,46 +2344,47 @@ class sfixMatrix(Matrix):
     def __getitem__(self, index):
         return sfixArray(self.columns, self.multi_array[index].address)
 
+
 class _mem(_number):
-    __add__ = lambda self,other: self.read() + other
-    __sub__ = lambda self,other: self.read() - other
-    __mul__ = lambda self,other: self.read() * other
-    __div__ = lambda self,other: self.read() / other
-    __mod__ = lambda self,other: self.read() % other
-    __pow__ = lambda self,other: self.read() ** other
-    __neg__ = lambda self,other: -self.read()
-    __lt__ = lambda self,other: self.read() < other
-    __gt__ = lambda self,other: self.read() > other
-    __le__ = lambda self,other: self.read() <= other
-    __ge__ = lambda self,other: self.read() >= other
-    __eq__ = lambda self,other: self.read() == other
-    __ne__ = lambda self,other: self.read() != other
-    __and__ = lambda self,other: self.read() & other
-    __xor__ = lambda self,other: self.read() ^ other
-    __or__ = lambda self,other: self.read() | other
-    __lshift__ = lambda self,other: self.read() << other
-    __rshift__ = lambda self,other: self.read() >> other
+    __add__ = lambda self, other: self.read() + other
+    __sub__ = lambda self, other: self.read() - other
+    __mul__ = lambda self, other: self.read() * other
+    __div__ = lambda self, other: self.read() / other
+    __mod__ = lambda self, other: self.read() % other
+    __pow__ = lambda self, other: self.read() ** other
+    __neg__ = lambda self, other: -self.read()
+    __lt__ = lambda self, other: self.read() < other
+    __gt__ = lambda self, other: self.read() > other
+    __le__ = lambda self, other: self.read() <= other
+    __ge__ = lambda self, other: self.read() >= other
+    __eq__ = lambda self, other: self.read() == other
+    __ne__ = lambda self, other: self.read() != other
+    __and__ = lambda self, other: self.read() & other
+    __xor__ = lambda self, other: self.read() ^ other
+    __or__ = lambda self, other: self.read() | other
+    __lshift__ = lambda self, other: self.read() << other
+    __rshift__ = lambda self, other: self.read() >> other
 
-    __radd__ = lambda self,other: other + self.read()
-    __rsub__ = lambda self,other: other - self.read()
-    __rmul__ = lambda self,other: other * self.read()
-    __rdiv__ = lambda self,other: other / self.read()
-    __rmod__ = lambda self,other: other % self.read()
-    __rand__ = lambda self,other: other & self.read()
-    __rxor__ = lambda self,other: other ^ self.read()
-    __ror__ = lambda self,other: other | self.read()
+    __radd__ = lambda self, other: other + self.read()
+    __rsub__ = lambda self, other: other - self.read()
+    __rmul__ = lambda self, other: other * self.read()
+    __rdiv__ = lambda self, other: other / self.read()
+    __rmod__ = lambda self, other: other % self.read()
+    __rand__ = lambda self, other: other & self.read()
+    __rxor__ = lambda self, other: other ^ self.read()
+    __ror__ = lambda self, other: other | self.read()
 
-    __iadd__ = lambda self,other: self.write(self.read() + other)
-    __isub__ = lambda self,other: self.write(self.read() - other)
-    __imul__ = lambda self,other: self.write(self.read() * other)
-    __idiv__ = lambda self,other: self.write(self.read() / other)
-    __imod__ = lambda self,other: self.write(self.read() % other)
-    __ipow__ = lambda self,other: self.write(self.read() ** other)
-    __iand__ = lambda self,other: self.write(self.read() & other)
-    __ixor__ = lambda self,other: self.write(self.read() ^ other)
-    __ior__ = lambda self,other: self.write(self.read() | other)
-    __ilshift__ = lambda self,other: self.write(self.read() << other)
-    __irshift__ = lambda self,other: self.write(self.read() >> other)
+    __iadd__ = lambda self, other: self.write(self.read() + other)
+    __isub__ = lambda self, other: self.write(self.read() - other)
+    __imul__ = lambda self, other: self.write(self.read() * other)
+    __idiv__ = lambda self, other: self.write(self.read() / other)
+    __imod__ = lambda self, other: self.write(self.read() % other)
+    __ipow__ = lambda self, other: self.write(self.read() ** other)
+    __iand__ = lambda self, other: self.write(self.read() & other)
+    __ixor__ = lambda self, other: self.write(self.read() ^ other)
+    __ior__ = lambda self, other: self.write(self.read() | other)
+    __ilshift__ = lambda self, other: self.write(self.read() << other)
+    __irshift__ = lambda self, other: self.write(self.read() >> other)
 
     iadd = __iadd__
     isub = __isub__
@@ -1925,7 +2398,8 @@ class _mem(_number):
     ilshift = __ilshift__
     irshift = __irshift__
 
-    store_in_mem = lambda self,address: self.read().store_in_mem(address)
+    store_in_mem = lambda self, address: self.read().store_in_mem(address)
+
 
 class MemValue(_mem):
     __slots__ = ['last_write_block', 'reg_type', 'register', 'address', 'deleted']
@@ -1963,7 +2437,7 @@ class MemValue(_mem):
         self.check()
         if isinstance(value, MemValue):
             self.register = value.read()
-        elif isinstance(value, (int,long)):
+        elif isinstance(value, (int, long)):
             self.register = self.value_type(value)
         else:
             self.register = value
@@ -1980,26 +2454,26 @@ class MemValue(_mem):
         else:
             return self.read().reveal()
 
-    less_than = lambda self,other,bit_length=None,security=None: \
-        self.read().less_than(other,bit_length,security)
-    greater_than = lambda self,other,bit_length=None,security=None: \
-        self.read().greater_than(other,bit_length,security)
-    less_equal = lambda self,other,bit_length=None,security=None: \
-        self.read().less_equal(other,bit_length,security)
-    greater_equal = lambda self,other,bit_length=None,security=None: \
-        self.read().greater_equal(other,bit_length,security)
-    equal = lambda self,other,bit_length=None,security=None: \
-        self.read().equal(other,bit_length,security)
-    not_equal = lambda self,other,bit_length=None,security=None: \
-        self.read().not_equal(other,bit_length,security)
+    less_than = lambda self, other, bit_length=None, security=None: \
+        self.read().less_than(other, bit_length, security)
+    greater_than = lambda self, other, bit_length=None, security=None: \
+        self.read().greater_than(other, bit_length, security)
+    less_equal = lambda self, other, bit_length=None, security=None: \
+        self.read().less_equal(other, bit_length, security)
+    greater_equal = lambda self, other, bit_length=None, security=None: \
+        self.read().greater_equal(other, bit_length, security)
+    equal = lambda self, other, bit_length=None, security=None: \
+        self.read().equal(other, bit_length, security)
+    not_equal = lambda self, other, bit_length=None, security=None: \
+        self.read().not_equal(other, bit_length, security)
 
-    pow2 = lambda self,*args,**kwargs: self.read().pow2(*args, **kwargs)
-    mod2m = lambda self,*args,**kwargs: self.read().mod2m(*args, **kwargs)
-    right_shift = lambda self,*args,**kwargs: self.read().right_shift(*args, **kwargs)
+    pow2 = lambda self, *args, **kwargs: self.read().pow2(*args, **kwargs)
+    mod2m = lambda self, *args, **kwargs: self.read().mod2m(*args, **kwargs)
+    right_shift = lambda self, *args, **kwargs: self.read().right_shift(*args, **kwargs)
 
-    bit_decompose = lambda self,*args,**kwargs: self.read().bit_decompose(*args, **kwargs)
+    bit_decompose = lambda self, *args, **kwargs: self.read().bit_decompose(*args, **kwargs)
 
-    if_else = lambda self,*args,**kwargs: self.read().if_else(*args, **kwargs)
+    if_else = lambda self, *args, **kwargs: self.read().if_else(*args, **kwargs)
 
     def __repr__(self):
         return 'MemValue(%s,%d)' % (self.value_type, self.address)
@@ -2008,6 +2482,7 @@ class MemValue(_mem):
 class MemFloat(_mem):
     def __init__(self, *args):
         value = sfloat(*args)
+        self.err = MemValue(value.err)
         self.v = MemValue(value.v)
         self.p = MemValue(value.p)
         self.z = MemValue(value.z)
@@ -2019,9 +2494,11 @@ class MemFloat(_mem):
         self.p.write(value.p)
         self.z.write(value.z)
         self.s.write(value.s)
+        self.err.write(value.err)
 
     def read(self):
-        return sfloat(self.v, self.p, self.z, self.s)
+        return sfloat(self.v, self.p, self.z, self.s, self.err)
+
 
 class MemFix(_mem):
     def __init__(self, value):
@@ -2040,59 +2517,78 @@ class MemFix(_mem):
         else:
             return cfix(val)
 
+
 def getNamedTupleType(*names):
     class NamedTuple(object):
         class NamedTupleArray(object):
             def __init__(self, size, t):
                 import types
                 self.arrays = [types.Array(size, t) for i in range(len(names))]
+
             def __getitem__(self, index):
                 return NamedTuple(array[index] for array in self.arrays)
+
             def __setitem__(self, index, item):
-                for array,value in zip(self.arrays, item):
+                for array, value in zip(self.arrays, item):
                     array[index] = value
+
         @classmethod
         def get_array(cls, size, t):
             return cls.NamedTupleArray(size, t)
+
         def __init__(self, *args):
             if len(args) == 1:
                 args = args[0]
             for name, value in zip(names, args):
                 self.__dict__[name] = value
+
         def __iter__(self):
             for name in names:
                 yield self.__dict__[name]
+
         def __add__(self, other):
-            return NamedTuple(i + j for i,j in zip(self, other))
+            return NamedTuple(i + j for i, j in zip(self, other))
+
         def __sub__(self, other):
-            return NamedTuple(i - j for i,j in zip(self, other))
+            return NamedTuple(i - j for i, j in zip(self, other))
+
         def __xor__(self, other):
-            return NamedTuple(i ^ j for i,j in zip(self, other))
+            return NamedTuple(i ^ j for i, j in zip(self, other))
+
         def __mul__(self, other):
             return NamedTuple(other * i for i in self)
+
         __rmul__ = __mul__
         __rxor__ = __xor__
+
         def reveal(self):
             return self.__type__(x.reveal() for x in self)
+
     return NamedTuple
 
+
 import library
+
 
 class cintArray(Array):
     def __init__(self, n, address=None):
         Array.__init__(self, n, cint, address)
 
+
 class cintMatrix(Matrix):
     def __init__(self, n, m, address=None):
         Matrix.__init__(self, n, m, cint, address)
+
 
 class sintArray(Array):
     def __init__(self, n, address=None):
         Array.__init__(self, n, sint, address)
 
+
 class sintMatrix(Matrix):
     def __init__(self, n, m, address=None):
         Matrix.__init__(self, n, m, sint, address)
+
 
 cint.MemValue = MemValue
 cint.Array = cintArray
@@ -2114,11 +2610,14 @@ sfix.Array = sfixArray
 sfix.Matrix = sfixMatrix
 sfix.MemValue = MemFix
 
+
 def get_generic_array(value_type):
     class CustomMultiArray(MultiArray):
         def __init__(self, sizes):
             MultiArray.__init__(self, sizes, value_type)
+
     return CustomMultiArray
+
 
 # generate MultiArray for every type
 for value_type in [cint, cfix, sint, sfloat, sfix]:

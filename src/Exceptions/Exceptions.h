@@ -13,6 +13,8 @@ All rights reserved
 #include <string>
 using namespace std;
 
+#include "handler.h"
+
 /* General Exceptions */
 class not_implemented : public exception
 {
@@ -329,6 +331,29 @@ class crash_requested : public exception
   virtual const char *what() const throw()
   {
     return "Crash requested by program";
+  }
+};
+
+class OT_error : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Problem in OT generation";
+  }
+};
+
+class circuit_error : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Circuit problem";
+  }
+};
+class circuit_eval_error : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Circuit evaluation problem";
   }
 };
 

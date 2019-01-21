@@ -55,6 +55,8 @@ class Program(object):
         print 'Prime size:', prime_size
         print 'Default bit length:', self.bit_length
         print 'Default statistical security parameter:', self.security
+        self.fdflag = options.fdflag
+        print 'Under Over Flow flag: ', self.fdflag
         self.schedule = [('start', [])]
         self.main_ctr = 0
         self.tapes = []

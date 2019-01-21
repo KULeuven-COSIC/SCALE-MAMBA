@@ -8,30 +8,30 @@ Before proceeding it is perhaps worth detailing how
 different security parameters are used within the code.
 
 \begin{itemize}
-\item $\Sacsecp$ (default $40$): 
+\item $\Sacsecp$ (default $80$): 
 This defined how many sacrifices we do per triple, 
 to get the precise number you compute $\ceil{\Sacsecp/\log_2 p}$.
 Thus this statistical security parameter is effectively
-$1/\log_2 p$ unless $p$ is very small.
-\item $\Macsecp$ (default $40$):
+$\log_2 p$ unless $p$ is very small.
+\item $\Macsecp$ (default $80$):
 For the full threshold case this defined how many MACs are held
 per data item, again to get the precise number you compute 
 $\ceil{\Macsecp/\log_2 p}$.
 Thus, again, this statistical security parameter is effectively
-$1/\log_2 p$ unless $p$ is very small.
-\item $\ZKsecp$ (default $40$):
-This defines the soundness error of the ZKPoKs below.
-Increasing this significantly increases data sizes and runtimes
-for the full threshold case.
-However, the information leakage if the adversary does manage
-to produce input which defeats the ZKPoKs is tiny (the distributed
-noise flooding reduces this information leakage as well). Thus
-we believe we can live with such a value as it is mitigated
-in other ways.
-\item $\DDsecp$ (default $40$):
-This defines the closeness of the distribution produced
+$\log_2 p$ unless $p$ is very small.
+\item $\Soundsecp$ (default $128$):
+This defines the soundness error of the ZKPoKs below,
+the value of $2^{-\Soundsecp}$ defines the probability
+that an adversary can cheat in a single ZKPoK.
+\item $\ZKsecp$ (default $80$): 
+This defines the statistical distance between the 
+coefficients of the ring elements in an honest ZKPoK
+transcript and one produced by a simulation.
+\item $\DDsecp$ (default $80$):
+This defines the statistical distance between the 
+coefficients of the ring elements in the distribution produced
 in the distributed decryption protocol below to the uniform
-distribution (only affects the full threshold case).
+distribution.
 \item \verb+comp_sec+ (default $128$):
 This defines the computational security parameter for the
 FHE scheme. 
@@ -43,7 +43,7 @@ correctly, even under adversarial inputs assuming the
 ZKPoKs are applied correctly, with probability $1-2^{-\epsilon}$.
 In fact this is an under-estimate of the probability.
 From $\epsilon$ we define $e_i$ such that 
-$\mathsf{erfc}(e_i)^i \approx 2^{-\epsilon}$ and then we set $c_i = e_i^i$.
+$\mathsf{erfc}(e_i)^i \approx 2^{-\epsilon}$ and then we set $\gc_i = e_i^i$.
 \end{itemize}
 All of these parameters can be tweaked in the file
 \verb+config.h+.
@@ -173,14 +173,14 @@ from $\ZO(0.5,\phi(m))$ we obtain variance $\phi(m)/2$,
 when sampled from $\dN(\sigma^2,\phi(m))$ we obtain variance
 $\sigma^2 \cdot \phi(m)$ and when sampled from $\calU(q,\phi(m))$
 we obtain variance $q^2 \cdot \phi(m)/12$.
-By the law of large numbers we can use $c_1 \cdot \sqrt{V}$,
+By the law of large numbers we can use $\gc_1 \cdot \sqrt{V}$,
 where $V$ is the above variance, as a high probability bound
 on the size of $a(\zeta_m)$ (the probability is $1-2^{-\epsilon}$, 
 and this provides a bound on the canonical embedding norm of $a$.
 
 If we take a product of $t$ such
 elements with variances $V_1, V_2, \ldots, V_t$
-then we use $c_t \cdot \sqrt{V_1 \cdot V_2 \cdots V_t}$
+then we use $\gc_t \cdot \sqrt{V_1 \cdot V_2 \cdots V_t}$
 as the resulting bounds.
 In our implementation we approximate $\dN(\sigma^2,n)$ using
 the binomial method from the NewHope paper, with a standard
@@ -253,9 +253,9 @@ an honestly generated ciphertext to be
                   \right) \\
      &\le \phi(m) \cdot p/2
 	  + p \cdot \sigma \cdot 
-             \left( c_2 \cdot \phi(m) / \sqrt{2}
-			  + c_1 \cdot \sqrt{\phi(m)}
-			  + c_2 \cdot \sqrt{h \cdot \phi(m)}
+             \left( \gc_2 \cdot \phi(m) / \sqrt{2}
+			  + \gc_1 \cdot \sqrt{\phi(m)}
+			  + \gc_2 \cdot \sqrt{h \cdot \phi(m)}
 		    \right) = B_\clean.
 \end{align*}
 Note this is a probablistic bound and not an absolute bound.
@@ -266,34 +266,40 @@ Note this is a probablistic bound and not an absolute bound.
 However, below we will only be able to guarantee the
 $m, v, e_0$ and $e_1$ values of a {\bf sum} of $n$ fresh ciphertexts
 (one from each party) are selected subject to
-\[ \norm{v}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad 
+\[ \norm{v}_\infty \le 2^{\ZKsecp + U/2 + 2} \cdot n \quad 
     \mbox{  and  } \quad
-   \norm{e_0}_\infty, \norm{e_1}_\infty \le 20 \cdot 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad
+   \norm{e_0}_\infty, \norm{e_1}_\infty \le 20 \cdot 2^{\ZKsecp + U/2 + 2} \cdot n \quad
     \mbox{  and  } \quad
-   \norm{m}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \cdot p/2,
+   \norm{m}_\infty \le 2^{\ZKsecp/2 + U/2 + 1} \cdot n \cdot p,
 \]
 where $\ZKsecp$ is our soundness parameter for the 
-zero-knowledge proofs.
+zero-knowledge proofs
+and $U$ is selected so that $(2 \cdot \phi(m))^U > 2^\Soundsecp$.
 In this situation we obtain the bound, using the inequality above
 between the infinity norm in the polynomial embedding
-and the infinity norm in the canonical embeddig,
+and the infinity norm in the canonical embedding,
 \begin{align*}
- \norm{c_0 - \sk \cdot c_1}_\infty^\can 
-   & \le  \norm{m}_\infty^\can 
-         +p \cdot \left( \norm{\epsilon\cdot v}_\infty^\can
-                       + \norm{e_0}_\infty^\can
-                       + \norm{e_1 \cdot \sk}_\infty^\can
-                  \right) \\
-   &\le  \norm{m}_\infty^\can 
-         +p \cdot \left( \norm{\epsilon}_\infty^\can \cdot \norm{ v}_\infty^\can
-                       + \norm{e_0}_\infty^\can
-                       + \norm{e_1}_\infty^\can \cdot \norm{ \sk}_\infty^\can
-                  \right)  \\
-   &\le \phi(m) \cdot 2^{3 \cdot \ZKsecp/2+1} \cdot  n  \cdot p \cdot
-	\left( 1/2 + 20 \cdot c_1 \cdot \sigma \cdot \sqrt{\phi(m)}
-		   + 20 
-		   + 20 \cdot c_1 \cdot \sqrt{h}
-        \right) = B_\clean^\dishonest
+  \norm{c_0 - \sk \cdot c_1}_\infty^\can
+  &\le \sum_{i=1}^n
+  	\norm{2 \cdot m_i}_\infty^\can
+	+ p \cdot \Big(\norm{\epsilon}_\infty^\can \cdot \norm{2 \cdot e_{2,i}}_\infty^\can 
+	+ \norm{2 \cdot e_{0,i}}_\infty^\can \\
+  &\hspace{3.5cm}
+	+ \norm{\sk}_\infty^\can \cdot \norm{2 \cdot e_{1,i}}_\infty^\can \Big) \\
+   &\le 2 \cdot \phi(m) \cdot 2^{\ZKsecp+U/2+1} \cdot n \cdot p/2  \\
+   & \hspace{2cm}
+	+ p \cdot \Big(
+	 \gc_1 \cdot \sigma \cdot \phi(m)^{3/2} \cdot 2 \cdot 2^{\ZKsecp+U/2+1} \cdot n\\
+  &\hspace{3cm}
+	  + \phi(m) \cdot 2 \cdot  2^{\ZKsecp+U/2+1} \cdot n \cdot 20  \\
+  &\hspace{3cm}
+	  +  \gc_1 \cdot \sqrt{h} \cdot \phi(m) \cdot 2 \cdot 2^{\ZKsecp+U/2+1} \cdot n \cdot 20 
+	\Big)  \\
+  &=\phi(m) \cdot 2^{\ZKsecp+U/2+2} \cdot n \cdot p
+	\cdot \Big( \frac{41}{2} + \gc_1 \cdot \sigma \cdot \phi(m)^{1/2}  
+	           +  20 \cdot \gc_1 \cdot \sqrt{h} 
+	\Big)   \\
+  & = B_\clean^\dishonest.
 \end{align*}
 Again this is a probabilistic bound (assuming validly
 distributed key generation), but assumes the worst case
@@ -367,7 +373,7 @@ where a default value for the randomness is used when computing $\Enc_{pk}(\vm+\
 
 
 \paragraph{Reshare Version 1:}
-This is described in Figure \ref{reshare}.
+This is described in \figref{reshare}.
 The value $B$ in the protocol is an upper bound on the noise in the canonical embedding
 $\nu$ associated with a ciphertext we will decrypt in our protocols.
 To ensure valid distributed decryption we require
@@ -390,7 +396,7 @@ statistical indistinguishability of the coefficients is valid
 in a practical context.
 
 \paragraph{Reshare Version 2:}
-This is given in Figure \ref{distdec}.
+This is given in \figref{distdec}.
 This protocol is simpler as it does not require the resharing to a 
 new ciphertext.
 So in particular players do not need to provide encryptions of
@@ -489,124 +495,25 @@ we need a simpler circuit, and we use the Distributed Decryption
 protocol from \cite{KPR}[Appendix A].
 
 \subsection{Zero Knowledge Proof}
-Here we give the ZK-PoK from Uverdrive \cite{KPR}, with some modifications
-to make it clearer what is going on, and to make 
-consistent with the notation above.
+The precise ZKPoK we use is from TopGear \cite{TopGear}, which
+is an extension of the HighGear prtoocol from \cite{KPR}.
+The precise protocol is given in \figref{PZK1} and \figref{PZK2}.
 This is an amortized version of the proof from \cite{SPDZ}, in the sense
-that the input ciphertexts from all players are simulataneously proved to be
+that the input ciphertexts from all players are simultaneously proved to be
 correct.
-The proof takes as input a variable \verb+diag+, which if set to true
+The proof takes as input a variable $\flag$, which if set to $\Diag$
 imposes the restriction that the input plaintexts are ``diagonal'' in
 the sense that they encrypt they same value in each slot.
 This is needed to encrypt the MAC values at the start of the protcol.
 Being diagonal equates to the input plaintext polynomial being the constant
 polynomial.
 
-\begin{Boxfig}{Protocol for global proof of knowledge of a ciphertext}{Pgpok}{$\Pgpok$}
-We wish to prove that a set of $\ZKsecp$ ciphertexts $\vct\ui=\ct\ui_j$ for $j=1,\ldots, \sec$
-input by party $i$ (for all $i$) are generated such that
-\[ \norm{v\ui_j}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad 
-    \mbox{  and  } \quad
-   \norm{e\ui_{0,j}}_\infty, \norm{e\ui_{1,j}}_\infty \le 20 \cdot 2^{3 \cdot \ZKsecp/2+1} \cdot n \quad
-    \mbox{  and  } \quad
-   \norm{m\ui_j}_\infty \le 2^{3 \cdot \ZKsecp/2+1} \cdot n \cdot p/2,
-\]
-We will write $\vr\ui_j=(v\ui_j, e\ui_{0,j}, e\ui_{1,j})$
-and $\vx\ui_j=(m\ui_1,\ldots,m\ui_\ZKsecp)$.
-Thus $\vx\ui \in R^\ZKsecp$, $\vr\ui \in R^{\ZKsecp \cdot 3}$ and $\ct\ui\in R^{\ZKsecp \cdot 2}$.
-\begin{enumerate}
-\item Set $V= 2 \cdot \ZKsecp-1$.
-\item \label{stage1} 
-Each party $P_i$ samples a new set of ``plaintexts'' $\vy\ui \in R^V$ and ``randomness vectors''
-$\vs\ui \in R^{V \times 3} $ such that
-\[ \norm{y_j}_\infty \le 2^\ZKsecp \cdot p/2 \quad \mbox{  and  } \quad
-   \norm{s_{j,1}}_\infty \le 2^\ZKsecp \quad \mbox{  and   } \quad
-   \norm{s_{j,2}}_\infty, \norm{s_{j,3}}_\infty \le 2^\ZKsecp \cdot 20.
-\]
-for $j=1,\ldots,V$.
-If \verb+diag+ is set to true, then the $y_j$ are selected to be diagonal.
-\item Each $P_i$ computes $\va\ui \asn \Enc_\pk(\vy\ui,\vs\ui)$ and broadcasts the $\va\ui$.
-\item The parties jointly sample a vector $\ve \in \{0,1\}^\ZKsecp$.
-\item Define $M_\ve \in \{0,1\}^{V \times \ZKsecp}$ to be the matrix associated with the challenge $\ve$ 
-such that $M_{kl} = e_{k-l+1}$ for $1 \leq k-l+1 \leq \ZKsecp$ and $0$ in all other entries.
-\item Each party $P_i$ computes $\vz\uti = \vy\uti + M_\ve \cdot \vx\uti \in R^{V}$ 
-and $T\ui=\vs\ui + M_\ve \cdot \vr\ui \in R^{V \times 3}$ and broadcasts $(\vz\ui,T\ui)$.
-\item \label{stage20} Each party $P_i$ computes $\vd\ui = \Enc_\pk(\vz\ui, T\ui)$ 
-and then stores the sum $\vd = \sum_{i=1}^n \vd\ui$.
-\item \label{stage21} 
-The parties compute $\vct =\sum_i \vct\ui$,~ $\va = \sum_i \va\ui$,~ $\vz = \sum_i \vz\ui$ and $T = \sum_i T\ui$ and 
-conduct the checks (allowing the norms to be $2n$ times bigger to accommodate the summations):
-\[\transpose{\vd} = \transpose{\va} + (M_\ve \cdot \vct), \quad
-  \norm{\vz}_\infty \leq 2 \cdot n \cdot 2^\ZKsecp \cdot p/2, \quad
-  \norm{t_{i,1}}_\infty \leq 2 \cdot n \cdot 2^{\ZKsecp}, \quad
-  \norm{t_{i,2}}_\infty, \norm{t_{i,3}}_\infty \leq 2 \cdot 20 \cdot n \cdot 2^{\ZKsecp}, \quad
-\]
-where $t_{i,j}$ is the $(i,j)$-th element of $T$.
-\item If \verb+diag+ is true and the $\vz\ui$ are not diagonal plaintexts then the
-proof is rejected.
-\item If the check passes, the parties output $\sum_{i=1}^{n} \vct\ui$.
-  \end{enumerate}
-\end{Boxfig}
-In the following we will prove that our protocol achieves the natural
-extension of the $\Sigma$-protocol properties in the multi-party
-setting.
-We ignore the \verb+diag+ flag, as the modifications in the case
-this is set to true are trivial.
+\input{FigZKPoK}
 
-\paragraph{Correctness.}
-The equality in step \ref{stage21} follows trivially from the linearity of the encryption.
-It remains to check the probability that an honest prover will fail the bounds check on $\norm{\vz}_\infty$ 
-and $\norm{t_{i,j}}_\infty$.
-
-Remember that the honestly generated $\ct\ui$ are ciphertexts
-generated according to the true distribution (i.e. without the slack).
-
-The bound check for the plaintext component will succeed if the 
-infinity norm of $\sum_{i=1}^n (\vy^{(i)} + \sum_{k=1}^{\ZKsecp}(M_{e_{jk}} \cdot
-\vx^{(i)}))$ is at most $2 \cdot n \cdot 2^\ZKsecp \cdot p/2$. 
-This is always true because $\vy^{(i)}$ is sampled such that 
-$\norm{\vy^{(i)}}_\infty \leq 2^{\ZKsecp} \cdot p/2$ and 
-$\norm{M_\ve \cdot \vx^{(i)}}_\infty \le \ZKsecp \cdot p/2 \le 2^\ZKsecp \cdot p/2$. 
-A similar argument holds regarding $\rho$.
-
-\paragraph{Special soundness.} To prove this property one must be able to extract the witness given responses from 
-two different challenges. 
-In this case consider the transcripts $(\vx, \va, \ve, (\vz, T))$ and $(\vx, \va, \ve', (\vz', T'))$ where $\ve \neq \ve'$. 
-Recall that each party has a different secret $\vx\ui$. 
-Because both challenges have passed the bound checks during the protocol, we get that:
-\begin{align*}
-    (M_\ve - M_{\ve'}) \cdot \transpose{\vct} = \transpose{(\vd - \vd')}
-\end{align*}
-
-To solve the equation for $\vct$ notice that $M_\ve - M_{\ve'}$ is a matrix with entries in $\{-1,0,1\}$ so we 
-must solve a linear system where $\vct = \Enc_\pk(\vx_k, \vr_k)$ for $k = 1,\dots,\ZKsecp$. 
-This can be done in two steps: solve the linear system for the first half: $\vc_1, \dots, \vc_{\ZKsecp/2}$ and 
-then for the second half: $\vc_{\ZKsecp/2+1}, \dots, \vc_{\ZKsecp}$. 
-For the first step identify a square submatrix of $\ZKsecp \times \ZKsecp$ entries in $M_\ve - M_{\ve'}$ which 
-has a diagonal full of $1$'s or $-1$'s and it is lower triangular. 
-This can be done since there is at least one component $j$ such that $e_j \neq e'_j$. 
-Recall that the plaintexts $\vz_k, \vz'_k$ have norms less than $2^\ZKsecp \cdot p/2$ and 
-the randomness used for encrypting them, $\vt_k, \vt'_k$, have norms less than 
-$2^\ZKsecp$ in the first coordinate and $2^\ZKsecp \cdot 20$ in the last two coordinates where $k$ ranges 
-through $1, \dots, \ZKsecp$.
-
-Solving the linear system from the top row to the middle row via substitution we obtain in the worst case: 
-$\norm{\vx_k}_\infty \leq 2^k \cdot n \cdot 2^\ZKsecp \cdot p/2$ and the infinity norm of
-$\vy_k$ is less than $2^k \cdot n \cdot 2^\ZKsecp$ in the first coordinate
-and less than $2^k \cdot n \cdot 2^\ZKsecp \cdot 20$ in the last two coodinates,
-where $k$ ranges through $1, \dots, \ZKsecp/2$. 
-
-The second step is similar to the first with the exception that now we have to look for an 
-upper triangular matrix of $\ZKsecp \times \ZKsecp$. 
-Then solve the linear system from the last row to the middle row. 
-In this way we extract $\vx_k, \vr_k$ which we can only gaurantee satisfy the 
-bounds given in Figure \ref{Pgpok}.
-
-\paragraph{Honest verifier zero-knowledge.} 
-Here we give a simulator $\Sim$ for an honest verifier (each party $P_i$ acts as one at one point during the protocol). 
-The simulator's purpose is to create a transcript with the verifier which is indistinguishable from the real 
-interaction between the prover and the verifier. 
-To achieve this, $\Sim$ samples uniformly $\ve \asn \{0,1\}^{\ZKsecp}$ and then creates the transcript accordingly: 
-sample $\vz\ui$ and $T\ui$ with respect to the bounds in the final check.
-The simulator then fixes $\va\ui = \Enc_\pk(\vz\ui, T\ui) - (M_\ve \cdot \vct\ui)$, where the encryption is applied component-wise. Clearly the produced transcript $(\va\ui, \ve\ui, \vz\ui, T\ui)$ passes the final checks and the statistical distance to the real one is $2^{-\ZKsecp}$, which is negligible with respect to $\ZKsecp$.
+Note the soundness security in the case of $\flag=\Diag$ is only
+equal to $2^-U$ as opposed to $(2 \cdot \phi(m))^U$.
+However, by repeating the ZKPoK a number of times we obtain
+the desired soundness security. As this is only done for
+the ciphertexts encrypting the MAC keys this is not a problem in
+practice.
 

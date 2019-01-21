@@ -33,6 +33,11 @@ class CAS
 public:
   unsigned int n; // Number of parties
 
+  // For Shamir initialisation only delta_plus is defined
+  // If the size of this is too big we set it to zero
+  // We only need delta_plus for the PRSS, which we can
+  // do via a protocol if delta_plus is too big
+
   // For the following a_{i,j} is one if the ith set contains j
   imatrix gamma; // Qualified sets as a matrix
   imatrix delta; // Unqualified sets as a matrix

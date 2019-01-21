@@ -36,15 +36,19 @@ void Create_Random_Seed(uint8_t *seed, int len, Player &P, int connection= 0);
  *   0 <= i < data.size()
  *   0 <= j < num_players
  * On input data[i][j] is only defined for j=me
+ *
+ * Check defines whether we do broadcast checking
  */
 template<class T>
-void Commit_And_Open(vector<vector<T>> &data, Player &P, int connection= 0);
+void Commit_And_Open(vector<vector<T>> &data, Player &P, bool check= false, int connection= 0);
 
 /* This runs the Commit and Open Protocol for data[j] of type T
  *   0 <= j < num_players
  * On input data[j] is only defined for j=me
+ *
+ * Check defines whether we do broadcast checking
  */
 template<class T>
-void Commit_And_Open(vector<T> &data, Player &P, int connection= 0);
+void Commit_And_Open(vector<T> &data, Player &P, bool check= false, int connection= 0);
 
 #endif

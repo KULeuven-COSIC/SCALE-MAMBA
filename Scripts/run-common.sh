@@ -10,11 +10,11 @@ run_player() {
     for i in $(seq 0 $rem); do
       echo "trying with player $i"
       >&2 echo Running ../$bin $i $params
-      ./$bin $i $params 2>&1 | tee Scripts/logs/$i  &
+      ./$bin $i $params 2>&1 | tee -a Scripts/logs/$i  &
     done
     last_player=$(($players - 1))
     >&2 echo Running ../$bin $last_player $params
-    ./$bin $last_player $params > Scripts/logs/$last_player 2>&1 || return 1
+    ./$bin $last_player $params >> Scripts/logs/$last_player 2>&1 || return 1
 }
 
 killall Player.x 

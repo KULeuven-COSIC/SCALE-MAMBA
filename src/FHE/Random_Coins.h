@@ -99,6 +99,13 @@ public:
   friend void add(Random_Coins &ans, const Random_Coins &x,
                   const Random_Coins &y);
 
+  friend void mul_by_X_i(Random_Coins &ans, const Random_Coins &a, unsigned int j)
+  {
+    mul_by_X_i(ans.uu, a.uu, j);
+    mul_by_X_i(ans.vv, a.vv, j);
+    mul_by_X_i(ans.ww, a.ww, j);
+  }
+
   void output(ostream &s, bool human= false) const;
 
   // Input always in non-human form

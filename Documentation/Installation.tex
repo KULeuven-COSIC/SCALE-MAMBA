@@ -9,25 +9,75 @@ libraries:
 \item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
 \item CPU supporting AES-NI and PCLMUL
 \item OpenSSL: Tested with version 1.1.0
+\item Crypto++: Tested with version 7.0
 \end{itemize}
 Developers will also require
 \begin{itemize}
 \item clang-format as to apply the standard C++ format to files. Tested with clang-format version 4.0.1.
 \end{itemize}
-First copy the file
+
+\subsubsection{Installing MPIR and OpenSSL}
+This bit, on explaining how to install  MPIR and OpenSSL inside \verb+$HOME/local+, 
+is inspired from \href{https://rdragos.github.io/2019/01/07/scale/}{this} blogpost.
+The target directory here can be changed to whatever you wish.
+If you follow this section we assume that you have \textbf{cloned}
+the main repository in your \verb+$HOME+ directory.
 \begin{verbatim}
-     CONFIG
+    mylocal="$HOME/local"
+    mkdir -p ${mylocal}
+    cd ${mylocal}
+
+    # install MPIR 3.0.0
+    curl -O 'http://mpir.org/mpir-3.0.0.tar.bz2'
+    tar xf mpir-3.0.0.tar.bz2
+    cd mpir-3.0.0
+    ./configure --enable-cxx --prefix="${mylocal}/mpir"
+    make && make check && make install
+
+    # install OpenSSL 1.1.0
+    cd $mylocal
+    curl -O https://www.openssl.org/source/openssl-1.1.0j.tar.gz
+    tar -xf openssl-1.1.0j.tar.gz
+    cd openssl-1.1.0j
+    ./config --prefix="${mylocal}/openssl"
+    make && make install
 \end{verbatim}
-in the main directory to the file
+Now export MPIR and OpenSSL paths by copying the following
+lines at the end of your \verb+$HOME/.bashrc+ configuration file.
 \begin{verbatim}
-     CONFIG.mine
+    # this goes at the end of your $HOME/.bashrc file
+    export mylocal="$HOME/local"
+
+    # export OpenSSL paths
+    export PATH="${mylocal}/openssl/bin/:${PATH}"
+    export C_INCLUDE_PATH="${mylocal}/openssl/include/:${C_INCLUDE_PATH}"
+    export CPLUS_INCLUDE_PATH="${mylocal}/openssl/include/:${CPLUS_INCLUDE_PATH}"
+    export LIBRARY_PATH="${mylocal}/openssl/lib/:${LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="${mylocal}/openssl/lib/:${LD_LIBRARY_PATH}"
+
+    # export MPIR paths
+    export PATH="${mylocal}/mpir/bin/:${PATH}"
+    export C_INCLUDE_PATH="${mylocal}/mpir/include/:${C_INCLUDE_PATH}"
+    export CPLUS_INCLUDE_PATH="${mylocal}/mpir/include/:${CPLUS_INCLUDE_PATH}"
+    export LIBRARY_PATH="${mylocal}/mpir/lib/:${LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="${mylocal}/mpir/lib/:${LD_LIBRARY_PATH}"
 \end{verbatim}
-Now edit \verb+CONFIG.mine+.
-You need to place the location of this ROOT directory correctly, 
-as well as indicate where the OpenSSL library should be picked up 
+
+\subsubsection{Change CONFIG.mine}
+We now need to copy the file \verb+CONFIG+ in the main directory to the file
+\verb+CONFIG.mine+.
+Then we need to edit \verb+CONFIG.mine+, so as to place the correct
+location of this ROOT directory correctly, 
+as well as indicating where the OpenSSL library should be picked up 
 from (this is likely to be different from the
 system installed one which GCC would automatically pick up).
-
+This is done by executing the following commands
+\begin{verbatim}
+    cd $HOME/SCALE-MAMBA
+    cp CONFIG CONFIG.mine
+    echo "ROOT = $HOME/SCALE-MAMBA" >> CONFIG.mine
+    echo "OSSL = ${mylocal}/openssl" >> CONFIG.mine
+\end{verbatim}
 You can also at this stage specify various compile time options
 such as various debug and optimisation options.
 We would recommend commenting out all DEBUG options from FLAGS
@@ -46,9 +96,8 @@ keys. Otherwise this can be set to just above the word size of your
 secret-sharing modulus to obtain better performance.
 As default we have set it for use with full threshold.
 
-~~
-
-\noindent If wanted you can then configure various bits of the system
+\subsubsection{Change config.h}
+If wanted you can also now configure various bits of the system
 by editing the file
 \begin{verbatim}
      config.h
@@ -68,12 +117,15 @@ However, in the case of the last two you {\em may} also need to change the
 precision or prime size you are using. See the documentation for
 \verb+sfix+ and \verb+sfloat+ for this.
 
-~
-
-\noindent You can then type
+\subsubsection{Final Compilation}
+The only thing you now have to do is type
 \begin{verbatim}
-     make
+    make progs
 \end{verbatim}
+That's it! After make finishes then you should see a `Player.x`
+executable inside the SCALE-MAMBA directory.
+
+
 
 \subsection{Creating and Installing Certificates}
 For a proper configuration you need to worry about the rest
@@ -84,7 +136,7 @@ Installation'' of Section \ref{sec:idiot}.
 All channels will be TLS encrypted. For SPDZ this is not needed, but for
 other protocols we either need authenticated or secure channels. So might
 as well do everything over {\em mutually} authenticated TLS. We are going
-to set up a small PKI to do this. You thus first need to create
+to setup a small PKI to do this. You thus first need to create
 keys and certificates for the main CA and the various players you
 will be using.
 
@@ -145,7 +197,7 @@ for player one, in a four player installation, will look like
 The program \verb+Setup.x+ is used to run a one-time setup 
 for the networking and/or secret-sharing system being used.
 You must do networking before secret-sharing (unless you keep
-the number of players fixed), since the secret-sharing set up
+the number of players fixed), since the secret-sharing setup
 picks up the total number of players you configured when setting
 up networking.
 \begin{itemize}
@@ -201,7 +253,7 @@ and 1024 bits).  The system will then
 search for a modulus which is compatible with the FHE system we are
 using.
 
-At this stage the MAC keys and FHE secret keys are set up and written into the
+At this stage the MAC keys and FHE secret keys are setup and written into the
 files 
 \begin{center}
 \verb+MKey-*.key+ and \verb+FHE-Key-*.key+ 
@@ -330,7 +382,7 @@ as we assume the target vector is $(1,1)$ and not $(1,0)$ as is often
 the case in Shamir sharing.
 
 
-\section{Idiot's Installation}
+\subsection{Idiot's Installation}
 \label{sec:idiot}
 To install an installation of the three party Shamir based
 variant, with default certificates and all parties running

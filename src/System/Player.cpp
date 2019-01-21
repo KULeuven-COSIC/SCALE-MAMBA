@@ -141,6 +141,7 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
                vector<vector<int>> &csockets, const vector<gfp> &MacK, int verbose)
 {
   G.ReSeed(thread);
+  SHA256_Init(&sha256);
 
   me= mynumber;
   ssl.resize(SD.n);
@@ -342,8 +343,13 @@ void Player::receive_from_player(int i, string &o, int connection, bool verbose)
 /* This is deliberately weird to avoid problems with OS max buffer
  * size getting in the way
  */
-void Player::Broadcast_Receive(vector<string> &o, int connection) const
+void Player::Broadcast_Receive(vector<string> &o, bool check, int connection)
 {
+  if (connection != 0 && check == true)
+    {
+      throw bad_value();
+    }
+
   for (unsigned int i= 0; i < ssl.size(); i++)
     {
       if (i > me)
@@ -366,6 +372,35 @@ void Player::Broadcast_Receive(vector<string> &o, int connection) const
           receive_from_player(i, o[i], connection);
         }
     }
+
+  if (check)
+    {
+      for (unsigned int i= 0; i < ssl.size(); i++)
+        {
+          SHA256_Update(&sha256, o[i].c_str(), o[i].size());
+        }
+    }
+}
+
+void Player::Check_Broadcast()
+{
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256_Final(hash, &sha256);
+  string ss((char *) hash, SHA256_DIGEST_LENGTH);
+  send_all(ss);
+  for (unsigned int i= 0; i < nplayers(); i++)
+    {
+      if (i != whoami())
+        {
+          string is;
+          receive_from_player(i, is);
+          if (is != ss)
+            {
+              throw hash_fail();
+            }
+        }
+    }
+  SHA256_Init(&sha256);
 }
 
 void Player::Send_Distinct_And_Receive(vector<string> &o, int connection) const

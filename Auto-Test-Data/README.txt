@@ -1,4 +1,8 @@
 This directory contains files needed for the auto-testing of the system
+
+The data sets are created on the assumption that the DEFAULT
+parameters (in config.h) are used to compile the main programs.
+
   1 Shamir        (3,1)
   2 Replicated    (3,1) Maurer
   3 Replicated    (3,1) Reduced
@@ -26,7 +30,7 @@ This directory contains files needed for the auto-testing of the system
  25 Shamir        (10,4) 
 
 
-Where all bar the FHE examples use the prime
+Where all bar the FHE and 32-bit examples use the prime
 
   p=340282366920938463463374607431768211507
 

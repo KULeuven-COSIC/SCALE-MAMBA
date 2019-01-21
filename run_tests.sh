@@ -2,6 +2,10 @@
 
 cp -R Auto-Test-Data/Cert-Store/* Cert-Store/
 
+for i in $(seq 0 9); do
+  \rm -f Scripts/logs/$i
+done
+
 for i in $(seq 1 19); do
   cp -R Auto-Test-Data/$i/* Data/
   echo Running testscript on set $i

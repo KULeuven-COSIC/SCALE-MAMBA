@@ -11,7 +11,7 @@ The combined online/offline phase we shall refer
 to as SCALE, the compiler takes a program written
 in our special language MAMBA, and then turns it
 into bytecode which can be executed by the SCALE
-system.
+system. 
 
 We provide switches (see below) to obtain 
 different behaviours between how the online and offline
@@ -127,12 +127,19 @@ over-production of offline data for small applications.
 \item In the case of Full Threshold we have another set of global
 threads (called the FHE Factory threads, or the FHE Industry) 
 which produces level one random FHE ciphertexts which have passed 
-the ZKPoK from the high gear variant of Overdrive \cite{KPR}.
+the ZKPoK from the Top Gear protocol \cite{TopGear},
+which is itself a variant of the High Gear protocol in Overdrive \cite{KPR}.
 This is done in a small bunch of global threads as the ZKPoK would
 blow up memory if done for each thread that would consume 
 data from the FHE thread.
+These threads are numbered from 10000 in the code.
 Any thread (offline production thread) can request a new
 ciphertext/plaintext pair from the FHE factory threads.
+\item We also implement a thread (number 20000 in the code)
+which implements pairwise OTs, which can be turned on with a magic
+undocumented switch. \todo{This is currently only
+for experimental purposes though. It will be fully integrated
+in a future release.}
 \end{itemize}
 
 

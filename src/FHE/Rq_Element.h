@@ -86,6 +86,9 @@ public:
   friend void mul(Rq_Element &ans, const Rq_Element &a, const Rq_Element &b);
   friend void mul(Rq_Element &ans, const Rq_Element &a, const bigint &b);
 
+  // Multiply by X^i
+  friend void mul_by_X_i(Rq_Element &ans, const Rq_Element &a, unsigned int j);
+
   Rq_Element &operator+=(const Rq_Element &other)
   {
     add(*this, *this, other);

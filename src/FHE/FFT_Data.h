@@ -26,7 +26,6 @@ class FFT_Data
   vector<modp> root; // 2m'th Root of Unity mod pr and it's inverse
 
   modp iphi; // 1/phi_m mod pr
-  vector<vector<modp>> powers, powers_i;
 
 public:
   void init(const Ring &Rg, const Zp_Data &PrD);

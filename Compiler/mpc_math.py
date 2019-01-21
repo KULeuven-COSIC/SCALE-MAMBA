@@ -90,7 +90,8 @@ def trunc(x):
     if type(x) is types.sfix:
         return floatingpoint.Trunc(x.v, x.k - x.f, x.f, x.kappa)
     elif type(x) is types.sfloat:
-        return floatingpoint.FLRound(x, 0)
+        v, p, z, s = floatingpoint.FLRound(x, 0)
+        return types.sfloat(v, p, z, s, x.err) 
     return x
 
 
@@ -103,7 +104,7 @@ def load_sint(x, l_type):
     if l_type is types.sfix:
         return types.sfix.load_sint(x)
     elif l_type is types.sfloat:
-        return types.sfloat(x)
+        return x
     return x
 
 
@@ -138,7 +139,7 @@ def p_eval(p_c, x):
 #
 # @return b2: \{0,1\} value. Returns one when reduction to
 # \pi is greater than \pi/2.
-def sTrigSub_fx(x):
+def sTrigSub(x):
     # reduction to 2* \pi
     f = x * (1.0 / (2 * pi))
     f = load_sint(trunc(f), type(x))
@@ -200,12 +201,12 @@ def scos(w, s):
 ##
 # Returns the sin of any given fractional value.
 #
-# @param x: fractional input (sfix).
+# @param x: fractional input (sfix, sfloat).
 #
-# @return  returns the sin of x (sfix).
+# @return  returns the sin of x (sfix, sfloat).
 def sin(x):
     # reduces the angle to the [0,\pi/2) interval.
-    w, b1, b2 = sTrigSub_fx(x)
+    w, b1, b2 = sTrigSub(x)
     # returns the sin with sign correction
     return ssin(w, b1)
 
@@ -213,26 +214,26 @@ def sin(x):
 ##
 # Returns the sin of any given fractional value.
 #
-# @param x: fractional input (sfix).
+# @param x: fractional input (sfix, sfloat).
 #
-# @return  returns the sin of x (sfix).
+# @return  returns the sin of x (sfix, sfloat).
 def cos(x):
     # reduces the angle to the [0,\pi/2) interval.
-    w, b1, b2 = sTrigSub_fx(x)
+    w, b1, b2 = sTrigSub(x)
 
     # returns the sin with sign correction
     return scos(w, b2)
 
 
 ##
-# Returns the tan (sfix) of any given fractional value.
+# Returns the tan (sfix, sfloat) of any given fractional value.
 #
-# @param x: fractional input (sfix).
+# @param x: fractional input (sfix, sfloat).
 #
-# @return  returns the tan of x (sifx).
+# @return  returns the tan of x (sifx, sfloat).
 def tan(x):
     # reduces the angle to the [0,\pi/2) interval.
-    w, b1, b2 = sTrigSub_fx(x)
+    w, b1, b2 = sTrigSub(x)
     # calculates the sin and the cos.
     local_sin = ssin(w, b1)
     local_cos = scos(w, b2)
@@ -408,7 +409,7 @@ def MSB(b, k):
 def norm_simplified_SQ(b, k):
     z = MSB(b, k)
     # construct m
-    m = types.sint()
+    m = types.sint(0)
     m_odd = 0
     for i in range(k):
         m = m + (i + 1) * z[i]
@@ -424,7 +425,7 @@ def norm_simplified_SQ(b, k):
         w_array[i] = z[2 * i - 1] + z[2 * i]
 
     # w aggregation
-    w = types.sint()
+    w = types.sint(0)
     for i in range(k_over_2):
         w += (2 ** i) * w_array[i]
 
@@ -500,13 +501,13 @@ def norm_SQ(b, k):
     # x in order 0 - k
     z = MSB(b,k)
     # now reverse bits of z[i] to generate v
-    v = types.sint()
+    v = types.sint(0)
     for i in range(k):
         v += (2**(k - i - 1)) * z[i]
     c = b * v
   
     # construct m
-    m = types.sint()
+    m = types.sint(0)
     for i in range(k):
         m = m + (i+1) * z[i]
 
@@ -703,3 +704,52 @@ def test_sqrt_param(x, k, f):
 # @private
 def test_sqrt_no_param(x):
     return sqrt(x)
+
+
+##
+# method devised to test sin for sfix
+# do not use directly
+# @private
+def test_sin_fx(x):
+    return sin(x)
+
+
+##
+# method devised to test sin for sfloat
+# do not use directly
+# @private
+def test_sin_float(x):
+    return sin(x)
+
+
+
+##
+# method devised to test cos for sfix
+# do not use directly
+# @private
+def test_cos_fx(x):
+    return cos(x)
+
+
+##
+# method devised to test cos for sfloat
+# do not use directly
+# @private
+def test_cos_float(x):
+    return cos(x)
+
+
+##
+# method devised to test tan for sfix
+# do not use directly
+# @private
+def test_tan_fx(x):
+    return tan(x)
+
+
+##
+# method devised to test tan for sfloat
+# do not use directly
+# @private
+def test_tan_float(x):
+    return tan(x)

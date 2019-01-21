@@ -89,9 +89,9 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case ORC:
       case SHLC:
       case SHRC:
-      case LTC:
-      case GTC:
-      case EQC:
+      case LTINT:
+      case GTINT:
+      case EQINT:
       case ADDINT:
       case SUBINT:
       case MULINT:
@@ -114,8 +114,8 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case LEGENDREC:
       case SQUARE:
       case CONVINT:
-      case LTZC:
-      case EQZC:
+      case LTZINT:
+      case EQZINT:
       case RAND:
       case DIGESTC:
         r[0]= get_int(s);
@@ -261,11 +261,11 @@ int BaseInstruction::get_reg_type() const
       case SUBINT:
       case MULINT:
       case DIVINT:
-      case LTZC:
-      case LTC:
-      case GTC:
-      case EQC:
-      case EQZC:
+      case LTZINT:
+      case LTINT:
+      case GTINT:
+      case EQINT:
+      case EQZINT:
       case STMINT:
         return INT;
       default:
@@ -570,20 +570,20 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case JMPEQZ:
         s << "JMPEQZ";
         break;
-      case EQZC:
-        s << "EQZC";
+      case EQZINT:
+        s << "EQZINT";
         break;
-      case LTZC:
-        s << "LTZC";
+      case LTZINT:
+        s << "LTZINT";
         break;
-      case LTC:
-        s << "LTC";
+      case LTINT:
+        s << "LTINT";
         break;
-      case GTC:
-        s << "GTC";
+      case GTINT:
+        s << "GTINT";
         break;
-      case EQC:
-        s << "EQC";
+      case EQINT:
+        s << "EQINT";
         break;
       case JMPI:
         s << "JMPI";
@@ -686,9 +686,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case SUBINT:
       case MULINT:
       case DIVINT:
-      case LTC:
-      case GTC:
-      case EQC:
+      case LTINT:
+      case GTINT:
+      case EQINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         s << "r_" << instr.r[2] << " ";
@@ -738,8 +738,8 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDMINTI:
       case RAND:
       case STMINTI:
-      case LTZC:
-      case EQZC:
+      case LTZINT:
+      case EQZINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1397,31 +1397,31 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 Proc.relative_jump((signed int) n);
               }
             break;
-          case EQZC:
+          case EQZINT:
             if (Proc.read_Ri(r[1]) == 0)
               Proc.write_Ri(r[0], 1);
             else
               Proc.write_Ri(r[0], 0);
             break;
-          case LTZC:
+          case LTZINT:
             if (Proc.read_Ri(r[1]) < 0)
               Proc.write_Ri(r[0], 1);
             else
               Proc.write_Ri(r[0], 0);
             break;
-          case LTC:
+          case LTINT:
             if (Proc.read_Ri(r[1]) < Proc.read_Ri(r[2]))
               Proc.write_Ri(r[0], 1);
             else
               Proc.write_Ri(r[0], 0);
             break;
-          case GTC:
+          case GTINT:
             if (Proc.read_Ri(r[1]) > Proc.read_Ri(r[2]))
               Proc.write_Ri(r[0], 1);
             else
               Proc.write_Ri(r[0], 0);
             break;
-          case EQC:
+          case EQINT:
             if (Proc.read_Ri(r[1]) == Proc.read_Ri(r[2]))
               Proc.write_Ri(r[0], 1);
             else

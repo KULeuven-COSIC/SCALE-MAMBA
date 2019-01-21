@@ -10,6 +10,9 @@ All rights reserved
 #include "aes.h"
 #include "int.h"
 
+#include <vector>
+using namespace std;
+
 #define PIPELINES 8
 #define SEED_SIZE AES_BLK_SIZE
 #define RAND_SIZE (PIPELINES * AES_BLK_SIZE)
@@ -72,6 +75,7 @@ public:
     a+= get_uint();
     return a;
   }
+  __m128i get_doubleword();
 
   const uint8_t *get_seed() const
   {
@@ -80,6 +84,8 @@ public:
 
   /* Returns len random bytes */
   void get_random_bytes(uint8_t *v, int len);
+  /* Same but with len=v.size() */
+  void get_random_bytes(vector<uint8_t> &v);
 };
 
 #endif

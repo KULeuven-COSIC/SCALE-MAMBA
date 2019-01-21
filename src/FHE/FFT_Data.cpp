@@ -14,9 +14,6 @@ void FFT_Data::assign(const FFT_Data &FFTD)
 
   root= FFTD.root;
 
-  powers= FFTD.powers;
-  powers_i= FFTD.powers_i;
-
   iphi= FFTD.iphi;
 }
 

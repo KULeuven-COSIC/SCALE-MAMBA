@@ -13,6 +13,8 @@ All rights reserved
 using namespace std;
 #include <openssl/sha.h>
 
+#include "Math/gf2n.h"
+
 string Hash(const string &data)
 {
   unsigned char hash[SHA256_DIGEST_LENGTH];
@@ -58,8 +60,8 @@ void Create_Random(gfp &ans, Player &P, int connection)
   ans.output(ee, false);
   Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ee.str(), P.G);
 
-  P.Broadcast_Receive(Comm_e, connection);
-  P.Broadcast_Receive(Open_e, connection);
+  P.Broadcast_Receive(Comm_e, false, connection);
+  P.Broadcast_Receive(Open_e, false, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -87,8 +89,8 @@ void Create_Random_Seed(uint8_t *seed, int len, Player &P, int connection)
   string ss((char *) seed, len);
   Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ss, P.G);
 
-  P.Broadcast_Receive(Comm_e, connection);
-  P.Broadcast_Receive(Open_e, connection);
+  P.Broadcast_Receive(Comm_e, false, connection);
+  P.Broadcast_Receive(Open_e, false, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -108,7 +110,7 @@ void Create_Random_Seed(uint8_t *seed, int len, Player &P, int connection)
 }
 
 template<class T>
-void Commit_And_Open(vector<T> &data, Player &P, int connection)
+void Commit_And_Open(vector<T> &data, Player &P, bool check, int connection)
 {
   vector<string> Comm_data(P.nplayers());
   vector<string> Open_data(P.nplayers());
@@ -118,8 +120,8 @@ void Commit_And_Open(vector<T> &data, Player &P, int connection)
   string ee= ss.str();
   Commit(Comm_data[P.whoami()], Open_data[P.whoami()], ee, P.G);
 
-  P.Broadcast_Receive(Comm_data, connection);
-  P.Broadcast_Receive(Open_data, connection);
+  P.Broadcast_Receive(Comm_data, check, connection);
+  P.Broadcast_Receive(Open_data, check, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -136,7 +138,7 @@ void Commit_And_Open(vector<T> &data, Player &P, int connection)
 }
 
 template<class T>
-void Commit_And_Open(vector<vector<T>> &data, Player &P, int connection)
+void Commit_And_Open(vector<vector<T>> &data, Player &P, bool check, int connection)
 {
   vector<string> Comm_data(P.nplayers());
   vector<string> Open_data(P.nplayers());
@@ -150,8 +152,8 @@ void Commit_And_Open(vector<vector<T>> &data, Player &P, int connection)
     }
   Commit(Comm_data[P.whoami()], Open_data[P.whoami()], ee, P.G);
 
-  P.Broadcast_Receive(Comm_data, connection);
-  P.Broadcast_Receive(Open_data, connection);
+  P.Broadcast_Receive(Comm_data, check, connection);
+  P.Broadcast_Receive(Open_data, check, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -170,5 +172,7 @@ void Commit_And_Open(vector<vector<T>> &data, Player &P, int connection)
     }
 }
 
-template void Commit_And_Open(vector<gfp> &data, Player &P, int connection);
-template void Commit_And_Open(vector<vector<gfp>> &data, Player &P, int connection);
+template void Commit_And_Open(vector<gfp> &data, Player &P, bool check, int connection);
+template void Commit_And_Open(vector<gf2n> &data, Player &P, bool check, int connection);
+template void Commit_And_Open(vector<vector<gfp>> &data, Player &P, bool check, int connection);
+template void Commit_And_Open(vector<vector<gf2n>> &data, Player &P, bool check, int connection);

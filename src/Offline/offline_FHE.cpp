@@ -8,8 +8,7 @@ All rights reserved
 #include "offline_FHE.h"
 #include "config.h"
 
-void DistDecrypt(Plaintext &mess, const Ciphertext &ctx, const FHE_SK &sk,
-                 const Player &P)
+void DistDecrypt(Plaintext &mess, const Ciphertext &ctx, const FHE_SK &sk, Player &P)
 {
   const FHE_Params &params= ctx.get_params();
 
@@ -48,20 +47,15 @@ void DistDecrypt(Plaintext &mess, const Ciphertext &ctx, const FHE_SK &sk,
 /* This one generates a new fresh ciphertext encrypting the
  * same values as the input ciphertex cm does
  *   - m is my share
- * Returns -1 if should abort
  */
-int Reshare(Plaintext &m, Ciphertext &cc, const Ciphertext &cm,
-            const Player &P, const FHE_PK &pk, const FHE_SK &sk,
-            int num_online, offline_control_data &OCD,
-            FHE_Industry &industry)
+void Reshare(Plaintext &m, Ciphertext &cc, const Ciphertext &cm,
+             Player &P, const FHE_PK &pk, const FHE_SK &sk,
+             FHE_Industry &industry)
 {
   Plaintext f(m.get_field());
   Ciphertext cf(cm.get_params());
 
-  if (industry.Next_Off_Production_Line(f, cf, P, num_online, OCD) < 0)
-    {
-      return -1;
-    }
+  industry.Next_Off_Production_Line(f, cf, P, "Reshare");
 
   // We could be resharing a level 0 ciphertext so adjust if we are
   if (cm.level() == 0)
@@ -101,8 +95,6 @@ int Reshare(Plaintext &m, Ciphertext &cc, const Ciphertext &cm,
       cc.Scale(m.get_field().get_prime());
     }
   sub(cc, cc, cf);
-
-  return 0;
 }
 
 /* Reshare without generating a new ciphertext */
@@ -163,7 +155,6 @@ void get_share(vector<gfp> &s, vector<gfp> &macs, const Plaintext &aa,
 void offline_FHE_triples(Player &P, list<Share> &a, list<Share> &b,
                          list<Share> &c, const FHE_PK &pk, const FHE_SK &sk,
                          const FFT_Data &PTD,
-                         int num_online, offline_control_data &OCD,
                          FHE_Industry &industry)
 {
   unsigned int nmacs= P.get_mac_keys().size();
@@ -176,21 +167,12 @@ void offline_FHE_triples(Player &P, list<Share> &a, list<Share> &b,
 
   while (a.size() < sz_offline_batch)
     {
-      if (industry.Next_Off_Production_Line(va, ca, P, num_online, OCD) < 0)
-        {
-          return;
-        }
-      if (industry.Next_Off_Production_Line(vb, cb, P, num_online, OCD) < 0)
-        {
-          return;
-        }
+      industry.Next_Off_Production_Line(va, ca, P, "Triple a");
+      industry.Next_Off_Production_Line(vb, cb, P, "Triple b");
 
       mul(cc, ca, cb, pk);
 
-      if (Reshare(vc, nc, cc, P, pk, sk, num_online, OCD, industry) < 0)
-        {
-          return;
-        }
+      Reshare(vc, nc, cc, P, pk, sk, industry);
 
       for (unsigned int i= 0; i < nmacs; i++)
         {
@@ -222,7 +204,6 @@ void offline_FHE_triples(Player &P, list<Share> &a, list<Share> &b,
 void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
                          const FHE_PK &pk, const FHE_SK &sk,
                          const FFT_Data &PTD,
-                         int num_online, offline_control_data &OCD,
                          FHE_Industry &industry)
 {
   unsigned int nmacs= P.get_mac_keys().size();
@@ -234,17 +215,11 @@ void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
 
   while (a.size() < sz_offline_batch)
     {
-      if (industry.Next_Off_Production_Line(va, ca, P, num_online, OCD) < 0)
-        {
-          return;
-        }
+      industry.Next_Off_Production_Line(va, ca, P, "Square a");
 
       mul(cc, ca, ca, pk);
 
-      if (Reshare(vc, nc, cc, P, pk, sk, num_online, OCD, industry) < 0)
-        {
-          return;
-        }
+      Reshare(vc, nc, cc, P, pk, sk, industry);
 
       for (unsigned int i= 0; i < nmacs; i++)
         {
@@ -270,7 +245,6 @@ void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
 
 void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
                       const FHE_SK &sk, const FFT_Data &PTD,
-                      int num_online, offline_control_data &OCD,
                       FHE_Industry &industry)
 {
   unsigned int nmacs= P.get_mac_keys().size();
@@ -283,10 +257,7 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
   while (a.size() < sz_offline_batch)
     { // First run the square protocol (no
       // need to get MACs on the b=a^2 values)
-      if (industry.Next_Off_Production_Line(va, ca, P, num_online, OCD) < 0)
-        {
-          return;
-        }
+      industry.Next_Off_Production_Line(va, ca, P, "Bit a");
 
       for (unsigned int i= 0; i < nmacs; i++)
         {
@@ -325,7 +296,6 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
 void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
                     list<gfp> &opened, const FHE_PK &pk, const FHE_SK &sk,
                     const FFT_Data &PTD, Open_Protocol &OP,
-                    int num_online, offline_control_data &OCD,
                     FHE_Industry &industry)
 {
   unsigned int nmacs= P.get_mac_keys().size();
@@ -336,10 +306,7 @@ void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
   Ciphertext tmp(pk.get_params());
 
   // First run the square protocol (no need to get MACs on the b=a^2 values)
-  if (industry.Next_Off_Production_Line(va, ca, P, num_online, OCD) < 0)
-    {
-      return;
-    }
+  industry.Next_Off_Production_Line(va, ca, P, "IO a");
 
   for (unsigned int i= 0; i < nmacs; i++)
     {

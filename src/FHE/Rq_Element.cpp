@@ -142,6 +142,17 @@ void mul(Rq_Element &ans, const Rq_Element &a, const bigint &b)
     }
 }
 
+// Multiply by X^i
+void mul_by_X_i(Rq_Element &ans, const Rq_Element &a, unsigned int j)
+{
+  ans.lev= a.lev;
+  mul_by_X_i(ans.a[0], a.a[0], j);
+  if (ans.lev != 0)
+    {
+      mul_by_X_i(ans.a[1], a.a[1], j);
+    }
+}
+
 void Rq_Element::randomize(PRNG &G, int l)
 {
   lev= l;

@@ -10,20 +10,48 @@ All rights reserved
  * small
  */
 
-void ZKPoK::Step1(condition type, const FHE_PK &pk, const FFT_Data &PTD,
+void ZKPoK::Step0(condition type, PoKVersion vers,
+                  const FHE_PK &pk, const FFT_Data &PTD,
                   PRNG &G, const vector<gfp> &alpha)
 {
   PoKType= type;
+  version= vers;
+
+  if (version == HighGear)
+    {
+      U= ZK_sound_sec;
+      ssec= U;
+    }
+  else
+    {
+      int lg2N= CEIL_LOG2(pk.get_params().phi_m());
+      U= DIV_CEIL(ZK_sound_sec, lg2N + 1);
+      ssec= U * (lg2N + 1);
+      // Switch version if type=Diag, as Diag cannot be done in TopGear
+      // Do this here, so we still use the small U. Need to tweak
+      // ssec though
+      if (PoKType == Diagonal)
+        {
+          version= HighGear;
+          ssec= U;
+        }
+    }
+
+  if (alpha.size() > U)
+    { // Have problem here as we assume this below for the Diag case
+      throw bad_value();
+    }
+  V= 2 * U - 1;
 
   // Make plaintexts first
-  m.resize(ZK_stat_sec, Plaintext(PTD));
+  m.resize(U, Plaintext(PTD));
   vector<bigint> bi_alpha(alpha.size());
   for (unsigned int i= 0; i < alpha.size(); i++)
     {
       to_bigint(bi_alpha[i], alpha[i]);
     }
 
-  for (unsigned int i= 0; i < ZK_stat_sec; i++)
+  for (unsigned int i= 0; i < U; i++)
     {
       if (PoKType == Diagonal)
         {
@@ -37,37 +65,38 @@ void ZKPoK::Step1(condition type, const FHE_PK &pk, const FFT_Data &PTD,
     }
 
   // Now make the random coins for the encryptions
-  r.resize(ZK_stat_sec, Random_Coins(pk.get_params()));
+  r.resize(U, Random_Coins(pk.get_params()));
   if (PoKType == Diagonal)
     {
       for (unsigned int i= 0; i < alpha.size(); i++)
         {
           r[i].generate(G);
         }
-      for (unsigned int i= alpha.size(); i < ZK_stat_sec; i++)
+      for (unsigned int i= alpha.size(); i < U; i++)
         {
           r[i]= r[i % alpha.size()];
         }
     }
   else
     {
-      for (unsigned int i= 0; i < ZK_stat_sec; i++)
+      for (unsigned int i= 0; i < U; i++)
         {
           r[i].generate(G);
         }
     }
 
   // Now do the encryptions
-  E.resize(ZK_stat_sec, pk.get_params());
-  for (unsigned int i= 0; i < ZK_stat_sec; i++)
+  E.resize(U, pk.get_params());
+  for (unsigned int i= 0; i < U; i++)
     {
       pk.encrypt(E[i], m[i], r[i]);
     }
+}
 
-  V= 2 * ZK_stat_sec - 1;
-
-  // Now do the fake plaintexts
-  bigint Bp= PTD.get_prime() << (ZK_stat_sec - 1);
+void ZKPoK::Step1(const FHE_PK &pk, const FFT_Data &PTD, PRNG &G)
+{
+  // We first do the fake plaintexts
+  bigint Bp= PTD.get_prime() << (ZK_ZK_sec - 1);
   vector<bigint> vv(pk.get_params().phi_m());
   if (PoKType == Diagonal)
     {
@@ -94,7 +123,7 @@ void ZKPoK::Step1(condition type, const FHE_PK &pk, const FFT_Data &PTD,
   // Now do the fake random coins
   // s in the notes, but we add them directly into T[i])
   T.resize(V, pk.get_params());
-  bigint B1= bigint(1) << ZK_stat_sec, B2= 20 * B1;
+  bigint B1= bigint(1) << ZK_ZK_sec, B2= 20 * B1;
   for (unsigned int i= 0; i < V; i++)
     {
       T[i].generateUniform(G, B1, B2, B2);
@@ -109,16 +138,26 @@ void ZKPoK::Step1(condition type, const FHE_PK &pk, const FFT_Data &PTD,
 }
 
 // Convert pair into matrix element
-int M(unsigned int k, unsigned int l, const vector<int> &e)
+//   For HighGear this is just 0/1 entries
+//   For TopGear we use -1 to represent zero, as
+//   e[i] represents the exponent of the thing in the
+//   challenge set, i.e. X^{e[i]}
+int ZKPoK::M(unsigned int k, unsigned int l, const vector<int> &e)
 {
+  int zero= 0;
+  if (version == TopGear)
+    {
+      zero= -1;
+    }
+
   if (l > k)
     {
-      return 0;
+      return zero;
     }
   unsigned int t= k - l; // No need to add one, as we index the vector e from zero
-  if (t >= ZK_stat_sec)
+  if (t >= U)
     {
-      return 0;
+      return zero;
     }
   return e[t];
 }
@@ -155,8 +194,8 @@ void ZKPoK::get_vZ(ostream &s) const
     }
 }
 
-// Player calls this to enter the each other players vector vA and vE
-void ZKPoK::Step1_Step(istream &vE, istream &vA, const FHE_PK &pk)
+// Player calls this to enter the each other players vector vE
+void ZKPoK::Step0_Step(istream &vE, const FHE_PK &pk)
 {
   Ciphertext eq(pk.get_params()), temp(pk.get_params());
   for (unsigned int i= 0; i < E.size(); i++)
@@ -164,6 +203,12 @@ void ZKPoK::Step1_Step(istream &vE, istream &vA, const FHE_PK &pk)
       eq.input(vE);
       add(E[i], E[i], eq);
     }
+}
+
+// Player calls this to enter the each other players vector vA
+void ZKPoK::Step1_Step(istream &vA, const FHE_PK &pk)
+{
+  Ciphertext eq(pk.get_params()), temp(pk.get_params());
   for (unsigned int i= 0; i < A.size(); i++)
     {
       eq.input(vA);
@@ -171,36 +216,73 @@ void ZKPoK::Step1_Step(istream &vE, istream &vA, const FHE_PK &pk)
     }
 }
 
+void ZKPoK::Generate_e(vector<int> &e, uint8_t seed[SEED_SIZE])
+{
+  e.resize(U);
+  PRNG G;
+  G.SetSeed(seed);
+  if (version == HighGear)
+    {
+      unsigned int c= 0;
+      while (c < e.size())
+        {
+          unsigned char x= G.get_uchar();
+          for (unsigned int j= 0; j < 8; j++)
+            {
+              if (c < e.size())
+                {
+                  e[c]= (x >> j) & 1;
+                  c++;
+                }
+            }
+        }
+    }
+  else
+    {
+      unsigned int N= E[0].get_params().phi_m();
+      for (unsigned int j= 0; j < e.size(); j++)
+        {
+          unsigned int t= G.get_uint();
+          e[j]= t % (2 * N);
+        }
+    }
+}
+
 void ZKPoK::Step2(const vector<int> &ee, const FHE_PK &pk)
 {
   e= ee;
 
-  // First compute the z vector for this player
-  vector<Rq_Element> x(
-      ZK_stat_sec, Rq_Element(pk.get_params().FFTD(), polynomial, polynomial));
-  for (unsigned int i= 0; i < ZK_stat_sec; i++)
+  // First compute the z vector for this player and the T matrix
+  vector<Rq_Element> x(U, Rq_Element(pk.get_params().FFTD(), polynomial, polynomial));
+
+  Rq_Element temp_rq;
+  Random_Coins temp_rc(pk.get_params());
+  for (unsigned int i= 0; i < U; i++)
     {
       x[i].from(m[i].get_iterator());
     }
   for (unsigned int i= 0; i < V; i++)
     {
-      for (unsigned int j= 0; j < ZK_stat_sec; j++)
+      for (unsigned int j= 0; j < U; j++)
         {
-          if (M(i, j, e) == 1)
+          if (version == TopGear)
             {
-              add(Z[i], Z[i], x[j]);
+              int mm= M(i, j, e);
+              if (mm >= 0)
+                {
+                  mul_by_X_i(temp_rq, x[j], mm);
+                  mul_by_X_i(temp_rc, r[j], mm);
+                  add(Z[i], Z[i], temp_rq);
+                  add(T[i], T[i], temp_rc);
+                }
             }
-        }
-    }
-
-  // Now compute the T matrix for this player
-  for (unsigned int i= 0; i < V; i++)
-    {
-      for (unsigned int j= 0; j < ZK_stat_sec; j++)
-        {
-          if (M(i, j, e) == 1)
+          else
             {
-              add(T[i], T[i], r[j]);
+              if (M(i, j, e) == 1)
+                {
+                  add(Z[i], Z[i], x[j]);
+                  add(T[i], T[i], r[j]);
+                }
             }
         }
     }
@@ -210,9 +292,6 @@ void ZKPoK::Step2(const vector<int> &ee, const FHE_PK &pk)
     {
       pk.quasi_encrypt(eq[i], Z[i], T[i]);
     }
-
-  // Kill off stuff no longer needed
-  r.resize(0, Random_Coins(pk.get_params()));
 }
 
 // Player calls this to enter the each other players vector vT
@@ -234,15 +313,29 @@ void ZKPoK::Step2_Step(istream &vT, istream &vZ, const FHE_PK &pk)
 
 bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
 {
+  Ciphertext temp(pk.get_params());
+
   // First the check on  sum_players (d[i]-a[i])-M_e*E = 0
   for (unsigned int i= 0; i < V; i++)
     {
       sub(eq[i], eq[i], A[i]);
-      for (unsigned int j= 0; j < ZK_stat_sec; j++)
+      for (unsigned int j= 0; j < U; j++)
         {
-          if (M(i, j, e) == 1)
+          if (version == TopGear)
             {
-              sub(eq[i], eq[i], E[j]);
+              int mm= M(i, j, e);
+              if (mm >= 0)
+                {
+                  mul_by_X_i(temp, E[j], mm);
+                  sub(eq[i], eq[i], temp);
+                }
+            }
+          else
+            {
+              if (M(i, j, e) == 1)
+                {
+                  sub(eq[i], eq[i], E[j]);
+                }
             }
         }
       if (!eq[i].c0().is_zero() || !eq[i].c1().is_zero())
@@ -253,7 +346,7 @@ bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
     }
 
   // Check z
-  bigint Bz= nplayers * (PTD.get_prime() << (ZK_stat_sec));
+  bigint Bz= nplayers * (PTD.get_prime() << (ZK_ZK_sec));
   //Rq_Element sz(pk.get_params().FFTD(), polynomial, polynomial);
   for (unsigned int i= 0; i < V; i++)
     {
@@ -275,7 +368,7 @@ bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
     }
 
   // Check T
-  bigint B1= nplayers * (bigint(1) << ZK_stat_sec), B2= B1 * 20;
+  bigint B1= nplayers * (bigint(1) << (ZK_ZK_sec + 1)), B2= B1 * 20;
   //Random_Coins sT(pk.get_params());
   for (unsigned int i= 0; i < V; i++)
     {
@@ -303,8 +396,8 @@ bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
   T.resize(0, Random_Coins(pk.get_params()));
   eq.resize(0, Ciphertext(pk.get_params()));
 
-  used.resize(ZK_stat_sec);
-  for (unsigned int i= 0; i < ZK_stat_sec; i++)
+  used.resize(U);
+  for (unsigned int i= 0; i < used.size(); i++)
     {
       used[i]= false;
     }
@@ -317,7 +410,7 @@ bool ZKPoK::isempty() const
     {
       return true;
     }
-  for (unsigned int i= 0; i < ZK_stat_sec; i++)
+  for (unsigned int i= 0; i < used.size(); i++)
     {
       if (used[i] == false)
         {
@@ -329,7 +422,7 @@ bool ZKPoK::isempty() const
 
 int ZKPoK::get_next_unused() const
 {
-  for (unsigned int i= 0; i < ZK_stat_sec; i++)
+  for (unsigned int i= 0; i < used.size(); i++)
     {
       if (used[i] == false)
         {

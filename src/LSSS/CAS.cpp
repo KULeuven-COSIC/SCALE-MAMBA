@@ -366,7 +366,7 @@ void CAS::generate_sets(unsigned int hw, int dim, vector<int> &v)
     {
       if (hw == 0)
         {
-          delta= add_row(delta, v);
+          delta_plus= add_row(delta_plus, v);
         }
     }
 }
@@ -406,6 +406,7 @@ void CAS::assign(unsigned int nn, unsigned int t)
   gamma.resize(0);
   delta_plus.resize(0);
   gamma_minus.resize(0);
+  spec_as_unqualified= true;
 
   unsigned int ncomb= Combinations(n, t);
   if (ncomb > 50)
@@ -416,13 +417,15 @@ void CAS::assign(unsigned int nn, unsigned int t)
       return;
     }
 
+  /* For Shamir only delta_plus is defined, which is 
+   * done in the function generate_sets
+   */
   vector<int> v(n);
   for (unsigned int i= 0; i < n; i++)
     {
       v[i]= 0;
     }
   generate_sets(t, (int) n - 1, v);
-  assign(delta, true);
 }
 
 bool CAS::check_not_q_l(unsigned int hw, int dim, vector<int> &v) const

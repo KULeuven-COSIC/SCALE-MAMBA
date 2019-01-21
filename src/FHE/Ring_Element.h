@@ -131,6 +131,9 @@ public:
                   const Ring_Element &b);
   friend void mul(Ring_Element &ans, const Ring_Element &a, const modp &b);
 
+  // Multiply by X^i
+  friend void mul_by_X_i(Ring_Element &ans, const Ring_Element &a, unsigned int j);
+
   void randomize(PRNG &G, bool Diag= false);
 
   bool equals(const Ring_Element &a) const;

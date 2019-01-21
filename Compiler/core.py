@@ -196,10 +196,30 @@ class F(float):
     __eq__ = lambda x,y: sint(float(x) == y)
     __ne__ = lambda x,y: sint(float(x) != y)
     __neg__ = lambda x: F(-float(x))
-sfloat = lambda x,y=None,z=None,a=None,size=None: F(x) if size is None else Vector(F(x), size)
+sfloat = lambda x,y=None,z=None,a=None,err=None,size=None: F(x) if size is None else Vector(F(x), size)
 sfloat.vlen = 24
 sfloat.plen = 8
 sfloat.error = None
+
+class CF(float):
+    v = p = z = s = None
+    __add__ = lambda x,y: CF(float(x) + y)
+    __sub__ = lambda x,y: CF(float(x) - y)
+    __mul__ = lambda x,y: CF(float(x) * y)
+    __div__ = lambda x,y: CF(0) if y == 0 else CF(float(x) / y)
+    __pow__ = lambda x,y: CF(float(x)**y)
+    __lt__ = lambda x,y: cint(float(x) < y)
+    __gt__ = lambda x,y: cint(float(x) > y)
+    __le__ = lambda x,y: cint(float(x) <= y)
+    __ge__ = lambda x,y: cint(float(x) >= y)
+    __eq__ = lambda x,y: cint(float(x) == y)
+    __ne__ = lambda x,y: cint(float(x) != y)
+    __neg__ = lambda x: CF(-float(x))
+
+cfloat = lambda x,y=None,z=None,a=None,size=None: CF(x) if size is None else Vector(CF(x), size)
+cfloat.vlen = 24
+cfloat.plen = 8
+
 
 class _fixregister(float):
     v = None
@@ -254,17 +274,17 @@ sfix.reveal = lambda x: x
 
 class _cfix(_fixregister):
 
-    less_than = lambda x,y,z=None: sint(float(x) < y) if isinstance(y, _sfix) \
+    less_than = lambda x,y,z=None: sint(float(x) < y) if (isinstance(y, _sfix) or isinstance(y,F)) \
         else regint(float(x) < y)
-    less_equal = lambda x,y,z=None: sint(float(x) <= y) if isinstance(y, _sfix) \
+    less_equal = lambda x,y,z=None: sint(float(x) <= y) if (isinstance(y, _sfix) or isinstance(y,F))\
         else regint(float(x) <= y)
-    greater_equal = lambda x,y,z=None: sint(float(x) >= y) if isinstance(y, _sfix) \
+    greater_equal = lambda x,y,z=None: sint(float(x) >= y) if (isinstance(y, _sfix) or isinstance(y,F)) \
         else regint(float(x) >= y)
-    greater_than = lambda x,y,z=None: sint(float(x) > y) if isinstance(y, _sfix) \
+    greater_than = lambda x,y,z=None: sint(float(x) > y) if (isinstance(y, _sfix) or isinstance(y,F)) \
         else regint(float(x) > y)
-    equal = lambda x,y,z=None: sint(float(x) == y) if isinstance(y, _sfix) \
+    equal = lambda x,y,z=None: sint(float(x) == y) if (isinstance(y, _sfix) or isinstance(y,F)) \
         else regint(float(x) == y)
-    not_equal = lambda x,y,z=None: sint(float(x) != y) if isinstance(y, _sfix) \
+    not_equal = lambda x,y,z=None: sint(float(x) != y) if (isinstance(y, _sfix) or isinstance(y,F)) \
         else regint(float(x) != y)
 
     __lt__ = less_than
@@ -300,10 +320,10 @@ floatingpoint.SDiv_mono = lambda x,y,z,a: None
 
 import math
 mpc_math = A()
-# currently testing only works with sfix type
-mpc_math.sin = lambda x: sfix(math.sin(x))
-mpc_math.cos = lambda x: sfix(math.cos(x))
-mpc_math.tan = lambda x: sfix(math.tan(x))
+# currently testing for sfix type
+mpc_math.test_sin_fx = lambda x: sfix(math.sin(x))
+mpc_math.test_cos_fx = lambda x: sfix(math.cos(x))
+mpc_math.test_tan_fx = lambda x: sfix(math.tan(x))
 mpc_math.log2_fx = lambda x: sfix(math.log(x, 2))
 mpc_math.log_fx = lambda x,y: sfix(math.log(x, y))
 mpc_math.pow_fx = lambda x,y: sfix(math.pow(x, y))
@@ -314,6 +334,11 @@ mpc_math.acos = lambda x: sfix(math.acos(x))
 mpc_math.atan = lambda x: sfix(math.atan(x))
 mpc_math.test_sqrt_no_param = lambda x: sfix(math.sqrt(x))
 mpc_math.test_sqrt_param = lambda x, k, f: sfix(math.sqrt(x))
+
+# currently testing for sfloat type
+mpc_math.test_sin_float = lambda x: sfloat(math.sin(x))
+mpc_math.test_cos_float = lambda x: sfloat(math.cos(x))
+mpc_math.test_tan_float = lambda x: sfloat(math.tan(x))
 
 sort = lambda x: x.sort()
 chunky_odd_even_merge_sort = sort

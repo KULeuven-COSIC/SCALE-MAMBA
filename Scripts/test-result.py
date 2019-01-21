@@ -37,6 +37,10 @@ program.name = args[0]
 sfloat.plen = types.sfloat.plen
 sfloat.vlen = types.sfloat.vlen
 
+cfloat.plen = types.cfloat.plen
+cfloat.vlen = types.cfloat.vlen
+
+
 sfix.f = types.sfix.f
 sfix.k = types.sfix.k
 
@@ -78,8 +82,23 @@ def read_mem(address, value=None):
         return read_int(address)
     else:
         return read_modp(address)
+# supported fixed error
+# absoulte error.  Delta between correct answer
+# and calculated answer
+# math.abs(mpc_math.sin(sfix(1)) - math.sin(1))) < fx_error
+fx_error = 1e-3
 
-error = 1e-3
+# supported floating point error
+# relative error.  Difference between expected precision
+# and obtained precision +/- some tolerance bits (fl_error) 
+# if difference > 1, we hard set fl_error to 1:
+# math.abs(mpc_math.sin(sfix(1)) - math.sin(1))) < /
+# 2 ** (int(math.floor(math.log(abs(value), 2))) - t.vlen + 1)
+# else:
+# math.abs(mpc_math.sin(sfix(1)) - math.sin(1))) < /
+# 2 ** (- t.vlen + fl_error)
+fl_error = 3
+
 def test_value(value, mem_value, lineno, index, lower=None, upper=None):
     fail = False
     if upper:
@@ -91,7 +110,7 @@ def test_value(value, mem_value, lineno, index, lower=None, upper=None):
         if lower is None:
             lower = value
         if isinstance(lower, float):
-           if abs(lower - mem_value) > error:
+           if abs(lower - mem_value) > fx_error:
                 fail = True
         else:
            if lower % p != mem_value % p:
@@ -102,6 +121,11 @@ def test_value(value, mem_value, lineno, index, lower=None, upper=None):
     if fail and options.stop_on_fail:
         exit(1)
 
+
+##
+# tests all outputs. for sfloat it also tests
+# all internat parameters,scuh as its sign flag (s)
+# and its zero flag (z)
 def test(value, lower=None, upper=None, prec=None):
     lineno = inspect.currentframe().f_back.f_lineno
     addr = lineno
@@ -109,7 +133,7 @@ def test(value, lower=None, upper=None, prec=None):
         addr *= 1000
         values = value
     else:
-        if isinstance(value, (F, _sfix, _cfix)):
+        if isinstance(value, (F, CF, _sfix, _cfix)):
             addr *= 1000
         values = [value]
     for i,value in enumerate(values):
@@ -120,6 +144,8 @@ def test(value, lower=None, upper=None, prec=None):
             z = read_mem(1500 + addr + i)
             s = read_mem(1750 + addr + i)
             t = sfloat
+            #close values to 0 are implicitly casted by the following
+            #line to 0 promting errors
             mem_value = (1 - 2*s)*(1 - z)*v*float(2**(int(pp)))
             if i == 0:
                 print lineno, mem_value
@@ -133,13 +159,19 @@ def test(value, lower=None, upper=None, prec=None):
                 test_value(value, pp, lineno, i, -2**(t.plen-1), 2**(t.plen-1))
             if lower is None:
                 if value:
+                    # custom precision for any input
                     if prec:
                         if prec > 0:
-                            delta = value * 2**-prec
+                            delta = abs(value) * 2**-prec
                         else:
-                            delta = value * 2**-(t.vlen+prec)
+                            delta = abs(value) * 2**-(t.vlen+prec)
+                            
                     else:
-                        delta = 2 ** (int(math.floor(math.log(abs(value), 2))) - t.vlen + 1)
+                        # tests sfloat precision and defines lower upper thresholds
+                        if (abs(value)> 1.0):
+                            delta = 2 ** (int(math.floor(math.log(abs(value), 2))) - t.vlen + 1)                            
+                        else:
+                            delta = 2 ** (-t.vlen + fl_error)
                     test_value(value, mem_value, lineno, 0, value - delta, value + delta * 1.001)
                 else:
                     test_value(value, mem_value, lineno, 0)

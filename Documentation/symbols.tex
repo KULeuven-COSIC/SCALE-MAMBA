@@ -19,6 +19,9 @@
 \newcommand{\Q}{{\mathbb{Q}}}
 \newcommand{\Z}{{\mathbb{Z}}}
 
+\newcommand{\true}{{\mathsf{true}}}
+\newcommand{\false}{{\mathsf{false}}}
+
 \newcommand{\floor}[1]{{\lfloor #1 \rfloor}}
 \newcommand{\ceil}[1]{{\lceil #1 \rceil}}
 \newcommand{\angles}[1]{{\langle #1 \rangle}}
@@ -133,6 +136,7 @@ escapeinside={\%*}{*)}          % if you want to add a comment within your code
 \newcommand{\C}{\mathbb{C}}
 \newcommand{\R}{\mathbb{R}}
 
+\newcommand{\gc}{\mathfrak{c}}
 \newcommand{\ct}{\mathfrak{c}}
 \newcommand{\xt}{\mathfrak{d}}
 \newcommand{\sk}{\mathfrak{s}}
@@ -164,6 +168,7 @@ escapeinside={\%*}{*)}          % if you want to add a comment within your code
 \newcommand{\norm}[1]{{\Vert #1 \Vert}}
 \newcommand{\can}{\mathsf{can}}
 \newcommand{\DDsecp}{\mathsf{DD\_sec}}
+\newcommand{\Soundsecp}{\mathsf{Sound\_sec}}
 \newcommand{\ZKsecp}{\mathsf{ZK\_sec}}
 \newcommand{\Sacsecp}{\mathsf{sacrifice\_sec}}
 \newcommand{\Macsecp}{\mathsf{macs\_sec}}
@@ -208,6 +213,9 @@ escapeinside={\%*}{*)}          % if you want to add a comment within your code
 
 \newcommand{\cH}{\mathcal{H}}
 \newcommand{\Comm}{\mathsf{Commit}}
+\newcommand{\Challenge}{\mathsf{Chal}}
+\newcommand{\Resp}{\mathsf{Response}}
+\newcommand{\Verify}{\mathsf{Verify}}
 \newcommand{\Deliver}{\mathsf{Deliver}}
 \newcommand{\Abort}{\mathsf{Abort}}
 \newcommand{\Skip}{\mathsf{Skip}}
@@ -229,6 +237,7 @@ escapeinside={\%*}{*)}          % if you want to add a comment within your code
 \newcommand{\SReshare}{\mathsf{SReshare}}
 \newcommand{\BreakDown}{\mathsf{BreakDown}}
 \newcommand{\Decision}{\mathsf{Decision}}
+\newcommand{\resp}{\mathsf{resp}}
 
 \newcommand{\Func}{\mathcal{F}}
 \newcommand{\Sim}{\mathcal{S}}
@@ -266,42 +275,76 @@ escapeinside={\%*}{*)}          % if you want to add a comment within your code
 
 \newcommand{\Pgpok}{\Proto{gZKPoK}}
 \newcommand{\Sgpok}{\Simu{gZKPoK}^S}
+\newcommand{\gZKPoK}{\mathsf{ZKPoK}}
+\newcommand{\flag}{\mathsf{flag}}
+\newcommand{\Pred}{\mathsf{P}}
+\newcommand{\Diag}{\mathsf{Diag}}
+
 \newcommand{\ui}{^{(i)}}
 \newcommand{\uti}{\ui{}^{\intercal}}
 \newcommand{\transpose}[1]{#1^{\intercal}}
 
+\newcommand{\figlab}[1]{\label{fig:#1}}
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\tablab}[1]{\label{tab:#1}}
+\newcommand{\tabref}[1]{Table~\ref{tab:#1}}
 
 % Environments
 \newenvironment{boxfig}[2]{% {#1}{#2} = {Caption}{label}
-\begin{figure}
-  \newcommand{\FigCaption}{#1}
-  \newcommand{\FigLabel}{#2}
-  \vspace{-\medskipamount}
-  \begin{center}
-    \begin{small}
-      \begin{tabular}{@{}|@{~~}l@{~~}|@{}}
+   \vspace{0.3cm}  
+     \begin{figure}[htbp!]
+     \renewcommand{\figurename}{{\bf Figure~}}
+     \newcommand{\FigCaption}{#1}
+     \newcommand{\FigLabel}{#2}
+       \vspace{-0.60cm}
+     \begin{center}
+       \begin{small}
+         \begin{tabular}{@{}|@{~~}l@{~~}|@{}}
+           \hline
+           \rule[-1.5ex]{0pt}{1ex}\begin{minipage}[b]{.96\linewidth}
+             \vspace{1ex}
+             \smallskip
+             \begin{center}\FigCaption\end{center}
+             }{%
+           \end{minipage}\\
+           \hline
+         \end{tabular}
+       \end{small}
+       \vspace{-0.2cm}
+       \caption{\FigCaption}
+       \figlab{\FigLabel}
+     \end{center}
+   \end{figure}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Better Box environment
+% Usage: \begin{Boxfig}[placement]{Caption}{Label}{Title}
+\newenvironment{Boxfig}[4][]{
+    \begin{figure}[thb!]
+    \renewcommand{\figurename}{{\bf Figure~}}
+    \newcommand{\FigCaption}{#2}
+    \newcommand{\FigLabel}{#3}
+    \vspace{-0.25cm}
+    \begin{center}
+        \begin{small}
+        \begin{tabular}{@{}|@{~~}l@{~~}|@{}}
         \hline
-        \rule[-1.5ex]{0pt}{1ex}
-        \begin{minipage}[b]{.96\linewidth}
-          \vspace{1ex}
-          \smallskip
-          }{%
+        \rule[-1.5ex]{0pt}{1ex}\begin{minipage}[b]{.96\linewidth}
+        \vspace{1ex}
+        \smallskip
+        \begin{center}
+           \textbf{#4}
+        \end{center}
+}
+{%
         \end{minipage}\\
         \hline
-      \end{tabular}
-    \end{small}
-    \caption{\small \FigCaption}
-    \label{\FigLabel}
-%  \vspace{-0.3cm}
-  \end{center}
-\end{figure}
-}
-\newenvironment{Boxfig}[3]{% {Caption}{Label}{Title}
-  \begin{boxfig}{#1}{#2}
-    \begin{center}
-      \textbf{#3}
+        \end{tabular}
+        \end{small}
+        \vspace{-0.25cm}
+        \caption{\FigCaption}
+        \label{fig:\FigLabel}
     \end{center}
-  }{%
-    \end{boxfig}
-  }
-
+    \end{figure}
+}

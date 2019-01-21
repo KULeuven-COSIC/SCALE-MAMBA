@@ -140,7 +140,8 @@ def load_float_to_secret(value, sec=40):
             z = load_int_to_secret(0)
     v = load_int_to_secret(num)
     p = load_int_to_secret(exp)
-    return sfloat(v, p, s, z)
+    err = load_int_to_secret(err)
+    return sfloat(v, p, s, z, err)
 
 def load_clear_mem(address):
     return cint.load_mem(address)
@@ -373,7 +374,7 @@ def cond_swap(x,y):
     b = x < y
     if isinstance(x, sfloat):
         res = ([], [])
-        for i,j in enumerate(('v','p','z','s')):
+        for i,j in enumerate(('v','p','z','s', 'err')):
             xx = x.__getattribute__(j)
             yy = y.__getattribute__(j)
             bx = b * xx
@@ -1110,6 +1111,7 @@ def test(value, lower=None, upper=None, prec=None):
         store_in_mem(reveal(value.p), lineno + 1250)
         store_in_mem(reveal(value.z), lineno + 1500)
         store_in_mem(reveal(value.s), lineno + 1750)
+        #store_in_mem(reveal(value.err), lineno + 2000)
         reg_type = 'c'
     elif isinstance(value, sfix):
         lineno *= 1000
@@ -1343,5 +1345,66 @@ def open_channel(channel=0):
    res = regint()
    open_chan(res,channel)
    return res
+
+
+##
+#Conversion routine from int value a to cfloat representation.
+# input is normalized using [ABZ13].
+# Method mimics behaviour from secure implementation.
+# @param a: int input to be normalized.
+# @param gamma: input bitwise size
+# @param l: float representation bitwise size
+# @param kappa: security parameter
+def int2FL_plain(a, gamma, l, kappa):
+    lam = gamma - 1
+    a_abs = 0
+    v = cint(0)
+    p = cint(0)
+    s = cint(0)
+    z = cint(0)
+
+    # extracts the sign and calculates the abs
+    s =  cint(a < 0)
+    a_abs = a * (1 - 2 * s)
+
+    # isolates most significative bit
+    a_bits = a_abs.bit_decompose()
+    b = 0
+    b_c = 1
+    blen = 0
+    for a_i in range(len(a_bits) - 1, -1, -1):  # enumerate(a_bits):
+
+        b = (a_bits[a_i]) * (b == 0) * ((b_c) / 2) + b
+        blen = (a_bits[a_i]) * (blen == 0) * ((a_i + 1)) + blen
+        b_c = b_c * 2
+
+    # obtains p
+    # blen= len(a_bits) - blen
+
+    v = a_abs * b  # (2 ** (b))#scale a
+    p = - (lam - blen)  # (len(a_bits)-blen))
+
+    # reduces v
+    v_l = MemValue(v)
+    z_l = MemValue(z)
+    if_then(a_abs > 0)
+
+    if (lam > l):
+        v_l.write(v_l.read() / (2 ** (gamma - l - 1)))
+    else:
+        v_l.write(v_l.read() * (2 ** l - lam))
+
+    else_then()
+    z_l.write(cint(1))
+    end_if()
+
+    # corrects output
+    # s is coming from the abs extraction
+    v = cint(v_l.read())
+    z = cint(z_l.read())
+    p = cint((p + lam - l) * (1 - z))
+
+
+    return v, p, z, s
 
 

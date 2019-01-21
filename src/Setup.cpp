@@ -43,7 +43,11 @@ void init_FHE_Params(FHE_Params &params, bigint &pr, bigint &p0, bigint &p1,
                      int lg2p, unsigned int n, unsigned int hwt)
 {
   pr= 0; // Set so this generates a new plaintext prime
-  Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n);
+#ifdef TOP_GEAR
+  Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n, TopGear);
+#else
+  Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n, HighGear);
+#endif
 
   Ring Rg(2 * N);
   gfp::init_field(pr);

@@ -231,7 +231,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
         }
       vals.erase(vals.begin(), vals.begin() + open_cnt);
 
-      Commit_And_Open(tau, P, connection);
+      Commit_And_Open(tau, P, false, connection);
 
       gfp t;
       for (int j= 0; j < neqs; j++)
@@ -252,7 +252,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
       //   - Removes need for the Broadcast check in original SPDZ
       vector<string> OK(P.nplayers());
       OK[P.whoami()]= "Y";
-      P.Broadcast_Receive(OK, connection);
+      P.Broadcast_Receive(OK, false, connection);
       for (unsigned int i= 0; i < P.nplayers(); i++)
         {
           if (OK[i].compare("Y") != 0)

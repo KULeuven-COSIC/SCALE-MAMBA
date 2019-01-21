@@ -199,6 +199,44 @@ void mul(Ring_Element &ans, const Ring_Element &a, const modp &b)
     }
 }
 
+void mul_by_X_i(Ring_Element &ans, const Ring_Element &a, unsigned int j)
+{
+  ans.partial_assign(a);
+  if (ans.rep == evaluation)
+    {
+      modp xj, xj2;
+      Power(xj, (*ans.FFTD).get_root(0), j, (*a.FFTD).get_prD());
+      Sqr(xj2, xj, (*a.FFTD).get_prD());
+      for (int i= 0; i < (*ans.FFTD).phi_m(); i++)
+        {
+          Mul(ans.element[i], a.element[i], xj, (*a.FFTD).get_prD());
+          Mul(xj, xj, xj2, (*a.FFTD).get_prD());
+        }
+    }
+  else
+    {
+      Ring_Element aa(*ans.FFTD, ans.rep);
+      for (int i= 0; i < (*ans.FFTD).phi_m(); i++)
+        {
+          int k= j + i, s= 1;
+          while (k >= (*ans.FFTD).phi_m())
+            {
+              k-= (*ans.FFTD).phi_m();
+              s= -s;
+            }
+          if (s == 1)
+            {
+              aa.element[k]= a.element[i];
+            }
+          else
+            {
+              Negate(aa.element[k], a.element[i], (*a.FFTD).get_prD());
+            }
+        }
+      ans= aa;
+    }
+}
+
 void Ring_Element::randomize(PRNG &G, bool Diag)
 {
   if (Diag == false)

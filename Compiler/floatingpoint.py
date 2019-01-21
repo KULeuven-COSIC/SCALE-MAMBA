@@ -9,6 +9,7 @@ import types
 import comparison
 import program
 
+
 ##
 ## Helper functions for floating point arithmetic
 ##
@@ -33,6 +34,35 @@ def shift_two(n, pos):
             res >>= 63
         return res
 
+##
+# Simplified less than test for sfloat.
+# Returns 0 if there is error.
+# @param fl_a: always an sfloat
+# @param fl_b: can be sfloat or cfloat
+# @return sint \{0,1\} where a < 0.
+def FLLT (fl_a, fl_b):
+    t = fl_a.err
+    if isinstance(fl_b, types.sfloat):
+        t = t + fl_b.err
+    t = t == 0
+    z1 = fl_a.z
+    z2 = fl_b.z
+    s1 = fl_a.s
+    s2 = fl_b.s
+    a = fl_a.p.less_than(fl_b.p, fl_a.plen, fl_a.kappa)
+    c = EQZ(fl_a.p - fl_b.p, fl_a.plen, fl_a.kappa)
+    d = ((1 - 2 * fl_a.s) * fl_a.v).less_than((1 - 2 * fl_b.s) * fl_b.v, fl_a.vlen + 1, fl_a.kappa)
+    cd = c * d
+    ca = c * a
+    b1 = cd + a - ca
+    b2 = cd + 1 + ca - c - a
+    s12 = fl_a.s * fl_b.s
+    z12 = fl_a.z * fl_b.z
+    b = (z1 - z12) * (1 - s2) + (z2 - z12) * s1 + (1 + z12 - z1 - z2) * \
+        (s1 - s12 + (1 + s12 - s1 - s2) * b1 + s12 * b2) * t
+    return b
+
+
 def EQZ(a, k, kappa):
     r_dprime = types.sint()
     r_prime = types.sint()
@@ -45,6 +75,52 @@ def EQZ(a, k, kappa):
     for i,b in enumerate(bits(c, k)):
         d[i] = b + r[i] - 2*b*r[i]
     return 1 - KOR(d, kappa)
+
+
+##
+# Simplified less than  zero test for sfloat.
+# Returns 0 if there is error.
+# @param a: input to be zero tested
+# @return sint \{0,1\} where a < 0.
+def FLLTZ(a):
+    return (a.s * (1 - a.z)) * (a.err == 0)
+
+
+##
+# Simplified zero test for sfloat.
+# Returns 0 if there is error.
+# @param a: input to be zero tested
+# @return sint \{0,1\} where a == 0.
+def FLEQZ(a):
+    return a.z * (a.err == 0)
+
+
+##
+# Simplified greater than zero test for sfloat.
+# Returns 0 if there is error.
+# @param a: input to be zero tested
+# @return sint \{0,1\} where a > 0.
+def FLGTZ(a):
+    return ((1 - a.s) * (1 - a.z)) * (a.err == 0)
+
+
+##
+# Simplified less equal than zero test for sfloat.
+# Returns 0 if there is error.
+# @param a: input to be zero tested
+# @return sint \{0,1\} where a <= 0.
+def FLLEZ(a):
+    return a.s * (a.err == 0)
+
+
+##
+# Simplified greater equal than zero test for sfloat.
+# Returns 0 if there is error.
+# @param a: input to be zero tested
+# @return sint \{0,1\} where a >= 0.
+def FLGEZ(a):
+    return (1 - a.s) * (a.err == 0)
+
 
 def bits(a,m):
     """ Get the bits of an int """
@@ -174,6 +250,8 @@ def KMul(a):
     else:
         return KOpL(mul_op, a)
 
+def FlAbs(a):
+    return types.sfloat(v = a.v, p = a.p, z = a.z, s = types.sint(0), err = a.err)
 
 def Inv(a):
     """ Invert a non-zero value """
@@ -351,22 +429,60 @@ def Int2FL(a, gamma, l, kappa):
     comparison.LTZ(s, a, gamma, kappa)
     z = EQZ(a, gamma, kappa)
     a = (1 - 2 * s) * a
+
     a_bits = BitDec(a, lam, lam, kappa)
     a_bits.reverse()
     b = PreOR(a_bits, kappa)
     t = a * (1 + sum(2**i * (1 - b_i) for i,b_i in enumerate(b)))
     p = - (lam - sum(b))
-    if gamma - 1 > l:
+    if lam > l:
         if types.sfloat.round_nearest:
             v, overflow = TruncRoundNearestAdjustOverflow(t, gamma - 1, l, kappa)
             p = p + overflow
         else:
             v = types.sint()
             comparison.Trunc(v, t, gamma - 1, gamma - l - 1, kappa, False)
+            #TODO: Shouldnt this be only gamma
     else:
         v = 2**(l-gamma+1) * t
     p = (p + gamma - 1 - l) * (1 -z)
     return v, p, z, s
+
+
+##
+# Original Function that converts inputs to
+# floats, as implemented in legacy code (sfloat).
+# It looks like a special adaptation from
+# [ABZ13]
+# @param v: int or cint value to be transformed to sfloat
+# @param vlen: length of v (usually l) in paper
+# @param plen: bit-length of supported precision
+# @return all basic components of a floating point as in [ABZ13]
+def convert_float(v, vlen, plen):
+    if v < 0:
+        s = 1
+    else:
+        s = 0
+    if v == 0:
+        v = 0
+        p = 0
+        z = 1
+    else:
+        p = int(floor(log(abs(v), 2))) - vlen + 1
+        vv = v
+        v = int(round(abs(v) * 2 ** (-p)))
+        if v == 2 ** vlen:
+            p += 1
+            v /= 2
+        z = 0
+        if p < -2 ** (plen - 1):
+            print 'Warning: %e truncated to zero' % vv
+            v, p, z = 0, 0, 1
+        if p >= 2 ** (plen - 1):  # use it for the comparison
+            raise CompilerError('Cannot convert %s to float ' \
+                                'with %d exponent bits' % (vv, plen))
+    return v, p, z, s
+
 
 def FLRound(x, mode):
     """ Rounding with floating point output.

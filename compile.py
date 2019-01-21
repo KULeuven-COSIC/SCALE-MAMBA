@@ -42,7 +42,12 @@ def main():
                       help="continuous computation")
     parser.add_option("-s", "--stop", action="store_true", dest="stop",
                       help="stop on register errors")
+
+    parser.add_option("-f", "--fdflag", action="store_false",
+                      dest="fdflag", default=True,
+                      help="de-activates under-over flow check for sfloats")
     options,args = parser.parse_args()
+
     if len(args) < 1:
         parser.print_help()
         return

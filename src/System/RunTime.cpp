@@ -10,6 +10,7 @@ All rights reserved
  */
 
 #include "System/RunTime.h"
+#include "OT/OT_Thread.h"
 #include "Offline/FHE_Factory.h"
 #include "Offline/offline_phases.h"
 #include "Online/Online.h"
@@ -27,6 +28,8 @@ All rights reserved
 #include <unistd.h>
 #include <vector>
 using namespace std;
+
+int USE_OT_THREAD;
 
 class thread_info
 {
@@ -108,8 +111,14 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
       SacrificeD[i].initialize(SD.n);
     }
 
-  int nthreads= 5 * no_online_threads;
-  int tnthreads= nthreads + number_FHE_threads;
+  unsigned int nthreads= 5 * no_online_threads;
+  // Add in the FHE threads
+  unsigned int tnthreads= nthreads + number_FHE_threads;
+  // Add in the OT thread
+  if (USE_OT_THREAD)
+    {
+      tnthreads++;
+    }
 
   /* Initialize the networking TCP sockets */
   int ssocket;
@@ -125,15 +134,19 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   fflush(stdout);
   threads.resize(tnthreads);
   vector<thread_info> tinfo(tnthreads);
-  for (int i= 0; i < tnthreads; i++)
+  for (unsigned int i= 0; i < tnthreads; i++)
     {
       if (i < nthreads)
         {
           tinfo[i].thread_num= i;
         }
+      else if (i < tnthreads + number_FHE_threads - 1)
+        {
+          tinfo[i].thread_num= 10000 + i - nthreads;
+        }
       else
         {
-          tinfo[i].thread_num= 1000 + i - nthreads;
+          tinfo[i].thread_num= 20000;
         }
       tinfo[i].SD= &SD;
       tinfo[i].OCD= &OCD;
@@ -161,7 +174,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
 
   printf("Waiting for all clients to finish\n");
   fflush(stdout);
-  for (int i= 0; i < tnthreads; i++)
+  for (unsigned int i= 0; i < tnthreads; i++)
     {
       pthread_join(threads[i], NULL);
     }
@@ -182,7 +195,7 @@ void *Main_Func(void *ptr)
   printf("Set up player %d in thread %d \n", me, num);
   fflush(stdout);
 
-  if (num < 1000)
+  if (num < 10000)
     {
       int num5= num % 5;
       int num_online= (num - num5) / 5;
@@ -212,9 +225,13 @@ void *Main_Func(void *ptr)
             break;
         }
     }
-  else
+  else if (num < 20000)
     {
-      (*(tinfo)->industry).FHE_Factory(P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->PTD), num - 1000, verbose);
+      (*(tinfo)->industry).FHE_Factory(P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->PTD), num - 10000, verbose);
+    }
+  else if (USE_OT_THREAD == 1)
+    { // Should remove the if on this else eventually XXXX
+      OT_Thread(P, 2);
     }
   return 0;
 }

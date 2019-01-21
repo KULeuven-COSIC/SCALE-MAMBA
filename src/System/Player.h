@@ -9,6 +9,8 @@ All rights reserved
 
 #include "openssl/ssl.h"
 
+#include <openssl/sha.h>
+
 #include "Math/gfp.h"
 #include "SystemData.h"
 #include "Tools/random.h"
@@ -28,6 +30,10 @@ class Player
   vector<vector<SSL *>> ssl;
 
   vector<gfp> mac_keys;
+
+  // This maintains a running hash to check broadcasts are
+  // correct, when we need/want to do this
+  SHA256_CTX sha256;
 
 public:
   PRNG G; // Each player has a local PRNG
@@ -65,8 +71,12 @@ public:
 
   /* Broadcast and Receive data to/from all players
    *  - Assumes o[me] contains the thing broadcast by me
+   *  - Check says whether we do a hash check or not
    */
-  void Broadcast_Receive(vector<string> &o, int connection= 0) const;
+  void Broadcast_Receive(vector<string> &o, bool check= false, int connection= 0);
+
+  /* Runs the broadcast check for any checked broadcast */
+  void Check_Broadcast();
 
   /* This sends o[i] to player i for all i,
    * then receives back o[i] from player i

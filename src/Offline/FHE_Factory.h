@@ -36,10 +36,7 @@ class FHE_Industry
   vector<Ciphertext> ctx_macs;
 
   // Assume Current_Factory_Lock[num] is locked!!!
-  //   Returns -1 if we should exit, else 0
-  //   Checks whether we should close all the factories
-  int Update_If_Empty(unsigned int num, unsigned int num_online,
-                      offline_control_data &OCD);
+  void Update_If_Empty(unsigned int num);
 
 public:
   FHE_Industry(unsigned int maxnumber);
@@ -57,8 +54,7 @@ public:
    *   -1 if should exit
    */
   int Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
-                               const Player &P, unsigned int num_online,
-                               offline_control_data &OCD);
+                               const Player &P, const string &info);
 
   void increment_zkc(unsigned int num)
   {

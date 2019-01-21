@@ -115,11 +115,11 @@ opcodes = dict(
     JMP = 0x90,
     JMPNZ = 0x91,
     JMPEQZ = 0x92,
-    EQZC = 0x93,
-    LTZC = 0x94,
-    LTC = 0x95,
-    GTC = 0x96,
-    EQC = 0x97,
+    EQZINT = 0x93,
+    LTZINT = 0x94,
+    LTINT = 0x95,
+    GTINT = 0x96,
+    EQINT = 0x97,
     JMPI = 0x98,
 
     # Integers

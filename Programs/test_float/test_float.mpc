@@ -2,13 +2,18 @@ sfloat.vlen = 8   # Length of mantissa in bits
 sfloat.plen = 5   # Length of exponent in bits
 sfloat.kappa = 4  # Statistical security parameter for floats
 
+
+cfloat.vlen = 8   # Length of mantissa in bits
+cfloat.plen = 5   # Length of exponent in bits
+cfloat.kappa = 4  # Statistical security parameter for floats
+
 v = 1 << (sfloat.vlen - 1)
 p1 = -sfloat.vlen + 1
 p2 = -sfloat.vlen + 2
-one = sfloat(v, p1, 0, 0)
-two = sfloat(v, p2, 0, 0)
-zero = sfloat(0, 0, 1, 0)
-minus_one = sfloat(v, p1, 0, 1)
+one = sfloat(v, p1, 0, 0, err = 0, size =None)
+two = sfloat(v, p2, 0, 0, err = 0, size = None)
+zero = sfloat(0, 0, 1, 0, err = 0, size = None)
+minus_one = sfloat(v, p1, 0, 1, err = 0, size = None)
 
 x = two * one
 test(x.v, v)
@@ -92,6 +97,7 @@ test(x.p, 0)
 test(x.z, 1)
 test(x.s, 0)
 
+
 x = sfloat(1)
 test(x.v, 128)
 test(x.p, -7)
@@ -122,6 +128,86 @@ test(x.p, 0)
 test(x.z, 1)
 test(x.s, 0)
 
+x = sfloat(0)
+test(x.v, 0)
+test(x.p, 0)
+test(x.z, 1)
+test(x.s, 0)
+
+
+x = sfloat(1)
+test(x.v, 128)
+test(x.p, -7)
+test(x.z, 0)
+test(x.s, 0)
+
+x = sfloat(-.875)
+test(x.v, 224)
+test(x.p, -8)
+test(x.z, 0)
+test(x.s, 1)
+
+x = sfloat(2 ** 22 + 1)
+test(x.v, 128)
+test(x.p, 15)
+test(x.z, 0)
+test(x.s, 0)
+
+x = sfloat(sfloat(2 ** -8))
+test(x.v, 128)
+test(x.p, -15)
+test(x.z, 0)
+test(x.s, 0)
+
+x = sfloat(sfloat(2 ** -24))
+test(x.v, 0)
+test(x.p, 0)
+test(x.z, 1)
+test(x.s, 0)
+
+#
+## test for conversion to cfloat
+# We only test cfloat conversion because all types are converted
+# to cfloat and then multiplied by an sfloat
+x = cfloat(0)
+test(x.v, 0)
+test(x.p, 0)
+test(x.z, 1)
+test(x.s, 0)
+
+
+x = cfloat(1)
+test(x.v, 128)
+test(x.p, -7)
+test(x.z, 0)
+test(x.s, 0)
+
+x = cfloat(-.875)
+test(x.v, 224)
+test(x.p, -8)
+test(x.z, 0)
+test(x.s, 1)
+
+x = cfloat(2 ** 22 + 1)
+test(x.v, 128)
+test(x.p, 15)
+test(x.z, 0)
+test(x.s, 0)
+
+x = cfloat(2 ** -8)
+test(x.v, 128)
+test(x.p, -15)
+test(x.z, 0)
+test(x.s, 0)
+
+x = cfloat(2 ** -24)
+test(x.v, 0)
+test(x.p, 0)
+test(x.z, 1)
+test(x.s, 0)
+
+
+## simple bounds test
 test(sfloat(1))
 test(sfloat(1) + sfloat(1))
 
@@ -187,6 +273,94 @@ test(g * e)
 test(g * f)
 test(g * g)
 
+#
+#testing multiplication against cfix
+#
+a = sfloat(100)
+b = cfix(1)
+c = cfix(.01)
+d = cfix(0)
+e = cfix(-.01)
+f = cfix(-1)
+g = cfix(-100)
+
+test(a * a)
+test(a * b)
+test(a * c)
+test(a * d)
+test(a * e)
+test(a * f)
+test(a * g)
+
+a = cfix(100)
+b = sfloat(1)
+
+
+test(b * a)
+test(b * b)
+test(b * c)
+test(b * d)
+test(b * e)
+test(b * f)
+test(b * g)
+
+b = cfix(1)
+c = sfloat(.01)
+
+test(c * a)
+test(c * b)
+# missing underflow handling
+#test(c * c)
+test(c * d)
+#test(c * e)
+test(c * f)
+test(c * g)
+
+c = cfix(.01)
+d = sfloat(0)
+
+test(d * a)
+test(d * b)
+test(d * c)
+test(d * d)
+test(d * e)
+test(d * f)
+test(d * g)
+
+d = cfix(0)
+e = sfloat(-.01)
+
+test(e * a)
+test(e * b)
+#test(e * c)
+test(e * d)
+#test(e * e)
+test(e * f)
+test(e * g)
+
+e = cfix(-.01)
+f = sfloat(-1)
+
+test(f * a)
+test(f * b)
+test(f * c)
+test(f * d)
+test(f * e)
+test(f * f)
+test(f * g)
+
+
+f = cfix(-1)
+g = sfloat(-100)
+
+test(g * a)
+test(g * b)
+test(g * c)
+test(g * d)
+test(g * e)
+test(g * f)
+test(g * g)
+
 x = sfloat(.5)
 test(x ** 0)
 test(x ** 1)
@@ -206,6 +380,93 @@ test(x.p, -6)
 test(x.z, 0)
 test(x.s, 0)
 
+# scalar conversion to cfloat testing
+a = sfloat(100)
+b = cfloat(1)
+c = cfloat(.01)
+d = cfloat(0)
+e = cfloat(-.01)
+f = cfloat(-1)
+g = cfloat(-100)
+
+test(a * a)
+test(a * b)
+test(a * c)
+test(a * d)
+test(a * e)
+test(a * f)
+test(a * g)
+
+a = cfloat(100)
+b = sfloat(1)
+
+
+test(b * a)
+test(b * b)
+test(b * c)
+test(b * d)
+test(b * e)
+test(b * f)
+test(b * g)
+
+b = cfloat(1)
+c = sfloat(.01)
+
+test(c * a)
+test(c * b)
+# missing underflow handling
+#test(c * c)
+test(c * d)
+#test(c * e)
+test(c * f)
+test(c * g)
+
+c = cfloat(.01)
+d = sfloat(0)
+
+test(d * a)
+test(d * b)
+test(d * c)
+test(d * d)
+test(d * e)
+test(d * f)
+test(d * g)
+
+d = cfloat(0)
+e = sfloat(-.01)
+
+test(e * a)
+test(e * b)
+#test(e * c)
+test(e * d)
+#test(e * e)
+test(e * f)
+test(e * g)
+
+e = cfloat(-.01)
+f = sfloat(-1)
+
+test(f * a)
+test(f * b)
+test(f * c)
+test(f * d)
+test(f * e)
+test(f * f)
+test(f * g)
+
+
+f = cfloat(-1)
+g = sfloat(-100)
+
+test(g * a)
+test(g * b)
+test(g * c)
+test(g * d)
+test(g * e)
+test(g * f)
+test(g * g)
+
+# addition testing
 a = sfloat(100)
 b = sfloat(1)
 c = sfloat(.01)
@@ -264,6 +525,183 @@ test(g + e)
 test(g + f)
 test(g + g)
 
+#test conversion cfix addition
+a = sfloat(100)
+b = cfix(1)
+c = cfix(.01)
+d = cfix(0)
+e = cfix(-.01)
+f = cfix(-1)
+g = cfix(-100)
+
+test(a + a)
+test(a + b)
+test(a + c)
+test(a + d)
+test(a + e)
+test(a + f)
+test(a + g)
+
+a = cfix(100)
+b = sfloat(1)
+
+test(b + a)
+test(b + b)
+test(b + c)
+test(b + d)
+test(b + e)
+test(b + f)
+test(b + g)
+
+b = cfix(1)
+c = sfloat(.01)
+
+test(c + a)
+test(c + b)
+test(c + c)
+test(c + d)
+# slight lose of precision for chain conversion
+# and the small plen and vlen values
+# from float to cfix to cfloat (chain conversion)
+#test(c + e)
+test(c + f)
+test(c + g)
+
+c = cfix(.01)
+d = sfloat(0)
+
+test(d + a)
+test(d + b)
+test(d + c)
+test(d + d)
+test(d + e)
+test(d + f)
+test(d + g)
+
+d = cfix(0)
+e = sfloat(-.01)
+
+test(e + a)
+test(e + b)
+# slight lose of precision for chain conversion
+# and the small plen and vlen values
+# from float to cfix to cfloat (chain conversion)
+#test(e + c)
+test(e + d)
+test(e + e)
+test(e + f)
+test(e + g)
+
+e = cfix(-.01)
+f = sfloat(-1)
+
+test(f + a)
+test(f + b)
+test(f + c)
+test(f + d)
+test(f + e)
+test(f + f)
+test(f + g)
+
+f = cfix(-1)
+g = sfloat(-100)
+
+test(g + a)
+test(g + b)
+test(g + c)
+test(g + d)
+test(g + e)
+test(g + f)
+test(g + g)
+
+#test conversion cfloat addition
+
+a = sfloat(100)
+b = cfloat(1)
+c = cfloat(.01)
+d = cfloat(0)
+e = cfloat(-.01)
+f = cfloat(-1)
+g = cfloat(-100)
+
+test(a + a)
+test(a + b)
+test(a + c)
+test(a + d)
+test(a + e)
+test(a + f)
+test(a + g)
+
+a = cfloat(100)
+b = sfloat(1)
+
+test(b + a)
+test(b + b)
+test(b + c)
+test(b + d)
+test(b + e)
+test(b + f)
+test(b + g)
+
+b = cfloat(1)
+c = sfloat(.01)
+test(c + a)
+test(c + b)
+test(c + c)
+test(c + d)
+test(c + e)
+test(c + f)
+test(c + g)
+
+c = cfloat(.01)
+d = sfloat(0)
+
+test(d + a)
+test(d + b)
+test(d + c)
+test(d + d)
+test(d + e)
+test(d + f)
+test(d + g)
+
+d = cfloat(0)
+e = sfloat(-.01)
+
+test(e + a)
+test(e + b)
+test(e + c)
+test(e + d)
+test(e + e)
+test(e + f)
+test(e + g)
+
+e = cfloat(-.01)
+f = sfloat(-1)
+
+test(f + a)
+test(f + b)
+test(f + c)
+test(f + d)
+test(f + e)
+test(f + f)
+test(f + g)
+
+f = cfloat(-1)
+g = sfloat(-100)
+
+test(g + a)
+test(g + b)
+test(g + c)
+test(g + d)
+test(g + e)
+test(g + f)
+test(g + g)
+
+
+
+#
+## various chain operations
+#
 x = (sfloat(-127) + sfloat(128))
 test(x.v, 128)
 test(x.p, -7)
@@ -324,6 +762,47 @@ test(b - d)
 test(b - e)
 test(b - f)
 
+#
+## test round nearest addition cfix
+#
+a = sfloat(255)
+b = sfloat(256)
+c = cfix(1)
+d = cfix(1+2**-7)
+e = cfix(1-2**-8)
+f = cfix(0.5)
+
+test(a + c)
+test(a + d)
+test(a + e)
+test(a + f)
+test(b - c)
+test(b - d)
+test(b - e)
+test(b - f)
+
+#
+##
+# test round nearest addition scalar cfloat
+a = sfloat(255)
+b = sfloat(256)
+c = cfloat(1)
+d = cfloat(1+2**-7)
+e = cfloat(1-2**-8)
+f = cfloat(0.5)
+
+test(a + c)
+test(a + d)
+test(a + e)
+test(a + f)
+test(b - c)
+test(b - d)
+test(b - e)
+test(b - f)
+
+
+#
+## limit operations on interval
 test(sfloat(1) * sfloat(1))
 test(sfloat(7) * sfloat(73))
 test(sfloat(11) * sfloat(93))
@@ -336,6 +815,19 @@ test(sfloat(sint(511)), 512)
 test(sfloat(sint(257)), 258)
 test(sfloat(sint(1023)), 1024)
 test(sfloat(sint(514)), 516)
+
+
+#
+## test round nearest multiplication cfix
+#
+test(sfloat(1) * cfix(1))
+test(sfloat(7) * cfix(73))
+test(sfloat(11) * cfix(93))
+test(sfloat(9) *  cfix(227))
+test(sfloat(151) * cfix(217))
+test(sfloat(255) * cfix(255))
+test(sfloat(226) * cfix(145))
+
 
 test(sfloat(0) == sfloat(0))
 test(sfloat(1) == sfloat(-1))
@@ -411,3 +903,210 @@ test(a <= b)
 test(b <= a)
 test(a >= b)
 test(b >= a)
+
+#test with CFIX for inequality
+
+a = sfloat(100)
+b = cfix(1)
+c = cfix(.01)
+d = cfix(0)
+e = cfix(-.01)
+f = cfix(-1)
+g = cfix(-100)
+
+test(a < sfloat(a))
+test(a < b)
+test(a < c)
+test(a < d)
+test(a < e)
+test(a < f)
+test(a < g)
+
+a = cfix(100)
+b = sfloat(1)
+
+test(b < a)
+test(b < b)
+test(b < c)
+test(b < d)
+test(b < e)
+test(b < f)
+test(b < g)
+
+b = cfix(1)
+c = sfloat(.01)
+
+test(c < a)
+test(c < b)
+test(c < c)
+test(c < d)
+test(c < e)
+test(c < f)
+test(c < g)
+
+c = cfix(.01)
+d = sfloat(0)
+
+test(d < a)
+test(d < b)
+test(d < c)
+test(d < d)
+test(d < e)
+test(d < f)
+test(d < g)
+
+d = cfix(0)
+e = sfloat(-.01)
+
+test(e < a)
+test(e < b)
+test(e < c)
+test(e < d)
+test(e < e)
+test(e < f)
+test(e < g)
+
+e = cfix(-.01)
+f = sfloat(-1)
+
+test(f < a)
+test(f < b)
+test(f < c)
+test(f < d)
+test(f < e)
+test(f < f)
+test(f < g)
+
+f = cfix(-1)
+g = sfloat(-100)
+
+test(g < a)
+test(g < b)
+test(g < c)
+test(g < d)
+test(g < e)
+test(g < f)
+test(g < g)
+
+#tests to vefrify inequality 
+#operations in between
+# sfloat and cfix
+
+a = sfloat(99)
+b = cfix(100)
+
+test(a > a)
+test(a > b)
+test(a < b)
+test(a <= b)
+test(a >= b)
+test(a == b)
+test(a != b)
+
+test(b > a)
+test(b < a)
+test(b <= a)
+test(b >= a)
+test(b == a)
+test(b != a)
+
+#test with SCALARS for inequality
+a = sfloat(100)
+b = cfloat(1)
+c = cfloat(.01)
+d = cfloat(0)
+e = cfloat(-.01)
+f = cfloat(-1)
+g = cfloat(-100)
+
+test(a < a)
+test(a < b)
+test(a < c)
+test(a < d)
+test(a < e)
+test(a < f)
+test(a < g)
+
+a = cfloat(100)
+b = sfloat(1)
+
+test(b < a)
+test(b < b)
+test(b < c)
+test(b < d)
+test(b < e)
+test(b < f)
+test(b < g)
+
+b = cfloat(1)
+c = sfloat(.01)
+
+test(c < a)
+test(c < b)
+test(c < c)
+test(c < d)
+test(c < e)
+test(c < f)
+test(c < g)
+
+c = cfloat(.01)
+d = sfloat(0)
+
+test(d < a)
+test(d < b)
+test(d < c)
+test(d < d)
+test(d < e)
+test(d < f)
+test(d < g)
+
+d = cfloat(0)
+e = sfloat(-.01)
+
+test(e < a)
+test(e < b)
+test(e < c)
+test(e < d)
+test(e < e)
+test(e < f)
+test(e < g)
+
+e = cfloat(-.01)
+f = sfloat(-1)
+
+test(f < a)
+test(f < b)
+test(f < c)
+test(f < d)
+test(f < e)
+test(f < f)
+test(f < g)
+
+f = cfloat(-1)
+g = sfloat(-100)
+
+test(g < a)
+test(g < b)
+test(g < c)
+test(g < d)
+test(g < e)
+test(g < f)
+test(g < g)
+
+a = sfloat(100)
+b = cfloat(99)
+
+test(a > b)
+test(a < b)
+test(a <= b)
+test(a >= b)
+test(a == b)
+test(a != b)
+
+test(b < a)
+test(b > a)
+test(b <= a)
+test(b >= a)
+test(b == a)
+test(b != a)
+

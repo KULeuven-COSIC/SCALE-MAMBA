@@ -58,7 +58,7 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
             {
               case Triples:
                 OCD.mult_mutex[num_online].lock();
-                if (TriplesD[num_online].ta.size() > max_triples_offline)
+                if ((TriplesD[num_online].ta.size() > max_triples_offline) || (OCD.totm[num_online] > OCD.maxm && OCD.maxm != 0))
                   {
                     result= 2;
                     ss= "W";
@@ -67,7 +67,7 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
                 break;
               case Squares:
                 OCD.square_mutex[num_online].lock();
-                if (SquaresD[num_online].sa.size() > max_squares_offline)
+                if ((SquaresD[num_online].sa.size() > max_squares_offline) || (OCD.tots[num_online] > OCD.maxs && OCD.maxs != 0 && OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0))
                   {
                     result= 2;
                     ss= "W";
@@ -76,7 +76,7 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
                 break;
               case Bits:
                 OCD.bit_mutex[num_online].lock();
-                if (BitsD[num_online].bb.size() > max_bits_offline)
+                if ((BitsD[num_online].bb.size() > max_bits_offline) || (OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0))
                   {
                     result= 2;
                     ss= "W";
@@ -130,7 +130,7 @@ void mult_phase(int num_online, Player &P, offline_control_data &OCD,
           return;
         }
 
-      if (flag == 2 || (OCD.totm[num_online] > OCD.maxm && OCD.maxm != 0))
+      if (flag == 2)
         {
           sleep(1);
         }
@@ -141,7 +141,7 @@ void mult_phase(int num_online, Player &P, offline_control_data &OCD,
               printf("In triples: thread = %d\n", num_online);
               fflush(stdout);
             }
-          offline_phase_triples(P, prss, przs, a, b, c, pk, sk, PTD, num_online, OCD, industry);
+          offline_phase_triples(P, prss, przs, a, b, c, pk, sk, PTD, industry);
           if (verbose > 1)
             {
               printf("Out of triples: thread = %d\n", num_online);
@@ -187,8 +187,7 @@ void square_phase(int num_online, Player &P, offline_control_data &OCD,
           return;
         }
 
-      if (flag == 2 ||
-          (OCD.tots[num_online] > OCD.maxs && OCD.maxs != 0 && OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0))
+      if (flag == 2)
         {
           sleep(1);
         }
@@ -199,7 +198,7 @@ void square_phase(int num_online, Player &P, offline_control_data &OCD,
               printf("In squares: thread = %d\n", num_online);
               fflush(stdout);
             }
-          offline_phase_squares(P, prss, przs, a, b, pk, sk, PTD, num_online, OCD, industry);
+          offline_phase_squares(P, prss, przs, a, b, pk, sk, PTD, industry);
           if (verbose > 1)
             {
               printf("Out of squares: thread = %d\n", num_online);
@@ -245,7 +244,7 @@ void bit_phase(int num_online, Player &P, offline_control_data &OCD,
           return;
         }
 
-      if (flag == 2 || (OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0))
+      if (flag == 2)
         {
           sleep(1);
         }
@@ -256,7 +255,7 @@ void bit_phase(int num_online, Player &P, offline_control_data &OCD,
               printf("In bits: thread = %d\n", num_online);
               fflush(stdout);
             }
-          offline_phase_bits(P, prss, przs, b, OP, pk, sk, PTD, num_online, OCD, industry);
+          offline_phase_bits(P, prss, przs, b, OP, pk, sk, PTD, industry);
           if (verbose > 1)
             {
               printf("Out of bits: thread = %d\n", num_online);
@@ -470,7 +469,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
         {
           if (minputs[i])
             {
-              make_IO_data(P, fake_sacrifice, prss, i, a, opened, pk, sk, PTD, OP, num_online, OCD, industry);
+              make_IO_data(P, fake_sacrifice, prss, i, a, opened, pk, sk, PTD, OP, industry);
 
               /* Add to queues */
               OCD.sacrifice_mutex[num_online].lock();

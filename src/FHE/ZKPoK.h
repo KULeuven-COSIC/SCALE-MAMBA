@@ -20,24 +20,29 @@ All rights reserved
  * the flag of type condition (from Plaintext.h) which
  * is either General or Diagonal
  *
- * It then generates ZK_stat_sec plaintexts and randomness'
- * for this player, as well as V test "fake" ciphertexts
+ * For HighGear U = ZK_sound_sec for TopGear we have
+ * U = ZK_sound_sec/log_2(2*N)
+ *
+ * It then generates U plaintexts and randomness' for this 
+ * player, as well as V test "fake" ciphertexts
  *    - Fake as the distributions are all screwy from
  *      a valid ciphertext. This is to get the proof to
  *      work
- *    - If Diagonal then the ZK_stat_sec test ciphertexts
- *      are all identical, and we set the Diagonal element
- *      to be "alpha" (which in the end will be the MAC key)
+ *    - If Diagonal then the U ciphertexts are all identical, 
+ *      and we set the Diagonal element to be "alpha" (which 
+ *      in the end will be the MAC key)
  *
  * The encryptions of the V fake ciphertexts (A) are then
- * returned, along with the ZK_stat_sec ones (E) we are going
- * to be using later on.
+ * returned, along with the U ones (E) we are going to be 
+ * using later on.
  *
  *
  * Step 2:
  *
  * The players then agree on a random vector e of size
- * ZK_stat_sec consisting of zeros and ones.
+ * V consisting of 
+ *   - HighGear zeros and ones.
+ *   - TopGear elements from {X^i}_{i=0}^{2N-1}
  *
  * This stage then computes the z^{(i)},^{(i)}T pairs for
  * each player to compute (see the documentation Line 6 of
@@ -50,9 +55,9 @@ All rights reserved
  *
  * Step 4:
  *
- * This allows one (up to ZK_stat_sec) times to recover both
- * the ciphertext sum, and the plaintext for this player
- * for the valid ciphertexts selected at the beginiing.
+ * This allows one (up to U) times to recover both the ciphertext 
+ * sum, and the plaintext for this player for the valid ciphertexts 
+ * selected at the beginiing.
  */
 
 #include "FHE_Keys.h"
@@ -60,10 +65,13 @@ All rights reserved
 
 class ZKPoK
 {
-
   condition PoKType;
+  PoKVersion version;
 
-  unsigned int V;
+  unsigned int U, V;
+  // The *actual* soundness security we achieve
+  //   - Can be different from explicit formulae due to rounding
+  unsigned int ssec;
 
   // Associated random coins for this player for the valid ciphertexts
   vector<Random_Coins> r;
@@ -87,11 +95,25 @@ class ZKPoK
 
   vector<Ciphertext> eq; // Main equation checking vector
 
+  // Gets the matrix value we have
+  int M(unsigned int k, unsigned int l, const vector<int> &e);
+
 public:
-  // If type=Diagonal then alpha is the thing we put on the diagonal
-  // else random
-  void Step1(condition type, const FHE_PK &pk, const FFT_Data &PTD, PRNG &G,
+  /* Set up the initial ciphertexts we are going to prove.
+   * We do this in a seperate call, as then we can repeat the proof
+   * for the same ciphertexts over and over again, to increase
+   * soundness security if needed (for the Diag proofs)
+   *   If type=Diagonal then alpha is the thing we put on the diagonal 
+   *   else random
+   */
+  void Step0(condition type, PoKVersion vers,
+             const FHE_PK &pk, const FFT_Data &PTD, PRNG &G,
              const vector<gfp> &alpha= {});
+  // Player calls this to enter the each other players vectors
+  // and sum up the vE vectors
+  void Step0_Step(istream &vE, const FHE_PK &pk);
+
+  void Step1(const FHE_PK &pk, const FFT_Data &PTD, PRNG &G);
 
   // Get my vA for broadcasting
   void get_vA(ostream &s) const;
@@ -102,9 +124,13 @@ public:
   // Get my vz for broadcasting
   void get_vZ(ostream &s) const;
 
-  // Player calls this to enter the each other players vectors vE and vA
-  void Step1_Step(istream &vE, istream &vA, const FHE_PK &pk);
+  // Player calls this to enter the each other players vectors vA
+  void Step1_Step(istream &vA, const FHE_PK &pk);
 
+  // Generate the vector e for Step 2 from a random seed
+  void Generate_e(vector<int> &e, uint8_t seed[SEED_SIZE]);
+
+  // Call the Step 2
   void Step2(const vector<int> &e, const FHE_PK &pk);
 
   // Player calls this to enter the each other players vector vT
@@ -121,14 +147,9 @@ public:
   // Get entry i, set it to be used (abort if already used)
   void get_entry(Plaintext &mess, Ciphertext &ctx, unsigned int i);
 
-  unsigned int size_batch() const
-  {
-    return ZK_stat_sec;
-  }
-  unsigned int size_checkset() const
-  {
-    return V;
-  }
+  unsigned int size_batch() const { return U; }
+  unsigned int size_checkset() const { return V; }
+  unsigned int get_sound_sec() const { return ssec; }
 };
 
 #endif

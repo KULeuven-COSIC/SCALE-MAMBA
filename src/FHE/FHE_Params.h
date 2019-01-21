@@ -20,14 +20,26 @@ All rights reserved
 #include "FHE/Distributions.h"
 #include "FHE/FFT_Data.h"
 #include "Tools/random.h"
+#include "config.h"
+
+enum PoKVersion { HighGear,
+                  TopGear };
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers
  *   - Uses statistical/computational security parameters from config.h
  *   - If p=0 this generates a new prime, otherwise it tries to use the
  *     the input prime. Will throw an error if this is not compatible
+ *   - The default values here are what we use in the main system
+ *     We have them as parameters here so we can test different
+ *     things in the Test routines (FHE-p.x)
  */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-                         unsigned int h, unsigned int n);
+                         unsigned int h, unsigned int n,
+                         PoKVersion version,
+                         int comp_sec_t= comp_sec,
+                         int DD_stat_sec_t= DD_stat_sec,
+                         int ZK_sound_sec_t= ZK_sound_sec,
+                         int ZK_slack_sec_t= ZK_ZK_sec);
 
 class FHE_Params
 {
