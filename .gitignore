@@ -38,6 +38,7 @@
 
 # SCALE
 CONFIG.mine
+*.x
 
 # MAMBA
 *.bc
