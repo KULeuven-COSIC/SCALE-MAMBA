@@ -23,6 +23,9 @@ using namespace std;
 #include "config.h"
 
 #include "Tools/ezOptionParser.h"
+
+#include "App/App.h"
+
 using namespace ez;
 
 extern int USE_OT_THREAD; // Experimental variable only. To be deleted eventually XXXX
@@ -383,9 +386,10 @@ int main(int argc, const char *argv[])
   // Here you configure the IO in the machine
   //  - This depends on what IO machinary you are using
   //  - Here we are just using the simple IO class
-  unique_ptr<Input_Output_Simple> io(new Input_Output_Simple);
-  io->init(cin, cout, true);
-  machine.Setup_IO(std::move(io));
+
+  App app(my_number);
+
+  machine.Setup_IO(std::move(app.make_IO()));
 
   // Load the initial tapes for the first program into the schedule
   unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
