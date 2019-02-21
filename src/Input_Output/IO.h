@@ -9,6 +9,7 @@ All rights reserved
 
 #include "IO_Stream.h"
 #include "Input_Output_Simple.h"
+#include "Input_Output_File.h"
 
 // #include "Input_Output_Galois.h"
 
