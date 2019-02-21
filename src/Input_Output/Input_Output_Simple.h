@@ -14,30 +14,19 @@ All rights reserved
  * a steam, with either human or non-human form
  */
 
-#include "Input_Output_Base.h"
+#include "IO_Stream.h"
 
 #include <fstream>
 using namespace std;
 
-class Input_Output_Simple : public Input_Output_Base
+class Input_Output_Simple : public IO_Stream
 {
-  istream *inpf;
-  ostream *outf;
-
-  bool human; // Only affects share output
 
 public:
   Input_Output_Simple()
-      : Input_Output_Base()
+      : IO_Stream()
   {
     ;
-  }
-
-  void init(istream &ifs, ostream &ofs, bool human_type)
-  {
-    inpf= &ifs;
-    outf= &ofs;
-    human= human_type;
   }
 
   virtual long open_channel(unsigned int channel);
