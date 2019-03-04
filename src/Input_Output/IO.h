@@ -7,7 +7,10 @@ All rights reserved
 #ifndef _IO
 #define _IO
 
+#include "IO_Stream.h"
 #include "Input_Output_Simple.h"
+#include "Input_Output_File.h"
+#include "IO_Factory.h"
 
 // #include "Input_Output_Galois.h"
 

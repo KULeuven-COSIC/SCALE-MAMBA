@@ -1,0 +1,22 @@
+open_channel(0)
+open_channel(1000)
+
+print_ln("Player zero enter a private gfp number")
+a=sint.get_private_input_from(0)
+
+print_ln("Player one enter a private gfp number")
+b=sint.get_private_input_from(1)
+
+print_ln("Player two enter a private gfp number")
+c=sint.get_private_input_from(2)
+
+# Write some data to file
+outp = [a, b, c]
+output_shares(1000,*outp)
+
+print_ln("My number is: %s", a.reveal())
+print_ln("My number is: %s", b.reveal())
+print_ln("My number is: %s", c.reveal())
+
+close_channel(1000)
+close_channel(0)
