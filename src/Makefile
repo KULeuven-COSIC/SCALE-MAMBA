@@ -7,7 +7,9 @@ CFLAGS = -Wall -std=c++11 -pedantic -Wextra -g -pthread -I$(ROOT)/src -maes -mpc
 CPPFLAGS = $(CFLAGS)
 LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir -lcryptopp $(LDFLAGS)
 
-all: $(LIB) Setup.x Player.x
+all: $(LIB) Setup.x Player.x Api.x
+
+api: $(LIB) Api.x
 
 OFFLINE = $(patsubst %.cpp,%.o,$(wildcard Offline/*.cpp))
 ONLINE = $(patsubst %.cpp,%.o,$(wildcard Online/*.cpp))
@@ -26,14 +28,20 @@ APP = $(patsubst %.cpp,%.o,$(wildcard App/*.cpp))
 
 LIB = libMPC.a
 
-OBJ = Setup.o Player.o
+OBJ = Setup.o Player.o Api.o
 
-SRC = Setup.cpp Player.cpp
+API_OBJ = Api.o
+API_SRC = Api.cpp
+
+SRC = Setup.cpp Player.cpp Api.cpp
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJ): $(SRC)
+	$(CC) $(CFLAGS) -c $*.cpp
+
+$(API_OBJ): $(API_SRC)
 	$(CC) $(CFLAGS) -c $*.cpp
 
 $(LIB): $(SYSTEM) $(MATH) $(TOOLS) $(LSSS) $(OFFLINE) $(ONLINE) $(PROCESSOR) $(IO) $(FHE) $(OT) $(GC) $(EXCEPTIONS) $(APP)
@@ -46,6 +54,10 @@ Setup.x: $(OBJ) $(LIB)
 Player.x: $(OBJ) $(LIB)
 	$(CC) $(CFLAGS) -o Player.x Player.o $(LIB) $(LDLIBS)
 	- mv Player.x ../
+
+Api.x: $(API_OBJ) $(LIB)
+	$(CC) $(CFLAGS) -o Api.x Api.o $(LIB) $(LDLIBS)
+	- mv Api.x ../
 
 clean:
 	- rm *.x *.o libMPC.a
