@@ -18,7 +18,7 @@ int main(int argc, const char *argv[]) {
   Client c(id, 3);
 
   f = c.connect_to_player("127.0.0.1", 14000);
-  cout << f;
+  
   if (f == -1){
     exit(-1);
   }
@@ -26,7 +26,7 @@ int main(int argc, const char *argv[]) {
   cout << "Enter message: " << endl;
   cin >> int_msg;
   c.send_int_to(0, int_msg);
-  cout << c.receive_int_from(0) << endl;}
-
+  cout << "Got: " << c.receive_int_from(0) << endl;
+  }
   return 0;
 }

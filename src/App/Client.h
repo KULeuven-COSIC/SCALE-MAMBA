@@ -19,22 +19,20 @@
 
 using namespace std;
 
-class Server {
+class Client {
 private:
-  int socket_id;
-  unsigned int player_id;
-  unsigned int port_number;
-  unsigned int max_clients;
-  vector<int> clients;
+  unsigned int client_id;
+  unsigned int max_players;
+  vector<int> players;
 
 public:
-  Server(unsigned int id, unsigned int port, unsigned int max_clients);
+  Client(unsigned int id, unsigned int max_clients);
 
-  ~Server();
-  
-  void accept_clients();
-  void send_int_to(unsigned int client_id, unsigned int x);
-  int receive_int_from(unsigned int client_id);
+  ~Client();
+
+  int connect_to_player(const char* ip_address, int port);
+  void send_int_to(unsigned int player_id, unsigned int x);
+  int receive_int_from(unsigned int player_id);
   void broadcast_int(unsigned int x);
   void send_msg(int socket, uint8_t *msg, int len);
   void receive_msg(int socket, uint8_t *msg, int len);
