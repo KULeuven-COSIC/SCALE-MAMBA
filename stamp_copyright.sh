@@ -9,3 +9,10 @@ do
   fi
   dos2unix $i
 done
+
+for i in `find . -type f -regex ".*\.[ch]\(pp\)?$"`
+do
+  echo $i
+  sed -i 's/Copyright (c) 2018/Copyright (c) 2019/g' $i
+  dos2unix $i
+done

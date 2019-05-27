@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -24,8 +24,6 @@ using namespace std;
 
 #include "Tools/ezOptionParser.h"
 using namespace ez;
-
-extern int USE_OT_THREAD; // Experimental variable only. To be deleted eventually XXXX
 
 void Usage(ezOptionParser &opt)
 {
@@ -122,13 +120,6 @@ int main(int argc, const char *argv[])
           "-f",           // Flag token.
           "-fhefactories" // Flag token.
   );
-  opt.add("0", // Default.
-          0,   // Required?
-          0,   // Number of args expected.
-          0,   // Delimiter if expecting multiple args.
-          "Fire up the experiment OT/GC system",
-          "-OT" // Flag token.
-  );
 
   opt.parse(argc, argv);
 
@@ -202,15 +193,6 @@ int main(int argc, const char *argv[])
   OCD.maxb= (unsigned int) maximums[2];
   opt.get("-maxI")->getInt(te);
   OCD.maxI= (unsigned int) te;
-
-  /************************************
-   * Sort out OT Stuff (Experimental) *
-   ************************************/
-  USE_OT_THREAD= 0;
-  if (opt.isSet("-OT"))
-    {
-      USE_OT_THREAD= 1;
-    }
 
   cout << "(Min,Max) number of ...\n";
   cout << "\t(" << OCD.minm << ",";

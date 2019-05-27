@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -16,7 +16,10 @@ using namespace std;
 
 #include "FHE/FHE_Keys.h"
 #include "FHE/FHE_Params.h"
+#include "GC/SimplifyCircuit.h"
 #include "LSSS/Share.h"
+#include "OT/aBitVector.h"
+#include "config.h"
 
 int input_YN()
 {
@@ -42,7 +45,7 @@ void init_FHE_Params(FHE_Params &params, bigint &pr, bigint &p0, bigint &p1,
                      unsigned int &N,
                      int lg2p, unsigned int n, unsigned int hwt)
 {
-  pr= 0; // Set so this generates a new plaintext prime
+// Assumes here pr=0 if we want it to be so
 #ifdef TOP_GEAR
   Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n, TopGear);
 #else
@@ -370,16 +373,30 @@ void init_secret_sharing()
       cin >> v;
     }
 
-  bigint p= -1;
+  bigint p= 0;
   if (v == 1)
     {
-      int lg2p= -1;
-      while (lg2p < 16 || lg2p > 1024)
+      int answer= -1, lg2p= -1;
+      while (answer != 0 && answer != 1)
         {
-          cout << "What bit length of modulus do you want for secret sharing? "
-                  "(16-1024)"
-               << endl;
-          cin >> lg2p;
+          cout << "Do you want me to find a prime for the LSSS, or do you want to try one yourself?\n";
+          cout << "\t0) You find one\n\t1) I will enter one" << endl;
+          cin >> answer;
+        }
+      if (answer == 0)
+        {
+          while (lg2p < 16 || lg2p > 1024)
+            {
+              cout << "What bit length of modulus do you want for secret sharing? (16-1024)" << endl;
+              cin >> lg2p;
+            }
+        }
+      else
+        {
+          cout << "Enter a prime for the LSSS.";
+          cout << "Note if I cannot find FHE parameters suitable for this prime I will abort\n";
+          cout << "This option is really for expert use only..." << endl;
+          cin >> p;
         }
       init_FHE(p, lg2p, n); // This internally calls gfp::init_field(p)
     }
@@ -450,28 +467,130 @@ void init_secret_sharing()
        << SD.M << endl;
 }
 
-int main()
+void init_conversion()
 {
+  bigint p;
+  ifstream inpf("Data/SharingData.txt");
+  inpf >> p;
+  inpf.close();
 
-  cout << "What do you want to set up?\n";
-  cout << "\t1) Certs\n";
-  cout << "\t2) Secret Sharing\n";
-  cout << "\t3) Both\n"
-       << endl;
-
-  int ans= -1;
-  while (ans < 1 || ans > 3)
+  unsigned int nBits= numBits(p);
+  if (nBits >= 512)
     {
-      cout << "Enter a number (1-3).." << endl;
-      cin >> ans;
+      cout << "Prime must be less than 512 bits long alas" << endl;
+      cout << "Please contact maintainers if you want a bigger prime" << endl;
+      throw bad_value();
+    }
+  if (nBits <= sreg_bitl)
+    {
+      cout << "The conversion to/from GC routines will definitely not work with primes ";
+      cout << "less than 64 bits in length\n";
+      cout << "There are other restrictions for security, but we test these at runtime" << endl;
+      return;
     }
 
-  if (ans == 1 || ans == 3)
+  vector<int> p_bits(512);
+
+  bigint_to_bits(p_bits, p);
+  Circuit CSub, C512;
+  SimplifyCircuit CC;
+  vector<unsigned int> assign_in;
+  unsigned int nzeros;
+  ofstream outf;
+
+  cout << "Producing conversion circuit LSSS to GC for prime " << p << endl;
+  // Now load the 512 bit adder
+  inpf.open("Circuits/Bristol/LSSS_to_GC.txt");
+  inpf >> C512;
+  inpf.close();
+
+  /* Now do the specialization */
+  assign_in.resize(512 * 3);
+  nzeros= 512 - nBits;
+  cout << "nBits= " << nBits << " nzeros=" << nzeros << endl;
+  for (unsigned int i= 0; i < 512 * 2; i++)
+    {
+      assign_in[i]= 2;
+    }
+  for (unsigned int i= 0; i < nzeros; i++)
+    {
+      assign_in[nBits + i]= 0;
+      assign_in[512 + nBits + i]= 0;
+    }
+  for (unsigned int i= 0; i < 512; i++)
+    {
+      assign_in[1024 + i]= p_bits[i];
+    }
+
+  CC.assign(C512);
+  CC.Set_Inputs(assign_in);
+  CC.Simplify();
+
+  /* Now try and simplify further by doing some substitutions */
+
+  cout << "Going to try and simplify circuit a bit" << endl;
+  cout << "\tPlease be a little patient, it is worth it in the long run :-) " << endl;
+  int numI= 0;
+  bool flag= true;
+  while (flag && numI < iter_modp_Search_SubCircuit)
+    {
+      CSub= CC.Get_Circuit();
+      cout << numI << " : ";
+      cout << "nwires : " << CSub.get_nWires() << "    ";
+      cout << "ngates : " << CSub.get_nGates() << "    ";
+      cout << "and gt : " << CSub.num_AND_gates() << endl;
+      flag= CC.Search_SubCircuit();
+      CC.Simplify();
+      numI++;
+    }
+
+  CSub= CC.Get_Circuit();
+
+  outf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
+  outf << CSub << endl;
+  outf.close();
+
+  cout << "Completed the conversion" << endl;
+}
+
+int main(int argc, const char *argv[])
+{
+
+  int ans= -1;
+  if (argc == 1)
+    {
+      cout << "What do you want to set up?\n";
+      cout << "\t1) Certs\n";
+      cout << "\t2) Secret Sharing\n";
+      cout << "\t3) Conversion circuit for LSSS<->GC computations\n";
+      cout << "\t4) All three\n"
+           << endl;
+
+      while (ans < 1 || ans > 4)
+        {
+          cout << "Enter a number (1-4).." << endl;
+          cin >> ans;
+        }
+    }
+  else if (argc == 2)
+    {
+      ans= atoi(argv[1]);
+      if (ans < 0 || ans > 4)
+        {
+          throw bad_value();
+        }
+    }
+
+  if (ans == 1 || ans == 4)
     {
       init_certs();
     }
-  if (ans == 2 || ans == 3)
+  if (ans == 2 || ans == 4)
     {
       init_secret_sharing();
+    }
+  if (ans == 3 || ans == 4)
+    {
+      init_conversion();
     }
 }

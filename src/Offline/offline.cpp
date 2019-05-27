@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -35,7 +35,7 @@ void fake_offline_phase_triples(Player &P, list<Share> &a, list<Share> &b,
         {
           Seed[i]= 0;
         }
-      PRG.SetSeed(Seed);
+      PRG.SetSeedFromRandom(Seed);
 
       init_fake();
       gfp aa, bb, cc;
@@ -101,7 +101,7 @@ void fake_offline_phase_squares(Player &P, list<Share> &a, list<Share> &b)
         {
           Seed[i]= 0;
         }
-      PRG.SetSeed(Seed);
+      PRG.SetSeedFromRandom(Seed);
 
       init_fake();
       gfp aa, bb;
@@ -158,7 +158,7 @@ void fake_offline_phase_bits(Player &P, list<Share> &b)
         {
           Seed[i]= 0;
         }
-      PRG.SetSeed(Seed);
+      PRG.SetSeedFromRandom(Seed);
 
       init_fake();
       int n= P.nplayers();

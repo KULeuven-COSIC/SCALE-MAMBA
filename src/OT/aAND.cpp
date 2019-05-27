@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -9,49 +9,45 @@ All rights reserved
 #include "LSSS/PRSS.h"
 #include "LaAND.h"
 #include "Tools/int.h"
+#include "aBit_Thread.h"
 #include "config.h"
 
-void aAND::make_more(aBitFactory &aBF, Player &P)
+void aAND::make_aANDs(Player &P, int num_online)
 {
-  LA[0].make_more(aBF, P);
+  extern aBit_Data aBD;
+
+  //P.clocks[1].reset(); P.clocks[1].start(); cout << "\tIn aAND" << endl;
+
+  LA[0].make_more(P, num_online);
+
   unsigned int number= LA[0].get_number();
-  x.resize(number);
-  y.resize(number);
-  z.resize(number);
+  triples.resize(number);
 
   int lg2number= CEIL_LOG2(number);
   unsigned int B= DIV_CEIL(OT_stat_sec, lg2number);
   LA.resize(B);
   for (unsigned int i= 1; i < B; i++)
     {
-      LA[i].make_more(aBF, P);
+      LA[i].make_more(P, num_online);
     }
 
   // Step 2
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, seed, SEED_SIZE);
+  AgreeRandom(P, seed, SEED_SIZE, 2);
   PRNG G2;
-  G2.SetSeed(seed);
+  G2.SetSeedFromRandom(seed);
 
-  // To do the permutation of the objects we
-  // take each element and swap it with another one
-  //   - That this is a good shuffle is well known
-  aBit t;
+  // To do the permutation of the objects we do a Knuth shuffle.
+  unsigned int pos= 0, total= B * number;
   for (unsigned int i= 0; i < B; i++)
     {
-      for (unsigned int j= 0; j < number; j++)
+      for (unsigned int j= 0; j < number && pos <= total - 2; j++)
         {
-          unsigned int i0= G2.get_uint() % B;
-          unsigned int j0= G2.get_uint() % number;
-          t= LA[i].x[j];
-          LA[i].x[j]= LA[i0].x[j0];
-          LA[i0].x[j0]= t;
-          t= LA[i].y[j];
-          LA[i].y[j]= LA[i0].y[j0];
-          LA[i0].y[j0]= t;
-          t= LA[i].z[j];
-          LA[i].z[j]= LA[i0].z[j0];
-          LA[i0].z[j0]= t;
+          unsigned int pos2= pos + G2.get_uint() % (total - pos);
+          unsigned int j0= pos2 % number;
+          unsigned int i0= (pos2 - j0) / number;
+          swap(LA[i].triples[j], LA[i0].triples[j0]);
+          pos++;
         }
     }
 
@@ -60,9 +56,7 @@ void aAND::make_more(aBitFactory &aBF, Player &P)
   // Then we add in LA[i], i=1,..,B checking as we go
   for (unsigned int i= 0; i < number; i++)
     {
-      x[i]= LA[0].x[i];
-      y[i]= LA[0].y[i];
-      z[i]= LA[0].z[i];
+      triples[i]= LA[0].triples[i];
     }
   vector<aBit> d(number);
   vector<int> dv(number);
@@ -70,67 +64,92 @@ void aAND::make_more(aBitFactory &aBF, Player &P)
     {
       for (unsigned int t= 0; t < number; t++)
         {
-          d[t].add(y[t], LA[i].y[t]);
+          d[t].add(triples[t].y, LA[i].triples[t].y);
         }
 
-      Open_aBits(dv, d, P, aBF.get_Delta());
+      Open_aBits(dv, d, P);
 
       for (unsigned int t= 0; t < number; t++)
         {
-          x[t].add(LA[i].x[t]);
-          z[t].add(LA[i].z[t]);
+          triples[t].x.add(LA[i].triples[t].x);
+          triples[t].z.add(LA[i].triples[t].z);
           if (dv[t] == 1)
             {
-              z[t].add(LA[i].x[t]);
+              triples[t].z.add(LA[i].triples[t].x);
             }
         }
     }
-  used= 0;
-}
-
-void aAND::get_aAND(aBit &xx, aBit &yy, aBit &zz, aBitFactory &aBF, Player &P)
-{
-  if (used == x.size())
-    {
-      make_more(aBF, P);
-    }
-  xx= x[used];
-  yy= y[used];
-  zz= z[used];
-  used++;
+  //P.clocks[1].stop(); cout << "\taAND " << P.clocks[1].elapsed() << endl;
 }
 
 /* This executes Beaver's protocol */
 void Mult_aBits(vector<aBit> &z, const vector<aBit> &x, const vector<aBit> &y,
-                aAND &aA, aBitFactory &aBF, Player &P)
+                list<aTriple> &T, Player &P)
 {
-  unsigned int sz= x.size();
-  vector<aBit> a(sz), b(sz), c(sz), d(sz), e(sz);
-  for (unsigned int i= 0; i < sz; i++)
+  extern aBit_Data aBD;
+
+  if (T.size() != x.size() || T.size() != y.size() || T.size() != z.size())
     {
-      aA.get_aAND(a[i], b[i], c[i], aBF, P);
-      d[i].add(a[i], x[i]);
-      e[i].add(b[i], y[i]);
+      throw OT_error();
     }
 
-  vector<int> dd(sz), ee(sz);
-  Open_aBits(dd, d, P, aBF.get_Delta());
-  Open_aBits(ee, e, P, aBF.get_Delta());
+  unsigned int sz= x.size();
+  vector<aBit> a(sz), b(sz), ed(2 * sz);
+  aTriple aT;
+  for (unsigned int i= 0; i < sz; i++)
+    {
+      aT= T.front();
+      T.pop_front();
+      a[i]= aT.x;
+      b[i]= aT.y;
+      ed[i].add(a[i], x[i]);
+      ed[sz + i].add(b[i], y[i]);
+      z[i]= aT.z;
+    }
+
+  vector<int> eedd(2 * sz);
+  Open_aBits(eedd, ed, P);
 
   for (unsigned int i= 0; i < sz; i++)
     {
-      z[i]= c[i];
-      if (dd[i] == 1)
+      if (eedd[i] == 1)
         {
           z[i].add(b[i]);
         }
-      if (ee[i] == 1)
+      if (eedd[sz + i] == 1)
         {
           z[i].add(a[i]);
+          if (eedd[i] == 1)
+            {
+              z[i].negate();
+            }
         }
-      if (dd[i] == 1 && ee[i] == 1)
+    }
+}
+
+void Mult_aBit(aBit &z, const aBit &x, const aBit &y,
+               aTriple &T, Player &P)
+{
+  extern aBit_Data aBD;
+
+  vector<aBit> a(1), b(1), ed(2);
+  ed[0].add(T.x, x);
+  ed[1].add(T.y, y);
+  z= T.z;
+
+  vector<int> eedd(2);
+  Open_aBits(eedd, ed, P);
+
+  if (eedd[0] == 1)
+    {
+      z.add(T.y);
+    }
+  if (eedd[1] == 1)
+    {
+      z.add(T.x);
+      if (eedd[0] == 1)
         {
-          z[i].negate();
+          z.negate();
         }
     }
 }

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -9,6 +9,8 @@ All rights reserved
 #include "FHE/FHE_Keys.h"
 #include "FHE/FHE_Params.h"
 #include "FHE/Rq_Element.h"
+
+/* Tests the FHE code */
 
 extern bigint make_prime(int lg2, int N, const bigint &q= 0,
                          const bigint &x= 0);
@@ -35,7 +37,7 @@ void Test_FHE(const Ring &R, const FFT_Data &PD, const bigint &p0,
   PRNG G;
   unsigned char seed[SEED_SIZE];
   memset(seed, 0, SEED_SIZE);
-  G.SetSeed(seed);
+  G.SetSeedFromRandom(seed);
 
   KeyGen(pk, sk, G);
   Rq_Element secret= sk.s();

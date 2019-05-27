@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -129,8 +129,6 @@ public:
   __m128i to_m128i() const { return a.a; }
   word get_word() const { return _mm_cvtsi128_si64(a.a); }
 
-  void assign(const gf2n &g) { a= g.a; }
-
   void assign_zero() { a= _mm_setzero_si128(); }
   void assign_one() { a= int128(0, 1); }
   void assign_x() { a= int128(0, 2); }
@@ -164,19 +162,8 @@ public:
   }
 
   gf2n() { assign_zero(); }
-  gf2n(const gf2n &g) { assign(g); }
   gf2n(const int128 &g) { assign(g); }
   gf2n(int g) { assign(g); }
-  ~gf2n() { ; }
-
-  gf2n &operator=(const gf2n &g)
-  {
-    if (&g != this)
-      {
-        assign(g);
-      }
-    return *this;
-  }
 
   int is_zero() const { return a == int128(0); }
   int is_one() const { return a == int128(1); }

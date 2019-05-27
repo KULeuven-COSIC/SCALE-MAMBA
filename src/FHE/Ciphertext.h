@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -45,13 +45,6 @@ public:
     return *params;
   }
 
-  void assign(const Ciphertext &ctx)
-  {
-    params= ctx.params;
-    cc0= ctx.cc0;
-    cc1= ctx.cc1;
-  }
-
   Ciphertext(const FHE_Params &p)
       : cc0(p.FFTD(), evaluation, evaluation),
         cc1(p.FFTD(), evaluation, evaluation)
@@ -60,22 +53,6 @@ public:
   }
 
   Ciphertext(const FHE_PK &pk);
-  Ciphertext(const Ciphertext &ctx)
-  {
-    assign(ctx);
-  }
-  ~Ciphertext()
-  {
-    ;
-  }
-  Ciphertext &operator=(const Ciphertext &ctx)
-  {
-    if (this != &ctx)
-      {
-        assign(ctx);
-      }
-    return *this;
-  }
 
   // Rely on default copy assignment/constructor
 

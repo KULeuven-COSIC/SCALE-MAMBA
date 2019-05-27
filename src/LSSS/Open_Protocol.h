@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -34,17 +34,17 @@ All rights reserved
 class Open_Protocol
 {
   /* Open Data */
-  int open_cnt;
-  int counter[2];
-  vector<vector<gfp>> macs;
-  vector<gfp> vals;
+  int open_cnt[3];
+  int counter[3];
+  vector<vector<vector<gfp>>> macs;
+  vector<vector<gfp>> vals;
 
   // Add vectors to the MAC and Value list above
-  void AddToMacs(const vector<Share> &shares);
-  void AddToValues(const vector<gfp> &shares);
+  void AddToMacs(const vector<Share> &shares, int connection);
+  void AddToValues(const vector<gfp> &shares, int connection);
 
   // Hash function to define the hash for checking when type!=Full
-  SHA256_CTX sha256;
+  vector<SHA256_CTX> sha256;
 
 public:
   Open_Protocol();
@@ -65,6 +65,7 @@ public:
    * Second routines called by player_num only
    * This is a naive method, with no checking etc
    * Used in the offline phase. Not for use in the online phase
+   * No need to do these on different connections etc
    */
   void Open_To_One_Begin(unsigned int player_num, const vector<Share> &S,
                          Player &P);
@@ -74,8 +75,7 @@ public:
   // Usually called automatically, unless you need to do it
   // yourself (e.g. before an open/end of protocol)
   // Takes in some auxillary string which is also checked
-  void RunOpenCheck(Player &P, const string &aux, int connection= 0,
-                    bool verbose= false);
+  void RunOpenCheck(Player &P, const string &aux, int connection, bool verbose= false);
 };
 
 #endif

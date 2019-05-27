@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -31,7 +31,6 @@ void Share::assign_zero()
           a[i].assign_zero();
         }
     }
-  check();
 }
 
 void Share::assign(const gfp &aa, const vector<gfp> &alphai)
@@ -58,7 +57,6 @@ void Share::assign(const gfp &aa, const vector<gfp> &alphai)
             }
         }
     }
-  check();
 }
 
 void Share::set_shares(const vector<gfp> &aa)
@@ -68,7 +66,6 @@ void Share::set_shares(const vector<gfp> &aa)
       throw invalid_length();
     }
   a= aa;
-  check();
 }
 
 void Share::set_macs(const vector<gfp> &aa)
@@ -78,7 +75,6 @@ void Share::set_macs(const vector<gfp> &aa)
       throw invalid_length();
     }
   mac= aa;
-  check();
 }
 
 void Share::set_player_and_shares(int pp, const vector<gfp> &aa)
@@ -89,7 +85,6 @@ void Share::set_player_and_shares(int pp, const vector<gfp> &aa)
       throw invalid_length();
     }
   a= aa;
-  check();
 }
 
 void Share::mul(const Share &S, const gfp &aa)
@@ -110,7 +105,6 @@ void Share::mul(const Share &S, const gfp &aa)
           mac[i].mul(S.mac[i], aa);
         }
     }
-  check();
 }
 
 void Share::add(const Share &S, const gfp &aa, const vector<gfp> &alphai)
@@ -151,7 +145,6 @@ void Share::add(const Share &S, const gfp &aa, const vector<gfp> &alphai)
             }
         }
     }
-  check();
 }
 
 void Share::sub(const Share &S, const gfp &aa, const vector<gfp> &alphai)
@@ -193,7 +186,6 @@ void Share::sub(const Share &S, const gfp &aa, const vector<gfp> &alphai)
             }
         }
     }
-  check();
 }
 
 void Share::sub(const gfp &aa, const Share &S, const vector<gfp> &alphai)
@@ -235,7 +227,6 @@ void Share::sub(const gfp &aa, const Share &S, const vector<gfp> &alphai)
             }
         }
     }
-  check();
 }
 
 void Share::add(const Share &S1, const Share &S2)
@@ -261,7 +252,6 @@ void Share::add(const Share &S1, const Share &S2)
           mac[i].add(S1.mac[i], S2.mac[i]);
         }
     }
-  check();
 }
 
 void Share::sub(const Share &S1, const Share &S2)
@@ -286,7 +276,6 @@ void Share::sub(const Share &S1, const Share &S2)
           mac[i].sub(S1.mac[i], S2.mac[i]);
         }
     }
-  check();
 }
 
 void Share::negate()
@@ -302,7 +291,6 @@ void Share::negate()
           mac[i].negate();
         }
     }
-  check();
 }
 
 gfp combine(const vector<Share> &S)
@@ -362,7 +350,6 @@ bool check_macs(const vector<Share> &S, const vector<gfp> &key)
 
 void Share::output(ostream &s, bool human) const
 {
-  check();
   if (human)
     {
       s << p << " ";
@@ -435,7 +422,6 @@ void Share::input(istream &s, bool human)
           mac[i].input(s, human);
         }
     }
-  check();
 }
 
 void make_shares(vector<Share> &share, const gfp &val, PRNG &G)

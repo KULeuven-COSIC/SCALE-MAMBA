@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -49,9 +49,16 @@ All rights reserved
  *     This is a bit redundant, as the first two entries can be inferred from
  *     the last, but we keep this for backwards compatibility reasons
  *   - So for example
- *          2 1 3 4 5 
+ *          2 1 3 4 5 XOR
  *     corresponds to
  *          w_5 = XOR(w_3,w_4)
+ *   - We also use 
+ *          1 1 0 3 EQ 
+ *          1 1 1 4 EQ 
+ *     to say that wire 3 is assigned the value 0 and wire 4 the value 1
+ *   - And we use
+ *          1 1 0 4 EQW
+ *     to say wire 4 should equal wire 1
  */
 
 #include "Exceptions/Exceptions.h"
@@ -61,7 +68,11 @@ using namespace std;
 
 enum GateType { XOR,
                 AND,
-                INV };
+                INV,
+                EQ,
+                EQW };
+
+unsigned int cnt_numI(const GateType &T);
 
 class Circuit
 {
@@ -82,7 +93,15 @@ class Circuit
 
   unsigned int num_AND; // Number of AND gates
 
+  bool gate_is_ok(unsigned int i, const vector<bool> &used) const;
+
 public:
+  void recompute_map();                           // Recomputes the mapping function
+  void swap_gate(unsigned int i, unsigned int j); // Swaps two gates around
+  // Applies a topological sort to the circuit
+  // If test=true, just does a test
+  void sort(bool flag= false);
+
   unsigned int get_nGates() const { return GateT.size(); }
   unsigned int get_nWires() const { return nWires; }
   unsigned int num_AND_gates() const { return num_AND; }
@@ -101,7 +120,7 @@ public:
 
   unsigned int Gate_Wire_In(unsigned int i, unsigned int j) const
   {
-    if (j > 1 || (j == 1 && GateT[i] == INV) || i > GateI.size())
+    if (j > 1 || (j == 1 && (GateT[i] == INV || GateT[i] == EQ || GateT[i] == EQW)) || i > GateI.size())
       {
         throw circuit_error();
       }
@@ -139,6 +158,10 @@ public:
   // outputs is resized by this function so can be blank on
   // entry
   void evaluate(const vector<vector<int>> &inputs, vector<vector<int>> &outputs) const;
+
+  friend class SimplifyCircuit;
+  friend void Find_Function_One(Circuit &F, const Circuit &Sub);
+  friend void Find_Function_Two(Circuit &F, const Circuit &Sub);
 };
 
 #endif

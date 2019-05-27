@@ -1,17 +1,21 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 #include "HaAND.h"
 #include "Tools/MMO.h"
+#include "aBit_Thread.h"
 
-void HaAND::make_more(aBitFactory &aBF, Player &P)
+void HaAND::make_more(Player &P, int num_online)
 {
-  unsigned int number= aBF.get_default_l();
+  extern aBit_Data aBD;
+
+  //P.clocks[0].reset(); P.clocks[0].start(); cout << "\t\t\tIn HaAND" << endl;
   unsigned int n= P.nplayers();
 
+  unsigned int number= 32768;
   x.resize(number);
   y.resize(number);
   v.resize(number);
@@ -19,12 +23,12 @@ void HaAND::make_more(aBitFactory &aBF, Player &P)
   HKiD.resize(number, vector<gf2n>(n));
   HMi.resize(number, vector<gf2n>(n));
 
-  for (unsigned int i= 0; i < number; i++)
-    {
-      x[i]= aBF.get_aShare(P);
-      y[i]= aBF.get_aShare(P);
-    }
-  gf2n te;
+  list<aBit> xL= aBD.get_aShares(num_online, number);
+  list<aBit> yL= aBD.get_aShares(num_online, number);
+
+  x.assign(xL.begin(), xL.end());
+  y.assign(yL.begin(), yL.end());
+  gf2n te, Delta= aBit::get_Delta();
 
   vector<vector<int>> s(number, vector<int>(n));
   vector<vector<int>> t(number, vector<int>(n));
@@ -53,7 +57,7 @@ void HaAND::make_more(aBitFactory &aBF, Player &P)
               for (unsigned int j= 0; j < OT_Amort; j++)
                 {
                   te= x[jj + j].get_Key(i);
-                  te.add(aBF.get_Delta());
+                  te.add(Delta);
                   te.store_into_buffer(&(array[j * 16]));
                 }
               mmo.hashBlockWise<gf2n, OT_Amort>(array, array);
@@ -77,7 +81,7 @@ void HaAND::make_more(aBitFactory &aBF, Player &P)
           // Compute sjk values
           for (unsigned int k= 0; k < number / 8; k++)
             {
-              uint8_t a= aBF.get_random_byte();
+              uint8_t a= P.G.get_uchar();
               for (unsigned int kk= 0; kk < 8; kk++)
                 {
                   s[k * 8 + kk][i]= a & 1;
@@ -96,7 +100,7 @@ void HaAND::make_more(aBitFactory &aBF, Player &P)
         }
     }
 
-  P.Send_Distinct_And_Receive(o);
+  P.Send_Distinct_And_Receive(o, 2);
 
   for (unsigned int i= 0; i < n; i++)
     {
@@ -128,4 +132,5 @@ void HaAND::make_more(aBitFactory &aBF, Player &P)
             }
         }
     }
+  //P.clocks[0].stop(); cout << "\t\t\tHaAND " << P.clocks[0].elapsed() << endl;
 }

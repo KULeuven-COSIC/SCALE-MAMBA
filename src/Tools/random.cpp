@@ -1,12 +1,13 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "Tools/random.h"
 #include "Exceptions/Exceptions.h"
+#include "Tools/CBC-MAC.h"
 #include "Tools/int.h"
 #include <iostream>
 #include <stdio.h>
@@ -37,7 +38,15 @@ void PRNG::ReSeed(int thread)
   InitSeed();
 }
 
-void PRNG::SetSeed(uint8_t *inp)
+void PRNG::SetSeed(uint8_t *inp, unsigned int len)
+{
+  CBC_MAC CM;
+  CM.Update(inp, len);
+  CM.Finalize(seed);
+  InitSeed();
+}
+
+void PRNG::SetSeedFromRandom(uint8_t *inp)
 {
   memcpy(seed, inp, SEED_SIZE * sizeof(uint8_t));
   InitSeed();
@@ -47,7 +56,7 @@ void PRNG::SetSeed(PRNG &G)
 {
   uint8_t tmp[SEED_SIZE];
   G.get_random_bytes(tmp, SEED_SIZE);
-  SetSeed(tmp);
+  SetSeedFromRandom(tmp);
 }
 
 void PRNG::InitSeed()

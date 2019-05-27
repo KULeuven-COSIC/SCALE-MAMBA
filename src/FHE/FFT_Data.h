@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -35,27 +35,13 @@ public:
     gfp::init_field(prData.pr);
   }
 
-  void assign(const FFT_Data &FFTD);
-
   FFT_Data()
   {
     ;
   }
-  FFT_Data(const FFT_Data &FFTD)
-  {
-    assign(FFTD);
-  }
   FFT_Data(const Ring &Rg, const Zp_Data &PrD)
   {
     init(Rg, PrD);
-  }
-  FFT_Data &operator=(const FFT_Data &FFTD)
-  {
-    if (this != &FFTD)
-      {
-        assign(FFTD);
-      }
-    return *this;
   }
 
   const Zp_Data &get_prD() const

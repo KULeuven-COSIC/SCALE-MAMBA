@@ -5,141 +5,186 @@
         -I/O SHARE instructions are used to implement Classes I/O SHARES, hence the variation on their class name,
     Remark: In comments C: stands for Class Name.
 
-    # Load/store
-    LDI = 0x1,
-    LDSI = 0x2,
-    LDMC = 0x3,
-    LDMS = 0x4,
-    STMC = 0x5,
-    STMS = 0x6,
-    LDMCI = 0x7,
-    LDMSI = 0x8,
-    STMCI = 0x9,
-    STMSI = 0xA,
-    MOVC = 0xB,
-    MOVS = 0xC,
-    LDMINT = 0xCA,
-    STMINT = 0xCB,
-    LDMINTI = 0xCC,
-    STMINTI = 0xCD,
-    PUSHINT = 0xCE,
-    POPINT = 0xCF,
-    MOVINT = 0xD0,
+  # Load/store
+  LDI= 0x1,
+  LDSI= 0x2,
+  LDMC= 0x3,
+  LDMS= 0x4,
+  STMC= 0x5,
+  STMS= 0x6,
+  LDMCI= 0x7,
+  LDMSI= 0x8,
+  STMCI= 0x9,
+  STMSI= 0xA,
+  MOVC= 0xB,
+  MOVS= 0xC,
+  MOVINT= 0xD,
+  LDMINT= 0xCA,
+  STMINT= 0xCB,
+  LDMINTI= 0xCC,
+  STMINTI= 0xCD,
+  PUSHINT= 0xCE,
+  POPINT= 0xCF,
 
-    # Machine
-    LDTN = 0x10,
-    LDARG = 0x11,
-    STARG = 0x13,
-    REQBL = 0x12,
-    RUN_TAPE = 0x19,
-    JOIN_TAPE = 0x1A,
-    CRASH = 0x1B,
-    RESTART = 0x1C,
-    CLEAR_MEMORY = 0x1D,
-    CLEAR_REGISTERS = 0x1E,
+  # Machine
+  LDTN= 0x10,
+  LDARG= 0x11,
+  REQBL= 0x12,
+  STARG= 0x13,
+  RUN_TAPE= 0x19,
+  JOIN_TAPE= 0x1A,
+  CRASH= 0x1B,
+  RESTART= 0x1C,
+  CLEAR_MEMORY= 0x1D,
+  CLEAR_REGISTERS= 0x1E,
 
-    # Addition
-    ADDC = 0x20,
-    ADDS = 0x21,
-    ADDM = 0x22,
-    ADDCI = 0x23,
-    ADDSI = 0x24,
-    SUBC = 0x25,
-    SUBS = 0x26,
-    SUBML = 0x27,
-    SUBMR = 0x28,
-    SUBCI = 0x29,
-    SUBSI = 0x2A,
-    SUBCFI = 0x2B,
-    SUBSFI = 0x2C,
+  # Addition
+  ADDC= 0x20,
+  ADDS= 0x21,
+  ADDM= 0x22,
+  ADDCI= 0x23,
+  ADDSI= 0x24,
+  SUBC= 0x25,
+  SUBS= 0x26,
+  SUBML= 0x27,
+  SUBMR= 0x28,
+  SUBCI= 0x29,
+  SUBSI= 0x2A,
+  SUBCFI= 0x2B,
+  SUBSFI= 0x2C,
 
-    # Multiplication/division
-    MULC = 0x30,
-    MULM = 0x31,
-    MULCI = 0x32,
-    MULSI = 0x33,
-    DIVC = 0x34,
-    DIVCI = 0x35,
-    MODC = 0x36,
-    MODCI = 0x37,
-    LEGENDREC = 0x38,
-    DIGESTC = 0x39,
+  # Multiplication/division/other arithmetic
+  MULC= 0x30,
+  MULM= 0x31,
+  MULCI= 0x32,
+  MULSI= 0x33,
+  DIVC= 0x34,
+  DIVCI= 0x35,
+  MODC= 0x36,
+  MODCI= 0x37,
+  LEGENDREC= 0x38,
+  DIGESTC= 0x39,
 
-    # IO
-    OUTPUT_CLEAR = 0x40,
-    INPUT_CLEAR = 0x41,
-    OUTPUT_SHARE = 0x42, (Class is OUTPUT_SHARES)
-    INPUT_SHARE = 0x43, (Class is INPUT_SHARES)
-    PRIVATE_INPUT = 0x44,
-    PRIVATE_OUTPUT = 0x46,
-    OUTPUT_INT = 0x48,
-    INPUT_INT = 0x49,
-    OPEN_CHAN = 0x4A,
-    CLOSE_CHAN = 0x4B,
+  # IO
+  OUTPUT_CLEAR= 0x40,
+  INPUT_CLEAR= 0x41,
+  OUTPUT_SHARE= 0x42,
+  INPUT_SHARE= 0x43,
+  PRIVATE_INPUT= 0x44,
+  PRIVATE_OUTPUT= 0x46,
+  OUTPUT_INT= 0x48,
+  INPUT_INT= 0x49,
+  OPEN_CHAN= 0x4A,
+  CLOSE_CHAN= 0x4B,
 
-    # Open Instructions 
-    STARTOPEN = 0xA0,
-    STOPOPEN = 0xA1,
+  # Open
+  STARTOPEN= 0xA0,
+  STOPOPEN= 0xA1,
+  OPENSINT= 0xA2,
+  OPENSBIT= 0xA3,
 
-    # Data access instructions
-    TRIPLE = 0x50,
-    BIT = 0x51,
-    SQUARE = 0x52,
+  # Data access
+  TRIPLE= 0x50,
+  BIT= 0x51,
+  SQUARE= 0x52,
 
-    # Bitwise logic (Bitwise Operations)
-    ANDC = 0x70,
-    XORC = 0x71,
-    ORC = 0x72,
-    ANDCI = 0x73,
-    XORCI = 0x74,
-    ORCI = 0x75,
-    NOTC = 0x76,
+  # sregint/sbit instructions
+  LDMSINT= 0x60,
+  LDMSINTI= 0x61,
+  STMSINT= 0x62,
+  STMSINTI= 0x63,
+  MOVSINT= 0x64,
+  LDSINT= 0x65,
+  ADDSINT= 0x66,
+  ADDSINTC= 0x67,
+  SUBSINT= 0x68,
+  SUBSINTC= 0x69,
+  SUBCINTS= 0x6A,
+  MULSINT= 0x6B,
+  MULSINTC= 0x6C,
+  DIVSINT= 0x6D,
+  SHLSINT= 0x6E,
+  SHRSINT= 0x6F,
 
-    # Bitwise shifts(Shift instructions)
-    SHLC = 0x80,
-    SHRC = 0x81,
-    SHLCI = 0x82,
-    SHRCI = 0x83,
+  # Bitwise logic
+  ANDC= 0x70,
+  XORC= 0x71,
+  ORC= 0x72,
+  ANDCI= 0x73,
+  XORCI= 0x74,
+  ORCI= 0x75,
+  NOTC= 0x76,
+  NEG= 0x77,
+  SAND= 0x78,
+  XORSB= 0x79,
+  ANDSB= 0x7A,
+  ORSB= 0x7B,
+  NEGB= 0x7C,
 
-    # Branching and comparison
-    JMP= 0x90,
-    JMPNZ= 0x91,
-    JMPEQZ= 0x92,
-    EQZINT= 0x93,
-    LTZINT= 0x94,
-    LTINT= 0x95,
-    GTINT= 0x96,
-    EQINT= 0x97,
-    JMPI= 0x98,
+  # Bitwise shifts
+  SHLC= 0x80,
+  SHRC= 0x81,
+  SHLCI= 0x82,
+  SHRCI= 0x83,
 
-    # Integer Operations
-    LDINT = 0x9A,
-    ADDINT = 0x9B,
-    SUBINT = 0x9C,
-    MULINT = 0x9D,
-    DIVINT = 0x9E,
+  # Branching and comparison
+  JMP= 0x90,
+  JMPNZ= 0x91,
+  JMPEQZ= 0x92,
+  EQZINT= 0x93,
+  LTZINT= 0x94,
+  LTINT= 0x95,
+  GTINT= 0x96,
+  EQINT= 0x97,
+  JMPI= 0x98,
 
-    # Conversion
-    CONVINT = 0xC0,
-    CONVMODP = 0xC1,
+  # Integers
+  LDINT= 0x9A,
+  ADDINT= 0x9B,
+  SUBINT= 0x9C,
+  MULINT= 0x9D,
+  DIVINT= 0x9E,
 
-    # Debug Printing
-    PRINTMEM = 0xB0, (C: print_mem, base.opcodes "PRINTMEM")
-    PRINTREG = 0XB1, (C: print_reg, base.opcode "PRINTREG")
-    PRINTREGPLAIN = 0xB2, (C: print_reg_plain, base.opcode "PRINTREGPLAIN")
-    PRINTCHR = 0xB3, (C: print_char, base.opcode "PRINTCHR")
-    PRINTSTR = 0xB4 (C: print_char4 , base.opcode "PRINTSTR"
-    PRINTCHRINT = 0xB5, (C: print_char_int, base.opcode "PRINTCHRINT")
-    PRINTSTRINT = 0xB6, (C: print_char4_reg_int, base.opcode "PRINTSTRINT")
-    PRINTFLOATPLAIN = 0xB7, (C: print_float_plain, base.opcode "PRINTFLOATPLAIN")
-    PRINTFIXPLAIN = 0xB8, (C: print_fix_plain, base.opcode "PRINTFIXPLAIN")
-    PRINTINT = 0xB9 (C: print_int, base.opcode "PRINTINT")
+  # Conversion
+  CONVINT= 0xC0,
+  CONVMODP= 0xC1,
+  CONVSINTSREG= 0xC2,
+  CONVREGSREG= 0xC3,
+  CONVSREGSINT= 0xC4,
 
-    # Others
-    RAND = 0xE0,
-    START_TIMER= 0xE1,
-    STOP_TIMER= 0xE2
+  # Debug Printing
+  PRINTMEM= 0xB0,
+  PRINTREG= 0XB1,
+  PRINTREGPLAIN= 0xB2,
+  PRINTCHR= 0xB3,
+  PRINTSTR= 0xB4,
+  PRINTCHRINT= 0xB5,
+  PRINTSTRINT= 0xB6,
+  PRINTFLOATPLAIN= 0xB7,
+  PRINTFIXPLAIN= 0xB8,
+  PRINTINT= 0xB9,
 
+  # Comparison of sregints
+  LTSINT = 0xD0,
+  GTSINT = 0xD1,
+  EQSINT = 0xD2,
+
+  # Bitwise logical operations on sregints
+  ANDSINT = 0xD3,
+  ANDSINTC = 0xD4,
+  ORSINT = 0xD5,
+  ORSINTC = 0xD6,
+  XORSINT = 0xD7,
+  XORSINTC = 0xD8,
+  INVSINT = 0xD9,
+
+  # 64x64 -> 128 multiplier
+  MUL2SINT = 0xDA,
+
+  # Others
+  RAND= 0xE0,
+  START_TIMER= 0xE1,
+  STOP_TIMER= 0xE2
 
 Many instructions can be vectorized, this is done by taking the opcode
 being a 32 bit value. The last nine bits being the base opcode and previous
@@ -149,12 +194,16 @@ one. The arguments of a vectorized instruction given the first
 of the consecutive registers which should be accessed in turn.
 
 Arguments to instructions can have various types
-    'c'  : Clear Modp Register a.k.a. cint (Read Only),
-    'cw' : Clear Modp Register (Write Only),
-    's'  : Secret Modp Register a.k.a sint (Read Only),
-    'sw' : Secret Modp Register (Write Only),
-    'r'  : Clear RegInt Register a.k.a. regint (64-bit value) (Read Only),
-    'rw' : Clear RegInt Register (64-bit value) (Write Only),
+    'c'   : Clear Modp Register a.k.a. cint (Read Only),
+    'cw'  : Clear Modp Register (Write Only),
+    's'   : Secret Modp Register a.k.a sint (Read Only),
+    'sw'  : Secret Modp Register (Write Only),
+    'r'   : Clear RegInt Register a.k.a. regint (64-bit value) (Read Only),
+    'rw'  : Clear RegInt Register (64-bit value) (Write Only),
+    'sb'  : A secret bit (Read Only)
+    'sbw' : A secret bit (Write Only)
+    'sr'  : A secret RegInt (64-bit value) (Read Only)
+    'srw' : A secret RegInt (64-bit value) (Write Only)
     'i'  : Integer Value Possibly Signed
     'int': Integer Value Unsigned
     'p'  : A Player Number
@@ -166,9 +215,6 @@ Global memory comes in three variants, which is not thread locked
     R[i] : regint memory
 
 Registers come in the same types, but are thread local
-"""
-
-"""
 
 All base classes, utility functions etc. should go in instructions_base.py instead. 
 
@@ -226,7 +272,463 @@ class ldsi(base.Instruction):
     def execute(self):
         self.args[0].value = self.args[1]
 
+## ##########################NEW OPCODES##########################
+## Added opcodes for new data types
 
+#access opcodes
+@base.vectorize
+class ldsint(base.Instruction):
+    r""" LDSINT i n
+         Assigns sregint register sr_i a share of the value n.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['LDSINT']
+    arg_format = ['srw', 'i']
+
+    def execute(self):
+        self.args[0].value = self.args[1]
+
+@base.vectorize
+class movsint(base.Instruction):
+    r""" MOVSINT i j
+         Assigns secure register sr_i the value in the secure register sr_j.
+         This instruction is vectorizable
+     """
+    __slots__ = ["code"]
+    code = base.opcodes['MOVSINT']
+    arg_format = ['srw', 'sr']
+
+    def execute(self):
+        #should it be value in here?
+        self.args[0].value = self.args[1]
+
+
+@base.vectorize
+class opensint(base.Instruction):
+    """ Open the sregint in sr_j and assign it to r_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['OPENSINT']
+    arg_format = ['rw', 'sr']
+    def execute(self):
+        self.args[0].value = self.args[1]
+
+@base.vectorize
+class opensbit(base.Instruction):
+    """ Open the sbit in sb_j and assign it to r_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['OPENSBIT']
+    arg_format = ['rw', 'sb']
+    def execute(self):
+        self.args[0].value = self.args[1]
+
+#arithmetic opcodes
+@base.vectorize
+class addsint(base.AddBase2n):
+    r""" ADDSINT i j k
+         Adds secret registers sr_i=sr_j+sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ADDSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+@base.vectorize
+class addsintc(base.AddBase2n):
+    r""" ADDSINTC i j k
+         Adds secrent and clear registers sr_i=sr_j+r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ADDSINTC']
+    arg_format = ['srw', 'sr', 'r']
+
+
+@base.vectorize
+class mulsint(base.MulBase2n):
+    r""" MULSINT i j k
+         Multiplication of secret registers sr_i=sr_j \cdot sr_k, result is mod 2^64.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['MULSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+
+@base.vectorize
+class mulsintc(base.MulBase2n):
+    r""" MULSINTC i j k
+         Multiplication of secret and clear registers sr_i=sr_j \cdot r_k, result is mod 2^64.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['MULSINTC']
+    arg_format = ['srw', 'sr', 'r']
+
+@base.vectorize
+class mul2sint(base.Mul2Base2n):
+    r""" MUL2SINTC i j u v
+         Full multiplication of secret registers (sr_i || sr_j )=sr_u \cdot sr_v.
+         Where sr_i is the most significant word and sr_j is the least
+         significant word of the output.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['MUL2SINT']
+    arg_format = ['srw', 'srw', 'sr', 'sr']
+
+
+@base.vectorize
+class subsintc(base.SubBase2n):
+    r""" SUBC i j k
+         Subtracts secret and clear registers sr_i=sr_j-r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SUBSINTC']
+    arg_format = ['srw', 'sr', 'r']
+
+
+@base.vectorize
+class subsint(base.SubBase2n):
+    r""" SUBS i j k
+         Subtracts secret registers sr_i=sr_j-sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SUBSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+
+@base.vectorize
+class subcints(base.SubBase2n):
+    r""" SUBC i j k
+         Subtracts clear and secret registers sr_i=r_j-sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SUBCINTS']
+    arg_format = ['srw', 'r', 'sr']
+
+
+@base.vectorize
+class divsint(base.DivBase2n):
+    r""" DIVSINT i j k
+         Division of sregint registers sr_i=sr_j / sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['DIVSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+@base.vectorize
+class shlsint(base.ShiftLeft):
+    r""" SHLSINT i j k
+         Shift an sregint register left by k values
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SHLSINT']
+    arg_format = ['srw', 'sr', 'int']
+
+@base.vectorize
+class shrsint(base.ShiftRight):
+    r""" SHRSINT i j k
+         Shift an sregint register right by k values
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SHRSINT']
+    arg_format = ['srw', 'sr', 'int']
+
+
+@base.vectorize
+class neg(base.NegBase2n):
+    r""" NEG i j
+         Negation of a a secret register s_i=-s_j .
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['NEG']
+    arg_format = ['srw', 'sr']
+
+
+# Bitwise and Comparison opcodes
+@base.vectorize
+class sand(base.AndBase2n):
+    r""" SAND i j k
+         ANDs secret and secret bit sr_i= sr_j & sb_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SAND']
+    arg_format = ['srw', 'sr', 'sb']
+
+@base.vectorize
+class andsint(base.AndBase2n):
+    r""" ANDSINT i j k
+         ANDs secret registers sr_i= sr_j & sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ANDSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+@base.vectorize
+class andsintc(base.AndBase2n):
+    r""" ANDSINT i j k
+         ANDs secret register with a clear sr_i= sr_j & r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ANDSINTC']
+    arg_format = ['srw', 'sr', 'r']
+
+@base.vectorize
+class orsint(base.OrBase2n):
+    r""" ORSINT i j k
+         ORs secret registers sr_i= sr_j | sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ORSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+@base.vectorize
+class orsintc(base.OrBase2n):
+    r""" ORSINTC i j k
+         ORs secret register with a clear sr_i= sr_j | r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ORSINTC']
+    arg_format = ['srw', 'sr', 'r']
+    
+@base.vectorize
+class xorsint(base.XorBase2n):
+    r""" XORSINT i j k
+         XORs secret registers sr_i= sr_j ^ sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['XORSINT']
+    arg_format = ['srw', 'sr', 'sr']
+
+@base.vectorize
+class xorsintc(base.XorBase2n):
+    r""" XORSINTC i j k
+         XORs secret register with a clear sr_i= sr_j ^ r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['XORSINTC']
+    arg_format = ['srw', 'sr', 'r']
+
+@base.vectorize
+class invsint(base.InvBase2n):
+    r""" INVSINT i j 
+         Bitwise inversion of the register
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['INVSINT']
+    arg_format = ['srw', 'sr']
+
+
+
+
+@base.vectorize
+class xorsb(base.BaseSecretBitInstruction):
+    r""" XORSB i j k
+         Secret xor of sbit registers sb_i = (sb_j xor sb_k).
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['XORSB']
+    def execute(self):
+        self.args[0].value = (self.args[1].value ^ self.args[2].value)
+
+
+@base.vectorize
+class andsb(base.BaseSecretBitInstruction):
+    r""" ANDSB i j k
+         Secret and of sbit registers sb_i = (sb_j and sb_k).
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ANDSB']
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value & self.args[2].value)
+
+
+@base.vectorize
+class orsb(base.BaseSecretBitInstruction):
+    r""" ORSB i j k
+         Secret and of sbit registers sr_i = (sb_j or sb_k).
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ORSB']
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value | self.args[2].value)
+
+
+@base.vectorize
+class negb(base.Instruction):
+    r""" NEGB i j
+         Secret neg of sbit registers sb_i = ~sb_j.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+
+    arg_format = ['sbw', 'sb']
+    code = base.opcodes['NEGB']
+
+    def execute(self):
+        self.args[0].value = (~ self.args[1].value)
+
+
+@base.vectorize
+class ltsint(base.BaseSecretBitComparisonInstruction):
+    r""" LTSINT i j K
+         Secret less than of secret registers sb_i = ~sr_j < sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['LTSINT']
+
+    def execute(self):
+        self.args[0].value = ( self.args[1].value < self.args[2].value)
+
+
+@base.vectorize
+class gtsint(base.BaseSecretBitComparisonInstruction):
+    r""" GTSINT i j K
+         Secret greater than of secret registers sb_i = ~sr_j > sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['GTSINT']
+
+    def execute(self):
+        self.args[0].value = ( self.args[1].value > self.args[2].value)
+
+
+@base.vectorize
+class eqsint(base.BaseSecretBitComparisonInstruction):
+    r""" EQSINT i j K
+         Secret equality test of secret registers sb_i = ~sr_j == sr_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['EQSINT']
+
+    def execute(self):
+        self.args[0].value = ( self.args[1].value == self.args[2].value)
+
+
+# Conversion opcodes
+@base.vectorize
+class convsintsreg(base.Instruction):
+    """ CONVSINTSREG i j
+         Convert from sint  s_j to sregint register sr_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['CONVSINTSREG']
+    arg_format = ['srw', 's']
+    def execute(self):
+        self.args[0].value = self.args[1]
+
+
+@base.vectorize
+class convregsreg(base.Instruction):
+    """ CONVREGSREG i j
+         Convert from regint register r_j to secret register sr_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['CONVREGSREG']
+    arg_format = ['srw', 'r']
+    def execute(self):
+        self.args[0].value = self.args[1]
+
+
+@base.vectorize
+class convsregsint(base.Instruction):
+    """ CONVSREGSINT i j
+         Convert from  sregint sr_j to sint register s_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['CONVSREGSINT']
+    arg_format = ['sw', 'sr']
+    def execute(self):
+        self.args[0].value = self.args[1]
+
+
+# memory instructions
+
+@base.vectorize
+class ldmsint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
+    r""" LDMSINT i n
+         Assigns sregint register sr_i the value in memory SR[n].
+         This instruction is vectorizable
+     """
+    __slots__ = ["code"]
+    code = base.opcodes['LDMSINT']
+    arg_format = ['srw', 'int']
+
+    def execute(self):
+        self.args[0].value = program.mem_s[self.args[1]]
+
+
+@base.vectorize
+class ldmsinti(base.ReadMemoryInstruction):
+    r""" LDMSINTI i j
+         Assigns sregint register sr_i the value in sint memory SR[r_j], where r_j is the j-th regint register.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['LDMSINTI']
+    arg_format = ['srw', 'r']
+
+    def execute(self):
+        self.args[0].value = program.mem_s[self.args[1].value]
+
+
+@base.vectorize
+class stmsint(base.DirectMemoryWriteInstruction):
+    r""" STMSINT i n
+         Sets memory SR[n] to be the value in sregint register sr_i.
+         This instruction is vectorizable
+     """
+    __slots__ = ["code"]
+    code = base.opcodes['STMSINT']
+    arg_format = ['sr', 'int']
+
+    def execute(self):
+        program.mem_s[self.args[1]] = self.args[0].value
+
+
+@base.vectorize
+class stmsinti(base.WriteMemoryInstruction):
+    r""" STMSINTI i j
+         Sets sregint memory SR[r_j] to be the value in sregint register sr_i, where r_j is the j-th regint register.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['STMSINTI']
+    arg_format = ['sr', 'r']
+
+    def execute(self):
+        program.mem_s[self.args[1].value] = self.args[0].value
+
+## #########################END NEW OPCODES#########################
 @base.vectorize
 class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     r""" LDMC i n

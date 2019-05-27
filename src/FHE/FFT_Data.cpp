@@ -1,21 +1,11 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 #include "FHE/FFT_Data.h"
 #include "FHE/FFT.h"
-
-void FFT_Data::assign(const FFT_Data &FFTD)
-{
-  prData= FFTD.prData;
-  R= FFTD.R;
-
-  root= FFTD.root;
-
-  iphi= FFTD.iphi;
-}
 
 /* Find an mth primitive root moduli the current prime
  *  *   This is deterministic so all players have the same root of unity
@@ -32,8 +22,8 @@ modp Find_Primitive_Root_2power(int m, const Zp_Data &ZpD)
   bool flag= true;
   while (flag)
     {
-      Add(base, base, one,
-          ZpD); /* Keep incrementing base until we hit the answer */
+      /* Keep incrementing base until we hit the answer */
+      Add(base, base, one, ZpD);
       Power(ans, base, exp, ZpD);
       /* e=ans^{m/2}+1  */
       Power(e, ans, m / 2, ZpD);

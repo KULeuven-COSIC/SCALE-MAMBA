@@ -1,12 +1,13 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "offline_FHE.h"
 #include "config.h"
+#include <unistd.h>
 
 void DistDecrypt(Plaintext &mess, const Ciphertext &ctx, const FHE_SK &sk, Player &P)
 {
@@ -85,7 +86,7 @@ void Reshare(Plaintext &m, Ciphertext &cc, const Ciphertext &cm,
   // Step 7
   unsigned char sd[SEED_SIZE]= {0};
   PRNG G;
-  G.SetSeed(sd);
+  G.SetSeedFromRandom(sd);
   Random_Coins rc(cm.get_params());
   rc.generate(G);
   pk.encrypt(cc, mf, rc);
@@ -101,6 +102,7 @@ void Reshare(Plaintext &m, Ciphertext &cc, const Ciphertext &cm,
 void Reshare(Plaintext &m, const Ciphertext &cm, const Player &P,
              const FHE_SK &sk)
 {
+  //P.clocks[0].reset(); P.clocks[0].start();
   const FHE_Params &params= cm.get_params();
 
   vector<bigint> vv(params.phi_m()), ff(params.phi_m());
@@ -119,7 +121,8 @@ void Reshare(Plaintext &m, const Ciphertext &cm, const Player &P,
       P.send_to_player(0, os);
     }
   else
-    { // Reconstruct the value mod p0 from all shares
+    {
+      // Reconstruct the value mod p0 from all shares
       vector<bigint> vv1(params.phi_m());
       for (unsigned int i= 1; i < P.nplayers(); i++)
         {
@@ -139,16 +142,17 @@ void Reshare(Plaintext &m, const Ciphertext &cm, const Player &P,
 
   // Now get the final message
   m.set_poly_mod(ff, params.p0());
+  //P.clocks[0].stop(); cout << "\tT0 " << P.clocks[0].elapsed() << endl;
 }
 
 /* Extracts share data from a vector */
 void get_share(vector<gfp> &s, vector<gfp> &macs, const Plaintext &aa,
                const vector<Plaintext> &cc, int i)
 {
-  s[0].assign(aa.element(i));
+  s[0]= aa.element(i);
   for (unsigned int j= 0; j < macs.size(); j++)
     {
-      macs[j].assign(cc[j].element(i));
+      macs[j]= cc[j].element(i);
     }
 }
 
@@ -185,18 +189,14 @@ void offline_FHE_triples(Player &P, list<Share> &a, list<Share> &b,
         }
 
       vector<gfp> s(1), macs(nmacs);
-      Share ss;
       for (unsigned int i= 0; i < pk.get_params().phi_m(); i++)
         {
           get_share(s, macs, va, ga, i);
-          ss.assign(P.whoami(), s, macs);
-          a.push_back(ss);
+          a.emplace_back(P.whoami(), s, macs);
           get_share(s, macs, vb, gb, i);
-          ss.assign(P.whoami(), s, macs);
-          b.push_back(ss);
+          b.emplace_back(P.whoami(), s, macs);
           get_share(s, macs, vc, gc, i);
-          ss.assign(P.whoami(), s, macs);
-          c.push_back(ss);
+          c.emplace_back(P.whoami(), s, macs);
         }
     }
 }
@@ -230,15 +230,12 @@ void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
         }
 
       vector<gfp> s(1), macs(nmacs);
-      Share ss;
       for (unsigned int i= 0; i < pk.get_params().phi_m(); i++)
         {
           get_share(s, macs, va, ga, i);
-          ss.assign(P.whoami(), s, macs);
-          a.push_back(ss);
+          a.emplace_back(P.whoami(), s, macs);
           get_share(s, macs, vc, gc, i);
-          ss.assign(P.whoami(), s, macs);
-          b.push_back(ss);
+          b.emplace_back(P.whoami(), s, macs);
         }
     }
 }
@@ -255,8 +252,7 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
   Ciphertext tmp(pk.get_params());
 
   while (a.size() < sz_offline_batch)
-    { // First run the square protocol (no
-      // need to get MACs on the b=a^2 values)
+    { // First run the square protocol (no need to get MACs on the b=a^2 values)
       industry.Next_Off_Production_Line(va, ca, P, "Bit a");
 
       for (unsigned int i= 0; i < nmacs; i++)
@@ -277,7 +273,7 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
       twoi.invert();
       for (unsigned int i= 0; i < pk.get_params().phi_m(); i++)
         {
-          a2.assign(vb.element(i));
+          a2= vb.element(i);
           if (!a2.is_zero())
             {
               get_share(s, macs, va, ga, i);
@@ -293,50 +289,72 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
     }
 }
 
+/* We do not need to do ZKPoKs for input data, we just need for
+ * the given person to encrypt some random stuff, send the
+ * ciphertext, all parties multiply through by the alpha ciphertext 
+ * and then reshare both ciphertexts.
+ */
 void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
                     list<gfp> &opened, const FHE_PK &pk, const FHE_SK &sk,
-                    const FFT_Data &PTD, Open_Protocol &OP,
+                    const FFT_Data &PTD,
                     FHE_Industry &industry)
 {
+  // Spin until ctx_macs are ready
+  while (industry.is_ready() == false)
+    {
+      sleep(5);
+    }
+
   unsigned int nmacs= P.get_mac_keys().size();
 
-  Plaintext va(PTD);
+  Plaintext m(PTD), va(PTD);
   vector<Plaintext> ga(nmacs, PTD);
-  Ciphertext ca(pk.get_params());
-  Ciphertext tmp(pk.get_params());
+  Ciphertext c(pk.get_params()), tmp(pk.get_params());
 
-  // First run the square protocol (no need to get MACs on the b=a^2 values)
-  industry.Next_Off_Production_Line(va, ca, P, "IO a");
+  // Construct the send/receive the main ciphertext
+  if (P.whoami() == player_num)
+    {
+      m.randomize(P.G);
+      c= pk.encrypt(m);
+      ostringstream s;
+      c.output(s);
+      P.send_all(s.str());
+    }
+  else
+    {
+      string s;
+      P.receive_from_player(player_num, s);
+      istringstream is(s);
+      c.input(is);
+    }
 
+  // Reshare the input ciphertext and the MACS
+  Reshare(va, c, P, sk);
   for (unsigned int i= 0; i < nmacs; i++)
     {
-      mul(tmp, ca, industry.ct_mac(i), pk);
+      mul(tmp, c, industry.ct_mac(i), pk);
       Reshare(ga[i], tmp, P, sk);
     }
+
+  // Construct the actual shares
   unsigned int sz= pk.get_params().phi_m();
   vector<Share> alist(sz);
   vector<gfp> openedlist(sz);
-
   vector<gfp> s(1), macs(nmacs);
   Share ss;
   for (unsigned int i= 0; i < sz; i++)
     {
       get_share(s, macs, va, ga, i);
-      ss.assign(P.whoami(), s, macs);
-      a.push_back(ss);
+      a.emplace_back(P.whoami(), s, macs);
       alist[i]= ss;
     }
 
-  if (P.whoami() != player_num)
+  // Now extract the actual values for this player
+  if (P.whoami() == player_num)
     {
-      OP.Open_To_One_Begin(player_num, alist, P);
-    }
-  else
-    {
-      OP.Open_To_One_End(openedlist, alist, P);
       for (unsigned int i= 0; i < sz; i++)
         {
-          opened.push_back(openedlist[i]);
+          opened.push_back(m.element(i));
         }
     }
 }

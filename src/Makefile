@@ -22,7 +22,6 @@ OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp))
 GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp))
 EXCEPTIONS = $(patsubst %.cpp,%.o,$(wildcard Exceptions/*.cpp))
 
-
 LIB = libMPC.a
 
 OBJ = Setup.o Player.o 

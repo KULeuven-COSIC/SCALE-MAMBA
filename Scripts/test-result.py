@@ -78,7 +78,10 @@ def read_int(address):
 def read_mem(address, value=None):
     if isinstance(value, MemValue):
         value = value.value
-    if isinstance(value, (regint,bool)):
+    if isinstance(value, (regint, bool)):
+        return read_int(address)
+    elif isinstance(value, (sregint.type, sbit.type)):
+
         return read_int(address)
     else:
         return read_modp(address)
@@ -126,7 +129,7 @@ def test_value(value, mem_value, lineno, index, lower=None, upper=None):
 # tests all outputs. for sfloat it also tests
 # all internat parameters,scuh as its sign flag (s)
 # and its zero flag (z)
-def test(value, lower=None, upper=None, prec=None):
+def test(value, lower=None, upper=None, prec=None):    
     lineno = inspect.currentframe().f_back.f_lineno
     addr = lineno
     if isinstance(value, (Vector, list)):
@@ -184,10 +187,28 @@ def test(value, lower=None, upper=None, prec=None):
                 print lineno, mem_value
             test_value(value, mem_value, lineno, i, lower, upper)
         else:
-            mem_value = read_mem(1000 + addr + i, value)
-            if i == 0:
-               print lineno, mem_value
-            test_value(value, mem_value, lineno, i, lower, upper)
+            # code for evaluation of functions with 2 parameters
+            # specifically mult2sint, but code is generic and could be used
+            # by any function that returns 2 parameters
+            if type(value) is tuple:
+                mem_value = read_mem(1000 + addr + i, value[0])
+                if i == 0:
+                   print lineno, mem_value
+                if  mem_value<0 :
+                    mem_value=mem_value+2**64
+                test_value(value[0], mem_value, lineno, i, lower, upper)
+
+                mem_value = read_mem(2000 + addr + i, value[1])
+                if i == 0:
+                    print lineno, mem_value
+                if  mem_value<0 :
+                    mem_value=mem_value+2**64
+                test_value(value[1], mem_value, lineno, i, lower, upper)
+            else:
+                mem_value = read_mem(1000 + addr + i, value)
+                if i == 0:
+                   print lineno, mem_value
+                test_value(value, mem_value, lineno, i, lower, upper)
 
 def test_mem(value, address, lower=None, upper=None):
     """ Test value in a clear memory address """

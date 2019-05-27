@@ -1,12 +1,13 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
+
 #include "Garbled.h"
+#include "OT/aBit_Thread.h"
 #include "Tools/MMO.h"
-#include "Tools/Timer.h"
 
 // Apply the PRF with keys k1 and k2 to the message (g||j) where
 // j runs through 1 to n. To get an n-vector of gf2n elements out
@@ -52,48 +53,45 @@ void apply_PRF(vector<gf2n> &ans, const gf2n &k1, const gf2n &k2, unsigned int g
     }
 }
 
-void Garbled_Circuit::Garble(const Circuit &C,
-                             const vector<int> &i_a, const vector<int> &o_a,
-                             aAND &aA, aBitFactory &aBF, Player &P)
+void Base_Garbled_Circuit::Garble(const Circuit &C,
+                                  Player &P,
+                                  aAND_Factory &aAF)
 {
-  //Timer T; T.reset(); T.start();
+  extern aBit_Data aBD;
+
   // This follows the method on page 27 of ePrint 2017/214
   unsigned int n= P.nplayers();
-  gf2n Delta= aBF.get_Delta();
 
-  unsigned int nW= C.get_nWires();
-  lambda.resize(nW);
-  k.resize(nW, vector<gf2n>(2));
+  lambda.resize(C.get_nWires());
+  k.resize(C.get_nWires(), vector<gf2n>(2));
   unsigned int nAG= C.num_AND_gates();
   vector<aBit> lambda_uv(nAG), lambda_u(nAG), lambda_v(nAG);
   gab.resize(nAG);
 
-  //T.stop(); cout << "1) " << T.elapsed() << endl; T.reset(); T.start();
-
   // Step 2, 3 and 4
   // Fix the one label
   one_label.resize(n);
-  one_label[P.whoami()]= aBF.get_random_gf2n();
+  one_label[P.whoami()].randomize(P.G);
 
-  i_assign= i_a;
-  o_assign= o_a;
-  if (C.num_inputs() != i_assign.size())
+  unsigned int cnt= C.num_AND_gates();
+  for (unsigned int i= 0; i < C.num_inputs(); i++)
     {
-      throw bad_value();
+      cnt+= C.num_iWires(i);
     }
 
-  if (C.num_outputs() != o_assign.size())
-    {
-      throw bad_value();
-    }
+  // Getting both lots of data at once as that avoid thread locks
+  list<aBit> in_AND_aBits= aBD.get_aShares(aAF.get_thread_number(), cnt);
+  list<aTriple> triples= aAF.get_aANDs(nAG, P);
+  gf2n Delta= aBit::get_Delta();
 
   unsigned int nI= 0;
   for (unsigned int i= 0; i < C.num_inputs(); i++)
     {
       for (unsigned int j= 0; j < C.num_iWires(i); j++)
         {
-          lambda[nI]= aBF.get_aShare(P);
-          k[nI][0]= aBF.get_random_gf2n();
+          lambda[nI]= in_AND_aBits.front();
+          in_AND_aBits.pop_front();
+          k[nI][0].randomize(P.G);
           k[nI][1].add(k[nI][0], Delta);
           nI++;
         }
@@ -109,17 +107,26 @@ void Garbled_Circuit::Garble(const Circuit &C,
         }
       else if (C.get_GateType(i) == AND)
         {
-          lambda[iout]= aBF.get_aShare(P);
-          k[iout][0]= aBF.get_random_gf2n();
+          lambda[iout]= in_AND_aBits.front();
+          in_AND_aBits.pop_front();
+          k[iout][0].randomize(P.G);
         }
-      else
+      else if (C.get_GateType(i) == INV)
         {
           lambda[iout]= lambda[C.Gate_Wire_In(i, 0)];
           k[iout][0].add(k[C.Gate_Wire_In(i, 0)][0], one_label[P.whoami()]);
         }
+      else if (C.get_GateType(i) == EQW)
+        {
+          lambda[iout]= lambda[C.Gate_Wire_In(i, 0)];
+          k[iout][0]= k[C.Gate_Wire_In(i, 0)][0];
+        }
+      else
+        {
+          throw circuit_error();
+        }
       k[iout][1].add(k[iout][0], Delta);
     }
-  //T.stop(); cout << "2) " << T.elapsed() << endl; T.reset(); T.start();
 
   // Step 5
   for (unsigned int g= 0; g < nAG; g++)
@@ -128,8 +135,7 @@ void Garbled_Circuit::Garble(const Circuit &C,
       lambda_u[g]= lambda[C.Gate_Wire_In(i, 0)];
       lambda_v[g]= lambda[C.Gate_Wire_In(i, 1)];
     }
-  Mult_aBits(lambda_uv, lambda_u, lambda_v, aA, aBF, P);
-  //T.stop(); cout << "3) " << T.elapsed() << endl; T.reset(); T.start();
+  Mult_aBits(lambda_uv, lambda_u, lambda_v, triples, P);
 
   // Step 6
   vector<vector<vector<gf2n>>> rho(2, vector<vector<gf2n>>(2, vector<gf2n>(n)));
@@ -172,7 +178,36 @@ void Garbled_Circuit::Garble(const Circuit &C,
             }
         }
     }
-  //T.stop(); cout << "4) " << T.elapsed() << endl; T.reset(); T.start();
+
+  // Now opening garbling, altering the one_label
+  one_label[P.whoami()].add(Delta);
+  Open_Garbling(P);
+}
+
+void Garbled_Circuit::Garble(const Circuit &C,
+                             const vector<unsigned int> &i_a, const vector<unsigned int> &o_a,
+                             Player &P,
+                             aAND_Factory &aAF)
+{
+  Base_Garbled_Circuit::Garble(C, P, aAF);
+
+  extern aBit_Data aBD;
+
+  // This follows the method on page 27 of ePrint 2017/214
+
+  // Step 2, 3 and 4
+
+  i_assign= i_a;
+  o_assign= o_a;
+  if (C.num_inputs() != i_assign.size())
+    {
+      throw bad_value();
+    }
+
+  if (C.num_outputs() != o_assign.size())
+    {
+      throw bad_value();
+    }
 
   // Step 7
   // Open output wires to player i
@@ -193,17 +228,15 @@ void Garbled_Circuit::Garble(const Circuit &C,
           data[j]= lambda[cnt];
           cnt++;
         }
-      // XXXX May change this cast when we decide what to do about other inputs/outputs
-      if (o_assign[i] == (int) P.whoami())
+      if (o_assign[i] == P.whoami())
         {
-          Open_aBits_To(outputs[i], o_assign[i], data, P, Delta);
+          Open_aBits_To(outputs[i], o_assign[i], data, P);
         }
       else
         {
-          Open_aBits_To(dummy, o_assign[i], data, P, Delta);
+          Open_aBits_To(dummy, o_assign[i], data, P);
         }
     }
-  //T.stop(); cout << "5) " << T.elapsed() << endl; T.reset(); T.start();
 
   // Step 8
   // Do the same with input wires
@@ -217,25 +250,18 @@ void Garbled_Circuit::Garble(const Circuit &C,
           data[j]= lambda[cnt];
           cnt++;
         }
-      // XXXX Ditto (re the cast)
-      if (i_assign[i] == (int) P.whoami())
+      if (i_assign[i] == P.whoami())
         {
-          Open_aBits_To(inputs[i], i_assign[i], data, P, Delta);
+          Open_aBits_To(inputs[i], i_assign[i], data, P);
         }
       else
         {
-          Open_aBits_To(dummy, i_assign[i], data, P, Delta);
+          Open_aBits_To(dummy, i_assign[i], data, P);
         }
     }
-  //T.stop(); cout << "6) " << T.elapsed() << endl; T.reset(); T.start();
-
-  // Now opening garbling, altering the one_label
-  one_label[P.whoami()].add(Delta);
-  Open_Garbling(P);
-  //T.stop(); cout << "7) " << T.elapsed() << endl; T.reset(); T.start();
 }
 
-void Garbled_Circuit::Open_Garbling(Player &P)
+void Base_Garbled_Circuit::Open_Garbling(Player &P)
 {
   vector<string> oo(P.nplayers());
 
@@ -256,7 +282,7 @@ void Garbled_Circuit::Open_Garbling(Player &P)
   one_label[P.whoami()].output(ss);
   oo[P.whoami()]= ss.str();
 
-  P.Broadcast_Receive(oo);
+  P.Broadcast_Receive(oo, true, 2);
 
   gf2n temp;
   for (unsigned int k= 0; k < P.nplayers(); k++)
@@ -285,66 +311,21 @@ void Garbled_Circuit::Open_Garbling(Player &P)
 }
 
 /* Figure 11 on page 29 of 2017/214 */
-void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
-                               const vector<vector<int>> &input,
-                               const Circuit &C, Player &P)
+void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
+                                         const Circuit &C, Player &P)
 {
-  if (C.num_inputs() != input.size())
-    {
-      throw bad_value();
-    }
-
-  //Timer T; T.reset(); T.start();
-  // These hold the external values and the opened k values
-  vector<int> Gamma(C.get_nWires());
+  // These hold the opened k values
   vector<vector<gf2n>> ok(C.get_nWires(), vector<gf2n>(P.nplayers()));
 
   // Line 1
   unsigned int tot_num_iwires= 0;
-  vector<string> o(P.nplayers());
-  stringstream ss1;
   for (unsigned int i= 0; i < C.num_inputs(); i++)
-    { //XXXX Ditto re cast
-      if (i_assign[i] == (int) P.whoami())
-        {
-          for (unsigned int j= 0; j < input[i].size(); j++)
-            {
-              Gamma[j + tot_num_iwires]= inputs[i][j] ^ input[i][j];
-              ss1 << (char) Gamma[j + tot_num_iwires];
-            }
-        }
+    {
       tot_num_iwires+= C.num_iWires(i);
     }
-  o[P.whoami()]= ss1.str();
-
-  P.Broadcast_Receive(o, true);
-
-  char c;
-  for (unsigned int i= 0; i < P.nplayers(); i++)
-    {
-      if (i != P.whoami())
-        {
-          istringstream is(o[i]);
-          unsigned int cnt= 0;
-          for (unsigned int j= 0; j < C.num_inputs(); j++)
-            { // XXXX Ditto re cast
-              if (i_assign[j] == (int) i)
-                {
-                  for (unsigned int k= 0; k < C.num_iWires(j); k++)
-                    {
-                      is >> c;
-                      Gamma[k + cnt]= (int) c;
-                    }
-                }
-              cnt+= C.num_iWires(j);
-            }
-        }
-    }
-  //T.stop(); cout << "a) " << T.elapsed() << endl; T.reset(); T.start();
-
-  // Vector of opened k values
 
   // Line 2
+  vector<string> o(P.nplayers());
   stringstream ss2;
   for (unsigned int i= 0; i < tot_num_iwires; i++)
     {
@@ -353,7 +334,7 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
     }
   o[P.whoami()]= ss2.str();
 
-  P.Broadcast_Receive(o, true);
+  P.Broadcast_Receive(o, true, 2);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -366,15 +347,14 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
             }
         }
     }
-  //T.stop(); cout << "b) " << T.elapsed() << endl; T.reset(); T.start();
 
   // Line 4
-  unsigned int i0, i1, out;
+  unsigned int i0= -1, i1= -1, out;
   vector<vector<gf2n>> ans(P.nplayers(), vector<gf2n>(P.nplayers()));
   for (unsigned int i= 0; i < C.get_nGates(); i++)
     {
       i0= C.Gate_Wire_In(i, 0);
-      if (C.get_GateType(i) != INV)
+      if (C.get_GateType(i) != INV && C.get_GateType(i) != EQW)
         {
           i1= C.Gate_Wire_In(i, 1);
         }
@@ -395,7 +375,15 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
               ok[out][j].add(ok[i0][j], one_label[j]);
             }
         }
-      else
+      else if (C.get_GateType(i) == EQW)
+        {
+          Gamma[out]= Gamma[i0];
+          for (unsigned int j= 0; j < P.nplayers(); j++)
+            {
+              ok[out][j]= ok[i0][j];
+            }
+        }
+      else if (C.get_GateType(i) == AND)
         { // AND Gate
           unsigned int g= C.map_to_AND_Gate(i);
           for (unsigned int k= 0; k < P.nplayers(); k++)
@@ -424,21 +412,147 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
               throw circuit_eval_error();
             }
         }
+      else
+        {
+          throw circuit_error();
+        }
     }
 
-  P.Check_Broadcast();
-  //T.stop(); cout << "c) " << T.elapsed() << endl; T.reset(); T.start();
+  P.Check_Broadcast(2);
+}
 
-  // Line 5
+void Base_Garbled_Circuit::Evaluate(vector<vector<aBit>> &output,
+                                    const vector<vector<aBit>> &input,
+                                    const Circuit &C, Player &P)
+{
+  if (C.num_inputs() != input.size())
+    {
+      throw bad_value();
+    }
+
+  // These hold the external values
+  vector<int> Gamma(C.get_nWires());
+
+  unsigned int tot_num_iwires= 0;
+  for (unsigned int i= 0; i < C.num_inputs(); i++)
+    {
+      if (C.num_iWires(i) != input[i].size())
+        {
+          throw bad_value();
+        }
+      tot_num_iwires+= C.num_iWires(i);
+    }
+  // Add the inputs to the lambda and then open
+  vector<aBit> v(tot_num_iwires);
+  vector<int> dv(tot_num_iwires);
+  unsigned int cnt= 0;
+  for (unsigned int i= 0; i < C.num_inputs(); i++)
+    {
+      for (unsigned int j= 0; j < input[i].size(); j++)
+        {
+          v[cnt].add(lambda[cnt], input[i][j]);
+          cnt++;
+        }
+    }
+
+  Open_aBits(dv, v, P);
+
+  for (unsigned int i= 0; i < tot_num_iwires; i++)
+    {
+      Gamma[i]= dv[i];
+    }
+
+  Evaluate_Core(Gamma, C, P);
+
+  // Now map the outputs over to the outputs of this function
   output.resize(C.num_outputs());
-  unsigned int cnt= C.get_nWires();
-  for (unsigned int i= 0; i < P.nplayers(); i++)
+  cnt= C.get_nWires();
+  for (unsigned int i= 0; i < C.num_outputs(); i++)
     {
       cnt-= C.num_oWires(i);
     }
   for (unsigned int i= 0; i < C.num_outputs(); i++)
-    { // Ditto re cast
-      if (o_assign[i] == (int) P.whoami())
+    {
+      output[i].resize(C.num_oWires(i));
+      for (unsigned int k= 0; k < output[i].size(); k++)
+        {
+          output[i][k]= lambda[cnt + k];
+          if (Gamma[cnt + k] == 1)
+            {
+              output[i][k].negate();
+            }
+        }
+      cnt+= C.num_oWires(i);
+    }
+}
+
+/* Figure 11 on page 29 of 2017/214 */
+void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
+                               const vector<vector<int>> &input,
+                               const Circuit &C, Player &P)
+{
+  if (C.num_inputs() != input.size())
+    {
+      throw bad_value();
+    }
+
+  // These hold the external values
+  vector<int> Gamma(C.get_nWires());
+
+  // Line 1
+  unsigned int tot_num_iwires= 0;
+  vector<string> o(P.nplayers());
+  stringstream ss1;
+  for (unsigned int i= 0; i < C.num_inputs(); i++)
+    {
+      if (i_assign[i] == P.whoami())
+        {
+          for (unsigned int j= 0; j < input[i].size(); j++)
+            {
+              Gamma[j + tot_num_iwires]= inputs[i][j] ^ input[i][j];
+              ss1 << (char) Gamma[j + tot_num_iwires];
+            }
+        }
+      tot_num_iwires+= C.num_iWires(i);
+    }
+  o[P.whoami()]= ss1.str();
+
+  P.Broadcast_Receive(o, true, 2);
+
+  char c;
+  for (unsigned int i= 0; i < P.nplayers(); i++)
+    {
+      if (i != P.whoami())
+        {
+          istringstream is(o[i]);
+          unsigned int cnt= 0;
+          for (unsigned int j= 0; j < C.num_inputs(); j++)
+            {
+              if (i_assign[j] == i)
+                {
+                  for (unsigned int k= 0; k < C.num_iWires(j); k++)
+                    {
+                      is >> c;
+                      Gamma[k + cnt]= (int) c;
+                    }
+                }
+              cnt+= C.num_iWires(j);
+            }
+        }
+    }
+
+  Evaluate_Core(Gamma, C, P);
+
+  // Line 5
+  output.resize(C.num_outputs());
+  unsigned int cnt= C.get_nWires();
+  for (unsigned int i= 0; i < C.num_outputs(); i++)
+    {
+      cnt-= C.num_oWires(i);
+    }
+  for (unsigned int i= 0; i < C.num_outputs(); i++)
+    {
+      if (o_assign[i] == P.whoami())
         {
           output[i].resize(C.num_oWires(i));
           for (unsigned int k= 0; k < output[i].size(); k++)
@@ -452,5 +566,4 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
         }
       cnt+= C.num_oWires(i);
     }
-  //T.stop(); cout << "d) " << T.elapsed() << endl; T.reset(); T.start();
 }

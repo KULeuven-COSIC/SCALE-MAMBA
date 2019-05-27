@@ -1,17 +1,33 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "Circuit.h"
 
+#include <iostream>
+using namespace std;
+
+unsigned int cnt_numI(const GateType &T)
+{
+  unsigned int nI= 2;
+  if (T == INV || T == EQW)
+    {
+      nI= 1;
+    }
+  else if (T == EQ)
+    {
+      nI= 0;
+    }
+  return nI;
+}
+
 istream &operator>>(istream &s, Circuit &C)
 {
   unsigned int nG, te;
   s >> nG >> C.nWires;
-  C.num_AND= 0;
 
   C.GateT.resize(nG);
   C.GateI.resize(nG, vector<unsigned int>(2));
@@ -49,7 +65,6 @@ istream &operator>>(istream &s, Circuit &C)
       if (ss.compare("AND") == 0)
         {
           C.GateT[i]= AND;
-          C.num_AND++;
         }
       else if (ss.compare("XOR") == 0)
         {
@@ -59,40 +74,65 @@ istream &operator>>(istream &s, Circuit &C)
         {
           C.GateT[i]= INV;
         }
+      else if (ss.compare("EQ") == 0)
+        {
+          C.GateT[i]= EQ;
+        }
+      else if (ss.compare("EQW") == 0)
+        {
+          C.GateT[i]= EQW;
+        }
       else
         {
           throw circuit_error();
         }
-      if (C.GateT[i] == INV && in == 2)
+      if ((C.GateT[i] == INV || C.GateT[i] == EQ || C.GateT[i] == EQW) && in == 2)
         {
           throw circuit_error();
         }
-      if (C.GateT[i] != INV && in == 1)
+      if ((C.GateT[i] != INV && C.GateT[i] != EQ && C.GateT[i] != EQW) && in == 1)
         {
           throw circuit_error();
+        }
+    }
+
+  C.recompute_map();
+
+  return s;
+}
+
+void Circuit::recompute_map()
+{
+  unsigned int nG= GateT.size();
+
+  num_AND= 0;
+  for (unsigned int i= 0; i < nG; i++)
+    {
+      if (GateT[i] == AND)
+        {
+          num_AND++;
         }
     }
 
   // Define map between AND gates and the actual gates
-  C.map.resize(C.num_AND);
-  C.imap.resize(nG);
+  map.resize(num_AND);
+  imap.resize(nG);
 
   // Set stupid default value for imap, to be caught in access function
   for (unsigned int i= 0; i < nG; i++)
     {
-      C.imap[i]= 2 * nG;
+      imap[i]= 2 * nG;
     }
   unsigned int cnt= 0;
   for (unsigned int i= 0; i < nG; i++)
     {
-      if (C.GateT[i] == AND)
+      if (GateT[i] == AND)
         {
-          C.map[cnt]= i;
-          C.imap[i]= cnt;
+          map[cnt]= i;
+          imap[i]= cnt;
           cnt++;
         }
     }
-  return s;
 }
 
 ostream &operator<<(ostream &s, const Circuit &C)
@@ -118,6 +158,14 @@ ostream &operator<<(ostream &s, const Circuit &C)
       if (C.GateT[i] == INV)
         {
           s << "1 1 " << C.GateI[i][0] << " " << C.GateO[i] << " INV\n";
+        }
+      else if (C.GateT[i] == EQ)
+        {
+          s << "1 1 " << C.GateI[i][0] << " " << C.GateO[i] << " EQ\n";
+        }
+      else if (C.GateT[i] == EQW)
+        {
+          s << "1 1 " << C.GateI[i][0] << " " << C.GateO[i] << " EQW\n";
         }
       else
         {
@@ -160,11 +208,11 @@ void Circuit::evaluate(const vector<vector<int>> &inputs,
   // Evaluate the circuit
   for (unsigned int i= 0; i < GateT.size(); i++)
     { // First check if ordering is broken
-      if (W[GateI[i][0]] < 0)
+      if (GateT[i] != EQ && W[GateI[i][0]] < 0)
         {
           throw circuit_error();
         }
-      if (GateT[i] != INV && W[GateI[i][1]] < 0)
+      if ((GateT[i] != INV && GateT[i] != EQ && GateT[i] != EQW) && W[GateI[i][1]] < 0)
         {
           throw circuit_error();
         }
@@ -176,6 +224,14 @@ void Circuit::evaluate(const vector<vector<int>> &inputs,
       else if (GateT[i] == XOR)
         {
           W[GateO[i]]= W[GateI[i][0]] ^ W[GateI[i][1]];
+        }
+      else if (GateT[i] == EQ)
+        {
+          W[GateO[i]]= GateI[i][0];
+        }
+      else if (GateT[i] == EQW)
+        {
+          W[GateO[i]]= W[GateI[i][0]];
         }
       else
         {
@@ -199,4 +255,86 @@ void Circuit::evaluate(const vector<vector<int>> &inputs,
           cnt++;
         }
     }
+}
+
+bool Circuit::gate_is_ok(unsigned int j, const vector<bool> &used) const
+{
+  for (unsigned int i= 0; i < cnt_numI(GateT[j]); i++)
+    {
+      if (used[GateI[j][i]] == false)
+        {
+          return false;
+        }
+    }
+  return true;
+}
+
+void Circuit::swap_gate(unsigned int i, unsigned int j)
+{
+  GateType T= GateT[i];
+  GateT[i]= GateT[j];
+  GateT[j]= T;
+  unsigned int t= GateO[i];
+  GateO[i]= GateO[j];
+  GateO[j]= t;
+  for (unsigned int k= 0; k < 2; k++)
+    {
+      t= GateI[i][k];
+      GateI[i][k]= GateI[j][k];
+      GateI[j][k]= t;
+    }
+}
+
+void Circuit::sort(bool test)
+{
+  vector<bool> used(nWires);
+  for (unsigned int i= 0; i < nWires; i++)
+    {
+      used[i]= false;
+    }
+
+  // Define inputs
+  unsigned int cnt= 0;
+  for (unsigned int i= 0; i < numI.size(); i++)
+    {
+      for (unsigned int j= 0; j < numI[i]; j++)
+        {
+          used[cnt]= true;
+          cnt++;
+        }
+    }
+
+  // Now go through each gate and work out if defined inputs or not
+  for (unsigned int i= 0; i < GateT.size(); i++)
+    { // Find next ok gate
+      unsigned int j= i;
+      if (test && gate_is_ok(i, used) == false)
+        {
+          cout << "Problem in topological sort" << endl;
+          abort();
+        }
+      else
+        {
+          while (gate_is_ok(j, used) == false)
+            {
+              j++;
+              if (j == GateT.size())
+                {
+                  cout << "Problem in conversion with (current) gate " << i << endl;
+                  cout << "Of type " << GateT[i] << endl;
+                  cout << "With input " << GateI[i][0] << " " << GateI[i][1] << endl;
+                  cout << "Which produces output " << GateO[i] << endl;
+                  abort();
+                }
+            }
+          // Swap gate i and gate j if i<>j
+          if (i != j)
+            {
+              swap_gate(i, j);
+            }
+          // Set output gate to be OK
+        }
+      used[GateO[i]]= true;
+    }
+  recompute_map();
 }

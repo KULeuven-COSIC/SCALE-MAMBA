@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -17,7 +17,8 @@ using namespace std;
 /* Agree a random seed between all players in set A
  *    Gauranteed that whoami is in A
  */
-void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len)
+void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len,
+                 int connection)
 {
   vector<string> Comm_e(P.nplayers());
   vector<string> Open_e(P.nplayers());
@@ -32,7 +33,7 @@ void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len)
     {
       if (A[i] == 1 && i != P.whoami())
         {
-          P.send_to_player(i, Comm_e[P.whoami()]);
+          P.send_to_player(i, Comm_e[P.whoami()], connection);
         }
     }
   // Receive other commitments
@@ -40,7 +41,7 @@ void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len)
     {
       if (A[i] == 1 && i != P.whoami())
         {
-          P.receive_from_player(i, Comm_e[i]);
+          P.receive_from_player(i, Comm_e[i], connection);
         }
     }
   // Send my opening
@@ -48,7 +49,7 @@ void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len)
     {
       if (A[i] == 1 && i != P.whoami())
         {
-          P.send_to_player(i, Open_e[P.whoami()]);
+          P.send_to_player(i, Open_e[P.whoami()], connection);
         }
     }
   // Receive other openings
@@ -56,7 +57,7 @@ void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len)
     {
       if (A[i] == 1 && i != P.whoami())
         {
-          P.receive_from_player(i, Open_e[i]);
+          P.receive_from_player(i, Open_e[i], connection);
         }
     }
 
@@ -77,7 +78,8 @@ void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len)
     }
 }
 
-void AgreeRandom(Player &P, uint8_t *seed, int len)
+void AgreeRandom(Player &P, uint8_t *seed, int len,
+                 int connection)
 {
   vector<string> Comm_e(P.nplayers());
   vector<string> Open_e(P.nplayers());
@@ -88,10 +90,10 @@ void AgreeRandom(Player &P, uint8_t *seed, int len)
   Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ss, P.G);
 
   // Send my commitment to eveyone and get others back
-  P.Broadcast_Receive(Comm_e);
+  P.Broadcast_Receive(Comm_e, false, connection);
 
   // Send my opening and get others back
-  P.Broadcast_Receive(Open_e);
+  P.Broadcast_Receive(Open_e, false, connection);
 
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -160,7 +162,7 @@ void PRSS::ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M)
             }
           AgreeRandom(P, A, seed, SEED_SIZE);
 
-          G[k].SetSeed(seed);
+          G[k].SetSeedFromRandom(seed);
         }
     }
 }
@@ -237,7 +239,7 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
       if (Asets[i][whoami] == 1)
         {
           AgreeRandom(P, Asets[i], seed, SEED_SIZE);
-          G[i].SetSeed(seed);
+          G[i].SetSeedFromRandom(seed);
           Shares_Of_One[i].assign(whoami, sh, macs);
         }
       else
@@ -325,7 +327,7 @@ void PRSS::batch_production(Player &P)
     {
       te.randomize(G[0]);
       make_shares(Sh, te, G[0]);
-      batch[i].assign(Sh[whoami]);
+      batch[i]= Sh[whoami];
       for (unsigned int j= 0; j < P.nplayers(); j++)
         {
           if (j != whoami)

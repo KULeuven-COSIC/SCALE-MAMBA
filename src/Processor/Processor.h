@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -10,6 +10,8 @@ All rights reserved
 #include "LSSS/Open_Protocol.h"
 #include "Online/Machine.h"
 
+#include "OT/aBitVector.h"
+#include "Offline/DABitGenerator.h"
 #include "Processor_IO.h"
 #include "Program.h"
 
@@ -24,6 +26,9 @@ struct TempVars
   // INPUT and LDSI
   gfp rrp, tp, tmpp;
   gfp xip;
+  aBitVector aBV;
+  aBit aB;
+  aTriple T;
 };
 
 class Processor
@@ -38,11 +43,17 @@ class Processor
   vector<gfp> Cp;
   vector<Share> Sp;
   vector<long> Ri;
+  vector<aBitVector> srint;
+  vector<aBit> sbit;
+
+  int reg_maxp, reg_maxi;
 
 // In DEBUG mode we keep track of valid/invalid read/writes on the registers
 #ifdef DEBUG
   vector<int> rwp;
   vector<int> rwi;
+  vector<int> rwsr;
+  vector<int> rwsb;
 #endif
 
   // Program counter
@@ -61,8 +72,28 @@ class Processor
 
   PRNG prng;
 
+  /* Stuff for dealing with the Garbled Circuit functionality
+   * within instructions
+   */
+  // In the case when the OT thread is active this holds the daBitGenerator for this thread
+  DABitGenerator daBitGen;
+  // This holds the computed daBits
+  daBitVector daBitV;
+  // This holds the aAND factory
+  aAND_Factory aAF;
+
+  // To make sure we do not need to keep allocating/deallocating memory
+  // we maintain some scratch variables for use in routines
+  TempVars temp;
+
+  // Data structures for input and output of private data
+  Processor_IO iop;
+
 public:
-  Processor(int online_thread_num, unsigned int nplayers);
+  friend class Instruction;
+
+  Processor(int online_thread_num, unsigned int nplayers, Player &P,
+            offline_control_data &OCD);
   ~Processor();
 
   void clear_registers();
@@ -111,14 +142,6 @@ public:
   {
     return PC;
   }
-
-  // To make sure we do not need to keep allocating/deallocating memory
-  // we maintain some scratch variables for use in routines
-  TempVars temp;
-
-  // Data structures for input and output of private data
-  //    XXXX Should perhaps put in private and access via a function
-  Processor_IO iop;
 
 /* Read and write the registers */
 #ifdef DEBUG
@@ -177,6 +200,45 @@ public:
     rwi[i]= 1;
     Ri.at(i)= x;
   }
+
+  const aBitVector &read_srint(int i) const
+  {
+    if (rwsr[i] == 0)
+      {
+        throw Processor_Error("Invalid read on srint register");
+      }
+    return srint.at(i);
+  }
+  aBitVector &get_srint_ref(int i)
+  {
+    rwsr[i]= 1;
+    return srint.at(i);
+  }
+  void write_srint(int i, const aBitVector &x)
+  {
+    rwsr[i]= 1;
+    srint.at(i)= x;
+  }
+
+  const aBit &read_sbit(int i) const
+  {
+    if (rwsb[i] == 0)
+      {
+        throw Processor_Error("Invalid read on sbit register");
+      }
+    return sbit.at(i);
+  }
+  aBit &get_sbit_ref(int i)
+  {
+    rwsb[i]= 1;
+    return sbit.at(i);
+  }
+  void write_sbit(int i, const aBit &x)
+  {
+    rwsb[i]= 1;
+    sbit.at(i)= x;
+  }
+
 #else
   const gfp &read_Cp(int i) const
   {
@@ -215,6 +277,33 @@ public:
   {
     Ri[i]= x;
   }
+
+  const aBitVector &read_srint(int i) const
+  {
+    return srint[i];
+  }
+  aBitVector &get_srint_ref(int i)
+  {
+    return srint[i];
+  }
+  void write_srint(int i, const aBitVector &x)
+  {
+    srint[i]= x;
+  }
+
+  const aBit &read_sbit(int i) const
+  {
+    return sbit[i];
+  }
+  aBit &get_sbit_ref(int i)
+  {
+    return sbit[i];
+  }
+  void write_sbit(int i, const aBit &x)
+  {
+    sbit[i]= x;
+  }
+
 #endif
 
   /* Run interaction with other players */
@@ -233,7 +322,7 @@ public:
   void POpen_Start(const vector<int> &reg, int size, Player &P);
   void POpen_Stop(const vector<int> &reg, int size, Player &P);
 
-  void RunOpenCheck(Player &P, const string &aux, int connection= 0)
+  void RunOpenCheck(Player &P, const string &aux, int connection)
   {
     OP.RunOpenCheck(P, aux, connection, false);
   }
@@ -253,6 +342,14 @@ public:
     sent+= size;
     rounds++;
   }
+
+  // Converts a sint register i0 to a sregint register i1
+  //   Uses the daBits
+  void convert_sint_to_sregint(int i0, int i1, Player &P);
+
+  // Converts a sregint register i0 to a srint register i1
+  //   Uses the daBits
+  void convert_sregint_to_sint(int i0, int i1, Player &P);
 };
 
 #endif

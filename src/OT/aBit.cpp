@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -50,6 +50,17 @@ void aBit::mult_by(const gf2n &y, const aBit &z)
     {
       M[i].mul(z.M[i], y);
       K[i].mul(z.K[i], y);
+    }
+}
+
+void aBit::add(const gf2n &y)
+{
+  if (whoami == 0)
+    x.add(y);
+  else if (whoami)
+    {
+      if (y.is_one())
+        K[0].add(Delta);
     }
 }
 
@@ -120,13 +131,49 @@ ostream &operator<<(ostream &s, const aBit &y)
   return s;
 }
 
-/* Open (and check) a vector of aBits */
-void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P, const gf2n &Delta)
+void aBit::output(ostream &s, bool human) const
 {
-  if (dv.size() != v.size())
+  x.output(s, human);
+  if (human)
     {
-      throw bad_value();
+      s << " ";
     }
+  for (unsigned int i= 0; i < M.size(); i++)
+    {
+      M[i].output(s, human);
+      if (human)
+        {
+          s << " ";
+        }
+    }
+  for (unsigned int i= 0; i < K.size(); i++)
+    {
+      K[i].output(s, human);
+      if (human)
+        {
+          s << " ";
+        }
+    }
+  s << endl;
+}
+
+void aBit::input(istream &s, bool human)
+{
+  x.input(s, human);
+  for (unsigned int i= 0; i < M.size(); i++)
+    {
+      M[i].input(s, human);
+    }
+  for (unsigned int i= 0; i < K.size(); i++)
+    {
+      K[i].input(s, human);
+    }
+}
+
+/* Open (and check) a vector of aBits */
+void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P)
+{
+  dv.resize(v.size());
   vector<string> o(P.nplayers());
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
@@ -142,7 +189,7 @@ void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P, const gf2n &D
         }
     }
 
-  P.Send_Distinct_And_Receive(o);
+  P.Send_Distinct_And_Receive(o, 2);
 
   for (unsigned int t= 0; t < v.size(); t++)
     {
@@ -163,7 +210,7 @@ void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P, const gf2n &D
               dv[t]= dv[t] ^ ((unsigned int) c);
               if (c == 1)
                 {
-                  M.add(Delta);
+                  M.add(aBit::get_Delta());
                 }
               if (M != v[t].get_Key(i))
                 {
@@ -174,8 +221,48 @@ void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P, const gf2n &D
     }
 }
 
+void Open_aBit(int &dv, const aBit &v, Player &P)
+{
+  vector<string> o(P.nplayers());
+  for (unsigned int i= 0; i < P.nplayers(); i++)
+    {
+      if (i != P.whoami())
+        {
+          ostringstream ss;
+          ss << (char) v.get_value();
+          v.get_MAC(i).output(ss);
+          o[i]= ss.str();
+        }
+    }
+
+  P.Send_Distinct_And_Receive(o, 2);
+
+  dv= v.get_value();
+
+  char c;
+  gf2n M;
+  for (unsigned int i= 0; i < P.nplayers(); i++)
+    {
+      if (i != P.whoami())
+        {
+          istringstream is(o[i]);
+          is >> c;
+          M.input(is);
+          dv= dv ^ ((unsigned int) c);
+          if (c == 1)
+            {
+              M.add(aBit::get_Delta());
+            }
+          if (M != v.get_Key(i))
+            {
+              throw OT_error();
+            }
+        }
+    }
+}
+
 void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v,
-                   Player &P, const gf2n &Delta)
+                   Player &P)
 {
   if (j != P.whoami())
     {
@@ -186,7 +273,7 @@ void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v,
           ss << (char) v[t].get_value();
           v[t].get_MAC(j).output(ss);
         }
-      P.send_to_player(j, ss.str());
+      P.send_to_player(j, ss.str(), 2);
     }
   else
     {
@@ -203,7 +290,7 @@ void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v,
           if (i != P.whoami())
             {
               string ss;
-              P.receive_from_player(i, ss);
+              P.receive_from_player(i, ss, 2);
               istringstream is(ss);
               for (unsigned int t= 0; t < v.size(); t++)
                 {
@@ -212,7 +299,7 @@ void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v,
                   dv[t]= dv[t] ^ ((unsigned int) c);
                   if (c == 1)
                     {
-                      M.add(Delta);
+                      M.add(aBit::get_Delta());
                     }
                   if (M != v[t].get_Key(i))
                     {
@@ -222,4 +309,21 @@ void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v,
             }
         }
     }
+}
+
+void check_Bits(const vector<aBit> &xB, Player &P)
+{
+  unsigned int sz= xB.size();
+  vector<int> x(sz);
+  Open_aBits(x, xB, P);
+}
+
+void check_Bits(const list<aBit> &xL, Player &P)
+{
+  unsigned int sz= xL.size();
+  vector<int> x(sz);
+  vector<aBit> xB;
+  xB.reserve(sz);
+  copy(begin(xL), end(xL), back_inserter(xB));
+  Open_aBits(x, xB, P);
 }

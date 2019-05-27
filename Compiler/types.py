@@ -1,3 +1,20 @@
+"""
+This is the collection of all possible types managed by the compiler
+that are available for MAMBA. This includes base types and abstract classes.
+
+Main Families of Classes include modp based types:
+    sint
+    cint
+    sfix
+    cfix
+    sfloat
+    cfloat
+And mod 2^n types:
+    regint
+    sregint
+    sbit
+"""
+##@types.py
 from Compiler.program import Tape
 from Compiler.exceptions import *
 from Compiler.instructions import *
@@ -115,7 +132,8 @@ class _number(object):
         if other is 0 or other is 0L:
             return self
         else:
-            return self.add(other)
+            var = self.add(other)
+            return var
 
     def __mul__(self, other):
         if other is 0 or other is 0L:
@@ -400,7 +418,7 @@ class cint(_clear, _int):
         return self.coerce_op(other, modc, True)
 
     def __lt__(self, other):
-        if isinstance(other,(sfloat)):
+        if isinstance(other, (sfloat)):
             return other > self
 
         if isinstance(other, (type(self), int, long)):
@@ -513,6 +531,7 @@ class regint(_register, _int):
     __slots__ = []
     reg_type = 'r'
     instruction_type = 'modp'
+    scalars = (int, long)
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -560,8 +579,12 @@ class regint(_register, _int):
     def __init__(self, val=None, size=None):
         super(regint, self).__init__(self.reg_type, val=val, size=size)
 
+    @staticmethod
+    def in_immediate_range(val):
+        return cint.in_immediate_range(val)
+
     def load_int(self, val):
-        if cint.in_immediate_range(val):
+        if self.in_immediate_range(val):
             ldint(self, val)
         else:
             lower = val % 2 ** 32
@@ -587,7 +610,7 @@ class regint(_register, _int):
     @vectorize
     @read_mem_value
     def int_op(self, other, inst, reverse=False):
-        if isinstance(other, _secret):
+        if isinstance(other, (_secretModp, _secretMod2)):
             return NotImplemented
         elif not isinstance(other, type(self)):
             other = type(self)(other)
@@ -632,6 +655,7 @@ class regint(_register, _int):
         return self.int_op(other, eqc)
 
     def __ne__(self, other):
+        if isinstance(other, _secretMod2): return NotImplemented
         return 1 - (self == other)
 
     def __lt__(self, other):
@@ -641,9 +665,11 @@ class regint(_register, _int):
         return self.int_op(other, gtc)
 
     def __le__(self, other):
+        if isinstance(other, _secretMod2): return NotImplemented
         return 1 - (self > other)
 
     def __ge__(self, other):
+        if isinstance(other, _secretMod2): return NotImplemented
         return 1 - (self < other)
 
     def __lshift__(self, other):
@@ -665,12 +691,15 @@ class regint(_register, _int):
         return regint(other >> cint(self))
 
     def __and__(self, other):
+        if isinstance(other, _secretMod2): return NotImplemented
         return regint(other & cint(self))
 
     def __or__(self, other):
+        if isinstance(other, _secretMod2): return NotImplemented
         return regint(other | cint(self))
 
     def __xor__(self, other):
+        if isinstance(other, _secretMod2): return NotImplemented
         return regint(other ^ cint(self))
 
     __rand__ = __and__
@@ -706,7 +735,273 @@ class regint(_register, _int):
         print_int(self)
 
 
-class _secret(_register):
+# Added Types for new Opcodes:
+
+##
+# Responsible for basic secret operations that are shared by
+# GC and LSSS constructions.
+# It serves as a template for GC and LSSS based implementations
+class _sec(_register):
+    __slots__ = []
+
+    def __init__(self, reg_type, val=None, size=None):
+        super(_sec, self).__init__(reg_type, val=val, size=size)
+
+    @set_instruction_type
+    @vectorize
+    def load_int(self, val):
+        return NotImplemented
+
+    @vectorize
+    def load_clear(self, val):
+        return NotImplemented
+
+    @vectorize
+    def load_self(self, val):
+        return NotImplemented
+
+    ##
+    # instantiate other
+    # it includes instantiation of secret_type
+    # @params: other param
+    # @return: instance of _sec child
+    @set_instruction_type
+    @read_mem_value
+    @vectorize
+    def load_other(self, val):
+        if isinstance(val, self.clear_type):
+            self.load_clear(val)
+        elif isinstance(val, type(self)):
+            self.load_self(val)
+        elif isinstance(val, self.secret_type):
+            self.load_secret(val)
+        else:
+            self.load_clear(self.clear_type(val))
+
+    ##
+    # Executes operation whether the instruction is against a secret
+    # a mixed operation (secret and clear register) or
+    # secret versus a native type. Ideally this function should
+    # manage also complex types. But that would also requiere low level
+    # opcodes for those.
+    # Currently there are no opcodes for native types hence we reuse
+    # the opcode for clear values
+    @set_instruction_type
+    @read_mem_value
+    @vectorize
+    def secret_op(self, other, s_inst, m_inst = None, si_inst = None, reverse=False):
+        cls = self.__class__
+        res = self.prep_res(other)
+
+        # isolates the case where there is only one structure
+        if m_inst == None and si_inst == None:
+            # mimics the reverse structure from types.py
+            if reverse:
+                s_inst(res, other, self)
+            else:
+                s_inst(res, self, other)
+            return res
+
+        if isinstance(other, regint) and (res.clear_type != regint):
+            other = res.clear_type(other)
+        if isinstance(other, cls):
+            s_inst(res, self, other)
+        elif isinstance(other, res.clear_type):
+            if reverse:
+                m_inst(res, other, self)
+            else:
+                m_inst(res, self, other)
+        elif isinstance(other, (int, long)):
+            if self.clear_type.in_immediate_range(other) and (si_inst != m_inst):
+                si_inst(res, self, other)
+            else:
+                if reverse:
+                    m_inst(res, res.clear_type(other), self)
+                else:
+                    m_inst(res, self, res.clear_type(other))
+        else:
+            return NotImplemented
+        return res
+
+    def add(self, other):
+        return NotImplemented
+
+    def mul(self, other):
+        return NotImplemented
+
+    def __sub__(self, other):
+        return NotImplemented
+
+    def __rsub__(self, other):
+        return NotImplemented
+
+    @vectorize
+    def __div__(self, other):
+        return NotImplemented
+
+    @vectorize
+    def __rdiv__(self, other):
+        return NotImplemented
+
+    @set_instruction_type
+    @vectorize
+    def reveal(self):
+        return NotImplemented
+
+    @set_instruction_type
+    def reveal_to(self, player, channel=0):
+        return NotImplemented
+
+
+##
+# Class which holds shared functionality
+# by all mod2 classses (binary and boolean)
+# (from old secret)
+# that belongs to both sbit and sregint
+class _secretMod2(_sec):
+    __slots__ = []
+
+    ##
+    # initialization for all types based on 2^n
+    def __init__(self, reg_type, val=None, size=None):
+        if isinstance(val, self.clear_type):
+            size = val.size
+        super(_secretMod2, self).__init__(reg_type, val=val, size=size)
+
+
+    ##
+    # reveals input
+    # legacy from _secret
+    # @params player: int player id
+    @set_instruction_type
+    def reveal_to(self, player, channel=0):
+        private_output(self, player, channel)
+
+##
+# secret  class for all integer types mod2n
+# this is equivalent to the old _secret class
+# but for sregint
+class _secretInt(_secretMod2):
+    __slots__ = []
+
+    ##
+    # initialization paramenter
+    def __init__(self, reg_type, val=None, size=None):
+        super(_secretInt, self).__init__(reg_type, val=val, size=size)
+
+    ##
+    # instantiate an int or long object to sregint
+    # @params val: int, long value
+    # @return: sregint object containing val
+    @set_instruction_type
+    @vectorize
+    def load_int(self, val):
+        if self.clear_type.in_immediate_range(val):
+            ldsint(self, val)
+        else:
+            self.load_clear(self.clear_type(val))
+
+    ##
+    # @params val: regint value
+    # @return: sregint object containing val
+    @vectorize
+    def load_clear(self, val):
+        convregsreg(self, val)
+
+    # instantiate an sregint object to sregint
+    # @params val: sregint value
+    # @return: new register sregint object containing val
+    @vectorize
+    def load_self(self, val):
+        movsint(self, val)
+
+    # instantiate an sint object to sregint
+    # @params val: sint value
+    # @return: sregint object containing val
+    @vectorize
+    def load_secret(self, val):
+        convsintsreg(self, val)
+
+
+    # legacy from _secret
+    # it reveals input
+    @set_instruction_type
+    @vectorize
+    def reveal(self):
+        res = self.clear_type()
+        opensint(res, self)
+        return res
+
+
+    def add(self, other):
+        r"""
+        returns the self + other, add secret, add mix, add int
+        """
+        return self.secret_op(other, addsint, addsintc, addsintc)
+
+
+    def mul(self, other):
+        r"""
+        returns the self * other, mul secret, mul mix, mul int
+        """
+        return self.secret_op(other, mulsint, mulsintc, mulsintc)
+
+    def div(self, other, reverse = False):
+        r"""
+        returns the self/other or other/sefl
+        """
+        local_other = parse_sregint(other)
+        res = sregint()
+
+        if ~reverse:
+            divsint(res, self, local_other)
+        else:
+            divsint(res, local_other, self)
+
+        return res
+
+    def __sub__(self, other):
+        r"""
+        returns the self - other, sub secret, sub mix, sub int
+        """
+        return self.secret_op(other, subsint, subsintc, subsintc)
+
+    def __rsub__(self, other):
+        r"""
+        returns the self - other, sub secret, sub mix, sub int
+        """
+        return self.secret_op(other, subsint, subcints, subcints, True)
+
+    def __div__(self, other):
+        r"""
+        returns the self / other, div secret 
+        """
+        #return self.secret_op(other, divsint)
+        return self.div(other)
+
+    def __rdiv__(self, other):
+        r"""
+        returns the other /  self, div secret
+        """
+        # return self.secret_op(other, divsint, True)
+        return self.div(other, True)
+
+    def __lshift__(self, other):
+
+        return self.secret_op(other, shlsint)
+
+
+    def __rshift__(self, other):
+        return self.secret_op(other, shrsint)
+
+
+##
+# secret class for modp operations
+# (old class secret)
+# it implementes basic functionality of sint
+# changed to better align namewise and
+# with new generic sec functionality class sec.
+class _secretModp(_sec):
     __slots__ = []
 
     @vectorized_classmethod
@@ -730,11 +1025,15 @@ class _secret(_register):
         square(*res)
         return res
 
+    ##
+    # initialization paramenter
     def __init__(self, reg_type, val=None, size=None):
         if isinstance(val, self.clear_type):
             size = val.size
-        super(_secret, self).__init__(reg_type, val=val, size=size)
+        super(_secretModp, self).__init__(reg_type, val=val, size=size)
 
+
+    #defined at the same level as in _secretInt
     @set_instruction_type
     @vectorize
     def load_int(self, val):
@@ -747,43 +1046,17 @@ class _secret(_register):
     def load_clear(self, val):
         addm(self, self.__class__(0), val)
 
-    @set_instruction_type
-    @read_mem_value
     @vectorize
-    def load_other(self, val):
-        if isinstance(val, self.clear_type):
-            self.load_clear(val)
-        elif isinstance(val, type(self)):
-            movs(self, val)
-        else:
-            self.load_clear(self.clear_type(val))
+    def load_self(self, val):
+        movs(self, val)
 
-    @set_instruction_type
-    @read_mem_value
+
+    # instantiate an sregint object to sint
+    # @params val: sregint value
+    # @return: sint object containing val
     @vectorize
-    def secret_op(self, other, s_inst, m_inst, si_inst, reverse=False):
-        cls = self.__class__
-        res = self.prep_res(other)
-        if isinstance(other, regint):
-            other = res.clear_type(other)
-        if isinstance(other, cls):
-            s_inst(res, self, other)
-        elif isinstance(other, res.clear_type):
-            if reverse:
-                m_inst(res, other, self)
-            else:
-                m_inst(res, self, other)
-        elif isinstance(other, (int, long)):
-            if self.clear_type.in_immediate_range(other):
-                si_inst(res, self, other)
-            else:
-                if reverse:
-                    m_inst(res, res.clear_type(other), self)
-                else:
-                    m_inst(res, self, res.clear_type(other))
-        else:
-            return NotImplemented
-        return res
+    def load_secret(self, val):
+        convsregsint(self, val)
 
     def add(self, other):
         return self.secret_op(other, adds, addm, addsi)
@@ -824,12 +1097,205 @@ class _secret(_register):
     def reveal_to(self, player, channel=0):
         private_output(self, player, channel)
 
+##
+# Base 2 secret bit type
+# Returned by Comparison Tests in sregint
+class sbit(_secretMod2):
+    """ Shared  mod 2 type. """
+    __slots__ = []
+    instruction_type = 'mod2n'
+    clear_type = regint
+    reg_type = 'sb'
 
-class sint(_secret, _int):
+    def __init__(self, val=None, size=None):
+        super(sbit, self).__init__('sb', val=val, size=size)
+
+    @set_instruction_type
+    @vectorize
+    def reveal(self):
+        res = self.clear_type()
+        opensbit(res, self)
+        return res
+
+    @vectorized_classmethod
+    def load_mem(cls, address, mem_type=None):
+        r"""Loads the value stored in address to the sint x
+              x.load_mem(address)
+        """
+        return NotImplemented  # cls._load_mem(addres  s, ldsint, ldsint)
+
+    # TODO: when opcodes for inter-types these calls should be made by secret_op
+
+    def __xor__(self, other):
+        res = sbit()
+        if isinstance(other, type(self)):
+            xorsb(res, self, other)
+        return res
+
+    def __and__(self, other):
+        res = sbit()
+        if isinstance(other, type(self)):
+            andsb(res, self, other)
+        elif isinstance(other, _secretInt):
+            res = other & self
+        return res
+
+    def __or__(self, other):
+        res = sbit()
+        if isinstance(other, type(self)):
+            orsb(res, self, other)
+        return res
+
+    def __neg__(self):
+        res = sbit()
+        negb(res, self)
+        return res
+
+##
+# Base 2^64 secet int type
+# It uses the new opcodes from mod 2^n arithmetic
+class sregint(_secretInt):
+    """ Shared  mod 2^64 integer type. """
+    __slots__ = []
+    instruction_type = 'mod2n'
+    clear_type = regint
+    # This is the other secret type it can convert to
+    secret_type = _secretModp
+    reg_type = 'sr'
+
+    def __init__(self, val=None, size=None):
+        super(sregint, self).__init__('sr', val=val, size=size)
+
+    # this method should use mem methods instead
+    @vectorized_classmethod
+    def load_mem(cls, address, mem_type=None):
+        r"""Loads the value stored in address to the sregint x
+              x.load_mem(address)
+        """
+        return cls._load_mem(address, ldmsint, ldmsinti)
+
+    def __neg__(self):
+        res = sregint()
+        neg(res, self)
+        return res
+
+    def store_in_mem(self, address):
+        r"""Stores the sregint value x to the address
+              x.store_in_mem(address)
+        """
+        self._store_in_mem(address, stmsint, stmsinti)
+
+    def mul_2_sint(self, other):
+        r"""
+        calculates the product of 2 sregints mod 128 bits
+        :param other: sregint 64 bits
+        :return: 2 sregints 64 bits
+        """
+        msw = sregint()
+        lsw = sregint()
+        if isinstance(other, sregint):
+            mul2sint(msw, lsw, self, other)
+        return msw, lsw
+
+    # comparison implementation for new opcodes
+    def __lt__(self, other):
+        res = sbit()
+        other_local = parse_sregint(other)
+        if isinstance(other_local, type(self)):
+            ltsint(res, self, other_local)
+        return res
+
+    def __gt__(self, other):
+        res = sbit()
+        other_local = parse_sregint(other)
+        if isinstance(other_local, type(self)):
+            gtsint(res, self, other_local)
+        return res
+
+    def __eq__(self, other):
+        res = sbit()
+        other_local = parse_sregint(other)
+        if isinstance(other_local, type(self)):
+            eqsint(res, self, other_local)
+        return res
+
+    def __le__(self, other):
+        res = sbit()
+        other_local = parse_sregint(other)
+        if isinstance(other_local, type(self)):
+            res = -(self > other_local)
+        return res
+
+    def __ge__(self, other):
+        res = sbit()
+        other_local = parse_sregint(other)
+        if isinstance(other_local, type(self)):
+            res = -(self < other_local)
+        return res
+
+    def __ne__(self, other):
+        res = sbit()
+        other_local = parse_sregint(other)
+        if isinstance(other_local, type(self)):
+            res = -(self == other_local)
+        return res
+
+    # bitwise operations over sregint
+    def and_op(self, other):
+        r"""
+        returns the self & other, and secret, and mix, and int
+        """
+        res = sregint()
+        if isinstance(other, sbit):
+            sand(res, self, other)
+        else:
+            res = self.secret_op(other, andsint, andsintc, andsintc)
+        return res
+
+    def or_op(self, other):
+        r"""
+        returns the self | other, or secret, or mix, or int
+        """
+        return self.secret_op(other, orsint, orsintc, orsintc)
+
+    def xor_op (self, other):
+        r"""
+        returns the self ^ other, or secret, or mix, or int
+        """
+        return self.secret_op(other, xorsint, xorsintc, xorsintc)
+
+    # and operations
+    def __and__(self, other):
+        return self.and_op(other)
+
+    # or operations
+    def __or__(self, other):
+        return self.or_op(other)
+
+    # xor operations
+    def __xor__(self, other):
+        return self.xor_op(other)
+
+    __rand__ = __and__
+    __rxor__ = __xor__
+    __ror__ = __or__
+
+    # inversion
+    def __invert__(self):
+        res = sregint()
+        invsint(res, self)
+        return res
+
+
+##
+# secret integer type mod p
+class sint(_secretModp, _int):
     """ Shared mod p integer type. """
     __slots__ = []
     instruction_type = 'modp'
     clear_type = cint
+    # This is the other secret type it can convert to
+    secret_type = _secretInt
     reg_type = 's'
 
     @vectorized_classmethod
@@ -877,7 +1343,7 @@ class sint(_secret, _int):
     @read_mem_value
     @vectorize
     def __lt__(self, other, bit_length=None, security=None):
-        if isinstance(other,(cfloat, sfloat)):
+        if isinstance(other, (cfloat, sfloat)):
             return other > self
 
         res = sint()
@@ -888,7 +1354,7 @@ class sint(_secret, _int):
     @read_mem_value
     @vectorize
     def __gt__(self, other, bit_length=None, security=None):
-        if isinstance(other,(cfloat, sfloat)):
+        if isinstance(other, (cfloat, sfloat)):
             return other < self
 
         res = sint()
@@ -897,12 +1363,12 @@ class sint(_secret, _int):
         return res
 
     def __le__(self, other, bit_length=None, security=None):
-        if isinstance(other,(cfloat, sfloat)):
+        if isinstance(other, (cfloat, sfloat)):
             return other >= self
         return 1 - self.greater_than(other, bit_length, security)
 
     def __ge__(self, other, bit_length=None, security=None):
-        if isinstance(other,(cfloat, sfloat)):
+        if isinstance(other, (cfloat, sfloat)):
             return other <= self
 
         return 1 - self.less_than(other, bit_length, security)
@@ -910,13 +1376,13 @@ class sint(_secret, _int):
     @read_mem_value
     @vectorize
     def __eq__(self, other, bit_length=None, security=None):
-        if isinstance(other,(cfloat, sfloat)):
+        if isinstance(other, (cfloat, sfloat)):
             return other == self
         return floatingpoint.EQZ(self - other, bit_length or program.bit_length,
                                  security or program.security)
 
     def __ne__(self, other, bit_length=None, security=None):
-        if isinstance(other,(cfloat, sfloat)):
+        if isinstance(other, (cfloat, sfloat)):
             return other != self
         return 1 - self.equal(other, bit_length, security)
 
@@ -955,12 +1421,16 @@ class sint(_secret, _int):
 
     @vectorize
     def __rpow__(self, base):
-        if base == 2:
-            return self.pow2()
+        if isinstance(base, (int,long)):
+            if base == 2:
+                return self.pow2()
+            else:
+                raise NotImplementedError('Modulo only implemented for powers of two.')
         else:
-            return NotImplemented
+            raise NotImplementedError('Modulo only implemented for integer types.')
 
     def pow2(self, bit_length=None, security=None):
+
         return floatingpoint.Pow2(self, bit_length or program.bit_length, \
                                   security or program.security)
 
@@ -1004,8 +1474,21 @@ sint.bit_type = sint
 sint.basic_type = sint
 
 
+# converts type sregint depending on the case
+# @param other: input of  any of supported scalar, clear types
+# @return sregint cast input.
+def parse_sregint(other):
+    if isinstance(other, regint):
+        return sregint(other)
+    if isinstance(other, regint.scalars):
+        return sregint(other)
+    else:
+        return other
+
+# converts type to cfix/sfix depending on the case
+# @param other: input of  any of supported scalar, clear and secret types
+# @return cfix/sfix cast input.
 def parse_type(other):
-    # converts type to cfix/sfix depending on the case
     if isinstance(other, cfix.scalars):
         return cfix(other)
     elif isinstance(other, cint):
@@ -1043,7 +1526,8 @@ def parse_float(other):
     else:
         raise CompilerError('Missmatching input type')
 
-
+##
+# clear fixed point class based on mod p sint.
 class cfix(_number):
     """ Clear fixed point type. """
     __slots__ = ['value', 'f', 'k', 'size']
@@ -1114,7 +1598,7 @@ class cfix(_number):
 
     @vectorize
     def add(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other + self
         else:
             other = parse_type(other)
@@ -1127,8 +1611,8 @@ class cfix(_number):
 
     @vectorize
     def mul(self, other):
-        if isinstance(other,sfloat):
-            return other *  self
+        if isinstance(other, sfloat):
+            return other * self
         else:
             other = parse_type(other)
             if isinstance(other, cfix):
@@ -1185,7 +1669,7 @@ class cfix(_number):
         in case is performed against a sfloat use inequality test from sfloat
         """
 
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other > self
         else:
             other = parse_type(other)
@@ -1204,7 +1688,7 @@ class cfix(_number):
         in case is performed against a sfloat use inequality test from sfloat
         """
 
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other >= self
         else:
             other = parse_type(other)
@@ -1220,7 +1704,7 @@ class cfix(_number):
         """ parses all types to  fix registers and performs test.
         in case is performed against a sfloat use inequality test from sfloat
         """
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other <= self
         else:
             other = parse_type(other)
@@ -1236,7 +1720,7 @@ class cfix(_number):
         """ parses all types to  fix registers and performs test.
         in case is performed against a sfloat use inequality test from sfloat
         """
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other < self
         else:
             other = parse_type(other)
@@ -1249,7 +1733,7 @@ class cfix(_number):
 
     @vectorize
     def __ne__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other != self
         else:
             other = parse_type(other)
@@ -1276,6 +1760,8 @@ class cfix(_number):
         print_fix_plain(self.v, self.f, self.k)
 
 
+##
+# secret fixed point class based on mod p sint.
 class sfix(_number):
     """ Shared fixed point type. """
     __slots__ = ['v', 'f', 'k', 'size']
@@ -1342,7 +1828,6 @@ class sfix(_number):
     def load_int(self, v):
         self.v = sint(v) * (2 ** self.f)
 
-
     def store_in_mem(self, address):
         r"""Stores the sfix value x to the sint memory with address
               x.store_in_mem(address)
@@ -1358,10 +1843,9 @@ class sfix(_number):
 
         return self.size * 1
 
-
     @vectorize
     def add(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other + self
         else:
             other = parse_type(other)
@@ -1373,10 +1857,9 @@ class sfix(_number):
             else:
                 raise CompilerError('Invalid type %s for sfix.__add__' % type(other))
 
-
     @vectorize
     def mul(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other * self
         else:
             other = parse_type(other)
@@ -1391,7 +1874,7 @@ class sfix(_number):
 
     @vectorize
     def __sub__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return (-other) + self
         else:
             other = parse_type(other)
@@ -1405,8 +1888,8 @@ class sfix(_number):
         return -(self) + other
 
     @vectorize
-    def __eq__(self, other):        
-        if isinstance(other,sfloat):
+    def __eq__(self, other):
+        if isinstance(other, sfloat):
             return other == self
         else:
             other = parse_type(other)
@@ -1417,7 +1900,7 @@ class sfix(_number):
 
     @vectorize
     def __le__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other >= self
         else:
             other = parse_type(other)
@@ -1428,7 +1911,7 @@ class sfix(_number):
 
     @vectorize
     def __lt__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other < self
         else:
             other = parse_type(other)
@@ -1439,7 +1922,7 @@ class sfix(_number):
 
     @vectorize
     def __ge__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other <= self
         else:
             other = parse_type(other)
@@ -1450,7 +1933,7 @@ class sfix(_number):
 
     @vectorize
     def __gt__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other < self
         else:
             other = parse_type(other)
@@ -1461,7 +1944,7 @@ class sfix(_number):
 
     @vectorize
     def __ne__(self, other):
-        if isinstance(other,sfloat):
+        if isinstance(other, sfloat):
             return other != self
         else:
             other = parse_type(other)
@@ -1500,6 +1983,8 @@ sfix.set_precision(fixed_lower, fixed_upper)
 cfix.set_precision(fixed_lower, fixed_upper)
 
 
+##
+# clear floating point class based on mod p sint.
 class sfloat(_number):
     """ Shared floating point data type, representing (1 - 2s)*(1 - z)*v*2^p.
         v: significand
@@ -1516,7 +2001,6 @@ class sfloat(_number):
     round_nearest = False
     error = 0
 
-
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
         r"""Loads the value stored in address (and the following three locations) of the sint memory to the sfloat x
@@ -1527,16 +2011,13 @@ class sfloat(_number):
             res.append(sint.load_mem(address + i * get_global_vector_size()))
         return sfloat(*res)
 
-
     @classmethod
     def set_error(cls, error):
         cls.error += error
 
-
     @classmethod
     def add_err(self, flag):
         self.err += flag
-
 
     @staticmethod
     def convert_float(v, vlen, plen):
@@ -1546,7 +2027,7 @@ class sfloat(_number):
 
     ##
     # Constructor that receives the basic 5 slots.
-    # If it only receives v, it casts v to the float representation in use, 
+    # If it only receives v, it casts v to the float representation in use,
     # otherwise it uses the parametrization to instanciate a cfloat register.
     # @param v basic input or significand of IEEE floating point representation
     # @param p exponent. Optional parameter
@@ -1554,7 +2035,7 @@ class sfloat(_number):
     # @param s sign. Optional parameter
     # @param size number of vectorized instances. Optional parameter
     @vectorize_init
-    def __init__(self, v, p=None, z=None, s=None, err = None, size=None):
+    def __init__(self, v, p=None, z=None, s=None, err=None, size=None):
         self.size = get_global_vector_size()
         if p is None:
             if isinstance(v, sfloat):
@@ -1566,7 +2047,7 @@ class sfloat(_number):
             elif isinstance(v, sint):
                 v, p, z, s = floatingpoint.Int2FL(v, program.bit_length,
                                                   self.vlen, self.kappa)
-                
+
                 err = self.__flow_detect__(p)
 
             elif isinstance(v, sfix):
@@ -1605,10 +2086,10 @@ class sfloat(_number):
             self.s = sint()
             ldsi(self.s, s)
         else:
-            self.s = s     
+            self.s = s
         if isinstance(err, int):
-            if not (err >=0):
-                raise CompilerError('Floating point number malformed: err')                       
+            if not (err >= 0):
+                raise CompilerError('Floating point number malformed: err')
             self.err = library.load_int_to_secret(err)
         else:
             self.err = err
@@ -1627,7 +2108,6 @@ class sfloat(_number):
         for i, x in enumerate((self.v, self.p, self.z, self.s)):
             x.store_in_mem(address + i * get_global_vector_size())
 
-
     ##
     # returns the number of registers being stored.
     # given that the parameters v, p, s, z, err are stored
@@ -1635,7 +2115,6 @@ class sfloat(_number):
     # @return number of registers engaged in memory.
     def sizeof(self):
         return self.size * 5
-
 
     ##
     # realizes the addition protocol for several different types.
@@ -1716,7 +2195,7 @@ class sfloat(_number):
             s = (1 - b) * (a * other.s + aneg * self.s) + b * (c * other.s + cneg * self.s)
             s = zprod * s + (other.z - zz) * self.s + (self.z - zz) * other.s
             err = sint(0)
-            if (isinstance(other,sfloat)):    
+            if (isinstance(other, sfloat)):
                 err = err + other.err
             err = err + self.err
             err = err + self.__flow_detect__(p)
@@ -1726,7 +2205,6 @@ class sfloat(_number):
             other_parse = parse_float(other)
             return self + other_parse
 
-
     ##
     # realizes the multiplication protocol for several different types.
     # @param other: value multiplying self, could be any type
@@ -1735,7 +2213,7 @@ class sfloat(_number):
     def mul(self, other):
 
         if isinstance(other, (cfloat, sfloat)):
-            #return sint(-1)
+            # return sint(-1)
             v1 = sint()
             v2 = sint()
             b = sint()
@@ -1762,16 +2240,13 @@ class sfloat(_number):
         # in case is not a register
         else:
             other_parse = parse_float(other)
-            return self * other_parse #self.mul(scalar_float)
-
+            return self * other_parse  # self.mul(scalar_float)
 
     def __sub__(self, other):
         return (self + -other)
 
-
     def __rsub__(self, other):
         return -1 * self + other
-
 
     ##
     # realizes the division protocol for several different types.
@@ -1793,7 +2268,7 @@ class sfloat(_number):
             s = self.s + other.s - 2 * self.s * other.s
             # self.add_err(other.z)
 
-            #error management
+            # error management
             if isinstance(other, sfloat):
                 err = other.err
             err = err + self.err
@@ -1806,13 +2281,9 @@ class sfloat(_number):
             other_parse = parse_float(other)
             return self / other_parse
 
-
-
-
     @vectorize
     def __neg__(self):
         return sfloat(self.v, self.p, self.z, (1 - self.s) * (1 - self.z), self.err)
-
 
     ##
     # realizes the less than thest protocol for several different types.
@@ -1822,12 +2293,11 @@ class sfloat(_number):
     # @return sint: new sint bitwise instance
     @vectorize
     def __lt__(self, other):
-        if isinstance(other, (cfloat,sfloat)):
-            return floatingpoint.FLLT(self,other)
+        if isinstance(other, (cfloat, sfloat)):
+            return floatingpoint.FLLT(self, other)
         else:
             other_parse = parse_float(other)
             return self < other_parse
-
 
     ##
     # realizes the greater than  protocol for several different types.
@@ -1835,9 +2305,8 @@ class sfloat(_number):
     # @param other: value comparing self, could be any type
     # @return sint: new sint bitwise instance
     def __gt__(self, other):
-            #return floatingpoint.FLLT(other, self)
-            return  (other - self) < 0#floatingpoint.FLLTZ(other - self)
-
+        # return floatingpoint.FLLT(other, self)
+        return (other - self) < 0  # floatingpoint.FLLTZ(other - self)
 
     ##
     # realizes the less equal  protocol for several different types.
@@ -1853,7 +2322,6 @@ class sfloat(_number):
     def __ge__(self, other):
         return 1 - (self < other)
 
-
     ##
     # realizes the equality test protocol for several different types.
     # @param other: value comparing self, could be any type
@@ -1862,15 +2330,15 @@ class sfloat(_number):
     def __eq__(self, other):
         if isinstance(other, (cfloat, sfloat)):
             t = self.err
-            if isinstance(other,  sfloat):
+            if isinstance(other, sfloat):
                 t = t + other.err
-            t =  t == 0
+            t = t == 0
             # the sign can be both ways for zeroes
             both_zero = self.z * other.z
             return (floatingpoint.EQZ(self.v - other.v, self.vlen, self.kappa) * \
-                   floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
-                   (1 - self.s - other.s + 2 * self.s * other.s) * \
-                   (1 - both_zero) + both_zero) * t
+                    floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
+                    (1 - self.s - other.s + 2 * self.s * other.s) * \
+                    (1 - both_zero) + both_zero) * t
         else:
             other_parse = parse_float(other)
             return self == other_parse
@@ -1883,18 +2351,15 @@ class sfloat(_number):
     def __ne__(self, other):
         return 1 - (self == other)
 
-
-
     def value(self):
         """ Gets actual floating point value, if emulation is enabled. """
         return (1 - 2 * self.s.value) * (1 - self.z.value) * self.v.value / float(2 ** self.p.value)
 
-
     ##
     # reveals instance as a floating point number, by creating an instance of cfloat.
     # in case there was an error during the circuit execution, it returns 0 in all
-    # state elements of the instance. 
-    # @return a cfloat value with the corresponding state elements in plain text. 
+    # state elements of the instance.
+    # @return a cfloat value with the corresponding state elements in plain text.
     def reveal(self):
         """ Reveals instance as a floating point number, by creating an instance of cfloat.
         in case there was an error during the circuit execution, it returns 0 in all
@@ -1904,7 +2369,6 @@ class sfloat(_number):
         return cfloat((self.v * signal).reveal(), (self.p * signal).reveal(), (self.z * signal).reveal(),
                       (self.s * signal).reveal())
 
-
     ##
     # detects overflow by or underflow. Implementation saves one multiplication,
     # by simply  calculating the |p|> 2^{k-1}
@@ -1913,13 +2377,15 @@ class sfloat(_number):
     def __flow_detect__(self, p):
         """ detects overflow by or underflow. Implementation saves one multiplication,
             by simply  calculating the |p|> 2^{k-1}"""
-        if(program.fdflag):
+        if (program.fdflag):
             s = (p < 0) * (-2) + 1
             return (s * p) >= (2 ** (self.plen - 1))
         else:
             return sint(0)
 
 
+##
+# clear fixed point class based on mod p sint.
 class cfloat(object):
     """
     Helper class used for printing sfloats
@@ -1934,8 +2400,8 @@ class cfloat(object):
     __slots__ = ['v', 'p', 'z', 's', 'size']
 
     scalars = (int, long, float)
-    clears =(cfix, cint)
-    secrets=(sfix, sint)
+    clears = (cfix, cint)
+    secrets = (sfix, sint)
 
     # single precision
     vlen = 24
@@ -1944,10 +2410,9 @@ class cfloat(object):
     round_nearest = False
     error = 0
 
-
     ##
     # Constructor that receives the basic 4 slots.
-    # If it only receives v, it casts v to the float representation in use, 
+    # If it only receives v, it casts v to the float representation in use,
     # otherwise it uses the parametrization to instanciate a cfloat register.
     # @param v basic input or significand of IEEE floating point representation
     # @param p exponent. Optional parameter
@@ -1955,23 +2420,23 @@ class cfloat(object):
     # @param s sign. Optional parameter
     # @param size number of vectorized instances. Optional parameter
     @vectorize_init
-    def __init__(self, v, p= None, z=None, s=None, size =None):
+    def __init__(self, v, p=None, z=None, s=None, size=None):
         self.size = get_global_vector_size()
         if p is None:
-            #copy instance
+            # copy instance
             if isinstance(v, cfloat):
                 p = v.p
                 z = v.z
                 s = v.s
                 v = v.v
             elif isinstance(v, cfloat.clears):
-                #something like this should be done for fix:
+                # something like this should be done for fix:
                 # raise CompilerError('Unsupported operation for clear registries')
                 v_clear = parse_type(v)
                 f = v_clear.f
                 v, p, z, s = library.int2FL_plain(v_clear.v, program.bit_length, self.vlen, self.kappa)
                 p = p - f
-                #v, p, z, s = library.int2FL_plain(v, program.bit_length, self.vlen, self.kappa)
+                # v, p, z, s = library.int2FL_plain(v, program.bit_length, self.vlen, self.kappa)
 
             # instantiate v, p z, s as int
             elif isinstance(v, cfloat.scalars):
@@ -1979,7 +2444,7 @@ class cfloat(object):
                 # this is for legacy reasons, the method is a geacy method embedded in sfloat
                 v, p, z, s = floatingpoint.convert_float(v, self.vlen, self.plen)
 
-            else: # missmatch of types validation
+            else:  # missmatch of types validation
                 raise CompilerError('Missmatching input type')
 
         # validation of v
@@ -1987,9 +2452,9 @@ class cfloat(object):
             if not ((v >= 2 ** (self.vlen - 1) and v < 2 ** (self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
             self.v = cint(v)
-        elif isinstance(v,cint):
+        elif isinstance(v, cint):
             self.v = v
-        else: # missmatch of types validation
+        else:  # missmatch of types validation
             raise CompilerError('Missmatching input type ')
 
         # validation of p
@@ -1998,7 +2463,7 @@ class cfloat(object):
                 raise CompilerError(
                     'Floating point number malformed: exponent %d not unsigned %d-bit integer' % (p, self.plen))
             self.p = cint(p)
-        elif isinstance(p,cint):
+        elif isinstance(p, cint):
             self.p = p
         else:  # missmatch of types validation
             raise CompilerError('Missmatching input type')
@@ -2011,10 +2476,10 @@ class cfloat(object):
             if (z == 1):
                 self.set_zero(z)
                 self.z = cint(1)
-        elif isinstance(z,cint):
+        elif isinstance(z, cint):
             self.z = z
         else:  # missmatch of types validation
-             raise CompilerError('Missmatching input type')
+            raise CompilerError('Missmatching input type')
 
         # validation of s
         if isinstance(s, int):
@@ -2022,23 +2487,21 @@ class cfloat(object):
                 self.set_zero(1)
                 raise CompilerError('Floating point number malformed: sign')
             self.s = cint(s)
-        elif isinstance(s,cint):
-            self.s= s
+        elif isinstance(s, cint):
+            self.s = s
         else:  # missmatch of types validation
             raise CompilerError('Missmatching input type')
-
 
     ##
     # @private
     # sets records to zero
     # @param flag: whether or not it has to set up records to 0
     def set_zero(self, flag):
-        if(flag ==1):
+        if (flag == 1):
             self.v = cint(0)
             self.p = cint(0)
             self.s = cint(0)
             self.z = cint(0)
-
 
     ##
     # facade method that evokes low level instructions
@@ -2046,7 +2509,6 @@ class cfloat(object):
     # No params, uses instance records.
     def print_float_plain(self):
         print_float_plain(self.v, self.p, self.z, self.s)
-
 
     ##
     # computes the product times -1 of the cfloat
@@ -2063,52 +2525,49 @@ class cfloat(object):
     def sizeof(self):
         return self.size * 4
 
-
     ##
     # realizes the less than protocol for several different types.
     # @param other: value comparing self, could be any type
     # @return sint: new cint bitwise instance
     def __lt__(self, other):
-        if(isinstance(other,sfloat)):
+        if (isinstance(other, sfloat)):
             return other > self
         raise NotImplemented
-
 
     ##
     # realizes the great than protocol for several different types.
     # @param other: value comparing self, could be any type
     # @return sint: new cint bitwise instance
     def __gt__(self, other):
-        if(isinstance(other,sfloat)):
+        if (isinstance(other, sfloat)):
             return other < self
         raise NotImplemented
-
 
     ##
     # realizes the less equal protocol for several different types.
     # @param other: value comparing self, could be any type
     # @return sint: new cint bitwise instance
     def __le__(self, other):
-        if(isinstance(other,sfloat)):
+        if (isinstance(other, sfloat)):
             return other >= self
         raise NotImplemented
-
 
     ##
     # realizes the great equal protocol for several different types.
     # @param other: value comparing self, could be any type
     # @return sint: new cint bitwise instance
     def __ge__(self, other):
-        if(isinstance(other,sfloat)):
+        if (isinstance(other, sfloat)):
             return other <= self
-        raise  NotImplemented
-
+        raise NotImplemented
 
 
 _types = {
     'c': cint,
     's': sint,
     'r': regint,
+    'sr': sregint,
+    'sb': sbit
 }
 
 
@@ -2622,4 +3081,3 @@ def get_generic_array(value_type):
 # generate MultiArray for every type
 for value_type in [cint, cfix, sint, sfloat, sfix]:
     value_type.MultiArray = get_generic_array(value_type)
-

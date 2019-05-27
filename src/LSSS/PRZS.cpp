@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -56,8 +56,8 @@ PRZS::PRZS(Player &P)
             }
 
           // Set seeds
-          G[i][0].SetSeed(my_seed);
-          G[i][1].SetSeed(their_seed);
+          G[i][0].SetSeedFromRandom(my_seed);
+          G[i][1].SetSeedFromRandom(their_seed);
         }
     }
 }

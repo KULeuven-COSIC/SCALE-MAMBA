@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -73,7 +73,7 @@ void OT_Receiver::message(string &output, const string &input)
         }
       unsigned char *data= new unsigned char[len];
       crs.EncodePoint(data, M);
-      PRG.SetSeed(data);
+      PRG.SetSeed(data, len);
       delete[] data;
     }
 }
@@ -129,9 +129,9 @@ void OT_Sender::message(string &output, const string &input, CryptoPP::RandomPoo
         }
       unsigned char *data= new unsigned char[len];
       crs.EncodePoint(data, M[0]);
-      PRG[0].SetSeed(data);
+      PRG[0].SetSeed(data, len);
       crs.EncodePoint(data, M[1]);
-      PRG[1].SetSeed(data);
+      PRG[1].SetSeed(data, len);
       delete[] data;
     }
 }

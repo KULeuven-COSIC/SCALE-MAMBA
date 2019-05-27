@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -20,35 +20,36 @@ void ZKPoK::Step0(condition type, PoKVersion vers,
   if (version == HighGear)
     {
       U= ZK_sound_sec;
+      V= 2 * U - 1;
       ssec= U;
-    }
-  else
-    {
-      int lg2N= CEIL_LOG2(pk.get_params().phi_m());
-      U= DIV_CEIL(ZK_sound_sec, lg2N + 1);
-      ssec= U * (lg2N + 1);
-      // Switch version if type=Diag, as Diag cannot be done in TopGear
-      // Do this here, so we still use the small U. Need to tweak
-      // ssec though
-      if (PoKType == Diagonal)
-        {
-          version= HighGear;
-          ssec= U;
+      if (alpha.size() > U)
+        { // Have problem here as we assume this below for the Diag case
+          throw bad_value();
         }
     }
-
-  if (alpha.size() > U)
-    { // Have problem here as we assume this below for the Diag case
-      throw bad_value();
+  else if (PoKType != Diagonal)
+    {
+      int lg2N= CEIL_LOG2(2 * pk.get_params().phi_m() + 1);
+      V= DIV_CEIL(ZK_sound_sec + 2, lg2N);
+      U= 2 * V;
+      ssec= V * lg2N;
     }
-  V= 2 * U - 1;
+  else
+    { // Do TopGear diag proofs
+      V= 16;
+      U= alpha.size();
+      ssec= V;
+    }
 
   // Make plaintexts first
   m.resize(U, Plaintext(PTD));
   vector<bigint> bi_alpha(alpha.size());
-  for (unsigned int i= 0; i < alpha.size(); i++)
+  if (PoKType == Diagonal)
     {
-      to_bigint(bi_alpha[i], alpha[i]);
+      for (unsigned int i= 0; i < alpha.size(); i++)
+        {
+          to_bigint(bi_alpha[i], alpha[i]);
+        }
     }
 
   for (unsigned int i= 0; i < U; i++)
@@ -66,7 +67,7 @@ void ZKPoK::Step0(condition type, PoKVersion vers,
 
   // Now make the random coins for the encryptions
   r.resize(U, Random_Coins(pk.get_params()));
-  if (PoKType == Diagonal)
+  if (PoKType == Diagonal && version == HighGear)
     {
       for (unsigned int i= 0; i < alpha.size(); i++)
         {
@@ -138,28 +139,27 @@ void ZKPoK::Step1(const FHE_PK &pk, const FFT_Data &PTD, PRNG &G)
 }
 
 // Convert pair into matrix element
-//   For HighGear this is just 0/1 entries
-//   For TopGear we use -1 to represent zero, as
+//   For HighGear and TopGear Diagonal this is just 0/1 entries
+//   For TopGear non Digaonal we use -1 to represent zero, as
 //   e[i] represents the exponent of the thing in the
 //   challenge set, i.e. X^{e[i]}
 int ZKPoK::M(unsigned int k, unsigned int l, const vector<int> &e)
 {
-  int zero= 0;
-  if (version == TopGear)
+  if (version != TopGear)
     {
-      zero= -1;
+      if (l > k)
+        {
+          return 0;
+        }
+      unsigned int t= k - l; // No need to add one, as we index the vector e from zero
+      if (t >= U)
+        {
+          return 0;
+        }
+      return e[t];
     }
 
-  if (l > k)
-    {
-      return zero;
-    }
-  unsigned int t= k - l; // No need to add one, as we index the vector e from zero
-  if (t >= U)
-    {
-      return zero;
-    }
-  return e[t];
+  return e[k * U + l];
 }
 
 void ZKPoK::get_vA(ostream &s) const
@@ -218,10 +218,17 @@ void ZKPoK::Step1_Step(istream &vA, const FHE_PK &pk)
 
 void ZKPoK::Generate_e(vector<int> &e, uint8_t seed[SEED_SIZE])
 {
-  e.resize(U);
+  if (version == TopGear)
+    {
+      e.resize(U * V);
+    }
+  else
+    {
+      e.resize(U);
+    }
   PRNG G;
-  G.SetSeed(seed);
-  if (version == HighGear)
+  G.SetSeedFromRandom(seed);
+  if (version == HighGear || PoKType == Diagonal)
     {
       unsigned int c= 0;
       while (c < e.size())
@@ -238,12 +245,16 @@ void ZKPoK::Generate_e(vector<int> &e, uint8_t seed[SEED_SIZE])
         }
     }
   else
-    {
+    { // Now standard TopGear
       unsigned int N= E[0].get_params().phi_m();
       for (unsigned int j= 0; j < e.size(); j++)
         {
           unsigned int t= G.get_uint();
-          e[j]= t % (2 * N);
+          e[j]= t % (2 * N + 1);
+          if ((unsigned int) e[j] == 2 * N)
+            {
+              e[j]= -1;
+            }
         }
     }
 }
@@ -265,9 +276,9 @@ void ZKPoK::Step2(const vector<int> &ee, const FHE_PK &pk)
     {
       for (unsigned int j= 0; j < U; j++)
         {
-          if (version == TopGear)
+          int mm= M(i, j, e);
+          if (version == TopGear && PoKType != Diagonal)
             {
-              int mm= M(i, j, e);
               if (mm >= 0)
                 {
                   mul_by_X_i(temp_rq, x[j], mm);
@@ -278,7 +289,7 @@ void ZKPoK::Step2(const vector<int> &ee, const FHE_PK &pk)
             }
           else
             {
-              if (M(i, j, e) == 1)
+              if (mm == 1)
                 {
                   add(Z[i], Z[i], x[j]);
                   add(T[i], T[i], r[j]);
@@ -321,9 +332,9 @@ bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
       sub(eq[i], eq[i], A[i]);
       for (unsigned int j= 0; j < U; j++)
         {
-          if (version == TopGear)
+          int mm= M(i, j, e);
+          if (version == TopGear && PoKType != Diagonal)
             {
-              int mm= M(i, j, e);
               if (mm >= 0)
                 {
                   mul_by_X_i(temp, E[j], mm);
@@ -332,7 +343,7 @@ bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
             }
           else
             {
-              if (M(i, j, e) == 1)
+              if (mm == 1)
                 {
                   sub(eq[i], eq[i], E[j]);
                 }

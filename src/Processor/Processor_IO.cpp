@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -16,21 +16,7 @@ extern vector<sacrificed_data> SacrificeD;
 void IO_Data_Wait(unsigned int player, unsigned int size, int thread,
                   offline_control_data &OCD)
 {
-  bool wait= true;
-  while (wait)
-    {
-      OCD.sacrifice_mutex[thread].lock();
-      wait= false;
-      if (SacrificeD[thread].ID.ios[player].size() < size)
-        {
-          wait= true;
-        }
-      OCD.sacrifice_mutex[thread].unlock();
-      if (wait)
-        {
-          sleep(1);
-        }
-    }
+  Wait_For_Preproc(DATA_INPUT_MASK, size, thread, OCD, player);
 }
 
 void Processor_IO::private_input(unsigned int player, int target, unsigned int channel,
@@ -40,7 +26,7 @@ void Processor_IO::private_input(unsigned int player, int target, unsigned int c
   gfp i_epsilon;
   int thread= Proc.get_thread_num();
 
-  IO_Data_Wait(player, 1, thread, OCD);
+  Wait_For_Preproc(DATA_INPUT_MASK, 1, thread, OCD, player);
 
   if (player == P.whoami())
     {
@@ -88,8 +74,7 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
                                   offline_control_data &OCD)
 {
   int thread= Proc.get_thread_num();
-
-  IO_Data_Wait(player, 1, thread, OCD);
+  Wait_For_Preproc(DATA_INPUT_MASK, 1, thread, OCD, player);
 
   OCD.sacrifice_mutex[thread].lock();
 
@@ -113,8 +98,9 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
   Proc.Open_To_All_Begin(values, shares, P, 1);
   Proc.Open_To_All_End(values, shares, P, 1);
 
-  // Guaranteed to be on online thread zero
+  // Guaranteed to be in online thread zero
   Proc.RunOpenCheck(P, machine.get_IO().Get_Check(), 1);
+  Proc.RunOpenCheck(P, machine.get_IO().Get_Check(), 2);
   if (player == P.whoami())
     {
       values[0].sub(o_epsilon);

@@ -1,12 +1,13 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "offline_subroutines.h"
 #include <fstream>
+#include <mutex>
 using namespace std;
 
 /* Make a share vector which shares a value val
@@ -77,12 +78,20 @@ gfp schur_sum_prod(const Share &aa, const Share &bb, const Player &P)
 }
 
 vector<gfp> Mkeys;
-bool init_fake_run= false;
+mutex mutex_global_mac_read;
 
 void init_fake()
 {
-  if (init_fake_run == false && Share::SD.type == Full)
+  if (Share::SD.type == Full && Mkeys.empty())
     {
+      mutex_global_mac_read.lock();
+      if (!Mkeys.empty())
+        {
+          // other thread already initialized the mac key
+          mutex_global_mac_read.unlock();
+          return;
+        }
+
       Mkeys.resize(Share::SD.nmacs);
       for (unsigned int i= 0; i < Share::SD.nmacs; i++)
         {
@@ -105,7 +114,7 @@ void init_fake()
             }
           inp.close();
         }
-      init_fake_run= true;
+      mutex_global_mac_read.unlock();
     }
 }
 

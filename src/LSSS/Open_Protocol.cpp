@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -17,27 +17,33 @@ using namespace std;
 
 Open_Protocol::Open_Protocol()
 {
-  open_cnt= 0;
-  counter[0]= 0; // Counts the balance of sends and receives in each connection
-  counter[1]= 0; // Counts the balance of sends and receives in each connection
-  macs.resize(Share::SD.nmacs);
-  SHA256_Init(&sha256);
+  macs.resize(3);
+  sha256.resize(3);
+  for (unsigned int i= 0; i < 3; i++)
+    {
+      macs[i].resize(Share::SD.nmacs);
+      SHA256_Init(&sha256[i]);
+      // Counts the balance of sends and receives in each connection
+      counter[i]= 0;
+      // Counts the balance of all opens in each connection
+      open_cnt[i]= 0;
+    }
 }
 
-void Open_Protocol::AddToMacs(const vector<Share> &shares)
+void Open_Protocol::AddToMacs(const vector<Share> &shares, int connection)
 {
   for (unsigned int i= 0; i < shares.size(); i++)
     {
       for (unsigned int j= 0; j < Share::SD.nmacs; j++)
         {
-          macs[j].push_back(shares[i].mac[j]);
+          macs[connection][j].push_back(shares[i].mac[j]);
         }
     }
 }
 
-void Open_Protocol::AddToValues(const vector<gfp> &values)
+void Open_Protocol::AddToValues(const vector<gfp> &values, int connection)
 {
-  vals.insert(vals.end(), values.begin(), values.end());
+  vals[connection].insert(vals[connection].end(), values.begin(), values.end());
 }
 
 void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
@@ -45,6 +51,7 @@ void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
                                       int connection,
                                       bool verbose)
 {
+  values.resize(S.size()); // Get rid of tiresome segfault errors
   if (verbose)
     {
       cout << "Size: " << S.size() << " " << S[0].a.size() << endl;
@@ -121,9 +128,9 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
                 }
             }
         }
-      AddToMacs(S);
-      AddToValues(values);
-      if (open_cnt > open_check_gap)
+      AddToMacs(S, connection);
+      AddToValues(values, connection);
+      if (open_cnt[connection] > open_check_gap)
         {
           RunOpenCheck(P, "", connection);
         }
@@ -183,18 +190,18 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
             {
               ssv[j].output(ss, false);
             }
-          SHA256_Update(&sha256, ss.str().c_str(), ss.str().size());
+          SHA256_Update(&sha256[connection], ss.str().c_str(), ss.str().size());
         }
       counter[connection]-= S.size();
     }
-  open_cnt+= values.size();
-  if (open_cnt > open_check_gap && counter[connection] == 0)
+  open_cnt[connection]+= values.size();
+  if (open_cnt[connection] > open_check_gap && counter[connection] == 0)
     {
       RunOpenCheck(P, "", connection);
     }
 }
 
-/* We run it on the connection c as connection 1-c might have
+/* We run it on the connection c as other connection might have
  * some opening still to do
  */
 void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, bool verbose)
@@ -204,7 +211,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
       uint8_t seed[SEED_SIZE];
       Create_Random_Seed(seed, SEED_SIZE, P, connection);
       PRNG G;
-      G.SetSeed(seed);
+      G.SetSeedFromRandom(seed);
 
       int neqs= Share::SD.nmacs;
       vector<vector<gfp>> tau(neqs, vector<gfp>(P.nplayers()));
@@ -216,20 +223,20 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
         {
           a[j].assign_zero();
           gami[j].assign_zero();
-          for (int i= 0; i < open_cnt; i++)
+          for (int i= 0; i < open_cnt[connection]; i++)
             {
               r.almost_randomize(G);
-              temp.mul(r, vals[i]);
+              temp.mul(r, vals[connection][i]);
               a[j].add(temp);
 
-              temp.mul(r, macs[j][i]);
+              temp.mul(r, macs[connection][j][i]);
               gami[j].add(temp);
             }
-          macs[j].erase(macs[j].begin(), macs[j].begin() + open_cnt);
+          macs[connection][j].erase(macs[connection][j].begin(), macs[connection][j].begin() + open_cnt[connection]);
           temp.mul(a[j], P.get_mac_key(j));
           tau[j][P.whoami()].sub(gami[j], temp);
         }
-      vals.erase(vals.begin(), vals.begin() + open_cnt);
+      vals[connection].erase(vals[connection].begin(), vals[connection].begin() + open_cnt[connection]);
 
       Commit_And_Open(tau, P, false, connection);
 
@@ -264,7 +271,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
   else
     {
       unsigned char hash[SHA256_DIGEST_LENGTH];
-      SHA256_Final(hash, &sha256);
+      SHA256_Final(hash, &sha256[connection]);
       string ss((char *) hash, SHA256_DIGEST_LENGTH);
       if (verbose)
         {
@@ -299,7 +306,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
                 }
             }
         }
-      SHA256_Init(&sha256);
+      SHA256_Init(&sha256[connection]);
     }
 
   // Now deal with the auxillary string
@@ -337,7 +344,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
             }
         }
     }
-  open_cnt= 0;
+  open_cnt[connection]= 0;
 }
 
 void Open_Protocol::Open_To_One_Begin(unsigned int player_num,

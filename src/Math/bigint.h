@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -125,5 +125,11 @@ inline int Hwt(int N)
 }
 
 bigint randomBnd(PRNG &G, const bigint &B);
+
+bigint compute_binomial(int n, int k);
+
+void bigint_to_bits(vector<int> &bits, const bigint &x);
+void ulong_to_bits(vector<int> &bits, unsigned long x);
+void long_to_bits(vector<int> &bits, long x);
 
 #endif

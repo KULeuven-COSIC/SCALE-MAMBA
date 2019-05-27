@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -132,7 +132,7 @@ void mult_phase(int num_online, Player &P, offline_control_data &OCD,
 
       if (flag == 2)
         {
-          sleep(1);
+          sleep(5);
         }
       else
         {
@@ -189,7 +189,7 @@ void square_phase(int num_online, Player &P, offline_control_data &OCD,
 
       if (flag == 2)
         {
-          sleep(1);
+          sleep(5);
         }
       else
         {
@@ -246,7 +246,7 @@ void bit_phase(int num_online, Player &P, offline_control_data &OCD,
 
       if (flag == 2)
         {
-          sleep(1);
+          sleep(5);
         }
       else
         {
@@ -360,16 +360,12 @@ bool propose_numbers_sacrifice(int num_online, Player &P, int &nm, int &ns,
         {
           nb= 0;
         }
-      // Only thread zero cares about input/output bits
-      if (num_online == 0)
+      for (unsigned int i= 0; i < P.nplayers(); i++)
         {
-          for (unsigned int i= 0; i < P.nplayers(); i++)
+          if ((OCD.maxI == 0 && SacrificeD[num_online].ID.ios[i].size() < max_IO_sacrifice) || (OCD.totI[num_online] < OCD.maxI))
             {
-              if ((OCD.maxI == 0 && SacrificeD[num_online].ID.ios[i].size() < max_IO_sacrifice) || (OCD.totI < OCD.maxI))
-                {
-                  make_inputs[i]= 1;
-                  minputs= true;
-                }
+              make_inputs[i]= 1;
+              minputs= true;
             }
         }
 
@@ -473,7 +469,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
 
               /* Add to queues */
               OCD.sacrifice_mutex[num_online].lock();
-              OCD.totI+= a.size();
+              OCD.totI[num_online]+= a.size();
               it= SacrificeD[num_online].ID.ios[i].end();
               SacrificeD[num_online].ID.ios[i].splice(it, a);
               if (i == P.whoami())
@@ -668,7 +664,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
             }
           btotal= total;
           avg= time / total;
-          printf("Seconds per Mult Triple (all threads) %f : Total %f\n", avg, total);
+          printf("Seconds per Mult Triple (all threads) %f : Total %f : Throughput %f\n", avg, total, 1 / avg);
 
           total= 0;
           for (unsigned int i= 0; i < SacrificeD.size(); i++)
@@ -677,7 +673,7 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
             }
           btotal+= total;
           avg= time / total;
-          printf("Seconds per Square Pair (all threads) %f : Total %f\n", avg, total);
+          printf("Seconds per Square Pair (all threads) %f : Total %f : Throughput %f\n", avg, total, 1 / avg);
 
           total= 0;
           for (unsigned int i= 0; i < SacrificeD.size(); i++)
@@ -686,15 +682,15 @@ void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
             }
           btotal+= total;
           avg= time / total;
-          printf("Seconds per Bit (all threads) %f : Total %f\n", avg, total);
+          printf("Seconds per Bit (all threads) %f : Total %f : Throughput %f\n", avg, total, 1 / avg);
           avg= time / btotal;
-          printf("Seconds per `Thing` (all threads) %f : Total %f\n", avg, btotal);
+          printf("Seconds per `Thing` (all threads) %f : Total %f : Throughput %f\n", avg, total, 1 / avg);
         }
       /* Check whether we should kill the offline phase as we have now enough data */
       if (OCD.totm[num_online] > OCD.maxm && OCD.maxm != 0 &&
           OCD.tots[num_online] > OCD.maxs && OCD.maxs != 0 &&
           OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0 &&
-          OCD.totI > OCD.maxI)
+          OCD.totI[num_online] > OCD.maxI)
         {
           OCD.finish_offline[num_online]= 1;
           printf("We have enough data to stop offline phase now\n");

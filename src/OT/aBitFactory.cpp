@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -76,8 +76,6 @@ void aBitFactory::Initialize(Player &P)
   xvec.resize(8 * max_l + OT_comp_sec);
 
   default_l= 8;
-  used= 0;
-  status= EMPTY;
 
   printf("Finished Base-OTs\n");
 }
@@ -85,16 +83,12 @@ void aBitFactory::Initialize(Player &P)
 /* Algorithm 16 Steps 1-4 of ePrint 2017/214 */
 unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
 {
-  if (status != EMPTY)
-    {
-      throw OT_error();
-    }
   unsigned int m= 8 * l, ldash= l + OT_comp_sec / 8;
 
   unsigned int n= P.nplayers(), whoami= P.whoami();
 
   /* Step 1 */
-  sz_aBits= m + OT_comp_sec;
+  unsigned int sz_aBits= m + OT_comp_sec;
   xvec.randomize_at(0, ldash, G);
   for (unsigned int i= 0; i < sz_aBits; i++)
     {
@@ -132,9 +126,9 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
 
   /* Step 4a and 4b */
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, seed, SEED_SIZE);
+  AgreeRandom(P, seed, SEED_SIZE, 2);
   PRNG G2;
-  G2.SetSeed(seed);
+  G2.SetSeedFromRandom(seed);
   gf2n chi;
   aBit C, T;
   for (unsigned int i= 0; i < m; i++)
@@ -171,7 +165,7 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
           o[i]= ss.str();
         }
     }
-  P.Send_Distinct_And_Receive(o);
+  P.Send_Distinct_And_Receive(o, 2);
   for (unsigned int i= 0; i < n; i++)
     {
       if (i != P.whoami())
@@ -187,7 +181,7 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
   stringstream ss;
   CC[P.whoami()].output(ss);
   o[P.whoami()]= ss.str();
-  P.Broadcast_Receive(o, true);
+  P.Broadcast_Receive(o, true, 2);
   for (unsigned int i= 0; i < n; i++)
     {
       if (i != P.whoami())
@@ -224,7 +218,7 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
           data[i + 1][P.whoami()]= Zi;
         }
     }
-  Commit_And_Open(data, P, true);
+  Commit_And_Open(data, P, true, 2);
 
   /* Step 4g */
   // Check sum z_j^i
@@ -255,16 +249,13 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
     }
 
   // Do check of broadcasts
-  P.Check_Broadcast();
+  P.Check_Broadcast(2);
 
-  status= aShares;
-  // These are the ones we want to save
-  sz_aBits= m;
-  used= 0;
+  // We want to save m of these aBits for later
   return m;
 }
 
-void aBitFactory::tune(Player &P, int verbose)
+void aBitFactory::tune(Player &P, list<aBit> &aBl, int verbose)
 {
   unsigned int l= 16384; // Pick a large value here as sometimes have noisy results
   Timer T;
@@ -272,18 +263,20 @@ void aBitFactory::tune(Player &P, int verbose)
     {
       cout << "Tuning aBitFactory\n";
     }
+  list<aBit>::iterator it;
   double mx= 0;
   while (l <= max_l)
     {
       unsigned int sz= 0;
       T.reset();
-      T.start();
       while (sz < 10 * l)
         {
-          sz+= make_aBits(l, P);
-          status= EMPTY;
+          T.start();
+          unsigned int m= make_aBits(l, P);
+          T.stop();
+          sz+= m;
+          copy(aBits.begin(), aBits.begin() + m, back_inserter(aBl));
         }
-      T.stop();
       double e= sz / T.elapsed();
       if (verbose > 0)
         {
@@ -301,12 +294,12 @@ void aBitFactory::tune(Player &P, int verbose)
     {
       stringstream ss;
       ss << default_l;
-      P.send_all(ss.str());
+      P.send_all(ss.str(), 2);
     }
   else
     {
       string ss;
-      P.receive_from_player(0, ss);
+      P.receive_from_player(0, ss, 2);
       istringstream is(ss);
       is >> default_l;
     }
@@ -314,19 +307,4 @@ void aBitFactory::tune(Player &P, int verbose)
     {
       cout << "New default_l = " << default_l << endl;
     }
-}
-
-aBit aBitFactory::get_aShare(Player &P)
-{
-  if (used == sz_aBits)
-    {
-      status= EMPTY;
-    }
-  if (status == EMPTY)
-    {
-      make_aBits(P);
-    }
-
-  used++;
-  return aBits[used - 1];
 }

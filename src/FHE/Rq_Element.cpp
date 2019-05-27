@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -321,23 +321,32 @@ void Rq_Element::Scale(const bigint &p)
   mul(a[1], a[1], tep);
 
   // Now compute delta
-  vector<bigint> delta= a[1].to_vec_bigint();
-  for (unsigned int i= 0; i < delta.size(); i++)
-    {
-      lambda= (delta[i] * p1i) % p;
-      delta[i]= (-delta[i] + lambda * p1) % n;
-      ;
-      if (delta[i] > n / 2)
-        {
-          delta[i]-= n;
-        }
-    }
-
-  // Now add delta back onto a0
   Ring_Element b0(a[0].get_FFTD(), evaluation);
   Ring_Element b1(a[1].get_FFTD(), evaluation);
-  b0.from_vec(delta);
-  b1.from_vec(delta);
+  {
+    auto poly_a1= a[1];
+    poly_a1.change_rep(polynomial);
+    auto it= poly_a1.get_iterator();
+    auto it0= b0.get_write_iterator();
+    auto it1= b1.get_write_iterator();
+    bigint half_n= n / 2;
+    bigint delta;
+    for (int i= 0; i < a[1].get_FFTD().phi_m(); i++)
+      {
+        it.get(delta);
+        lambda= delta;
+        lambda*= p1i;
+        lambda%= p;
+        lambda*= p1;
+        lambda-= delta;
+        lambda%= n;
+        if (lambda > half_n)
+          lambda-= n;
+        it0.get(lambda);
+        it1.get(lambda);
+      }
+  }
+
   Rq_Element bb(b0, b1);
   add(*this, *this, bb);
 

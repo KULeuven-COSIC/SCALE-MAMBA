@@ -38,7 +38,7 @@ impressive.
 
 In order to enable efficient operation in the case where the
 offline phase is expensive (e.g. for Full Threshold secret sharing)
-we provide an {\em experimental} mechanism to enable the SCALE system to run
+we provide a mechanism to enable the SCALE system to run
 as a seperate process (generating offline data), and then
 a MAMBA program can be compiled in a just-in-time manner
 and can then be dispated to the SCALE system for
@@ -120,6 +120,10 @@ data off the triple-list and perform the triple checking via
 sacrificing.
 Once a triple passes sacrificing it is passed onto another
 list, called the sacrificed-list, for consumption by the online phase.
+The sizes of these lists can be controlled (somewhat) by the
+values in the file \verb+config.h+.
+One can control the number of entries {\em ever}
+placed on the sacrificed-list by use of the run-time flag \verb+max+.
 \item By having the production threads aligned with an online
 thread we can avoid complex machinary to match produces with
 consumers. This however may (more like will) result in the 
@@ -132,14 +136,22 @@ which is itself a variant of the High Gear protocol in Overdrive \cite{KPR}.
 This is done in a small bunch of global threads as the ZKPoK would
 blow up memory if done for each thread that would consume 
 data from the FHE thread.
-These threads are numbered from 10000 in the code.
+These threads are numbered from 10000 upwards in the code.
 Any thread (offline production thread) can request a new
 ciphertext/plaintext pair from the FHE factory threads.
+Experiments show that having two FHE factory threads is usually
+optimal.
 \item We also implement a thread (number 20000 in the code)
-which implements pairwise OTs, which can be turned on with a magic
-undocumented switch. \todo{This is currently only
-for experimental purposes though. It will be fully integrated
-in a future release.}
+which implements pairwise OTs via OT-extension.
+This thread produces a bunch of authenticated bits in various
+queues, one for each online thread.
+Each main online thread then removes aBits from its respective
+queue when it needs these to produce aANDs, daBits or execute
+the garbled circuit protocols.
+The first time the online thread meets an instruction which
+requires such data there can be a little lag as the sub-queues
+fill up, but this disappears on subsequent instructions
+(until the queues need filling again).
 \end{itemize}
 
 

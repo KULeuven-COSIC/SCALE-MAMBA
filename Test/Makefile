@@ -7,13 +7,13 @@ CFLAGS = -Wall -std=c++11 -pedantic -Wextra -g -pthread -I$(ROOT)/src -maes -mpc
 CPPFLAGS = $(CFLAGS) 
 LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir -lcryptopp $(LDFLAGS)
 
-all: Test.x Test-FHE.x Test-Adv-FHE.x Test-Circuit.x FHE-P.x
+all: Test.x Test-FHE.x Test-Adv-FHE.x Test-Circuit.x FHE-P.x Test-Simplify.x Test-Convert.x 
 
 LIB = ../src/libMPC.a
 
-OBJ =  Test.o Test-FHE.o Test-Adv-FHE.o Test-Circuit.o FHE-P.o
+OBJ =  Test.o Test-FHE.o Test-Adv-FHE.o Test-Circuit.o FHE-P.o Test-Simplify.o Test-Convert.o 
 
-SRC = Test.cpp Test-FHE.cpp Test-Adv-FHE.cpp Test-Circuit.cpp FHE-P.cpp
+SRC = Test.cpp Test-FHE.cpp Test-Adv-FHE.cpp Test-Circuit.cpp FHE-P.cpp Test-Simplify.cpp Test-Convert.cpp 
 
 $(OBJ): $(SRC)
 	$(CC) $(CFLAGS) -c $*.cpp
@@ -39,7 +39,13 @@ Test-Circuit.x: $(OBJ)
 	$(CC) $(CFLAGS) -o Test-Circuit.x Test-Circuit.o $(LIB) $(LDLIBS)
 	- mv Test-Circuit.x ../
 
-	
+Test-Simplify.x: $(OBJ)
+	$(CC) $(CFLAGS) -o Test-Simplify.x Test-Simplify.o $(LIB) $(LDLIBS)
+	- mv Test-Simplify.x ../
+
+Test-Convert.x: $(OBJ)
+	$(CC) $(CFLAGS) -o Test-Convert.x Test-Convert.o $(LIB) $(LDLIBS)
+	- mv Test-Convert.x ../
 
 clean:
-	- rm *.x *.o 
+	- rm *.o 

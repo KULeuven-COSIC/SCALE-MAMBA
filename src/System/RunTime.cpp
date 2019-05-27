@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -10,7 +10,8 @@ All rights reserved
  */
 
 #include "System/RunTime.h"
-#include "OT/OT_Thread.h"
+#include "OT/aBit_Thread.h"
+#include "Offline/DABitMachine.h"
 #include "Offline/FHE_Factory.h"
 #include "Offline/offline_phases.h"
 #include "Online/Online.h"
@@ -29,7 +30,7 @@ All rights reserved
 #include <vector>
 using namespace std;
 
-int USE_OT_THREAD;
+extern Base_Circuits Global_Circuit_Store;
 
 class thread_info
 {
@@ -39,6 +40,7 @@ public:
   offline_control_data *OCD;
   SSL_CTX *ctx;
   int me;
+  unsigned int no_online_threads;
   vector<vector<int>> csockets;
   vector<gfp> MacK;
 
@@ -71,6 +73,8 @@ vector<squares_data> SquaresD;
 vector<bits_data> BitsD;
 vector<sacrificed_data> SacrificeD;
 
+MaliciousDABitMachine daBitMachine;
+
 /* Before calling this we assume various things have
  * been set up. In particular the following functions have
  * been called
@@ -83,7 +87,7 @@ vector<sacrificed_data> SacrificeD;
  *    FHE data has been initialized if needed
  *
  * We also assume the machine.schedule has been initialised
- * with some stingstream tapes and a stringstream to a schedule file
+ * with some stringstream tapes and a stringstream to a schedule file
  *
  * This function assumes that afterwards we sort out 
  * closing down SSL and Dump'ing memory if need be
@@ -100,6 +104,8 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   machine.Load_Schedule_Into_Memory();
   machine.SetUp_Threads(no_online_threads);
 
+  Global_Circuit_Store.initialize(gfp::pr());
+
   OCD.resize(no_online_threads);
 
   TriplesD.resize(no_online_threads);
@@ -115,14 +121,12 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   // Add in the FHE threads
   unsigned int tnthreads= nthreads + number_FHE_threads;
   // Add in the OT thread
-  if (USE_OT_THREAD)
-    {
-      tnthreads++;
-    }
+  tnthreads+= 1;
+  daBitMachine.Initialize(SD.n);
 
   /* Initialize the networking TCP sockets */
   int ssocket;
-  vector<vector<vector<int>>> csockets(tnthreads, vector<vector<int>>(SD.n, vector<int>(2)));
+  vector<vector<vector<int>>> csockets(tnthreads, vector<vector<int>>(SD.n, vector<int>(3)));
   Get_Connections(ssocket, csockets, portnum, my_number, SD, verbose - 2);
   printf("All connections now done\n");
 
@@ -140,18 +144,19 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
         {
           tinfo[i].thread_num= i;
         }
-      else if (i < tnthreads + number_FHE_threads - 1)
+      else if (i < nthreads + number_FHE_threads)
         {
           tinfo[i].thread_num= 10000 + i - nthreads;
         }
       else
         {
-          tinfo[i].thread_num= 20000;
+          tinfo[i].thread_num= 20000 + i - nthreads - number_FHE_threads;
         }
       tinfo[i].SD= &SD;
       tinfo[i].OCD= &OCD;
       tinfo[i].ctx= ctx;
       tinfo[i].me= my_number;
+      tinfo[i].no_online_threads= no_online_threads;
       tinfo[i].csockets= csockets[i];
       tinfo[i].MacK= MacK;
       tinfo[i].machine= &machine;
@@ -229,9 +234,13 @@ void *Main_Func(void *ptr)
     {
       (*(tinfo)->industry).FHE_Factory(P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->PTD), num - 10000, verbose);
     }
-  else if (USE_OT_THREAD == 1)
-    { // Should remove the if on this else eventually XXXX
-      OT_Thread(P, 2);
+  else if (num == 20000)
+    {
+      aBit_Thread(P, (tinfo->no_online_threads), *(tinfo->OCD), verbose);
+    }
+  else
+    {
+      throw bad_value();
     }
   return 0;
 }

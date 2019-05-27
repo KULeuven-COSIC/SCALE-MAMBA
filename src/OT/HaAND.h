@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -15,12 +15,12 @@ All rights reserved
  *   function we do in parallel. So if you change this you
  *   need to change the MMO template instantiation.
  *
- *   Assumption that aBF.default_l is divisible by OT_Amort
+ *   Assumption that 32768 is divisible by OT_Amort
  */
 
 #define OT_Amort 128
 
-#include "aBitFactory.h"
+#include "aBit.h"
 
 class HaAND
 {
@@ -30,8 +30,8 @@ public:
   vector<vector<gf2n>> HKi, HKiD, HMi;
   vector<int> v;
 
-  /* This is protocol 16 of ePrint 2017/189 executed default_l times */
-  void make_more(aBitFactory &aBF, Player &P);
+  /* This is protocol 16 of ePrint 2017/189 executed 131072 times */
+  void make_more(Player &P, int num_online);
 
   unsigned int get_number() const { return x.size(); }
 };

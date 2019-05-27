@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -54,7 +54,7 @@ void make_IO_data_fake(Player &P, unsigned int player_num, list<Share> &a,
         {
           Seed[i]= 0;
         }
-      PRG.SetSeed(Seed);
+      PRG.SetSeedFromRandom(Seed);
 
       init_fake();
       int n= P.nplayers();
@@ -116,7 +116,7 @@ void make_IO_data(Player &P, int fake_sacrifice, PRSS &prss,
 
   if (Share::SD.type == Full && !fake_sacrifice)
     {
-      offline_FHE_IO(P, player_num, a, opened, pk, sk, PTD, OP, industry);
+      offline_FHE_IO(P, player_num, a, opened, pk, sk, PTD, industry);
     }
   else if (fake_sacrifice)
     {

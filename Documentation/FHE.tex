@@ -14,7 +14,7 @@ to get the precise number you compute $\ceil{\Sacsecp/\log_2 p}$.
 Thus this statistical security parameter is effectively
 $\log_2 p$ unless $p$ is very small.
 \item $\Macsecp$ (default $80$):
-For the full threshold case this defined how many MACs are held
+For the full threshold case this defines how many MACs are held
 per data item, again to get the precise number you compute 
 $\ceil{\Macsecp/\log_2 p}$.
 Thus, again, this statistical security parameter is effectively
@@ -75,7 +75,7 @@ be found at
 \url{https://bitbucket.org/malb/lwe-estimator}
 \end{center}
 For various values of $n$ and (symmetric equivalent)
-security levels \verb+comp_sec+ we then find the minimum secure
+security levels \verb+comp_sec+, we then find the maximum secure
 value of $q$.
 This is done by running the following \verb+sage+ code
 \begin{verbatim}
@@ -202,6 +202,15 @@ amongst the $n$ players.
 \item Unlike in SPDZ-2 we are going to use an actively secure ZKPoK (see later),
 which will make the actual noise analysis much more complex.
 \end{itemize}
+The TopGear zero-knowledge proof is parametrized by two
+parameters $U$ and $V$.
+The parameter $U$ defines the amount of ciphertexts we prove in
+each iteration, i.e. the amount of ciphertext amortization.
+Whereas $V$ is the number of auxillary ciphertexts which are used.
+We set $U = 2 \cdot V$, and $V= (\Soundsecp+2)/\log_2 (2 \cdot N+1)$
+for normal proofs.
+For the diagonal proofs we set $U$ to be the number of different
+MAC keys being used, and $V=16$.
 
 
 \subsubsection{Key Generation:}
@@ -266,11 +275,11 @@ Note this is a probablistic bound and not an absolute bound.
 However, below we will only be able to guarantee the
 $m, v, e_0$ and $e_1$ values of a {\bf sum} of $n$ fresh ciphertexts
 (one from each party) are selected subject to
-\[ \norm{v}_\infty \le 2^{\ZKsecp + U/2 + 2} \cdot n \quad 
+\[ \norm{v}_\infty \le 2^{\ZKsecp + 3} \cdot n \quad 
     \mbox{  and  } \quad
-   \norm{e_0}_\infty, \norm{e_1}_\infty \le 20 \cdot 2^{\ZKsecp + U/2 + 2} \cdot n \quad
+   \norm{e_0}_\infty, \norm{e_1}_\infty \le 20 \cdot 2^{\ZKsecp + 2} \cdot n \quad
     \mbox{  and  } \quad
-   \norm{m}_\infty \le 2^{\ZKsecp/2 + U/2 + 1} \cdot n \cdot p,
+   \norm{m}_\infty \le 2^{\ZKsecp + 1} \cdot n \cdot p,
 \]
 where $\ZKsecp$ is our soundness parameter for the 
 zero-knowledge proofs
@@ -286,16 +295,16 @@ and the infinity norm in the canonical embedding,
 	+ \norm{2 \cdot e_{0,i}}_\infty^\can \\
   &\hspace{3.5cm}
 	+ \norm{\sk}_\infty^\can \cdot \norm{2 \cdot e_{1,i}}_\infty^\can \Big) \\
-   &\le 2 \cdot \phi(m) \cdot 2^{\ZKsecp+U/2+1} \cdot n \cdot p/2  \\
+   &\le 2 \cdot \phi(m) \cdot 2^{\ZKsecp+1} \cdot n \cdot p  \\
    & \hspace{2cm}
 	+ p \cdot \Big(
-	 \gc_1 \cdot \sigma \cdot \phi(m)^{3/2} \cdot 2 \cdot 2^{\ZKsecp+U/2+1} \cdot n\\
+	 \gc_1 \cdot \sigma \cdot \phi(m)^{3/2} \cdot 2 \cdot 2^{\ZKsecp+2} \cdot n\\
   &\hspace{3cm}
-	  + \phi(m) \cdot 2 \cdot  2^{\ZKsecp+U/2+1} \cdot n \cdot 20  \\
+	  + \phi(m) \cdot 2 \cdot  2^{\ZKsecp+2} \cdot n \cdot 20  \\
   &\hspace{3cm}
-	  +  \gc_1 \cdot \sqrt{h} \cdot \phi(m) \cdot 2 \cdot 2^{\ZKsecp+U/2+1} \cdot n \cdot 20 
+	  +  \gc_1 \cdot \sqrt{h} \cdot \phi(m) \cdot 2 \cdot 2^{\ZKsecp+2} \cdot n \cdot 20 
 	\Big)  \\
-  &=\phi(m) \cdot 2^{\ZKsecp+U/2+2} \cdot n \cdot p
+  &=\phi(m) \cdot 2^{\ZKsecp+2} \cdot n \cdot p
 	\cdot \Big( \frac{41}{2} + \gc_1 \cdot \sigma \cdot \phi(m)^{1/2}  
 	           +  20 \cdot \gc_1 \cdot \sqrt{h} 
 	\Big)   \\
@@ -497,7 +506,7 @@ protocol from \cite{KPR}[Appendix A].
 \subsection{Zero Knowledge Proof}
 The precise ZKPoK we use is from TopGear \cite{TopGear}, which
 is an extension of the HighGear prtoocol from \cite{KPR}.
-The precise protocol is given in \figref{PZK1} and \figref{PZK2}.
+The precise protocol is given in \figref{PZK1}.
 This is an amortized version of the proof from \cite{SPDZ}, in the sense
 that the input ciphertexts from all players are simultaneously proved to be
 correct.
@@ -511,7 +520,7 @@ polynomial.
 \input{FigZKPoK}
 
 Note the soundness security in the case of $\flag=\Diag$ is only
-equal to $2^-U$ as opposed to $(2 \cdot \phi(m))^U$.
+equal to $2^{-V}$ as opposed to $(2 \cdot \phi(m)+1)^{-V}$.
 However, by repeating the ZKPoK a number of times we obtain
 the desired soundness security. As this is only done for
 the ciphertexts encrypting the MAC keys this is not a problem in

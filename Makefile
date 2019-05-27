@@ -13,10 +13,14 @@ doc:
 	-cd Documentation ; make
 	-cd Compiler ; doxygen doxy.config
 
+circuits:
+	-cd Circuits ; make ; ./convert.sh
+
 clean:
 	-rm  *.x
 	-cd src ; make clean
 	-cd Test ; make clean
+	-cd Circuits ; make clean 
 
 pclean:
 	-cd Programs ; rm */*.bc ; rm */*.sch

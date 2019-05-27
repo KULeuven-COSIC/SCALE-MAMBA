@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -52,10 +52,6 @@ public:
     return t() * sizeof(mp_limb_t);
   }
 
-  void assign(const gfp &g)
-  {
-    a= g.a;
-  }
   void assign_zero()
   {
     assignZero(a, ZpD);
@@ -103,10 +99,7 @@ public:
   {
     assignZero(a, ZpD);
   }
-  gfp(const gfp &g)
-  {
-    a= g.a;
-  }
+  // Assumes prD behind x is equal to ZpD
   gfp(const modp &g)
   {
     a= g;
@@ -118,19 +111,6 @@ public:
   gfp(int x)
   {
     assign(x);
-  }
-  ~gfp()
-  {
-    ;
-  }
-
-  gfp &operator=(const gfp &g)
-  {
-    if (&g != this)
-      {
-        a= g.a;
-      }
-    return *this;
   }
 
   bool is_zero() const

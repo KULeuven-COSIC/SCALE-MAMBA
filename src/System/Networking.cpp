@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -241,14 +241,13 @@ void Get_Connections(int &ssocket, vector<vector<vector<int>>> &csocket,
               bzero(&addr, sizeof(addr));
               socklen_t len= sizeof(addr);
 
-              /* We know that we are going to accept nthreads connections per player
-num with num<me
-so even though we dont know i is correct, we just loop on
-nthreads here
-*/
+              /* We know that we are going to accept nthreads connections 
+	       * per player num with num<me so even though we dont know i 
+	       * is correct, we just loop on nthreads here 
+	       */
               for (unsigned int j= 0; j < nthreads; j++)
                 {
-                  for (unsigned int k= 0; k < 2; k++)
+                  for (unsigned int k= 0; k < csocket[0][0].size(); k++)
                     {
                       int client= accept(ssocket, (struct sockaddr *) &addr,
                                          &len); /* accept connection as usual */
@@ -284,7 +283,7 @@ nthreads here
             { // Now client side stuff
               for (unsigned int j= 0; j < nthreads; j++)
                 {
-                  for (unsigned int k= 0; k < 2; k++)
+                  for (unsigned int k= 0; k < csocket[0][0].size(); k++)
                     {
                       if (verbose > 0)
                         {
@@ -322,7 +321,7 @@ void Close_Connections(int ssocket, vector<vector<vector<int>>> &csocket,
         {
           if (j != me)
             {
-              for (unsigned int k= 0; k < 2; k++)
+              for (unsigned int k= 0; k < csocket[0][0].size(); k++)
                 {
                   close(csocket[i][j][k]);
                 }

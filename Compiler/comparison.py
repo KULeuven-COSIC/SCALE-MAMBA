@@ -181,6 +181,7 @@ def PRandM(r_dprime, r_prime, b, k, m, kappa):
         adds(t[i][1], t[i][0], b[-i-1])
     movs(r_prime, t[m-1][1])
 
+
 def PRandInt(r, k):
     """
     r = random secret integer in range [0, 2^k - 1]

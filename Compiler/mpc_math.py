@@ -295,9 +295,9 @@ def log2_fx(x):
 # are secret shared. It uses  log2_fx together with
 # exp2_fx to calcualte the expresion 2^{y*log2(x)}.
 #
-# @param x: (sint) secret shared base.
+# @param x: (sfix) secret shared base.
 #
-# @param y: (sint) secret shared exponent.
+# @param y: (sfix, clear types) secret shared exponent.
 #
 # @return returns the value of x^y
 def pow_fx(x, y):

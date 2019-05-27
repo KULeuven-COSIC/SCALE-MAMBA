@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -133,6 +133,29 @@ void Commit_And_Open(vector<T> &data, Player &P, bool check, int connection)
             }
           istringstream is(ee);
           data[i].input(is, false);
+        }
+    }
+}
+
+template<>
+void Commit_And_Open(vector<string> &data, Player &P, bool check, int connection)
+{
+  vector<string> Comm_data(P.nplayers());
+  vector<string> Open_data(P.nplayers());
+
+  Commit(Comm_data[P.whoami()], Open_data[P.whoami()], data[P.whoami()], P.G);
+
+  P.Broadcast_Receive(Comm_data, check, connection);
+  P.Broadcast_Receive(Open_data, check, connection);
+
+  for (unsigned int i= 0; i < P.nplayers(); i++)
+    {
+      if (i != P.whoami())
+        {
+          if (!Open(data[i], Comm_data[i], Open_data[i]))
+            {
+              throw invalid_commitment();
+            }
         }
     }
 }

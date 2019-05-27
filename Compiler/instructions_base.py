@@ -15,140 +15,186 @@ from Compiler import util
 ### MUST also be changed. (+ the documentation)
 ###
 opcodes = dict(
-    # Load/store
-    LDI = 0x1,
-    LDSI = 0x2,
-    LDMC = 0x3,
-    LDMS = 0x4,
-    STMC = 0x5,
-    STMS = 0x6,
-    LDMCI = 0x7,
-    LDMSI = 0x8,
-    STMCI = 0x9,
-    STMSI = 0xA,
-    MOVC = 0xB,
-    MOVS = 0xC,
-    LDMINT = 0xCA,
-    STMINT = 0xCB,
-    LDMINTI = 0xCC,
-    STMINTI = 0xCD,
-    PUSHINT = 0xCE,
-    POPINT = 0xCF,
-    MOVINT = 0xD0,
+  # Load/store
+  LDI= 0x1,
+  LDSI= 0x2,
+  LDMC= 0x3,
+  LDMS= 0x4,
+  STMC= 0x5,
+  STMS= 0x6,
+  LDMCI= 0x7,
+  LDMSI= 0x8,
+  STMCI= 0x9,
+  STMSI= 0xA,
+  MOVC= 0xB,
+  MOVS= 0xC,
+  MOVINT= 0xD,
+  LDMINT= 0xCA,
+  STMINT= 0xCB,
+  LDMINTI= 0xCC,
+  STMINTI= 0xCD,
+  PUSHINT= 0xCE,
+  POPINT= 0xCF,
 
-    # Machine
-    LDTN = 0x10,
-    LDARG = 0x11,
-    REQBL = 0x12,
-    STARG = 0x13,
-    RUN_TAPE = 0x19,
-    JOIN_TAPE = 0x1A,
-    CRASH = 0x1B,
-    RESTART = 0x1C,
-    CLEAR_MEMORY = 0x1D,
-    CLEAR_REGISTERS = 0x1E,
+  # Machine
+  LDTN= 0x10,
+  LDARG= 0x11,
+  REQBL= 0x12,
+  STARG= 0x13,
+  RUN_TAPE= 0x19,
+  JOIN_TAPE= 0x1A,
+  CRASH= 0x1B,
+  RESTART= 0x1C,
+  CLEAR_MEMORY= 0x1D,
+  CLEAR_REGISTERS= 0x1E,
 
-    # Addition
-    ADDC = 0x20,
-    ADDS = 0x21,
-    ADDM = 0x22,
-    ADDCI = 0x23,
-    ADDSI = 0x24,
-    SUBC = 0x25,
-    SUBS = 0x26,
-    SUBML = 0x27,
-    SUBMR = 0x28,
-    SUBCI = 0x29,
-    SUBSI = 0x2A,
-    SUBCFI = 0x2B,
-    SUBSFI = 0x2C,
+  # Addition
+  ADDC= 0x20,
+  ADDS= 0x21,
+  ADDM= 0x22,
+  ADDCI= 0x23,
+  ADDSI= 0x24,
+  SUBC= 0x25,
+  SUBS= 0x26,
+  SUBML= 0x27,
+  SUBMR= 0x28,
+  SUBCI= 0x29,
+  SUBSI= 0x2A,
+  SUBCFI= 0x2B,
+  SUBSFI= 0x2C,
 
-    # Multiplication/division
-    MULC = 0x30,
-    MULM = 0x31,
-    MULCI = 0x32,
-    MULSI = 0x33,
-    DIVC = 0x34,
-    DIVCI = 0x35,
-    MODC = 0x36,
-    MODCI = 0x37,
-    LEGENDREC = 0x38,
-    DIGESTC = 0x39,
+  # Multiplication/division/other arithmetic
+  MULC= 0x30,
+  MULM= 0x31,
+  MULCI= 0x32,
+  MULSI= 0x33,
+  DIVC= 0x34,
+  DIVCI= 0x35,
+  MODC= 0x36,
+  MODCI= 0x37,
+  LEGENDREC= 0x38,
+  DIGESTC= 0x39,
 
-    # IO
-    OUTPUT_CLEAR= 0x40,
-    INPUT_CLEAR= 0x41,
-    OUTPUT_SHARE= 0x42,
-    INPUT_SHARE= 0x43,
-    PRIVATE_INPUT= 0x44,
-    PRIVATE_OUTPUT= 0x46,
-    OUTPUT_INT = 0x48,
-    INPUT_INT = 0x49,
-    OPEN_CHAN = 0x4A,
-    CLOSE_CHAN = 0x4B,
+  # IO
+  OUTPUT_CLEAR= 0x40,
+  INPUT_CLEAR= 0x41,
+  OUTPUT_SHARE= 0x42,
+  INPUT_SHARE= 0x43,
+  PRIVATE_INPUT= 0x44,
+  PRIVATE_OUTPUT= 0x46,
+  OUTPUT_INT= 0x48,
+  INPUT_INT= 0x49,
+  OPEN_CHAN= 0x4A,
+  CLOSE_CHAN= 0x4B,
 
-    # Open
-    STARTOPEN = 0xA0,
-    STOPOPEN = 0xA1,
+  # Open
+  STARTOPEN= 0xA0,
+  STOPOPEN= 0xA1,
+  OPENSINT= 0xA2,
+  OPENSBIT= 0xA3,
 
-    # Data access
-    TRIPLE = 0x50,
-    BIT = 0x51,
-    SQUARE = 0x52,
+  # Data access
+  TRIPLE= 0x50,
+  BIT= 0x51,
+  SQUARE= 0x52,
 
-    # Bitwise logic
-    ANDC = 0x70,
-    XORC = 0x71,
-    ORC = 0x72,
-    ANDCI = 0x73,
-    XORCI = 0x74,
-    ORCI = 0x75,
-    NOTC = 0x76,
+  # sregint/sbit instructions
+  LDMSINT= 0x60,
+  LDMSINTI= 0x61,
+  STMSINT= 0x62,
+  STMSINTI= 0x63,
+  MOVSINT= 0x64,
+  LDSINT= 0x65,
+  ADDSINT= 0x66,
+  ADDSINTC= 0x67,
+  SUBSINT= 0x68,
+  SUBSINTC= 0x69,
+  SUBCINTS= 0x6A,
+  MULSINT= 0x6B,
+  MULSINTC= 0x6C,
+  DIVSINT= 0x6D,
+  SHLSINT= 0x6E,
+  SHRSINT= 0x6F,
 
-    # Bitwise shifts
-    SHLC = 0x80,
-    SHRC = 0x81,
-    SHLCI = 0x82,
-    SHRCI = 0x83,
+  # Bitwise logic
+  ANDC= 0x70,
+  XORC= 0x71,
+  ORC= 0x72,
+  ANDCI= 0x73,
+  XORCI= 0x74,
+  ORCI= 0x75,
+  NOTC= 0x76,
+  NEG= 0x77,
+  SAND= 0x78,
+  XORSB= 0x79,
+  ANDSB= 0x7A,
+  ORSB= 0x7B,
+  NEGB= 0x7C,
 
-    # Branching and comparison
-    JMP = 0x90,
-    JMPNZ = 0x91,
-    JMPEQZ = 0x92,
-    EQZINT = 0x93,
-    LTZINT = 0x94,
-    LTINT = 0x95,
-    GTINT = 0x96,
-    EQINT = 0x97,
-    JMPI = 0x98,
+  # Bitwise shifts
+  SHLC= 0x80,
+  SHRC= 0x81,
+  SHLCI= 0x82,
+  SHRCI= 0x83,
 
-    # Integers
-    LDINT = 0x9A,
-    ADDINT = 0x9B,
-    SUBINT = 0x9C,
-    MULINT = 0x9D,
-    DIVINT = 0x9E,
+  # Branching and comparison
+  JMP= 0x90,
+  JMPNZ= 0x91,
+  JMPEQZ= 0x92,
+  EQZINT= 0x93,
+  LTZINT= 0x94,
+  LTINT= 0x95,
+  GTINT= 0x96,
+  EQINT= 0x97,
+  JMPI= 0x98,
 
-    # Conversion
-    CONVINT = 0xC0,
-    CONVMODP = 0xC1,
+  # Integers
+  LDINT= 0x9A,
+  ADDINT= 0x9B,
+  SUBINT= 0x9C,
+  MULINT= 0x9D,
+  DIVINT= 0x9E,
 
-    # Debug Printing
-    PRINTMEM = 0xB0,
-    PRINTREG = 0XB1,
-    PRINTREGPLAIN = 0xB2,
-    PRINTCHR = 0xB3,
-    PRINTSTR = 0xB4,
-    PRINTCHRINT = 0xB5,
-    PRINTSTRINT = 0xB6,
-    PRINTFLOATPLAIN = 0xB7,
-    PRINTFIXPLAIN = 0xB8,
-    PRINTINT = 0xB9,
+  # Conversion
+  CONVINT= 0xC0,
+  CONVMODP= 0xC1,
+  CONVSINTSREG= 0xC2,
+  CONVREGSREG= 0xC3,
+  CONVSREGSINT= 0xC4,
 
-    # Others
-    RAND = 0xE0,
-    START_TIMER = 0xE1,
-    STOP_TIMER = 0xE2
+  # Debug Printing
+  PRINTMEM= 0xB0,
+  PRINTREG= 0XB1,
+  PRINTREGPLAIN= 0xB2,
+  PRINTCHR= 0xB3,
+  PRINTSTR= 0xB4,
+  PRINTCHRINT= 0xB5,
+  PRINTSTRINT= 0xB6,
+  PRINTFLOATPLAIN= 0xB7,
+  PRINTFIXPLAIN= 0xB8,
+  PRINTINT= 0xB9,
+
+  # Comparison of sregints
+  LTSINT = 0xD0,
+  GTSINT = 0xD1,
+  EQSINT = 0xD2,
+
+  # Bitwise logical operations on sregints
+  ANDSINT = 0xD3,
+  ANDSINTC = 0xD4,
+  ORSINT = 0xD5,
+  ORSINTC = 0xD6,
+  XORSINT = 0xD7,
+  XORSINTC = 0xD8,
+  INVSINT = 0xD9,
+
+  # 64x64 -> 128 multiplier
+  MUL2SINT = 0xDA,
+
+  # Others
+  RAND= 0xE0,
+  START_TIMER= 0xE1,
+  STOP_TIMER= 0xE2
 )
 
 
@@ -159,7 +205,7 @@ def int_to_bytes(x):
 
 global_vector_size = 1
 global_vector_size_depth = 0
-global_instruction_type_stack = ['modp']
+global_instruction_type_stack = ['modp', 'mod2n']
 
 def set_global_vector_size(size):
     global global_vector_size, global_vector_size_depth
@@ -172,7 +218,7 @@ def set_global_vector_size(size):
         raise CompilerError('Cannot set global vector size when already set')
 
 def set_global_instruction_type(t):
-    if t == 'modp':
+    if t == 'modp' or t == 'mod2n':
         global_instruction_type_stack.append(t)
     else:
         raise CompilerError('Invalid type %s for setting global instruction type')
@@ -242,8 +288,9 @@ class RegType(object):
     ClearModp = 'c'
     SecretModp = 's'
     ClearInt = 'r'
-
-    Types = [ClearModp, SecretModp, ClearInt]
+    SecretInt = 'sr'
+    SecretBit = 'sb'
+    Types = [ClearModp, SecretModp, ClearInt, SecretInt, SecretBit]
 
     @staticmethod
     def create_dict(init_value_fn):
@@ -284,8 +331,20 @@ class RegisterArgFormat(ArgFormat):
 class ClearModpAF(RegisterArgFormat):
     reg_type = RegType.ClearModp
 
+
+#Classes for Secret Registers
+class SecretRegB64AF(RegisterArgFormat):
+    reg_type = RegType.SecretInt
+
+
+class SecretRegBAF(RegisterArgFormat):
+    reg_type = RegType.SecretBit
+
+
+
+## Added to make it srgeint friendly
 class SecretModpAF(RegisterArgFormat):
-    reg_type = RegType.SecretModp
+        reg_type = RegType.SecretModp
 
 class ClearIntAF(RegisterArgFormat):
     reg_type = RegType.ClearInt
@@ -330,6 +389,7 @@ class String(ArgFormat):
     def encode(cls, arg):
         return arg + '\0' * (cls.length - len(arg))
 
+##should we add SecretRegModp
 ArgFormats = {
     'c': ClearModpAF,
     's': SecretModpAF,
@@ -341,6 +401,10 @@ ArgFormats = {
     'int': IntArgFormat,
     'p': PlayerNoAF,
     'str': String,
+    'srw': SecretRegB64AF,
+    'sr': SecretRegB64AF,
+    'sbw' : SecretRegBAF,
+    'sb' : SecretRegBAF
 }
 
 def format_str_is_reg(format_str):
@@ -357,6 +421,7 @@ class Instruction(object):
     """
     __slots__ = ['args', 'arg_format', 'code', 'caller']
     count = 0
+
 
     def __init__(self, *args, **kwargs):
         """ Create an instruction and append it to the program list. """
@@ -384,6 +449,7 @@ class Instruction(object):
             enc += int_to_bytes(len(self.args))
         for arg,format in zip(self.args, self.arg_format):
             enc += ArgFormats[format].encode(arg)
+
         return enc
     
     def get_bytes(self):
@@ -448,7 +514,7 @@ class Instruction(object):
         return self.__class__.__name__ + '(' + self.get_pre_arg() + ','.join(str(a) for a in self.args) + ')'
 
 ###
-### Basic arithmetic
+### Basic arithmetic for all instructions (we might need to create separate classes for mod 2 instructions
 ###
 
 class AddBase(Instruction):
@@ -468,6 +534,85 @@ class MulBase(Instruction):
 
     def execute(self):
         self.args[0].value = (self.args[1].value * self.args[2].value) % program.P
+
+
+#Base Classes for 2n arithmetic
+class AddBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value + self.args[2].value)
+
+class SubBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value - self.args[2].value)
+
+class MulBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value * self.args[2].value)
+
+class DivBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value / self.args[2].value)
+
+class ShiftRight(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value >> self.args[2].value)
+
+class ShiftLeft(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value << self.args[2].value)
+
+
+class NegBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (0 - self.args[1].value )
+
+class AndBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value & self.args[2].value)
+
+class OrBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value | self.args[2].value)
+
+
+class XorBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = (self.args[1].value ^ self.args[2].value)
+
+class InvBase2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        self.args[0].value = ~ self.args[1].value
+
+class Mul2Base2n(Instruction):
+    __slots__ = []
+
+    def execute(self):
+        temp = (self.args[2].value * self.args[3].value)
+        self.args[0].value = temp >> 64
+        self.args[1].value = temp % 2**64 #& 0xFFFFFFFFFFFFFFFF
+
 
 ###
 ### Basic arithmetic with immediate values
@@ -567,6 +712,20 @@ class UnaryComparisonInstruction(Instruction):
     """ Base class for unary comparisons. """
     __slots__ = []
     arg_format = ['rw', 'r']
+
+
+###
+### Base 2 comparison instructions
+###
+class BaseSecretBitInstruction(Instruction):
+    """ Base class for unary comparisons. """
+    __slots__ = []
+    arg_format = ['sbw', 'sb', 'sb']
+
+class BaseSecretBitComparisonInstruction(Instruction):
+    """ Base class for unary comparisons. """
+    __slots__ = []
+    arg_format = ['sbw', 'sr', 'sr']
 
 ### 
 ### Clear shift instructions

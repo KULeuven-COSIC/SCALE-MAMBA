@@ -4,16 +4,16 @@
 You will require the following previously loaded programs and 
 libraries:
 \begin{itemize}
-\item GCC/G++: Tested with version 7.2.1
+\item GCC/G++: Tested with version 8.2.0 
 \item MPIR library, compiled with C++ support (use flag --enable-cxx when running configure) : Tested with version 3.0.0
 \item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
 \item CPU supporting AES-NI and PCLMUL
-\item OpenSSL: Tested with version 1.1.0
+\item OpenSSL: Tested with version 1.1.0.b
 \item Crypto++: Tested with version 7.0
 \end{itemize}
 Developers will also require
 \begin{itemize}
-\item clang-format as to apply the standard C++ format to files. Tested with clang-format version 4.0.1.
+\item clang-format as to apply the standard C++ format to files. Tested with clang-format version 6.0.0.
 \end{itemize}
 
 \subsubsection{Installing MPIR and OpenSSL}
@@ -195,11 +195,15 @@ for player one, in a four player installation, will look like
 
 \subsection{Running Setup}
 The program \verb+Setup.x+ is used to run a one-time setup 
-for the networking and/or secret-sharing system being used.
+for the networking and/or secret-sharing system being used
+and/or set up the GC to LSSS conversion circuit.
 You must do networking before secret-sharing (unless you keep
 the number of players fixed), since the secret-sharing setup
 picks up the total number of players you configured when setting
 up networking.
+And you must do secret sharing setup before creating the conversion
+circuit (since this requires the prime created for the secret
+sharing scheme).
 \begin{itemize}
 \item Just as above for OpenSSL key-generation, for demo purposes we assume
 a global file store with a single directory \verb+Data+.
@@ -219,7 +223,7 @@ the \verb+Setup.x+ program.
 
 ~~
 
-\noindent We now provide more detail on each of the two aspects of the script
+\noindent We now provide more detail on each of the three aspects of the program
 \verb+Setup.x+.
 
 \subsubsection{Data for networking}
@@ -244,16 +248,18 @@ a Q2-MSP.
 
 \paragraph{Full Threshold:}
 In this case the prime modulus cannot be chosen directly, but
-needs to be selected to be FHE-friendly. Hence, in this case you
-can only specify the number of bits in the modulus\footnote{In all
-other cases you select the prime modulus for the LSSS directly
-at this point.}.
-For Full Threshold you can enter the size of the modulus you want (between 16 bits
-and 1024 bits).  The system will then
+needs to be selected to be FHE-friendly\footnote{In all other cases you select the prime modulus for the LSSS directly at this point.}.
+Hence, in this case we give you two options.
+\begin{itemize}
+\item Recommended: You specify the number of bits in the modulus
+(between 16 bits and 1024 bits).  The system will then
 search for a modulus which is compatible with the FHE system we are
 using.
-
-At this stage the MAC keys and FHE secret keys are setup and written into the
+\item Advanced: You enter a specific prime. The system then searches
+for FHE parameters which are compatible, if it finds none (which is highly
+likely unless you are very careful in your selection) it aborts.
+\end{itemize}
+After this stage the MAC keys and FHE secret keys are setup and written into the
 files 
 \begin{center}
 \verb+MKey-*.key+ and \verb+FHE-Key-*.key+ 
@@ -382,6 +388,19 @@ as we assume the target vector is $(1,1)$ and not $(1,0)$ as is often
 the case in Shamir sharing.
 
 
+\subsubsection{Conversion Circuit}
+Here, as most users will not have a VHDL compiler etc, we provide
+a generic 512 bit conversion circuit for turning an LSSS sharing
+into a GC sharing.
+This needs to be specialised to which ever prime $p$ has been selected above.
+To do this we use some C-code  which specializes the generic 512
+bit circuit for this specific prime chosen, and then tries
+to simplify the resulting circuit. This simplification is rather
+naive, and can take a long time, but usually results in a circuit ten percent
+less in size than the original (in terms of the all important AND gates).
+One can modify how long is spent in the simplification by 
+changing a variable in \verb+config.h+.
+
 \subsection{Idiot's Installation}
 \label{sec:idiot}
 To install an installation of the three party Shamir based
@@ -395,3 +414,4 @@ Execute the following commands
 You can play with writing your own MAMBA programs and 
 running them on the same local host (via IP address
 127.0.0.1).
+

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -17,6 +17,7 @@ void Machine::SetUp_Memory(unsigned int whoami, const string &memtype)
   Mc.set_default(gfp(0));
   Ms.set_default(Share(whoami));
   Mr.set_default(Integer(0));
+  Msr.set_default(aBitVector(0));
 
   // Initialize the global memory
   if (memtype.compare("old") == 0)
@@ -71,6 +72,7 @@ void Machine::Load_Schedule_Into_Memory()
       Mc.minimum_size(progs[i].direct_mem(MODP)[CLEAR], schedule.tnames[i]);
       Ms.minimum_size(progs[i].direct_mem(MODP)[SECRET], schedule.tnames[i]);
       Mr.minimum_size(progs[i].direct_mem(INT)[CLEAR], schedule.tnames[i]);
+      Msr.minimum_size(progs[i].direct_mem(INT)[SECRET], schedule.tnames[i]);
     }
 }
 

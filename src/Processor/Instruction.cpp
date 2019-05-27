@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -97,6 +97,27 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case MULINT:
       case DIVINT:
       case RUN_TAPE:
+      case ADDSINT:
+      case ADDSINTC:
+      case SUBSINT:
+      case SUBSINTC:
+      case SUBCINTS:
+      case MULSINT:
+      case MULSINTC:
+      case DIVSINT:
+      case SAND:
+      case XORSB:
+      case ANDSB:
+      case ORSB:
+      case LTSINT:
+      case GTSINT:
+      case EQSINT:
+      case ANDSINT:
+      case ANDSINTC:
+      case ORSINT:
+      case ORSINTC:
+      case XORSINT:
+      case XORSINTC:
         r[0]= get_int(s);
         r[1]= get_int(s);
         r[2]= get_int(s);
@@ -118,6 +139,17 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case EQZINT:
       case RAND:
       case DIGESTC:
+      case NEG:
+      case NEGB:
+      case CONVSINTSREG:
+      case CONVREGSREG:
+      case CONVSREGSINT:
+      case OPENSINT:
+      case OPENSBIT:
+      case LDMSINTI:
+      case STMSINTI:
+      case MOVSINT:
+      case INVSINT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         break;
@@ -151,6 +183,8 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case ORCI:
       case SHLCI:
       case SHRCI:
+      case SHLSINT:
+      case SHRSINT:
       case NOTC:
       case CONVMODP:
         r[0]= get_int(s);
@@ -175,6 +209,9 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case INPUT_INT:
       case OPEN_CHAN:
       case OUTPUT_INT:
+      case LDMSINT:
+      case STMSINT:
+      case LDSINT:
         r[0]= get_int(s);
         n= get_int(s);
         break;
@@ -210,6 +247,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         break;
       // instructions with 4 register operands
       case PRINTFLOATPLAIN:
+      case MUL2SINT:
         get_vector(4, start, s);
         break;
       // open instructions + read/write instructions with variable length args
@@ -245,7 +283,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
 int BaseInstruction::get_reg_type() const
 {
   switch (opcode)
-    { // List here commands which write to a regint register or regint memory
+    { // List here commands which write to a regint/sregint/sbit register or regint memory
       case LDMINT:
       case LDMINTI:
       case MOVINT:
@@ -267,6 +305,42 @@ int BaseInstruction::get_reg_type() const
       case EQINT:
       case EQZINT:
       case STMINT:
+      case LDMSINT:
+      case LDMSINTI:
+      case MOVSINT:
+      case LDSINT:
+      case ADDSINT:
+      case ADDSINTC:
+      case SUBSINT:
+      case SUBSINTC:
+      case SUBCINTS:
+      case MULSINT:
+      case MULSINTC:
+      case DIVSINT:
+      case SHLSINT:
+      case SHRSINT:
+      case NEG:
+      case SAND:
+      case XORSB:
+      case ANDSB:
+      case ORSB:
+      case NEGB:
+      case LTSINT:
+      case GTSINT:
+      case EQSINT:
+      case CONVSINTSREG:
+      case CONVREGSREG:
+      case CONVSREGSINT:
+      case OPENSINT:
+      case OPENSBIT:
+      case ANDSINT:
+      case ANDSINTC:
+      case ORSINT:
+      case ORSINTC:
+      case XORSINT:
+      case XORSINTC:
+      case INVSINT:
+      case MUL2SINT:
         return INT;
       default:
         return MODP;
@@ -302,6 +376,8 @@ bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
         {
           case LDMS:
           case STMS:
+          case LDMSINT:
+          case STMSINT:
             return true;
           default:
             return false;
@@ -648,6 +724,120 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case STOP_TIMER:
         s << "STOP_TIMER";
         break;
+      case LDMSINT:
+        s << "LDMSINT";
+        break;
+      case LDMSINTI:
+        s << "LDMSINTI";
+        break;
+      case STMSINT:
+        s << "STMSINT";
+        break;
+      case STMSINTI:
+        s << "STMSINTI";
+        break;
+      case MOVSINT:
+        s << "MOVSINT";
+        break;
+      case LDSINT:
+        s << "LDSINT";
+        break;
+      case ADDSINT:
+        s << "ADDSINT";
+        break;
+      case ADDSINTC:
+        s << "ADDSINTC";
+        break;
+      case SUBSINT:
+        s << "SUBSINT";
+        break;
+      case SUBSINTC:
+        s << "SUBSINTC";
+        break;
+      case SUBCINTS:
+        s << "SUBCINTS";
+        break;
+      case MULSINT:
+        s << "MULSINT";
+        break;
+      case MULSINTC:
+        s << "MULSINTC";
+        break;
+      case DIVSINT:
+        s << "DIVSINT";
+        break;
+      case SHLSINT:
+        s << "SHLSINT";
+        break;
+      case SHRSINT:
+        s << "SHRSINT";
+        break;
+      case NEG:
+        s << "NEG";
+        break;
+      case SAND:
+        s << "SAND";
+        break;
+      case XORSB:
+        s << "XORSB";
+        break;
+      case ANDSB:
+        s << "ANDSB";
+        break;
+      case ORSB:
+        s << "ORSB";
+        break;
+      case NEGB:
+        s << "NEGB";
+        break;
+      case LTSINT:
+        s << "LTSINT";
+        break;
+      case GTSINT:
+        s << "GTSINT";
+        break;
+      case EQSINT:
+        s << "EQSINT";
+        break;
+      case CONVSINTSREG:
+        s << "CONVSINTSREG";
+        break;
+      case CONVREGSREG:
+        s << "CONVREGSREG";
+        break;
+      case CONVSREGSINT:
+        s << "CONVSREGSINT";
+        break;
+      case OPENSINT:
+        s << "OPENSINT";
+        break;
+      case OPENSBIT:
+        s << "OPENSBIT";
+        break;
+      case ANDSINT:
+        s << "ANDSINT";
+        break;
+      case ANDSINTC:
+        s << "ANDSINTC";
+        break;
+      case ORSINT:
+        s << "ORSINT";
+        break;
+      case ORSINTC:
+        s << "ORSINTC";
+        break;
+      case XORSINT:
+        s << "XORSINT";
+        break;
+      case XORSINTC:
+        s << "XORSINTC";
+        break;
+      case INVSINT:
+        s << "INVSINT";
+        break;
+      case MUL2SINT:
+        s << "MUL2SINT";
+        break;
       default:
         s << instr.opcode;
         throw Invalid_Instruction("Verbose Opcode Note Known");
@@ -693,6 +883,26 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "r_" << instr.r[1] << " ";
         s << "r_" << instr.r[2] << " ";
         break;
+      // instructions with 3 sregint register operands */
+      case ADDSINT:
+      case SUBSINT:
+      case MULSINT:
+      case DIVSINT:
+      case ANDSINT:
+      case ORSINT:
+      case XORSINT:
+        s << "sr_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        s << "sr_" << instr.r[2] << " ";
+        break;
+      // instructions with 3 sbit register operands */
+      case XORSB:
+      case ANDSB:
+      case ORSB:
+        s << "sb_" << instr.r[0] << " ";
+        s << "sb_" << instr.r[1] << " ";
+        s << "sb_" << instr.r[2] << " ";
+        break;
       // instructions with 2 sint + 1 cint register operands */
       case ADDM:
       case SUBML:
@@ -701,11 +911,42 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "s_" << instr.r[1] << " ";
         s << "c_" << instr.r[2] << " ";
         break;
+      // instructions with 2 sregint and 1 rint operand
+      case ADDSINTC:
+      case SUBSINTC:
+      case MULSINTC:
+      case ANDSINTC:
+      case ORSINTC:
+      case XORSINTC:
+        s << "sr_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        s << "r_" << instr.r[2] << " ";
+        break;
+      // instructions with 2 sregint and 1 sbit operand
+      case SAND:
+        s << "sr_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        s << "sb_" << instr.r[2] << " ";
+        break;
+      // instructions with 1 sbit and 2 sregint operands
+      case LTSINT:
+      case GTSINT:
+      case EQSINT:
+        s << "sb_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        s << "sr_" << instr.r[2] << " ";
+        break;
       // instructions with 1 sint + 1 cint + 1 sint register operands */
       case SUBMR:
         s << "s_" << instr.r[0] << " ";
         s << "c_" << instr.r[1] << " ";
         s << "s_" << instr.r[2] << " ";
+        break;
+      // instructions with 1 sregint + 1 rint + 1 sregint operand
+      case SUBCINTS:
+        s << "sr_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        s << "sr_" << instr.r[2] << " ";
         break;
       // instructions with 1 cint + 1 rint register operand
       case LDMCI:
@@ -719,6 +960,32 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case STMSI:
         s << "s_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 sregint + 1 rint register operand
+      case LDMSINTI:
+      case CONVREGSREG:
+        s << "sr_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 sregint + 1 sint register operand
+      case CONVSINTSREG:
+        s << "sr_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 sint + 1 sregint register operand
+      case CONVSREGSINT:
+        s << "s_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 rint + 1 sregint register operand
+      case OPENSINT:
+        s << "r_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 rint + 1 sbit register operand
+      case OPENSBIT:
+        s << "r_" << instr.r[0] << " ";
+        s << "sb_" << instr.r[1] << " ";
         break;
       // instructions with 2 cint register operands
       case MOVC:
@@ -738,10 +1005,23 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDMINTI:
       case RAND:
       case STMINTI:
+      case STMSINTI:
       case LTZINT:
       case EQZINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
+        break;
+      // instructions with 2 sregint operands
+      case NEG:
+      case MOVSINT:
+      case INVSINT:
+        s << "sr_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+        break;
+      // instructions with 2 sbit operands
+      case NEGB:
+        s << "sb_" << instr.r[0] << " ";
+        s << "sb_" << instr.r[1] << " ";
         break;
       // instructions with 1 cint register operands
       case PRINTREGPLAIN:
@@ -779,7 +1059,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "c_" << instr.r[1] << " ";
         s << instr.n << " ";
         break;
-      // instructions with 2 cint + 1 integer operand
+      // instructions with 2 sint + 1 integer operand
       case ADDSI:
       case SUBSI:
       case SUBSFI:
@@ -787,6 +1067,13 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case SHRCI:
         s << "s_" << instr.r[0] << " ";
         s << "s_" << instr.r[1] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 2 sregint + 1 integer operand
+      case SHLSINT:
+      case SHRSINT:
+        s << "sr_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
         s << instr.n << " ";
         break;
       // instructions with 1 rint + 1 cint + 1 integer operand
@@ -822,6 +1109,13 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
         s << "c_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 sregint + 1 integer operand
+      case LDSINT:
+      case LDMSINT:
+      case STMSINT:
+        s << "sr_" << instr.r[0] << " ";
         s << instr.n << " ";
         break;
       // instructions with 1 sint + 1 player + 1 integer operand
@@ -862,6 +1156,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << instr.r[2] << " ";
         break;
       // Various variable length instructions
+      case MUL2SINT:
+        for (unsigned int i= 0; i < instr.start.size(); i++)
+          {
+            s << "sr_" << instr.start[i] << " ";
+          }
+        break;
       case PRINTFLOATPLAIN:
       case STOPOPEN:
         for (unsigned int i= 0; i < instr.start.size(); i++)
@@ -894,41 +1194,7 @@ void Instruction::execute_using_sacrifice_data(
 {
   int thread= Proc.get_thread_num();
   // Check to see if we have to wait
-  bool wait= true;
-  while (wait)
-    {
-      OCD.sacrifice_mutex[thread].lock();
-      wait= false;
-      if (opcode == TRIPLE && SacrificeD[thread].TD.ta.size() < size)
-        {
-          wait= true;
-        }
-      if (opcode == SQUARE && SacrificeD[thread].SD.sa.size() < size)
-        {
-          wait= true;
-        }
-      if (opcode == BIT && SacrificeD[thread].BD.bb.size() < size)
-        {
-          wait= true;
-        }
-      OCD.sacrifice_mutex[thread].unlock();
-      if (wait)
-        {
-          /*
-          stringstream iss;
-          iss << "Waiting in online thread for sacrifice data\n";
-          if (opcode==TRIPLE) { iss << "\t Need " << size << " triples " <<
-          endl; }
-          if (opcode==SQUARE) { iss << "\t Need " << size << " squares " <<
-          endl; }
-          if (opcode==BIT)    { iss << "\t Need " << size << " bits " <<
-          endl; }
-          printf("%s",iss.str().c_str());
-          */
-          sleep(1);
-        }
-    }
-
+  Wait_For_Preproc(opcode, size, thread, OCD);
   // Now do the work
   OCD.sacrifice_mutex[thread].lock();
   Proc.increment_PC();
@@ -940,21 +1206,21 @@ void Instruction::execute_using_sacrifice_data(
       switch (opcode)
         {
           case TRIPLE:
-            Proc.get_Sp_ref(r[0]).assign(SacrificeD[thread].TD.ta.front());
+            Proc.get_Sp_ref(r[0])= SacrificeD[thread].TD.ta.front();
             SacrificeD[thread].TD.ta.pop_front();
-            Proc.get_Sp_ref(r[1]).assign(SacrificeD[thread].TD.tb.front());
+            Proc.get_Sp_ref(r[1])= SacrificeD[thread].TD.tb.front();
             SacrificeD[thread].TD.tb.pop_front();
-            Proc.get_Sp_ref(r[2]).assign(SacrificeD[thread].TD.tc.front());
+            Proc.get_Sp_ref(r[2])= SacrificeD[thread].TD.tc.front();
             SacrificeD[thread].TD.tc.pop_front();
             break;
           case SQUARE:
-            Proc.get_Sp_ref(r[0]).assign(SacrificeD[thread].SD.sa.front());
+            Proc.get_Sp_ref(r[0])= SacrificeD[thread].SD.sa.front();
             SacrificeD[thread].SD.sa.pop_front();
-            Proc.get_Sp_ref(r[1]).assign(SacrificeD[thread].SD.sb.front());
+            Proc.get_Sp_ref(r[1])= SacrificeD[thread].SD.sb.front();
             SacrificeD[thread].SD.sb.pop_front();
             break;
           case BIT:
-            Proc.get_Sp_ref(r[0]).assign(SacrificeD[thread].BD.bb.front());
+            Proc.get_Sp_ref(r[0])= SacrificeD[thread].BD.bb.front();
             SacrificeD[thread].BD.bb.pop_front();
             break;
           default:
@@ -1086,16 +1352,16 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case ADDS:
 #ifdef DEBUG
-            Sansp.add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
 #endif
             break;
           case ADDM:
 #ifdef DEBUG
-            Sansp.add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]),
                                       P.get_mac_keys());
@@ -1103,7 +1369,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case SUBC:
 #ifdef DEBUG
-            ansp.sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+            Proc.temp.ansp.sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
             Proc.write_Cp(r[0], Proc.temp.ansp);
 #else
             Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
@@ -1111,16 +1377,16 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case SUBS:
 #ifdef DEBUG
-            Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
 #endif
             break;
           case SUBML:
 #ifdef DEBUG
-            Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]),
                                       P.get_mac_keys());
@@ -1128,8 +1394,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case SUBMR:
 #ifdef DEBUG
-            Sansp.sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]), P.get_mac_keys());
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]),
                                       P.get_mac_keys());
@@ -1137,7 +1403,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case MULC:
 #ifdef DEBUG
-            ansp.mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+            Proc.temp.ansp.mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
             Proc.write_Cp(r[0], Proc.temp.ansp);
 #else
             Proc.get_Cp_ref(r[0]).mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
@@ -1145,8 +1411,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case MULM:
 #ifdef DEBUG
-            Sansp.mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
 #endif
@@ -1212,8 +1478,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case ADDSI:
             Proc.temp.ansp.assign(n);
 #ifdef DEBUG
-            Sansp.add(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.temp.ansp,
                                       P.get_mac_keys());
@@ -1231,8 +1497,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case SUBSI:
             Proc.temp.ansp.assign(n);
 #ifdef DEBUG
-            Sansp.sub(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.temp.ansp,
                                       P.get_mac_keys());
@@ -1250,8 +1516,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case SUBSFI:
             Proc.temp.ansp.assign(n);
 #ifdef DEBUG
-            Sansp.sub(Proc.temp.ansp, Proc.read_Sp(r[1]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.sub(Proc.temp.ansp, Proc.read_Sp(r[1]), P.get_mac_keys());
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).sub(Proc.temp.ansp, Proc.read_Sp(r[1]),
                                       P.get_mac_keys());
@@ -1269,15 +1535,15 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case MULSI:
             Proc.temp.ansp.assign(n);
 #ifdef DEBUG
-            Sansp.mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
-            Proc.write_Sp(r[0], Sansp);
+            Proc.temp.Sansp.mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
+            Proc.write_Sp(r[0], Proc.temp.Sansp);
 #else
             Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
 #endif
             break;
           case ANDC:
 #ifdef DEBUG
-            ansp.AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+            Proc.temp.ansp.AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
             Proc.write_Cp(r[0], Proc.temp.ansp);
 #else
             Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
@@ -1303,7 +1569,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             Proc.temp.aa= n;
 #ifdef DEBUG
             Proc.temp.ansp.AND(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], ansp);
+            Proc.write_Cp(r[0], Proc.temp.ansp);
 #else
             Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]), Proc.temp.aa);
 #endif
@@ -1311,7 +1577,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case XORCI:
             Proc.temp.aa= n;
 #ifdef DEBUG
-            ansp.XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
+            Proc.temp.ansp.XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
             Proc.write_Cp(r[0], Proc.temp.ansp);
 #else
             Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
@@ -1590,6 +1856,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             machine.Mc.clear_memory();
             machine.Ms.clear_memory();
             machine.Mr.clear_memory();
+            machine.Msr.clear_memory();
             break;
           case CLEAR_REGISTERS:
             Proc.clear_registers();
@@ -1670,8 +1937,133 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               }
             Proc.iop.private_input(p, r[0], m, Proc, P, machine, OCD);
             break;
+          /* Now we add in the new instructions for sregint and sbit operations */
+          case LDMSINT:
+            Proc.write_srint(r[0], machine.Msr.read(n));
+            n++;
+            break;
+          case LDMSINTI:
+            Proc.write_srint(r[0], machine.Msr.read(Proc.read_Ri(r[1])));
+            break;
+          case STMSINT:
+            machine.Msr.write(n, Proc.read_srint(r[0]), Proc.get_PC());
+            n++;
+            break;
+          case STMSINTI:
+            machine.Msr.write(Proc.read_Ri(r[1]), Proc.read_srint(r[0]), Proc.get_PC());
+            break;
+          case MOVSINT:
+            Proc.write_srint(r[0], Proc.read_srint(r[1]));
+            break;
+          case LDSINT:
+            Proc.write_srint(r[0], n);
+            break;
+          case ADDSINT:
+            Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case ADDSINTC:
+            Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.aAF);
+            break;
+          case SUBSINT:
+            Proc.get_srint_ref(r[0]).sub(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case SUBSINTC:
+            Proc.get_srint_ref(r[0]).sub(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.aAF);
+            break;
+          case SUBCINTS:
+            Proc.get_srint_ref(r[0]).sub(Proc.read_Ri(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case MULSINT:
+            Proc.get_srint_ref(r[0]).mul(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case MULSINTC:
+            Proc.get_srint_ref(r[0]).mul(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.aAF);
+            break;
+          case MUL2SINT:
+            mul(Proc.get_srint_ref(start[0]), Proc.get_srint_ref(start[1]), Proc.read_srint(start[2]), Proc.read_srint(start[3]), P, Proc.aAF);
+            break;
+          case DIVSINT:
+            Proc.get_srint_ref(r[0]).div(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case SHLSINT:
+            Proc.get_srint_ref(r[0]).SHL(Proc.read_srint(r[1]), n);
+            break;
+          case SHRSINT:
+            Proc.get_srint_ref(r[0]).SHR(Proc.read_srint(r[1]), n);
+            break;
+          case NEG:
+            Proc.get_srint_ref(r[0]).negate(Proc.read_srint(r[1]), P, Proc.aAF);
+            break;
+          case SAND:
+            Proc.get_srint_ref(r[0]).Bit_AND(Proc.read_srint(r[1]), Proc.read_sbit(r[2]), P, Proc.aAF);
+            break;
+          case ANDSINT:
+            Proc.get_srint_ref(r[0]).Bitwise_AND(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case ANDSINTC:
+            Proc.get_srint_ref(r[0]).Bitwise_AND(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
+            break;
+          case ORSINT:
+            Proc.get_srint_ref(r[0]).Bitwise_OR(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case ORSINTC:
+            Proc.get_srint_ref(r[0]).Bitwise_OR(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
+            break;
+          case XORSINT:
+            Proc.get_srint_ref(r[0]).Bitwise_XOR(Proc.read_srint(r[1]), Proc.read_srint(r[2]));
+            break;
+          case XORSINTC:
+            Proc.get_srint_ref(r[0]).Bitwise_XOR(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
+            break;
+          case INVSINT:
+            Proc.get_srint_ref(r[0]).Bitwise_Negate(Proc.read_srint(r[1]));
+            break;
+          case XORSB:
+            Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
+            break;
+          case ANDSB:
+            Proc.temp.T= Proc.aAF.get_aAND(P);
+            Mult_aBit(Proc.get_sbit_ref(r[0]), Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
+            break;
+          case ORSB:
+            Proc.temp.T= Proc.aAF.get_aAND(P);
+            Mult_aBit(Proc.temp.aB, Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
+            Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
+            Proc.get_sbit_ref(r[0]).add(Proc.temp.aB);
+            break;
+          case NEGB:
+            Proc.get_sbit_ref(r[0]).negate(Proc.read_sbit(r[1]));
+            break;
+          case LTSINT:
+            Proc.get_sbit_ref(r[0])= less_than(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            break;
+          case GTSINT:
+            Proc.get_sbit_ref(r[0])= less_than_equal(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            Proc.get_sbit_ref(r[0]).negate();
+            break;
+          case EQSINT:
+            Proc.temp.aBV.sub(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+            Proc.get_sbit_ref(r[0])= equal_zero(Proc.temp.aBV, P, Proc.aAF);
+            break;
+          case CONVSINTSREG:
+            Proc.convert_sint_to_sregint(r[1], r[0], P);
+            break;
+          case CONVSREGSINT:
+            Proc.convert_sregint_to_sint(r[1], r[0], P);
+            break;
+          case CONVREGSREG:
+            Proc.write_srint(r[0], Proc.read_Ri(r[1]));
+            break;
+          case OPENSINT:
+            Proc.write_Ri(r[0], Proc.read_srint(r[1]).Open(P));
+            break;
+          case OPENSBIT:
+            int t;
+            Open_aBit(t, Proc.read_sbit(r[1]), P);
+            Proc.write_Ri(r[0], t);
+            break;
           default:
-            printf("Case of opcode=%d not implemented yet\n", opcode);
+            printf("Invalid opcode=%d. Since it is not implemented\n", opcode);
             throw not_implemented();
             break;
         }

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -140,8 +140,12 @@ void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD)
 Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
                vector<vector<int>> &csockets, const vector<gfp> &MacK, int verbose)
 {
+  clocks.resize(10);
   G.ReSeed(thread);
-  SHA256_Init(&sha256);
+  sha256.resize(3);
+  SHA256_Init(&sha256[0]);
+  SHA256_Init(&sha256[1]);
+  SHA256_Init(&sha256[2]);
 
   me= mynumber;
   ssl.resize(SD.n);
@@ -149,8 +153,8 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   // When communicating with player i, player me acts as server when i<me
   for (unsigned int i= 0; i < SD.n; i++)
     {
-      ssl[i].resize(2);
-      for (unsigned int j= 0; j < 2; j++)
+      ssl[i].resize(3);
+      for (unsigned int j= 0; j < 3; j++)
         {
           if (i != me)
             {
@@ -233,6 +237,7 @@ Player::~Player()
         {
           SSL_free(ssl[i][0]);
           SSL_free(ssl[i][1]);
+          SSL_free(ssl[i][2]);
         }
     }
 }
@@ -345,11 +350,6 @@ void Player::receive_from_player(int i, string &o, int connection, bool verbose)
  */
 void Player::Broadcast_Receive(vector<string> &o, bool check, int connection)
 {
-  if (connection != 0 && check == true)
-    {
-      throw bad_value();
-    }
-
   for (unsigned int i= 0; i < ssl.size(); i++)
     {
       if (i > me)
@@ -377,46 +377,65 @@ void Player::Broadcast_Receive(vector<string> &o, bool check, int connection)
     {
       for (unsigned int i= 0; i < ssl.size(); i++)
         {
-          SHA256_Update(&sha256, o[i].c_str(), o[i].size());
+          SHA256_Update(&sha256[connection], o[i].c_str(), o[i].size());
         }
     }
 }
 
-void Player::Check_Broadcast()
+void Player::Check_Broadcast(int connection)
 {
   unsigned char hash[SHA256_DIGEST_LENGTH];
-  SHA256_Final(hash, &sha256);
+  SHA256_Final(hash, &sha256[connection]);
   string ss((char *) hash, SHA256_DIGEST_LENGTH);
-  send_all(ss);
+  send_all(ss, connection);
   for (unsigned int i= 0; i < nplayers(); i++)
     {
       if (i != whoami())
         {
           string is;
-          receive_from_player(i, is);
+          receive_from_player(i, is, connection);
           if (is != ss)
             {
               throw hash_fail();
             }
         }
     }
-  SHA256_Init(&sha256);
+  SHA256_Init(&sha256[connection]);
 }
 
+/* Again this is deliberately weird to avoid problems with OS max buffer
+ * size getting in the way
+ */
 void Player::Send_Distinct_And_Receive(vector<string> &o, int connection) const
 {
+  vector<string> rec(ssl.size());
   for (unsigned int i= 0; i < ssl.size(); i++)
     {
-      if (i != me)
+      if (i > me)
         {
           send_to_player(i, o[i], connection);
+        }
+      else if (i < me)
+        {
+          receive_from_player(i, rec[i], connection);
+        }
+    }
+  for (unsigned int i= 0; i < ssl.size(); i++)
+    {
+      if (i < me)
+        {
+          send_to_player(i, o[i], connection);
+        }
+      else if (i > me)
+        {
+          receive_from_player(i, rec[i], connection);
         }
     }
   for (unsigned int i= 0; i < ssl.size(); i++)
     {
       if (i != me)
         {
-          receive_from_player(i, o[i], connection);
+          o[i]= move(rec[i]);
         }
     }
 }

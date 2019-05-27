@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -44,13 +44,13 @@ enum {
   STMSI= 0xA,
   MOVC= 0xB,
   MOVS= 0xC,
+  MOVINT= 0xD,
   LDMINT= 0xCA,
   STMINT= 0xCB,
   LDMINTI= 0xCC,
   STMINTI= 0xCD,
   PUSHINT= 0xCE,
   POPINT= 0xCF,
-  MOVINT= 0xD0,
 
   // Machine
   LDTN= 0x10,
@@ -106,11 +106,31 @@ enum {
   // Open
   STARTOPEN= 0xA0,
   STOPOPEN= 0xA1,
+  OPENSINT= 0xA2,
+  OPENSBIT= 0xA3,
 
   // Data access
   TRIPLE= 0x50,
   BIT= 0x51,
   SQUARE= 0x52,
+
+  // sregint/sbit instructions
+  LDMSINT= 0x60,
+  LDMSINTI= 0x61,
+  STMSINT= 0x62,
+  STMSINTI= 0x63,
+  MOVSINT= 0x64,
+  LDSINT= 0x65,
+  ADDSINT= 0x66,
+  ADDSINTC= 0x67,
+  SUBSINT= 0x68,
+  SUBSINTC= 0x69,
+  SUBCINTS= 0x6A,
+  MULSINT= 0x6B,
+  MULSINTC= 0x6C,
+  DIVSINT= 0x6D,
+  SHLSINT= 0x6E,
+  SHRSINT= 0x6F,
 
   // Bitwise logic
   ANDC= 0x70,
@@ -120,6 +140,12 @@ enum {
   XORCI= 0x74,
   ORCI= 0x75,
   NOTC= 0x76,
+  NEG= 0x77,
+  SAND= 0x78,
+  XORSB= 0x79,
+  ANDSB= 0x7A,
+  ORSB= 0x7B,
+  NEGB= 0x7C,
 
   // Bitwise shifts
   SHLC= 0x80,
@@ -148,6 +174,9 @@ enum {
   // Conversion
   CONVINT= 0xC0,
   CONVMODP= 0xC1,
+  CONVSINTSREG= 0xC2,
+  CONVREGSREG= 0xC3,
+  CONVSREGSINT= 0xC4,
 
   // Debug Printing
   PRINTMEM= 0xB0,
@@ -160,6 +189,23 @@ enum {
   PRINTFLOATPLAIN= 0xB7,
   PRINTFIXPLAIN= 0xB8,
   PRINTINT= 0xB9,
+
+  // Comparison of sregints
+  LTSINT= 0xD0,
+  GTSINT= 0xD1,
+  EQSINT= 0xD2,
+
+  // Bitwise logical operations on sregints
+  ANDSINT= 0xD3,
+  ANDSINTC= 0xD4,
+  ORSINT= 0xD5,
+  ORSINTC= 0xD6,
+  XORSINT= 0xD7,
+  XORSINTC= 0xD8,
+  INVSINT= 0xD9,
+
+  // 64x64 -> 128 multiplier
+  MUL2SINT= 0xDA,
 
   // Others
   RAND= 0xE0,

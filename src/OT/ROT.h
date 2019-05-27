@@ -1,15 +1,19 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
-#ifndef _ROT
-#define _ROT
+#ifndef _ROTDMC
+#define _ROTDMC
 
-/* This defines a random OT protocol
- * Currently we only implement the one based on ECC Dual Mode
- * Encryption.
+/* This defines a random OT protocol based on ECC Dual Mode
+ * Encryption, from ePrint 2007/348.
+ *
+ * The issue with this is that a malicious sender can choose
+ * the two messages to be identical. Thus this is not a good
+ * OT for our application. It is therefore preferred to
+ * use the one from ePrint 2015/267 defined in SimpleROT
  *
  * There are two classes a sender and a receiver.
  *
@@ -24,6 +28,7 @@ All rights reserved
 #include "BitMatrix.h"
 #include "DMC.h"
 #include "Tools/random.h"
+#include "config.h"
 #include "cryptopp/randpool.h"
 #include <string>
 

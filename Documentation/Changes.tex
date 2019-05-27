@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.3} of the SCALE and MAMBA software.
+This is currently {\bf version 1.4} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,54 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software. 
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.4 from 1.3}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item We now have a full OT based n-party garbled circuit functionality
+integrated. The base Random OT's can either be
+derived from the Dual Mode Encryption method of \cite{PVW08}
+or the SimpleOT method of \cite{CO15}
+The former has, however, a simple attack against it when used to
+generate random OT's. Thus we by default utilize the 
+second method to perform base OTs. This can be changed in
+the file \verb+config.h+ if needs be.
+\item The base random OTs are  converted into a large number of 
+correlated COT's, for which we use \cite{AC:FKOS15}[Full Version, Figure 19] 
+and \cite{C:KelOrsSch15}[Full Version, Figure 7].
+These correlated OTs are then converted into random sharings of authenticated
+bits (so called aShares/aBits), for this step we use \cite{AC:HazSchSor17}[Full Version, Figure 16].
+Finally these aBits are converted into aANDs using 
+\cite{CCS:WanRanKat17b}[Full Version, Figures 16, 8 and 18 in order].
+With the final GC protocol being implemented using \cite{AC:HazSchSor17}.
+The hash function in the protocol to generated HaANDs from \cite{CCS:WanRanKat17b}
+is implemented using the CCR-secure MMO construction from \cite{GKWY19}.
+\item We have extended the MAMBA language to include new datatypes
+\verb+sregint+ and \verb+sbit+. These are secure (signed)
+64-bit and 1-bit integer datatypes respectively. 
+These are operated on by using a fixed
+set of garbled circuits. As such only certain operations are supported,
+roughly equivalent to the kind of arithmetic operations you can
+do on C \verb+long+ values. Obviously we could extend the system to
+allow user defined circuits to be executed on arbitrary data widths,
+but this would detract from our goal of trying to abstract away
+much of the nitty-gritty of building MPC solutions.
+\item To deal with conversion between LSSS and GC representations
+we use the daBit method from \cite{daBitPaper}.
+To produce the conversion circuit needed we added a new part to the
+Setup routine.
+This conversion only works if certain conditions are met by the
+prime used for the LSSS scheme; we will discuss this later
+in the relevant part of Section \ref{sec:mod2n}.
+\item We give advanced users the option of selecting their own
+prime for the full-threshold case.
+\item Full threshold IO pre-processed data no longer does ZKPoKs,
+just as in the original SPDZ-2 implementation. This is secure,
+as a moments thought will reveal.
+\item The TopGear implementation has been upgraded to use the second 
+version of the protocol, also other low-level implementation optimizations 
+have been performed which gives a massive boost to throughput.
+\end{enumerate}
 
 \subsection{Changes in version 1.3 from 1.2}
 \begin{enumerate}

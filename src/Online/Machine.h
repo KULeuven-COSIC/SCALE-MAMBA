@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -10,6 +10,7 @@ All rights reserved
 #include "Input_Output/IO.h"
 #include "LSSS/Share.h"
 #include "Math/Integer.h"
+#include "OT/aBitVector.h"
 #include "Processor/Memory.h"
 #include "Processor/Program.h"
 #include "Schedule.h"
@@ -20,7 +21,6 @@ All rights reserved
 /* The machine controls the entire evaluation engine.
  * The evaluation engine is made up of many processors (think
  * of cores). There is one processor per online thread.
- * #include <memory>
  *
  * What the machine class does is coordinate these threads
  * via passing data via online_thread_info
@@ -92,6 +92,7 @@ public:
   Memory<gfp> Mc;
   Memory<Share> Ms;
   Memory<Integer> Mr;
+  Memory<aBitVector> Msr;
 
   // The Schedule process we are running
   Schedule schedule;
@@ -112,6 +113,7 @@ public:
   }
 
   // Set up/store data
+  //   Msr memory is not dumped or loaded
   void SetUp_Memory(unsigned int whoami, const string &memtype);
   void Dump_Memory(unsigned int whoami);
 

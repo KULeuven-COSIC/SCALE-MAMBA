@@ -1,9 +1,11 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
+
+/* Tests Garbled Circuit Functionality using AES (what else could one do?) :-) */
 
 #include "GC/Circuit.h"
 #include <fstream>
@@ -13,7 +15,7 @@ using namespace std;
 int main()
 {
   /* Test a Garbled Circuit */
-  ifstream inpf("Circuits/AES-non-expanded.txt");
+  ifstream inpf("Circuits/Bristol/AES-non-expanded.txt");
   Circuit C;
   inpf >> C;
 

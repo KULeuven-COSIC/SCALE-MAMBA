@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -34,6 +34,8 @@ class FHE_Industry
 
   // The encryptions of the macs
   vector<Ciphertext> ctx_macs;
+  // Signals whether ctx_macs are ready
+  bool ready;
 
   // Assume Current_Factory_Lock[num] is locked!!!
   void Update_If_Empty(unsigned int num);
@@ -42,6 +44,7 @@ public:
   FHE_Industry(unsigned int maxnumber);
   ~FHE_Industry();
 
+  bool is_ready() const { return ready; }
   const Ciphertext &ct_mac(unsigned int i) const
   {
     return ctx_macs[i];

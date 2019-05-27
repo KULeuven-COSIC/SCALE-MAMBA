@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -41,6 +41,7 @@ public:
   {
     memset(x, 0, sizeof(x));
   }
+  /*
   modp(const modp &y)
   {
     memcpy(x, y.x, sizeof(x));
@@ -53,6 +54,7 @@ public:
       }
     return *this;
   }
+  */
 
   void assign(const char *buffer, int t)
   {

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -16,15 +16,31 @@ void Sender_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG)
   ROT_S.resize(OT_comp_sec);
   string input, output;
 
+#ifdef SimpleOT
+  // Only generate one public key
+  ROT_S[0].init(output, RNG);
+  P.send_to_player(i, output, 2);
+#endif
+
   for (unsigned int j= 0; j < OT_comp_sec; j++)
     {
+#ifdef SimpleOT
+      if (j != 0)
+        {
+          ROT_S[j]= ROT_S[0];
+          ROT_S[j].reset();
+        }
+      P.receive_from_player(i, input, 2);
+      ROT_S[j].message(input);
+#else
       ROT_S[j].init(RNG);
       while (!ROT_S[j].is_complete())
         {
-          P.receive_from_player(i, input);
+          P.receive_from_player(i, input, 2);
           ROT_S[j].message(output, input, RNG);
-          P.send_to_player(i, output);
+          P.send_to_player(i, output, 2);
         }
+#endif
     }
 }
 
@@ -35,21 +51,32 @@ void Receiver_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int>
   ROT_R.resize(OT_comp_sec);
   string input, output;
 
+#ifdef SimpleOT
+  // We only have one public key coming to us
+  P.receive_from_player(i, input, 2);
+#endif
+
   for (unsigned int j= 0; j < OT_comp_sec; j++)
     {
+#ifdef SimpleOT
+      ROT_R[j].init(input, choicebits[j]);
+      ROT_R[j].message(output, RNG);
+      P.send_to_player(i, output, 2);
+#else
       ROT_R[j].init(RNG, choicebits[j]);
       while (!ROT_R[j].is_complete())
         {
           if (ROT_R[j].get_state() != 0)
             {
-              P.receive_from_player(i, input);
+              P.receive_from_player(i, input, 2);
             }
           ROT_R[j].message(output, input);
           if (!ROT_R[j].is_complete())
             {
-              P.send_to_player(i, output);
+              P.send_to_player(i, output, 2);
             }
         }
+#endif
     }
   compute_Delta();
 }
@@ -82,7 +109,7 @@ void Sender_COT::next_iteration(Player &P,
   // Now send xMatrix to the other player
   stringstream ss;
   xMatrix.output(ss);
-  P.send_to_player(pair, ss.str());
+  P.send_to_player(pair, ss.str(), 2);
 
   // Step 4
   gf2n t;
@@ -108,7 +135,7 @@ void Receiver_COT::next_iteration(Player &P,
   // Step 2 and 3
   string ss;
   BitMatrix xMatrix(sz_aB);
-  P.receive_from_player(pair, ss);
+  P.receive_from_player(pair, ss, 2);
   istringstream iss(ss);
   xMatrix.input(iss);
 
@@ -178,9 +205,9 @@ void Sender_COT::next_checked_iteration(Player &P,
   A[pair]= 1;
 
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, A, seed, SEED_SIZE);
+  AgreeRandom(P, A, seed, SEED_SIZE, 2);
   PRNG G2;
-  G2.SetSeed(seed);
+  G2.SetSeedFromRandom(seed);
 
   // Compute the check data for the sender
   gf2n xc, chi, tc, temp;
@@ -201,7 +228,7 @@ void Sender_COT::next_checked_iteration(Player &P,
   stringstream ss;
   xc.output(ss);
   tc.output(ss);
-  P.send_to_player(pair, ss.str());
+  P.send_to_player(pair, ss.str(), 2);
 }
 
 void Receiver_COT::next_checked_iteration(Player &P,
@@ -211,7 +238,6 @@ void Receiver_COT::next_checked_iteration(Player &P,
 
   // Agree PRNG for checking
   vector<unsigned int> A(P.nplayers());
-  ;
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
       A[i]= 0;
@@ -220,9 +246,9 @@ void Receiver_COT::next_checked_iteration(Player &P,
   A[pair]= 1;
 
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, A, seed, SEED_SIZE);
+  AgreeRandom(P, A, seed, SEED_SIZE, 2);
   PRNG G2;
-  G2.SetSeed(seed);
+  G2.SetSeedFromRandom(seed);
 
   // Compute the check data for the receiver
   gf2n xc, tc, qc, chi, temp;
@@ -237,7 +263,7 @@ void Receiver_COT::next_checked_iteration(Player &P,
 
   // Get xc and tc from the Sender
   string ss;
-  P.receive_from_player(pair, ss);
+  P.receive_from_player(pair, ss, 2);
   istringstream iss(ss);
   xc.input(iss);
   tc.input(iss);

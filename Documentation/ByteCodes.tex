@@ -40,18 +40,23 @@ communication channels with the associated threads in all
 other players' runtime environments.
 These communication channels, like all communication channels
 in SCALE, are secured via TLS.
-The threads actually have two channels to the correspond
+The threads actually have three channels to the correspond
 thread in the other parties; we call these different channels
 ``connections''.
 For the online thread ``connection'' zero is used for standard
 opening of shared data, whereas ``connection'' one is used for
-private input and output. This is to avoid conflicts beween
-the two (for example a \verb+PRIVATE_OUTPUT+ coming between
-a \verb+STARTOPEN+ and a \verb+STOPOPEN+.
+private input and output.
+Connection two is used for all data related to aBits, aANDs
+and garbled circuit computations.
+This division into different connections is to avoid conflicts beween
+the three usages (for example a \verb+PRIVATE_OUTPUT+ coming between
+a \verb+STARTOPEN+ and a \verb+STOPOPEN+).
 Each online thread is supported by four other threads
 performing the offline phase, each again with pairwise 
 TLS secured point-to-point channels. Currently the offline
 threads only communicate on ``connection'' zero.
+A single offline thread produces authenticated bits, aBits,
+by OT-extension.
 
 In the case of Full Threshold secret sharing another set of
 threads act as a factory for FHE ciphertexts. Actively secure
@@ -81,7 +86,6 @@ threads, and waits for the threads to
 finish their execution before proceeding to the next stage of
 the schedule.
 
-
 Communication between threads is handled by a global
 \emph{main memory}, which all threads have access to.
 To avoid unnecessary stalls there is no locking mechanism provided to
@@ -90,12 +94,15 @@ execute a read and a write, or two writes, to the same
 memory location then the result is undefined since it is
 not specified as to which order the instructions
 will be performed in.
-Memory comes in both clear and secret forms.
-
+Memory comes in four forms, corresponding to
+\verb+sint+, \verb+cint+, \verb+regint+ and \verb+sregint+
+data types. There is not memory for the \verb+sbit+
+datatype.
 
 Each execution thread also has its own local clear and secret
 registers, to hold temporary variables.
-To avoid confusion with the main memory
+To avoid confusion with the main memory we refer to these
+as registers.
 The values of registers are not assumed to be maintained
 between an execution thread running one tape and
 the next tape, so all passing of values
@@ -137,41 +144,58 @@ with the opcode created as described above.
 \end{itemize}
 The basic syntax used in the above html file is as follows:
 \begin{itemize}
-\item `c[w]': clear register, with the optional suffix `w' if the register is
+\item `c[w]': clear register $\modp$, with the optional suffix `w' if the register is
 written to.
-\item `s[w]': secret register, as above.
-\item `r[w]': regint register, as above.
+\item `s[w]': secret register $\modp$, and a `w' as above.
+\item `r[w]': 64-bit signed integer regint register, clear type $\modn$, and a `w' as above.
+\item `sr[w]': 64-bit signed integer secret register $\modn$, and a `w' as above.
+\item `sb[w]': 1 bit boolean secret register, and a `w' as above.
 \item `i'   : 32-bit integer signed immediate value.
 \item `int' : 64-bit integer unsigned immediate value.
 \item `p'   : 32-bit number representing a player index.
 \item `str' : A four byte string.
+
+
 \end{itemize}
-Memory comes in three varieties \verb+sint+, \verb+cint+, and
-\verb+regint+; denoted by \verb+S[i]+, \verb+C[i]+ and \verb+R[i]+.
+
+
+\subsubsection{Memory Types}
+
+We can divide the memory registers over which we operate in two main categories. Registers that use $\modp$ arithmetic, and those who use $\modn$ arithmetic instead. 
+Each of these categories includes two varieties, one for secret and other for clear data. 
+In the case of $\modp$, these varieties are \verb+sint+ and \verb+cint+; and are denoted by \verb+r[i]+, \verb+c[i]+. Whereas, for $\modn$, the varieties are \verb+sregint+ and
+\verb+regint+; and are denoted by \verb+sr[i]+ and \verb+r[i]+.
 
 \subsection{Load, Store and Memory Instructions}
 Being a RISC design the main operations are load/store
 operations, moving operations, and memory operations.
 Each type of instructions comes in either clear data, 
-sharedata, or integer data formats. 
-The integer data is pure integer arithemetic, say
-for controling loops, whereas clear data is integer
-arithmetic modulo $p$.
-For the clear values all values represented as integers 
-in the range $(-\frac{p-1}{2}, \dots, \frac{p-1}{2}]$.
-The integer stack is again mainly intended for loop
+share data, or integer data formats. 
+The integer data is pure integer arithmetic, say
+for controlling loops, whereas clear data could be either integer
+arithmetic $\modp$ or $\modn$.
+For the clear values  $\modp$, all values represented as integers 
+in the range $(-\frac{p-1}{2}, \dots, \frac{p-1}{2}]$. 
+Whereas for the 64-bits clear register values, all of them are represented 
+in the range $(-2^{63}), \dots, 2^{63})$.
+There is a stack of \verb+regint+ values which is mainly intended for loop
 control.
+Finally, there are different set of memory instructions depending on whether they manage $\modp$ or $\modn$ registers, we enumerate them as follows:
 
-\subsubsection{Basic Load/Store/Move Instructions:}
+\subsubsection{Basic Load/Store/Move  $\modp$ Instructions:}
 \verb+LDI+,
 \verb+LDI+,
 \verb+LDSI+,
-\verb+LDINT+,
 \verb+MOVC+,
-\verb+MOVS+,
-\verb+MOVINT+.
+\verb+MOVS+.
 
-\subsubsection{Loading to/from Memory:}
+
+\subsubsection{Basic Load/Store/Move $\modn$ Instructions:}
+We have 2 basic extra instructions for secret types \verb+LDSINT+,
+\verb+MOVSINT+; and two for clear registers \verb+LDINT+, \verb+MOVINT+.
+
+
+\subsubsection{Loading to/from Memory in $\modp$:}
  \verb+LDMC+,
  \verb+LDMS+,
  \verb+STMC+,
@@ -179,11 +203,10 @@ control.
  \verb+LDMCI+,
  \verb+LDMSI+,
  \verb+STMCI+,
- \verb+STMSI+,
- \verb+LDMINT+, 
- \verb+STMINT+,
- \verb+LDMINTI+,
- \verb+STMINTI+.
+ \verb+STMSI+.
+
+\subsubsection{Loading to/from Memory in $\modn$:}
+For secret types we have the following instructions: \verb+LDMSINT+, \verb+LDMSINTI+, \verb+STMSINT+ and \verb+STMSINTI+. For clear registers we have the following: \verb+LDMINT+, \verb+STMINT+, \verb+LDMINTI+ and \verb+STMINTI+.
 
 \subsubsection{Accessing the integer stack:}
 \verb+PUSHINT+, \verb+POPINT+.
@@ -194,6 +217,7 @@ back we provide the conversion routines.
 \verb+CONVINT+, \verb+CONVMODP+.
 These are needed as the internal mod $p$ representation
 of clear data is in Montgomery representation.
+To convert between $\modp$ and $\modn$ types, we have the following instructions: \verb+CONVSINTSREG+, \verb+CONVREGSREG+ and \verb+CONVSREGSINT+. These conversions are necessary to allow a smooth transition between the secret sharing and the GC engines.
 
 \subsection{Preprocessing loading instructions}
 The instructions for loading data from the preprocessing phase
@@ -204,7 +228,9 @@ The associated data is loaded from the concurrently running
 offline threads and loaded into the registers given as arguments.
 
 \subsection{Open instructions}
+There are tailor-made approaches to open registers depending on whether they are $\modp$ or $\modn$. We detail both in this section. 
 
+\subsubsection{Instructions for mod $p$ registers}
 The process of opening secret values is covered by two instructions.
 The \verb+STARTOPEN+ instruction takes as input a set of $m$
 shared registers, and \verb+STOPOPEN+ an associated set of $m$
@@ -225,6 +251,10 @@ On our test machines this happens when opening around 10000 elements
 at once, so care must be taken to avoid this when compiling or writing
 bytecode (the Python compiler could automatically detect and avoid
 this).
+
+\subsubsection{Instructions for mod $2^n$ registers}
+When operating on $\modn$, there are two register types that need to be open. In that sense we have a simplified process with 2 instructions, one for each type, namely \verb+OPENSINT+ for \verb+sregint+ and \verb+OPENSBIT+ for \verb|sbit|.
+These execute the conversion routines using \verb+daBits+ from \cite{daBitPaper}.
 
 \subsection{Threading tools}
 Various special instructions are provided to ease the workload when writing
@@ -249,12 +279,12 @@ the \verb+JOIN_TAPE+ function.
 This is captured by the following instructions,
 with different instructions being able to be operated
 on clear, shared and integer types.
+For $\modp$ registers:
     \verb+ADDC+,
     \verb+ADDS+,
     \verb+ADDM+,
     \verb+ADDCI+,
     \verb+ADDSI+,
-    \verb+ADDINT+,
     \verb+SUBC+,
     \verb+SUBS+,
     \verb+SUBML+,
@@ -263,19 +293,42 @@ on clear, shared and integer types.
     \verb+SUBSI+,
     \verb+SUBCFI+,
     \verb+SUBSFI+,
-    \verb+SUBINT+,
     \verb+MULC+,
     \verb+MULM+,
     \verb+MULCI+,
-    \verb+MULSI+,
-and
-    \verb+MULINT+.
+    and
+    \verb+MULSI+.
+
+In  the case for $\modn$ registers, we have the following instructions
+which work on either \verb|sregint| registers or a combination
+of \verb|sregint| and \verb|regint| registers.
+	\verb+ADDSINT+,
+	\verb+ADDSINTC+,
+	\verb+SUBSINT+,
+	\verb+SUBSINTC+,
+	\verb+SUBCINTS+,
+	\verb+MULSINT+,
+	\verb+MULSINTC+,
+	\verb+DIVSINT+,
+	\verb+SHLSINT+,
+	\verb+SHRSINT+,
+	\verb+NEGS+.
+Pluse we also have the following instructions 
+  \verb+ADDINT+,
+  \verb+SUBINT+, and
+  \verb+MULINT+,
+which work on a \verb|regint| registers.
+
+There is also an instruction \verb+MUL2SINT+ to access a
+full $64 \times 64 \longrightarrow 128$ bit multiplier
+for \verb|sregint| values.
 
 \subsection{Advanced Arithmetic}
+\subsubsection{Instructions for $\modp$}
 More elaborate algorithms can clearly be executed directly on
 clear or integer values; without the need for complex
-protocols. These include logical, shift and number
-theoretic functions.
+protocols. Although there is not an specific boolean type, this is also true for logic operators over $\modp$ registers, shift and number
+theoretic functions. The instructions are the following:
     \verb+ANDC+,
     \verb+XORC+,
     \verb+ORC+,
@@ -295,6 +348,36 @@ theoretic functions.
     \verb+LEGENDREC+,
 and
     \verb+DIGESTC+.
+\subsubsection{Instructions for $\modn$}
+For the case of $\modn$ instructions, we have extended support to some logic operators that work on $\mod \; 2$. 
+This functionality is specifically supported by \verb+sbit+. 
+The instructions are the following: 
+\verb+SAND+,
+\verb+XORSB+,
+\verb+ANDSB+,
+\verb+ORSB+,
+\verb+XORSB+ and
+\verb+NEGB+.
+
+We also implement a number of bitwise logical operations on the $64$-bit
+\verb|sregint| and \verb|regint| variables. These are
+\verb+ANDSINT+, 
+\verb+ANDSINTC+,
+\verb+ORSINT+, 
+\verb+ORSINTC+,
+\verb+XORSINT+, 
+\verb+XORSINTC+,
+and
+\verb+INVSINT+.
+
+\subsubsection{Note:}
+The choices of bytecodes here is a bit of a legacy issue. It would
+make more sense to move almost all the $\modp$ bytecodes (bar the Legendre symbol
+one) to operate on \verb|regint| values only; since they really make
+no sense for $\modp$ values. However, this would break a lot of legacy code.
+So we keep it as it is, for the moment. At some point when (and if) we build a proper
+compiler and language we will not have legacy issues to support, and the
+bytecodes can then change to something more sensible.
 
 \subsection{Debuging Output}
 To enable debugging we provide simple commands to send
@@ -317,8 +400,8 @@ The associated bytecodes are
              OPEN_CHAN,              CLOSE_CHAN
 \end{verbatim}
 
-\subsection{Branching}
-Branching is supported by the following
+\subsection{Branching on clear registers}
+Branching on clear registers is supported by the following
 instructions
  \verb+JMP+,
     \verb+JMPNZ+,
@@ -330,6 +413,13 @@ instructions
     \verb+EQINT+,
 and
     \verb+JMPI+.
+
+\subsection{Comparison Tests for $\modn$}
+We also support instructions for comparison tests on $\modn$ secret registers. These return 
+secret $\mod \; 2$ registers (\verb+sbit+), and can be used in conjunction with the logic $\modn$ operators described above. The instructions are the following: 
+\verb+LTSINT+ ,
+\verb+GTSINT+ and
+\verb+EQSINT+.
 
 \subsection{Other Commands}
 The following byte codes are for fine tuning the machine

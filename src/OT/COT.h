@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -21,13 +21,18 @@ All rights reserved
  */
 
 #include "ROT.h"
+#include "SimpleROT.h"
 #include "System/Player.h"
 #include "Tools/random.h"
 #include "aBit.h"
 
 class Sender_COT
 {
+#ifdef SimpleOT
+  vector<SimpleOT_Sender> ROT_S;
+#else
   vector<OT_Sender> ROT_S;
+#endif
   int pair;
 
   // Execute the next extraction procedure
@@ -54,7 +59,11 @@ public:
 
 class Receiver_COT
 {
+#ifdef SimpleOT
+  vector<SimpleOT_Receiver> ROT_R;
+#else
   vector<OT_Receiver> ROT_R;
+#endif
   int pair;
   gf2n Delta;
 

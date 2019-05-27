@@ -4,7 +4,7 @@
 
 \subsubsection{Setup}
 
-\paragraph{Dependencies}
+\paragraph{Dependencies:}
 
 To run the compiler, the following Python packages are required:
 \begin{itemize}
@@ -16,7 +16,7 @@ via \texttt{easy\_install}:
 
 \displaytt{easy\_install --install-dir <path> <package-name>}
 
-\paragraph{Directory structure}
+\paragraph{Directory structure:}
 
 The Compiler package should be located in the same root directory as the
 \texttt{compile.py} script, alongside a folder Programs with sub-folders for
@@ -36,7 +36,7 @@ MAMBA programs have the extension \verb+.mpc+ and each MAMBA
 program is placed in its own sub-directory within
 the directory \verb+Programs+.
 
-\paragraph{Compilation}
+\paragraph{Compilation:}
 
 Compiling a program located in Programs/some\_program/some\_program.mpc is performed by the
 command:
@@ -177,7 +177,7 @@ program.security = 100
 program.bit_length = 20
 \end{lstlisting}
 Remember, the requirement is that $k+\kappa$ must be less than the bit length of the prime $p$.
-These are the parameters for the base \verb+sint+ data type when we intepret the value it holds
+These are the parameters for the base \verb+sint+ data type when we interpret the value it holds
 as an integer, as opposed to an element modulo $p$.
 There are also $\kappa$ statistical security parameters associated with the \verb+sfix+ and \verb+sfloat+ data types;
 whose default values are also $40$.
@@ -189,11 +189,11 @@ sfloat.kappa=50
 
 
 \subsubsection{Compilation comments regarding the tape enrollment:} 
-The compiler output showcases a typical expample of instructions from the compiler. They reflect the tasks being performed while writting on the operations tape.
+The compiler output showcases a typical example of instructions from the compiler. They reflect the tasks being performed while writing down the instructions in the bytecode.
 \func{Compiling basic block}
 Signals the start of compilation of a new basic block on the tape. It also adds operations to such block.
 \func{Processing tape}
-Signals the start of the optimization of the contents of the tape. This includes merging blocks to reduce rounds. It also elminates dead code.
+Signals the start of the optimization of the contents of the tape. This includes merging blocks to reduce rounds. It also eliminates dead code.
 \func{Processing basic block}
 While Processing tape, blocks get optimized, code reviewed to eliminated dead code and also merged.
 \func{Program requires X rounds of communication}
@@ -203,8 +203,17 @@ Total amount of multiplications needed for the compiled program (amount of work)
 
 \subsubsection{Offline data Requirements:} 
 
-\func{Tape requires X triples in modp, Y squares in modp, Z bits in modp}
+\func{Tape requires X triples in $\modp$, Y squares in $\modp$, Z bits in $\modp$}
 Signal a recount of the amount of different triples needed for the protocol execution. 
+However, this is only accurate if you are using no advanced pre-processing such
+as daBits. In addition the daBit production threads will require themselves
+pre-processing of triples, even if you do not use them. Thus this is purely an estimate
+for ``legacy'' MAMBA programs which do not use the new functionality, and
+does not accurately measure how much pre-processing is needed by the 
+entire system.
+It also does not meaure the amount of OT-extensions needed to produced
+authenticated-ANDs for the garbling process.
+So please take these numbers with a {\em huge} pinch of salt.
 
 \func{Memory Size}
 This is an estimation of the memory allocation needed to execute the protocol.
@@ -241,9 +250,9 @@ the html file in
 under the class \verb+types+.
 Details of advanced algorithms can be found under the heading
 \verb+Files+.
-
+\subsubsection{Mod $p$ Data Types}
 The compiler uses separate classes for clear and secret integer, fixed point
-and floating point data types. The integer classes \verb|cint| and \verb|sint|
+and floating point data types $\modp$. The integer classes \verb|cint| and \verb|sint|
 correspond directly to a single clear or secret register in the virtual machine.
 Integer types lie in the range $[-2^{k-1}, \dots, 2^{k-1}]$, for some
 parameter $t$ with $p > 2^k$. Internally, these are represented in $\F_p$ by the
@@ -252,8 +261,8 @@ However, all clear values are reduced into the proper
 range before comparison operations, to ensure correct results.
 The parameters $k$ and $\kappa$ are chosen depending on the field size $x$ as follows:
 \begin{itemize}
-\item $x < 48$ : $k = 24$
-\item $48 \le x < 85$ : $k = 32$
+\item $x < 48 (bits)$ : $k = 24$
+\item $48 \le x < 85 (bits)$ : $k = 32$
 \item 128-bit field: $k = 64$
 \end{itemize}
 These choices allow some room for secure comparison with a statistical
@@ -270,51 +279,163 @@ fields (which is the recommended prime size for MAMBA programs).
 \end{itemize} 
 The default values of $k$ and $\kappa$ can be modified using the commands described above if desired.
 
-There is also \verb|regint| class, which works like normal 32-bit integer, and it can be used for example as array index, since values used in range-loops and some of while-loops are \verb|regint|s. Also value in MemValue(described later) is stored as \verb|regint|. Operations on regint are faster then on cint.
-\verb+regint+ values map directly to the integer values in the Bytecodes,
-where as \verb+cint+ map to the clear type in the Bytecode.
- \\
+\subsubsection{Mod $2^n$ Data Types}
+\label{sec:mod2n}
+The compiler is also capable to process inputs that are encoded in a $\modn$  ring (like normal CPU registers) 
+rather than $\modp$. 
+Variables that instantiate these data types are then processed via Garbled Circuits. 
 
+Data conversion between $\modp$ and $\modn$ types are also possible. As before, we make use of secret and clear data types. A clear integer can be represented by the \verb|regint| class, which works like normal 64-bit integer,
+with the secure version being represented by the \verb|sregint| class.
+Both types are used to represent secret shared/clear integers that are bounded by $2^{64}$. 
+Both correspond directly to a single clear or secret register in the virtual machine. 
+In these case both are integer types that lie in the range $[-2^{63}, \dots, 2^{63})$, both \verb|regint| and \verb|sregint| support inputs on such  range.
+
+We have also included an extra data type called \verb|sbit|. 
+The type cannot be instantiated via its constructor, given that it was thought to be the default return 
+type for all \verb|sregint| comparison tests. 
+It can be used to perform boolean operations on top of it, making it ideal for building complex logic predicates.
+
+Moreover, the clear type \verb|regint| was designed in such a way that it can be used for other tasks. 
+One example is as array index, since values used in range-loops and some of while-loops are \verb|regint|s. 
+Also value in MemValue(described later) is stored as \verb|regint|. 
+We use \verb|regint| in such a generic way, given that operations on regint are faster than on \verb|cint|. 
+This is because \verb+regint+ values map directly to the integer values in the Bytecodes,
+whereas \verb+cint+ map to the clear type in the Bytecode.
+
+\paragraph{Conversions:} We can perform conversions between \verb|sint| and \verb|sregint|, bearing in mind that both have to be allocated in the same integer range. This can be done by simply instantiating either an \verb|sregint| or a
+\verb|sint| object passing the corresponding register as a parameter in the constructor as follows: 
+\begin{lstlisting}
+a = sint(5)
+b = sregint(5)
+# casting
+d = sregint(a) # returns sregint
+c = sint(b)    # returns sint
+\end{lstlisting}
+The conversion back and forth between \verb|sregint| and \verb|sint| values uses the
+daBit method of \cite{daBitPaper}, plus the evaluation (in the case of \verb|sint| to 
+\verb|sregint| conversions) of a (relatively large) garbled circuit.
+Thus whilst it is easy to pass from one secret data-type to the other, 
+this operation has some computational and communication cost associated to it, hence 
+we recommend such conversions to be used with care. 
+Additionally, we do not support implicit cross type operations in between 
+$\modp$ and $\modn$ types.
+
+As a further caveat the conversion is only possible in certain situations. 
+In particular we must have $\log_2 p > 64$, otherwise we would loose precision in the conversion. 
+There are however additional {\em security} considerations which need to be
+satisfied.
+
+Recall a daBit is a doubly shared bit $b_i$ in two secret sharing
+schemes (corresponding to our \verb|sint| and \verb|sbit| types)
+$\sshare{b_i}_p$ and $\sshare{b_i}_2$.
+To convert from a \verb|sregint| value to a \verb|sint| value we take
+$64$ daBits $r_i$ and add them into the bits representing the 64-bit
+\verb|sregint| $x$.
+Thus we form $\sshare{v_i}_2 \asn \sshare{x_i}_2 \oplus \sshare{r_i}_2$.
+The value $v_i$ is then opened to all parties.
+All parties can then locally produce the sharing as an \verb|sint|
+of the bits $x_i$ by forming
+\[  \sshare{x_i}_p \asn v_i + \sshare{r_i}_p - 2 \cdot v_i \cdot \sshare{r_i}_p. \]
+From these bits we can reconstruct $x$ as an \verb|sint| via
+\[ \sshare{x}_p \asn - \sshare{x_{63}}_p \cdot 2^{63} + \sum_{i=0}^62 \sshare{x_i}_p \cdot 2^i. \]
+
+To convert from a \verb|sint| to a \verb|sregint| type is more complex.
+We first take $\log_2 p$ daBits $r_i$ and then forming the integer $r = \sum r_i \cdot 2^i$
+in both the $\modp$ and the $\modn$ worlds. 
+The value $\sshare{r}_p$ is subtracted from the input $\sshare{x}_p$ in 
+the $\modp$ world, and the value $x-r$ opened. 
+This is then enterred into a garbled circuit in the $\modn$ world so as to add back on $r$. 
+This circuit is designed so that we convert {\it signed}  integers to {\it signed}
+integers, where in the $\modp$ world signing is by taking integers with a centred 
+rounding modulo $p$.
+Of course if you convert a value bigger than $64$ bits in the $\modp$ world over to the $\modn$
+world then you will loose information.
+
+For this latter method to be secure we need that the value $r$ generated above is 
+either large enough to drown out a $64$-bit value, or is itself sufficiently close 
+to uniformly random to be secure.
+Thus we require one of three conditions on $p$ to be met:
+\begin{enumerate}
+\item $\log_2 p > 64+ \mathsf{conv\_stat\_sec}$.
+\item $(p - 2^{\log_2 p}) / 2^{\log_2 p} < 2^{-\mathsf{conv\_stat\_sec}}$, i.e. $p$ is just larger than a power of two.
+\item $(2^{\log_2 p}-p) / p < 2^{-\mathsf{conv\_stat\_sec}}$, i.e. $p$ is slightly less than a power of two.
+\end{enumerate}
+If these conditions are not met, then the conversion will abort at runtime.
+The value \verb|conv_stat_sec| is by default equal to 40, but this can be modified in
+\verb|config.h|.
+
+\paragraph{On regint and clear data types:} As it was noted before, \verb|regint| offers support for a number of housekeeping tasks. Because of this fact, conversions between all clear types, including \verb|regint| are supported. Furthermore, all operations that involve a clear register with \verb|regint| would return a \verb|regint| register. This can be achieved as follows: 
+\begin{lstlisting}
+# casting
+a = cint(5)
+b = regint(a)
+a = cint(b)
+
+# basic  operations:
+d = a + b     # returns regint
+c =  b + a    # returns regint
+\end{lstlisting}
+This would also implicitly allow the compiler to include operations between \verb|regint| and secret $\modp$ types. However, this is not recommended, given that the disparity on bit-length support in both $\modp$ and $\modn$ types might cause incongruity among the answers. We advise users to use the conversion routines instead to transition between both type families.
+
+\subsubsection{Complex Secret Data Types}
 Fixed and floating point types can be instantiated using the \verb|sfix| and \verb|sfloat| classes, and are described in later part of documentation about Advanced Algorithms.
 
 \subsubsection{Creating data}
-
-
 \func{sint(value)}
-Loads the integer or clear integer \verb|value| into a secret register and returns the register.\\
+Loads the integer or clear integer \verb|value| into a secret register and returns the register.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = sint(5)
 \end{lstlisting}
 \begin{footnotesize}
-Note: value type can be: regint, int, sint and cint.
+Note: value type can be: regint, int, long, sregint, sint and cint.
 \end{footnotesize}
 
 \func{cint(value)}
-Loads the integer \verb|value| into a clear register and returns the register.\\
+Loads the integer \verb|value| into a clear register and returns the register.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = cint(5)
 \end{lstlisting}
 \begin{footnotesize}
-Note: value type can be: regint, cint and int.
+Note: value type can be: regint, cint, int and long.
 \end{footnotesize}
 
 \func{regint(value)}
 Loads the integer \verb|value| into a \verb|regint| register and returns 
-the register.\\
+the register.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = regint(5)
 \end{lstlisting}
 \begin{footnotesize}
-Note: value type can be: regint and int.
+Note: value type can be: regint, int, long.
+\end{footnotesize}
+
+\func{sregint(value)}
+Loads the integer or clear integer \verb|value| into a secret register and returns the register.
+
+\noindent
+\textbf{Example:}
+\begin{lstlisting}
+i = sregint(5)
+\end{lstlisting}
+\begin{footnotesize}
+Note: value type can be: regint, int, long, sregint, sint.
 \end{footnotesize}
 
 %\func{sfix(value, exponent, bit_length)}
 \func{sfix(value)}
 It instantiates  an \verb|sfix| register based on \verb|value|. In case \verb|value| is a publicly available value, it loads it as a secret shared fix point number. In case is a secret shared integer, it places \verb|value| to the mantissa \verb|v| of the \verb|sfix| instance. 
-\\
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = sfix(5.5)
@@ -326,7 +447,8 @@ Note: value type can be of any clear or secret numeric type.
 \func{cfix(value)}
 It instantiates  an \verb|sfix| register based on \verb|value|. 
 Note that \verb|value| is a publicly available value, it loads it as a secret fix point. 
-\\
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = cfix(5.5)
@@ -339,8 +461,10 @@ Note: value type can be of any clear numeric type.
 \func{sfloat(value)}
 It instantiates  an \verb|sfloat| register based on \verb|value| and returns an \verb|sfloat| object. 
 Its instantiation logic mimics its fixed point counterpart. 
-Current implementation supports basic logical and arithmetic operations with all data-types.
-We describe the formatting later in this section.\\
+Current implementation supports basic logical and arithmetic operations with all data types.
+We describe the formatting later in this section.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = sfloat(5.5)
@@ -354,7 +478,9 @@ It is the clear register counterpart of \verb|sfloat|.
 It instantiates a \verb|cfloat| register based on \verb|value| and returns a \verb|cfloat| object. 
 It mimics \verb|sfloat| number representation, 
 and its main function is to serve as an interface when operating 
-between \verb|sfloat| instances and clear types and registers.\\
+between \verb|sfloat| instances and clear types and registers.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i = cfloat(5.5)
@@ -364,90 +490,107 @@ Note: value type can be: int, float, sint, sfloat and sfix.
 \end{footnotesize}
 
 \func{load_int_to_secret_vector(vector)}
-Loads a list of integers \verb|vector| into a vectorized \verb|sint|and  operates on the vector as in a single instance (vectorized instructions).\\
+Loads a list of integers \verb|vector| into a vectorized \verb|sint| and operates on the vector as in a single instance (vectorized instructions).
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 A= [1, 2, 3]
 SA= load_int_to_secret(A)
-print_ln("Values from A: \%s", SA) #the output is 123.
+print_ln("Values from A: %s", SA) # the output is 123.
 \end{lstlisting}
-
 
 \func{load_secret_mem(address) \\
 load_clear_mem(address)}
-Returns the value stored in memory \verb|address| of the according type. The value had to be previously stored on SCALE. Memory in this context refers to a data-storage from SCALE and not physical memory. Users select a memory address when storing data, and the same address needs to be used to extract it. The calls can be implemented as follows: \\
+Returns the value stored in memory \verb|address| of the according type. The value had to be previously stored on SCALE. Memory in this context refers to a data-storage from SCALE and not physical memory. Users select a memory address when storing data, and the same address needs to be used to extract it. The calls can be implemented as follows: 
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i =cint(5)
 i.store_in_mem(0)
 ci= load_secret_mem(i)
-%print_ln("Values from A: \%s", ci) #the output is 5 and type cint.
+%print_ln("Values from A: %s", ci) # the output is 5 and type cint.
 \end{lstlisting}
 \begin{footnotesize}
-Note: address type can be: regint, int and cint. It does the same as functions below and can store any data-type.
+Note: address type can be: regint, int, long and cint. It does the same as functions below and can store any data-type.
+Note: operation supported for sregint, regint, sint, cint, sfix and sfloat.
 \end{footnotesize}
 
 \func{x.store_in_mem(address)}
 Stores register \verb|x| into a given address
-of the appropriate memory type. This basically implies it can be later retrieved by a \verb|load_mem| instruction. Memory addresses are decided by the user and are  stored by the compiler on SCALE. \\
+of the appropriate memory type. This basically implies it can be later retrieved by a \verb|load_mem| instruction. Memory addresses are decided by the user and are  stored by the compiler on SCALE.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i =sint(5)
 i.store_in_mem(0)
 si= load_secret_mem(i)
-print_ln("Value stored on memory address 0: \%s", si.reveal()) #the output is 5.
+print_ln("Value stored on memory address 0: %s", si.reveal()) # the output is 5.
 \end{lstlisting}
 \begin{footnotesize}
-Note: address type can be: regint, int and cint.
-Note: operation supported for sint, cint, sfix and sfloat.
+Note: address type can be: regint, int, long and cint.
+Note: operation supported for sregint, sint, cint, sfix and sfloat.
 \end{footnotesize}
 
 \func{x.load_mem(address)}
 Loads the value stored in memory \verb|address| to the register. 
-The address is selected during the invocation of a \verb|store_in_mem|call. \\
+The address is selected during the invocation of a \verb|store_in_mem| call. 
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 i =sint(5)
 i.store_in_mem(0)
 si= sint.load_mem(0)
-print_ln("Value stored on memory address 0: \%s", si.reveal()) #the output is 5.
+print_ln("Value stored on memory address 0: %s", si.reveal()) # the output is 5.
 \end{lstlisting}
 \begin{footnotesize}
-Note: address type can be: regint, int and cint.
-Note: operation supported for sint, cint, sfix and sfloat.
+Note: address type can be: regint, int, long and cint.
+Note: operation supported for sregint, regint, sint, cint, sfix and sfloat.
 \end{footnotesize}
-
 
 \func{x.reveal()}
 Opens the value in a secret register and returns a clear data-type, 
-also referred as register for the now publicly available register.\\
+also referred as register for the now publicly available register.
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
 si= sint(5)
-print_ln("Value in the clear from si: \%s", si.reveal()) #the output is 5.
+print_ln("Value in the clear from si: %s", si.reveal()) # the output is 5.
 \end{lstlisting}
 \begin{footnotesize}
-Note: x type can be: sint, sfix, and sfloat.
+Note: x type can be: sregint, sbit, sint, sfix, and sfloat.
 \end{footnotesize}
-
 
 \subsubsection{Operations on Data Types}
 Most of the usual arithmetic operators ($+, -, *, /, \%, <<, >>$) can be used with
 clear and secret integer types, implemented with operator overloading.
 This extends also to the case where one operand is a Python integer and one
 is a clear or secret register.
-Exponentation ($**$) is implemented for immediate exponents and
+Exponentiation ($**$) is implemented on $\modp$ types for immediate exponents and
 immediate base 2.
-For secret registers, there are some limitations:
+There are some general limitations in regards to these operations however, when operating over secret shared inputs. We enumerate the following:
 \begin{itemize}
 \item The modulo operation can only be computed for immediate powers
-  of two.
-\item Division by secret registers is not possible.
-\item $>>$ is not implemented for clear registers as the right
-  operand. All other shift operations are implemented
+  of two and its supported by $\modp$ types exclusively.
+\item Division by \verb|sint| registers is not possible. 
+\item One can divide an  \verb|sregint| variable by another \verb|sregint| variable,
+      or a \verb|regint| by a \verb|sregint|, or vice versa.
+\item $>>$ is not implemented for \verb|cint| registers as the right operand. 
+All other shift operations for $\modp$ types are implemented.
+The left and right shift by integers are available for \verb|sregint| variables.
 \end{itemize}
-Boolean operations $\&, \wedge, |, \sim$ are supported on clear registers,
-which function as expected for integers of bit length $t$.
+Boolean operations $\&, \wedge, |, \sim$ are also supported on clear registers
+and on \verb|sregint| registers.
+This is true as well for the special data type \verb|sbit|, 
+which is classified as a $\modn$ type. 
+The compiler returns \verb|sbit| registers when performing comparisons on \verb|sregint| values. 
+In the case of clear data types, they work as expected for integers of bit length $n$. Whereas for \verb|sbit|, they operate as in boolean algebra. Note that the $\&$ operand is also supported between \verb|sregint| and \verb|sbit| types 
+(where it behaves as a bit wise AND of the bits in the \verb|sregint| input by the single bit in the
+\verb|sbit| input).
 
 Note that upon compilation all of the above operators return a 
 new register -- it is not possible to directly modify the value 
@@ -473,10 +616,20 @@ As a cautionary note, although supported,
 multiplication between fixed and secret float registers 
 might cause some loss of precision, hence discouraged.
 
+\paragraph{On Operations between regint and clear data types:} As it was mentioned above, operations between \verb|regint| and clear types such as \verb|cint| are not directly recommended. The reason, as stated, is because of the discrepancy on bit-wise sizes between \verb|regint| (which is limited to 64 bits) and $\modp$ clear types, where their size depends on the prime $p$. These operations look as follows:
+\begin{lstlisting}
+a = cint(2**65) #will overflow
+b = regint(3)
+# overflown:
+c = a + b # returns a regint
+d = a * b # returns a regint
+e = a - b # returns a regint
+\end{lstlisting}
+Basically, operations between these types incur on an implicit casting of the \verb|cint| operator (to \verb|regint|). This will cause an overflow when the bit-length of \verb|cint| register or of the result of such operation is greater than 64 bits.
+
 \paragraph{Multiplication:}
 As before, multiplication is supported for secret and non-secret, 
-integer and fractional data-types. They can be invoked as follows: 
-
+integer and fractional data types. They can be invoked as follows: 
 \begin{lstlisting}
 c = sint(12)
 c = c * c
@@ -487,12 +640,27 @@ g = sfloat(12)
 g = g * g
 h = c * g
 i = f * g 
+j = sregint(12)
+k = j * j
+l = j * 12
 \end{lstlisting}
 In this small example, we can see how to multiply among different and the same data types. 
 As a result $c=12^2$, $f=12.0^{2}$, $d=12.0^{4}$, $g = 12.0^{2}$, 
 $h= 12.0^{4}$, and $i=12.0^{4} $. Note that \verb|d| is of type \verb|sfix|, 
-whereas \verb|g|, \verb|h| and \verb|i| are of type \verb|sfloat|.
-\\  
+whereas \verb|g|, \verb|h| and \verb|i| are of type \verb|sfloat|. 
+
+In the above when you  multiply two \verb|sregint| values together you only
+get the lower $64$-bits back in the resulting \verb|sregint|.
+If you want to access the resulting top {\em and} bottom words then you
+should use
+\begin{lstlisting}
+sa=sregint(2**62+212111)
+sb=sregint(2**62-313131)
+
+sd, sc = sa.mul_2_sint(sb)
+\end{lstlisting}
+
+
 \paragraph{Additions and Substractions:}
 We follow the same principle as before:
 \begin{lstlisting}
@@ -505,12 +673,16 @@ g = sfloat (12)
 g = g - g 
 h = c + g
 i = f + g
+
+j = sregint(12)
+k = j + j
+l = j + 12
 \end{lstlisting}
-As before in this case the type fo \verb|d| is \verb|sfix|, 
+As before in this case the type for \verb|d| is \verb|sfix|, 
 whereas the type of \verb|g|, \verb|h| and \verb|i| is \verb|sfloat|
-\\
+
 \paragraph{Division and Modulus:}
-The Compiler can handle also division and modulus operations. 
+We first revise how to perform division and modulus operations for $\modp$ types. In that sense, the compiler can handle also division and modulus operations for such types. 
 However, these are not generic operations. 
 Let us start by showing some basic constructions for division: 
 \begin{lstlisting}
@@ -526,34 +698,53 @@ Indeed, this is a quite natural way to call division on integers and decimal typ
 But it has to be noted that the division on integers is constructed as a multiplication 
 between the numerator and the multiplicative inverse of the denominator. 
 This is because of the modulo arithmetic the protocols are built upon. 
-\\ 
+
 Moreover,  modulus operations are indeed somewhat different as we may see: 
 \begin{lstlisting}
 c = sint(2)
 d = sint(3)
-c = c \% 2
-d = d \% 2
+c = c % 2
+d = d % 2
 \end{lstlisting}
-The operations will return, in the case of \verb|c| 0 and for \verb|d| 1. 
+The operations will return, in the case of \verb|c| the value 0 and for \verb|d| 
+the value 1. 
 As with divisions, there are some observations: 
 modulo operations can only be performed to powers of 2. 
 Furthermore, note that modulo operations cannot be performed 
 on non-integer types: \verb|sfix| and \verb|sfloat|.
-\\
-\paragraph{Shift operations}:
-We have included bit shifts operations for our basic integer data-types. 
-Such shifts do not work on fractional types. 
+
+In regards of $\modn$ types, we have included a division instruction in
+the runtime for two variables of type \verb|sregint|. 
+The compiler then overloads this to also allow division in the compiler
+of a \verb|sregint| by an \verb|regint| and division of a \verb|regint|
+by a \verb|sregint|.
+The operations, mimic what could be expected from signed integer division. 
+The \verb|sregint| division  can be used as follows:
+\begin{lstlisting}
+c = sregint(12)
+d = sregint(4)
+e = c / d
+f = c / 4
+g = 12 / d
+\end{lstlisting}
+In this case, the results would be \verb|sregint| instances of $ e = 3$, $f = 3$
+and $g=3$.
+
+\paragraph{Shift operations:}
+We have included bit shifts operations for our basic integer $\modp$ data types. 
+Such shifts do not work on fractional types nor on any $\modn$ type. 
 \begin{lstlisting}
 c = sint(2)
 d = c << 1
 e = e >> 1 
 \end{lstlisting}
-In this case, the output of \verb|d| is 4 as expected and from \verb|e| 1. 
-Note that bit shifts only work on integer data-types.
-\\
+In this case, the output of \verb|d| is 4 as expected and from \verb|e| we obtain 1. 
+Note that bit shifts only work on integer data types.
+Similarly shifts can be performed for \verb|sregint| variables.
+
 \paragraph{Exponentiation:}
 We also provide a built-in exponentiation operator for exponentiation over integer and 
-fractional data-types ($**$) when the base is secret shared. 
+fractional $\modp$ data types ($**$), when the base is secret shared. 
 For the fractional case, 
 This overload provides a simple implementation for successive multiplications. 
 We provide more comprehensive protocols for exponentiation of fractional inputs 
@@ -573,32 +764,84 @@ f = f**2	#returns $1.5**2$
 \textbf{NOTE}: For the reasons exposed in this section, and with respect to fractional types, 
 the exponent has to be of \textit{native Python integer} type. 
 This is not the case for integer types. We invite the reader to revise the Advance Protocols 
-section for a revision of alternatives to compute the exponent on fractional data-types.
-\\
-\paragraph{Comparisons (Inequality Tests)}:
+section for a revision of alternatives to compute the exponent on fractional data types.
+
+\paragraph{Comparisons (Inequality Tests):}
 We have in-built operators for comparisons as well. 
 Indeed, comparison of secret values is supported, 
 and returns a secret output containing 0 (false) or 1 (true).
-They work on both integer and fractional data-types. 
-In this sense, they can be used as follows: \\
+They work on both integer (either $\modp$ or $\modn$ registers) and fractional data types. 
+In this sense, they can be used as follows: 
+
+\noindent
 \textbf{Example:}
 \begin{lstlisting}
-	a = sint(1)
-	b = sint(2)
-	c = a < b
-        d = sfloat(3)
-        f = a < d
+# mod p
+a = sint(1)
+b = sint(2)
+c = a < b
+d = sfloat(3)
+f = a < d
+# mod2n
+h = sregint(1)
+i = sregint(2)
+j = h < i # sbit     
+k = regint(2)
+j = h < k # sbit     
 \end{lstlisting}
 
 \noindent
-\textbf{Clear Data-types.} Before comparison of clear integers (\verb|cint|) is done,
+NOTE: When executing a comparison using an \verb|sregint| register, the return data type is going to be an \verb|sbit|. We can then build secret shared complex statements using boolean operators.
+
+\paragraph{Boolean Operators for sbit and sregint:}
+We have included 4 basic boolean operators ($\&, \wedge, |, \sim$) for \verb|sbit| types. 
+They behave in the same way native boolean type. However, it has to be taken into account 
+the fact that \verb|sbit| registers cannot be instantiated. They are the product of the 
+comparison tests performed on \verb|sregint| registers. 
+We aim to give the user a way to build complex logic predicates for, say if-like constructions. The operators can be invoked as follows: 
+\begin{lstlisting}
+# mod2n
+a = sregint(1)
+b = sregint(2)
+c = a < b # sbit    1
+d = a > b # sbit    0
+e = c | d # or
+f = c & d # and     
+g = c ^ d # xor
+h = ~ c   # negation
+# special case and
+i = c & b # sregint with value 2
+\end{lstlisting}
+As it was previously mentioned, the $\&$ operation has been overloaded, 
+to support also operations in between \verb|sbit| and \verb|sregint| types. 
+For this specific case, its behaviour is similar to a multiplication and it returns 
+an \verb|sregint| register.
+
+The equivalent operations on \verb|sregint| registers are bitwise operations on the 
+shared 64-bit values. One can also perform such operations between a
+\verb|sregint| and a \verb|regint| register.
+\begin{lstlisting}
+# mod2n
+a = sregint(1)
+b = sregint(2)
+c = regint(2)
+d = a & b
+e = a & c
+f = a | b
+g = a | c
+h = a ^ b
+i = a ^ c
+j = ~ a 
+\end{lstlisting}
+
+\paragraph{On Clear Data types:} Before a comparison of clear integers (\verb|cint|) is done,
 all operands are reduced into the range $[-2^{t-1}, \dots, 2^{t-1}]$.
 Note that the virtual machine has no boolean type,
 so any comparison operation returns a clear register value of 0
 (false) or 1 (true).
 
 \noindent
-\textbf{Secret Data-types.}  
+\textbf{Secret $\modp$ Data types.}  
 The bit length of the comparison operators defaults to the parameter $t$, 
 which is set-up by the compiler based on the input modulus, 
 but if a different length is required it can be specified with the following functions:
@@ -620,6 +863,8 @@ b= sint(1)
 c= a.less_than(b,128,40)
 \end{lstlisting}
 The output in this case is $1$ as expected. The 2 last parameters are not obligatory.
+
+
 \subsubsection{Loading preprocessing data and sources of randomness}
 
 For some programs, data from the preprocessing phase of SPDZ may be required (as source of randomness). Note that some kinds of randomness can  be generated during the program's offline phase. The function is implemented over the \verb|sint| class and cannot be accessed through any other data-type. Randomness can be accessed in the following ways:
@@ -648,8 +893,7 @@ The code will output the value of $a \cdot a$ versus $b$,  which are equal value
 
 \func{sint.get_random_int(nbits)}
 \textbf{Parameters:}\\
-	\verb|nbits|: bitsize of the secret shared randomness to be produced. Must be a native Python integer variable (not any MAMBA data-type).\\
-\noindent
+	\verb|nbits|: bitsize of the secret shared randomness to be produced. Must be a native Python integer variable (not any MAMBA data-type).
 The function returns a random integer of size \verb|nbits|. This does not come directly from preprocessed data, but instead loads \verb|nbits| random bits and uses these to create the random secret integer. The function can be used as follows:
 \begin{lstlisting}
 a =sint.get_random_bit(5)
@@ -660,20 +904,22 @@ The output is a bounded integer by $2^5$. Note that \verb|nbits| can be a public
 We provide the following functions to printout outputs:
 \func{print_str(string, *args)\\
 print_ln(string, *args)}
-Both of the functions do the same thing, only difference is that print_ln adds $newline$ after execution. Arguments are inserted into string in places of $\%$s respectively. \\
+Both of the functions do the same thing, only difference is that print_ln adds $newline$ after execution. Arguments are inserted into string in places of $\%$s respectively. 
+
+\noindent
 \textbf{Example:}
-\begin{mylisting}
+\begin{lstlisting}
 x = 13
 y = cint(5)
 z = sint(x)
 print_ln("x = %s, y = %s, z = %s", x, y, z.reveal())
-\end{mylisting}
+\end{lstlisting}
 Will print x = 13, y = 5, z = 13.
 
 \subsubsection{How to print Vectorized data}
 Suppose we have two vectorized data types such as sint, sfix, or sfloat. After we have done some operations then we want to print them. We will demonstrate here with sints:
 
-\begin{mylisting}
+\begin{lstlisting}
 n = 10
 x = sint(13, size=n)
 y = sint(25, size=n)
@@ -684,7 +930,7 @@ z.store_in_mem(z_array.address) # now z_array is full of z's data
 
 for i in range(n):
 	print_str("%s ", z_array[i].reveal())
-\end{mylisting}
+\end{lstlisting}
 This might seem useless - why do we want to do the same multiplication but 10 fold? Well we can put different data in each slot by first dumping same length arrays to $x$ and $y$ and then multiplication is going to be faster due to SIMD.
 
 \subsection{Advanced Data Type Explanation}
@@ -729,14 +975,16 @@ The results might be slightly different given the truncation of the information 
 				Let you change the precision for the \verb|sfix| type. 
                                 The requirement is that $f<k$ and $2 \cdot k + \kappa < \log_2 p$.
                                 By default the values $(f,k)=(20,41)$ are chosen internally in the compiler.
-                                It is used to fix the default precision on \verb|types.py|. \\
+                                If you change the precision for \verb|sfix| you should also change that for
+                                \verb|cfix| otherwise you can get some strange arithmetic behaviours. 
+                                It is used to fix the default precision on \verb|types.py|.  \\
 			\textbf{Example:}
 				To change the precision of \verb|sfix|:
-     			\begin{mylisting}
-     			fixed_f=20
-     			fixed_k=41
-     			sfix.set_precision(fixed_f, fixed_k)
-     			\end{mylisting}
+\begin{lstlisting}
+fixed_f=20
+fixed_k=41
+sfix.set_precision(fixed_f, fixed_k)
+\end{lstlisting}
      			
 \func{sfix.load_int(v)}
 			\textbf{Accessed by:} \verb|Default|.		 \\
@@ -749,12 +997,12 @@ The results might be slightly different given the truncation of the information 
 				 It is used to do explicit initialization of an \verb|sfix| value from any integer instantiation value. \\
 	     	\textbf{Example:}
     		    To initialize a \verb|sfix| value with an integer:
-		     	\begin{mylisting}
-				a = sfix()
-				a.load_int(5)
-				b = a*3.0
-				print_ln(b.reveal(b))  #the output is 15   	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a = sfix()
+a.load_int(5)
+b = a*3.0
+print_ln(b.reveal(b))  #the output is 15   	
+\end{lstlisting}	 
 \func{sfix.conv()}
 			\textbf{Accessed by:} \verb|Default|.		 \\
 			\textbf{Parameters:} N/A \\
@@ -763,12 +1011,12 @@ The results might be slightly different given the truncation of the information 
 				Function obtains the mantissa (\verb|v| value) mapping of the sorted value by the instance. \\
 	     	\textbf{Example:}
     		    To obtain the value of the mantissa:
-		     	\begin{mylisting}
-				a =sfix()
-				a.load_int(4.5)
-				v = a.conv()
-				print_ln(v.reveal())  # the output is 4718592   	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a =sfix()
+a.load_int(4.5)
+v = a.conv()
+print_ln(v.reveal())  # the output is 4718592   	
+\end{lstlisting}	 
 %\func{sfix.store_in_mem}
 		
 		
@@ -781,13 +1029,13 @@ The results might be slightly different given the truncation of the information 
 				It returns the global_vector_size times 1. \\
 	     	\textbf{Example:}
     		    To obtain reciprocal you can execute:
-		     	\begin{mylisting}
-				a =sfix()
-				a.load_int(4.5)
-				r = a.sizeof()
-				print_ln(r)  # the output is 1. By Default the global_vector
-				_size is set to 1.    	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a =sfix()
+a.load_int(4.5)
+r = a.sizeof()
+print_ln(r)  # the output is 1. 
+             # By Default the global_vector_size is set to 1.    	
+\end{lstlisting}	 
 \func{sfix.compute_reciprocal()}		
 			\textbf{Accessed by:} \verb|Default|.		 \\
 			\textbf{Parameters:} N/A \\
@@ -797,12 +1045,12 @@ The results might be slightly different given the truncation of the information 
 				in whatever precision is supported by \verb|sfix|.\\
 	     	\textbf{Example:}
     		    To obtain reciprocal you can execute:
-		     	\begin{mylisting}
-				a =sfix()
-				a.load_int(4.5)
-				r = a.compute_reciprocal()
-				print_ln(r.reveal())  # the output is 0.222222   	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a =sfix()
+a.load_int(4.5)
+r = a.compute_reciprocal()
+print_ln(r.reveal())  # the output is 0.222222   	
+\end{lstlisting}	 
 	\paragraph{Observations:}
 	\begin{description}
 	\item[-] The class should not be initialized from a \verb|sint| object. 
@@ -852,14 +1100,16 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 				Let you change the precision for \verb|cfix|. The precision parameters should be in line with those of \verb|cfix|, given that this class is used to interface operations between public available values and \verb|sfix| instances.
         
                                 By default the values $(f,k)=(20,41)$ are chosen internally in the compiler.
+                                If you change the precision for \verb|cfix| you should also change that for
+                                \verb|sfix| otherwise you can get some strange arithmetic behaviours.
                                 It is used to fix the default precision on \verb|types.py|. \\
 			\textbf{Example:}
 				To change the precision of a \verb|cfix|:
-     			\begin{mylisting}
-     			fixed_f=20
-     			fixed_k=41
-     			cfix.set_precision(fixed_f, fixed_k)
-     			\end{mylisting}
+\begin{lstlisting}
+fixed_f=20
+fixed_k=41
+cfix.set_precision(fixed_f, fixed_k)
+\end{lstlisting}
      			
 \func{cfix.load_int(v)}
 			\textbf{Accessed by:} \verb|Default|.		 \\
@@ -872,12 +1122,12 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 				 It is used to do explicit initialization of an \verb|cfix| value from any integer instantiation value. \\
 	     	\textbf{Example:}
     		    To initialize a \verb|cfix| value with an integer:
-		     	\begin{mylisting}
-				a = cfix()
-				a.load_int(5)
-				b = a*3.0
-				print_ln(b)  #the output is 15   	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a = cfix()
+a.load_int(5)
+b = a*3.0
+print_ln(b)  #the output is 15   	
+\end{lstlisting}	 
 \func{cfix.conv()}
 			\textbf{Accessed by:} \verb|Default|.		 \\
 			\textbf{Parameters:} N/A \\
@@ -886,12 +1136,12 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 				Function obtains the mantissa (\verb|v| value) mapping of the sorted value by the instance. \\
 	     	\textbf{Example:}
     		    To obtain the value of the mantissa:
-		     	\begin{mylisting}
-				a =cfix()
-				a.load_int(4.5)
-				v = a.conv()
-				print_ln(v)  # the output is 4718592   	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a =cfix()
+a.load_int(4.5)
+v = a.conv()
+print_ln(v)  # the output is 4718592   	
+\end{lstlisting}	 
 %\func{sfix.store_in_mem}
 		
 		
@@ -904,13 +1154,13 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 				It returns the global_vector_size times 1. \\
 	     	\textbf{Example:}
     		    To obtain reciprocal you can execute:
-		     	\begin{mylisting}
-				a =cfix()
-				a.load_int(4.5)
-				r = a.sizeof()
-				print_ln(r)  # the output is 4. By Default the global_vector
-				_size is set to 1.    	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a =cfix()
+a.load_int(4.5)
+r = a.sizeof()
+print_ln(r)  # the output is 4. 
+			 # By Default the global_vector_size is set to 1.    	
+\end{lstlisting}	 
 \func{cfix.compute_reciprocal()}		
 			\textbf{Accessed by:} \verb|Default|.		 \\
 			\textbf{Parameters:} N/A \\
@@ -919,12 +1169,12 @@ of a statistical security parameter $\kappa$ for \verb|cfix| values.
 				It calculates and returns the reciprocal of the instance, on whatever precision is supported by \verb|cfix|.\\
 	     	\textbf{Example:}
     		    To obtain reciprocal you can execute:
-		     	\begin{mylisting}
-				a =sfix()
-				a.load_int(4.5)
-				r = a.compute_reciprocal()
-				print_ln(r)  # the output is 0.222222   	
-     			\end{mylisting}	 
+\begin{lstlisting}
+a =sfix()
+a.load_int(4.5)
+r = a.compute_reciprocal()
+print_ln(r)  # the output is 0.222222   	
+\end{lstlisting}	 
 	\paragraph{Observations:}
 	\begin{description}
 	\item[-] A class instance cannot be initialized directly via a secret shared input. 
@@ -966,12 +1216,12 @@ We also maintain a statistical security parameter $\kappa$
 associated with an \verb+sfloat+ which needs
 to satisfy
 \[ 2 \cdot \verb+vlen+  + \kappa < \log_2 p. \]
-You can change the default sizes for \verb|sfloat| values using the commands.
-\begin{mylisting}
-    sfloat.plen=5 
-    sfloat.vlen=10
-    sfloat.kappa=20
-\endd{mylisting}
+It is possible to change the default sizes for \verb|sfloat| values using the commands.
+\begin{lstlisting}
+sfloat.plen=5 
+sfloat.vlen=10
+sfloat.kappa=20
+\end{lstlisting}
 The default values being $8$, $24$ and $40$ respectively.
 
 The $\err$ flag needs to be treated with some care.
@@ -988,13 +1238,13 @@ That way we guarantee that the output would not leak any information
 related to the inputs or any intermediary value during the calculations. 
 
 The \verb|sfloat| type supports basic arithmetic and logic operations with 
-any clear or secret register, as well as standard data-types. 
+any clear or secret register, as well as standard data types. 
 Public values, as well as standard types are implicitly cast to \verb|cfloat| 
 before operating on an \verb|sfloat| instance. The result will always be of type \verb|sfloat|. 
 It is not recommended to utilize fixed and floating point operations unless
 precision loss is taken into account.
  
-\paragraph{Data Components}
+\paragraph{Data Components:}
 The following is a detailed description of the most important member state variables of \verb|sfloat|, their behaviour, and properties:		
 		\func{v}
 		\textbf{Accessed by:} \verb|Default|.\\
@@ -1038,16 +1288,16 @@ The following is a detailed description of the most important member state varia
 			\textbf{Returns:} N/A. \\
 			\textbf{Description:} Not to be confused with the 
 $\err$ flag. The error, in this case, pertains to the precision of the representation which is initialized in 0. It can be increased as follows:
-			\begin{mylisting}							
-					cls.error += error - cls.error * error
-			\end{mylisting}
+\begin{lstlisting}							
+cls.error += error - cls.error * error
+\end{lstlisting}
 			The formulation follows the literature on this topic. \\
 			\textbf{Example:}      
-			To alter the error you can do the following:
-			\begin{mylisting}
-				a =sfix(1.5)
-				a.set_error(0.1)
-			\end{mylisting}
+			To alter the error you can do the following:			
+\begin{lstlisting}
+a =sfix(1.5)
+a.set_error(0.1)
+\end{lstlisting}
 		
 \func{sfloat.convert_float(v,vlen,plen)}
 		      \textbf{Accessed by:} \verb|Default|. \\
@@ -1065,10 +1315,10 @@ $\err$ flag. The error, in this case, pertains to the precision of the represent
 		      be sufficiently large to handle \verb|v|.\\
 		\textbf{Example:}
 		An examplle, using  would look as follows:
-		\begin{mylisting}
-		   float_value= sfloat(9999, 14 ,1 ,0 , 0) 
-	 	   print_ln("The float representation of 9999 is \%s", float_value.reveal())		
-		\end{mylisting}
+\begin{lstlisting}
+float_value= sfloat(9999, 14 ,1 ,0 , 0) 
+print_ln("The float representation of 9999 is %s", float_value.reveal())		
+\end{lstlisting}
 %\func {store_in_mem}
 \func{sfloat.sizeof()}
                         \textbf{Accessed by:} \verb|Default|. \\
@@ -1084,12 +1334,12 @@ $\err$ flag. The error, in this case, pertains to the precision of the represent
                                 it would return the vector size time 5.\\
                 \textbf{Example:}
                     To obtain reciprocal you can execute:
-                        \begin{mylisting}
-                                a =sfloat(4.5)
-                                r = a.sizeof()
-                                print_ln(r)  # the output is 5. By Default the global_vector
-                                _size is set to 1.
-                        \end{mylisting}
+\begin{lstlisting}
+a = sfloat(4.5)
+r = a.sizeof()
+print_ln(r)  # the output is 5. 
+			 # By Default the global_vector_size is set to 1.
+\end{lstlisting}
                         
 \subsubsection{class cfloat}
 The main purpose of this class is to offer interoperability between public registers 
@@ -1103,7 +1353,7 @@ as long as they are using the same precision parameters.
 However, \verb|cfloat| values do not include an $\err$ parameter, 
 given that such flag is not necessary.
 
-\paragraph{Data Components}
+\paragraph{Data Components:}
 		The following is a detailed description of the most important member state variables of \verb|cfloat|, and how it stores its value representation:
 		
 		\func{v}
@@ -1143,12 +1393,12 @@ given that such flag is not necessary.
                                 it would return the vector size time 4.\\
                 \textbf{Example:}
                     To obtain reciprocal you can execute:
-                        \begin{mylisting}
-                                a =cfloat(4.5)             
-                                r = a.sizeof()
-                                print_ln(r)  # the output is 4. By Default the global_vector
-                                _size is set to 1.
-                        \end{mylisting}
+\begin{lstlisting}
+a =cfloat(4.5)             
+r = a.sizeof()
+print_ln(r)  # the output is 4. 
+			 # By Default the global_vector_size is set to 1.
+\end{lstlisting}
 
 \subsubsection{Branching and Looping}
 As discussed earlier, all native Python loops and branches are evaluated at
@@ -1162,7 +1412,7 @@ Some of them require that the body of a loop or branch is written
 in a separate function. The loop or branch is then initiated by a special
 function call, taking the loop or branch function as a parameter.
 
-\paragraph{Branching}
+\paragraph{Branching:}
 There are two ways of doing the if statement: 
 \begin{center}
 \begin{tabular}{|l|l|} \hline
@@ -1182,18 +1432,18 @@ if_statement(c, if_true, if_false)                       &                      
 \end{center}
 In that case value in register \verb|c| is non-zero (1), so in both cases \verb|True| will be printed in the terminal. More complex if/else statements (e.g. with multiple else conditions), can be created by simply nesting further \verb|if_statement| calls within \verb|if_false| in the left example, or adding another statement after \verb|else_then| in the right example. \\
 
-\paragraph{Looping}
+\paragraph{Looping:}
 All types of while-loops and range-loops with simple examples, like in other languages we can implement same function using different types of loops.
 \func{do_loop(condition, loop_fn)}
 Executes the code in \verb|loop_body| once, and continues to do so while the clear register returned by \verb|loop_body| is non-zero. Unlike with if and else statements, here the loop function must always return the loop condition register. Otherwise there is no way of knowing which register holds the condition after each iteration, since the original condition register cannot be modified: 
-\begin{mylisting}
+\begin{lstlisting}
 def loop_body(cond):
     print_ln("%s", cond)
     return cond-1
 
 t = cint(5)
 do_loop(t, loop_body)
-\end{mylisting}
+\end{lstlisting}
 \begin{footnotesize}
 Prints numbers from 5 to 1.
 \end{footnotesize}
@@ -1276,7 +1526,7 @@ Arrays are made very similar to the other programming languages, using the array
 \func{type.Array(size)}
 Where size is just a compile-time known integer, type is the data type of single array element, for exaple sint or cint. Note that in previous versions, the array declaration was Array(size, type). This is still suported but consider it as deprecated.
 
-\begin{mylisting}
+\begin{lstlisting}
 new_array = sint.Array(10)
 
 @for_range(len(new_array))
@@ -1287,11 +1537,11 @@ def range_body(i):
 def while_body(i):
     print_ln("%s",new_array[i].reveal())
     return i+1
-\end{mylisting}
+\end{lstlisting}
 Declares new array of size 10, then fills it with values from 1 to 10, at the end prints first five values, so it prints numbers from 1 to 5. Note that the values of array can be modified inside the function, they are exacly like MemValue. \\
 \func{type.Matrix(rows, columns)}
 2D arrays are also implemented, but they are called matrices, matrix can be used in the same way as array:
-\begin{mylisting}
+\begin{lstlisting}
 new_matrix = sint.Matrix(3,2)
 
 @for_range(len(new_matrix))
@@ -1305,13 +1555,13 @@ def while_body(i):
     def range_body(j):
         print_ln("%s",new_matrix[i][j].reveal())
     return i+1
-\end{mylisting}
+\end{lstlisting}
 Matrix is just an array of arrays so length of matrix is just number of arrays inside, as it is shown on the example the first value of declaration is number of arrays inside, the second is length of an arrays(example prints numbers from 0 to 5).
 
 \func{type.MultiArray([n_1,\dots,n_k])}
 kD arrays are also implemented. They are meant to be just containers (retrieve and set data) - no fancy functions added on top of them such as assign_all, etc:
 
-\begin{mylisting}
+\begin{lstlisting}
 n = 3
 m = 4
 p = 5
@@ -1327,10 +1577,10 @@ for i in range(n):
 			c[i][j][k] = (a[i][j][k] + b[i][j][k])
 
 # now c[i][j][k] = 3 * (i + j + k)
-\end{mylisting}
+\end{lstlisting}
 
 
-\paragraph{Short-circuit evalution}
+\paragraph{Short-circuit evalution:}
 The following functions provide short-circuit evaluation, which means
 that only necessary terms are executed, just as \verb+&&+ and
 \verb+||+ in C or \verb+or+ and \verb+and+ in Python:
@@ -1342,22 +1592,22 @@ Since the direct specification of a term would trigger immediate
 executiation and thus lose the short-circuit property, only functions
 are permitted inputs:
 
-\begin{mylisting}
+\begin{lstlisting}
     def compare():
         return a < b
     and_(lambda: x < y, compare)
-\end{mylisting}
+\end{lstlisting}
 However, the functions should be combined directly because they
 already output lambda functions:
 
-\begin{mylisting}
+\begin{lstlisting}
     not_(and_(lambda: x < y, lambda: a < b), lambda: c < d)
-\end{mylisting}
+\end{lstlisting}
 It is possible to use short-circuit evaluation for branching and
 \verb+do_while+ loops but not \verb+do_loop+ loops because the
 condition also represents the state in the latter case.
 
-\begin{mylisting}
+\begin{lstlisting}
 if_then(and_(lambda: x < y, lambda: a < b))
 ...
 end_if()
@@ -1366,7 +1616,7 @@ end_if()
 def f():
     ...
     return and_(lambda: x < y, lambda: a < b)
-\end{mylisting}
+\end{lstlisting}
 
 \subsubsection{Multi-threading}
 
@@ -1375,7 +1625,7 @@ supported via a simple threading interface. A thread is created by creating
 an \verb|MPCThread| object referring to a function, which contains the code
 to be executed by the thread.
 
-\begin{mylisting}
+\begin{lstlisting}
 def func1():
     store_in_mem(sint(1),0)
     store_in_mem(sint(1),0)
@@ -1387,7 +1637,7 @@ def func1():
 t = MPCThread(func1, 't1')
 t.start()
 t.join()
-\end{mylisting}
+\end{lstlisting}
 \begin{footnotesize}
 Stores secret Fibonacci numbers in first 10 places of memory. \\
 \end{footnotesize}
@@ -1534,13 +1784,13 @@ written to.
 For example, to implement a basic addition instruction for adding a secret
 and a clear register, the following code suffices.
 
-\begin{mylisting}
+\begin{lstlisting}
 class addm(Instruction):
     """ Add a secret and clear register into a secret register. """
     __slots__ = [] # contents inherited from parent
     code = opcodes['ADDM']
     arg_format = ['sw', 's', 'c']
-\end{mylisting}
+\end{lstlisting}
 
 \end{class}
 

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -20,8 +20,8 @@ All rights reserved
  * the flag of type condition (from Plaintext.h) which
  * is either General or Diagonal
  *
- * For HighGear U = ZK_sound_sec for TopGear we have
- * U = ZK_sound_sec/log_2(2*N)
+ * For HighGear U = ZK_sound_sec and V= 2*U-1
+ * For TopGear  V = ZK_sound_sec/log_2(2*N+1) and U = 2*V
  *
  * It then generates U plaintexts and randomness' for this 
  * player, as well as V test "fake" ciphertexts
@@ -42,7 +42,7 @@ All rights reserved
  * The players then agree on a random vector e of size
  * V consisting of 
  *   - HighGear zeros and ones.
- *   - TopGear elements from {X^i}_{i=0}^{2N-1}
+ *   - TopGear elements from {X^i}_{i=0}^{2N-1} \cup {0}
  *
  * This stage then computes the z^{(i)},^{(i)}T pairs for
  * each player to compute (see the documentation Line 6 of

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -22,11 +22,21 @@ void MMO::setIV(uint8_t key[AES_BLK_SIZE])
   aes_schedule(IV, key);
 }
 
+// The sigma function from eprint 2019/074
+inline __m128i sigma(__m128i a)
+{
+  return _mm_xor_si128(_mm_shuffle_epi32(a, 78),
+                       _mm_and_si128(a, _mm_set_epi64x(0xFFFFFFFFFFFFFFFF, 0x00)));
+}
+
 template<int N>
 void MMO::encrypt_and_xor(void *output, const void *input, const uint8_t *key)
 {
   __m128i in[N], out[N];
-  avx_memcpy(in, input, sizeof(in));
+  for (int i= 0; i < N; i++)
+    {
+      in[i]= sigma(((__m128i *) input)[i]);
+    }
   ecb_aes_128_encrypt<N>(out, in, key);
   for (int i= 0; i < N; i++)
     out[i]= _mm_xor_si128(out[i], in[i]);

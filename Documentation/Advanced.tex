@@ -124,6 +124,8 @@ for documentation reasons.
 
 
 \msubsection{Bit Oriented Operations}
+These operations refer exclusively to how to perform bit oriented operations on top of 
+$\modp$ data-types. It is not related to the \verb|sbit| type.
 
 \msubsubsection{$\mathsf{OR}(\sshare{a},\sshare{b})$:}
 This computes the logical OR of two input shared bits:
@@ -764,7 +766,7 @@ b= floatingpoint.Trunc(a, k, m, kappa)
 \end{lstlisting}
 
 
-\msubsubsection{$\mathsf{Mod2m}(a_prime, \sshare{a},k,\sshare{m}, \kappa)$:}
+\msubsubsection{$\mathsf{Mod2m}(a_{prime}, \sshare{a},k,\sshare{m}, \kappa)$:}
 This does the same operation as $\mathsf{Mod2m}$ above, but $m$ is now secret shared.
 \begin{enumerate}
 \item $\sshare{x_0},\ldots,\sshare{x_{k-1}}, \sshare{2^m} \asn \mathsf{B2U}(\sshare{m},k)$.
@@ -1780,7 +1782,7 @@ for non-secret values of the base $b$:
 	x^y      &= \mathsf{Exp2}(y \cdot \mathsf{Log2}(x)), \\
 	\exp   x &= \mathsf{Exp2}(x \cdot \log_2 e), \\
 \end{align*}
-Note, we can define these operations 
+Note, that the functions on these section require specific \verb|sfloat| parametrization, in accordance to the algorithms in this section. They support secret shared \verb|sfix| $x$ ad $y$, as well as public floating point or integer inputs.  We can define these operations as follows:
 
 \msubsubsection{$\mathsf{FxExp2}(\sshare{a},k,f)$:}
 This algorithm computes $2^a$ as a fixed point calculation.

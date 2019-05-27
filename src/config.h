@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -14,7 +14,7 @@ All rights reserved
  * be exceeded by a huge amount!
  */
 #define sz_offline_batch 60000
-#define sz_IO_batch 1000
+#define sz_IO_batch 10000
 
 
 /* This are the maximum batch sizes for sacrificing per call
@@ -44,7 +44,7 @@ All rights reserved
 #define max_squares_sacrifice 5000000
 #define max_bits_sacrifice 5000000
 // Following is per player 
-#define max_IO_sacrifice 1000
+#define max_IO_sacrifice 100000
 
 /* The amount of amortization in sacrifice and offline (when we do it) */
 #define amortize 512
@@ -128,9 +128,37 @@ All rights reserved
  */
 #define OT_stat_sec 40
 
+/* Approx max size of each aBit queue in the OT thread */
+#define max_aBit_queue 500000
+
+/* This says use the SimpleROT from ePrint 2015/267 instead of the DMC 
+ * version (the latter introduces a problem in our usage)
+ */
+#define SimpleOT
+
+/* Number of daBits per loop. This is used to determine the Cut-and-Choose
+ * parameters such as bucket size, and how many inputs are needed for
+ * production.
+ */
+#define kdaBitsPerLoop 8192
+
+/* We use the same statistical security as the WRK protocol
+ * for the dABit bucketing procedure
+ */
+#define daBits_stat_sec 40
+
+/* This defines the statistical security for LSSS<->GC conversion */
+#define conv_stat_sec 40
+
 #define MEMORY_DIR "Data/"
 
 /* This tells the runtime to use the TopGear variant of the ZKPoKs */
 #define TOP_GEAR
+
+/* This gives the max number of iterations which we use to simplify
+ * a circuit using Search_SubCircuit. Only used to simplify the modp
+ * circuit
+ */
+#define iter_modp_Search_SubCircuit 250
 
 #endif

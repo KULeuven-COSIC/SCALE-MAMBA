@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -36,7 +36,7 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
   printf("Starting online phase\n");
 
   // Initialise the program
-  Processor Proc(online_num, P.nplayers());
+  Processor Proc(online_num, P.nplayers(), P, OCD);
 
   bool flag= true;
 
@@ -61,11 +61,13 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
           // MAC/Hash Check
           if (online_num == 0)
             {
-              Proc.RunOpenCheck(P, machine.get_IO().Get_Check());
+              Proc.RunOpenCheck(P, machine.get_IO().Get_Check(), 0);
+              Proc.RunOpenCheck(P, machine.get_IO().Get_Check(), 2);
             }
           else
             {
-              Proc.RunOpenCheck(P, "");
+              Proc.RunOpenCheck(P, "", 0);
+              Proc.RunOpenCheck(P, "", 2);
             }
 
           machine.Signal_Finished_Tape(online_num);
@@ -75,11 +77,13 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
   // Run checks again
   if (online_num == 0)
     {
-      Proc.RunOpenCheck(P, machine.get_IO().Get_Check());
+      Proc.RunOpenCheck(P, machine.get_IO().Get_Check(), 0);
+      Proc.RunOpenCheck(P, machine.get_IO().Get_Check(), 2);
     }
   else
     {
-      Proc.RunOpenCheck(P, "");
+      Proc.RunOpenCheck(P, "", 0);
+      Proc.RunOpenCheck(P, "", 2);
     }
 
   machine.Lock_Until_Ready(online_num);

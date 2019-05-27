@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -23,21 +23,6 @@ class Share
   vector<gfp> a;   // The share
   vector<gfp> mac; // Shares of the mac (when type=FULL)
 
-  // Some sanity checking that shares are assigned OK
-  void check() const
-  {
-#ifdef SH_DEBUG
-    if (p == -1)
-      {
-        throw bad_value();
-      }
-    if (a.size() != SD.M.shares_per_player(p))
-      {
-        throw bad_value();
-      }
-#endif
-  }
-
 public:
   static ShareData SD;
 
@@ -50,20 +35,11 @@ public:
     return "Share";
   }
 
-  void assign(const Share &S)
-  {
-    p= S.p;
-    a= S.a;
-    mac= S.mac;
-    check();
-  }
-
   void assign(unsigned int i, vector<gfp> sv, vector<gfp> macs)
   {
     p= (int) i;
     a= sv;
     mac= macs;
-    check();
   }
 
   // Assign the share value when assigning constant aa
@@ -85,29 +61,20 @@ public:
     mac.resize(SD.nmacs);
     assign_zero();
   }
-  Share(const Share &S)
-  {
-    p= S.p;
-    a= S.a;
-    mac= S.mac;
-  }
-  ~Share()
-  {
-    ;
-  }
-  Share &operator=(const Share &S)
-  {
-    if (this != &S)
-      {
-        assign(S);
-      }
-    return *this;
-  }
+
+  // This is for assigning a constant value aa to the Share
   Share(const gfp &aa, int my_num, const vector<gfp> &alphai)
   {
     p= my_num;
     a.resize(SD.M.shares_per_player(p));
     assign(aa, alphai);
+  }
+  // This one is for when the input sc/macs ARE defintely correct
+  Share(unsigned int i, vector<gfp> sv, vector<gfp> macs)
+  {
+    p= (int) i;
+    a= sv;
+    mac= macs;
   }
 
   const vector<gfp> &get_shares() const
@@ -155,7 +122,42 @@ public:
   {
     add(*this, S1);
   }
+  void sub(const Share &S1)
+  {
+    sub(*this, S1);
+  }
   void negate();
+
+  /* Arithmetic Operators */
+  Share operator+(const Share &x) const
+  {
+    Share res;
+    res.add(*this, x);
+    return res;
+  }
+  Share operator-(const Share &x) const
+  {
+    Share res;
+    res.sub(*this, x);
+    return res;
+  }
+  Share operator*(const gfp &x) const
+  {
+    Share res;
+    res.mul(*this, x);
+    return res;
+  }
+
+  Share &operator+=(const Share &x)
+  {
+    add(x);
+    return *this;
+  }
+  Share &operator*=(const gfp &x)
+  {
+    mul(*this, x);
+    return *this;
+  }
 
   // Input and output from a stream
   //  - Can do in human or machine only format (later should be faster)

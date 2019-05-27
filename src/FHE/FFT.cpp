@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -73,16 +73,13 @@ void FFT_Iter(vector<modp> &ioput, int n, const modp &root,
               const Zp_Data &PrD)
 {
   int i, j, m;
-  modp t;
 
   // Bit-reversal of input
   for (i= j= 0; i < n; ++i)
     {
       if (j >= i)
         {
-          t= ioput[i];
-          ioput[i]= ioput[j];
-          ioput[j]= t;
+          swap(ioput[i], ioput[j]);
         }
       m= n / 2;
 
@@ -93,7 +90,7 @@ void FFT_Iter(vector<modp> &ioput, int n, const modp &root,
         }
       j+= m;
     }
-  modp u, alpha, alpha2;
+  modp u, alpha, alpha2, t;
 
   m= 0;
   j= 0;
@@ -128,16 +125,13 @@ void FFT_Iter2(vector<modp> &ioput, int n, const modp &root,
                const Zp_Data &PrD)
 {
   int i, j, m;
-  modp t;
 
   // Bit-reversal of input
   for (i= j= 0; i < n; ++i)
     {
       if (j >= i)
         {
-          t= ioput[i];
-          ioput[i]= ioput[j];
-          ioput[j]= t;
+          swap(ioput[i], ioput[j]);
         }
       m= n / 2;
 
@@ -148,7 +142,7 @@ void FFT_Iter2(vector<modp> &ioput, int n, const modp &root,
         }
       j+= m;
     }
-  modp u, alpha, alpha2;
+  modp u, alpha, alpha2, t;
   m= 0;
   j= 0;
   i= 0;

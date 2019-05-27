@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -62,7 +62,7 @@ public:
   triples_data TD;
   squares_data SD;
   bits_data BD;
-  IO_data ID; // This is empty for all bar thread zero
+  IO_data ID;
 
   void initialize(unsigned int n)
   {
@@ -103,8 +103,7 @@ public:
   // Max number to ever produce
   unsigned int maxm, maxs, maxb, maxI;
   // Actual numbers computed by sacrifice phase so far
-  vector<unsigned int> totm, tots, totb;
-  unsigned int totI; // Not an array as only associated with thread zero
+  vector<unsigned int> totm, tots, totb, totI;
 
   vector<int> finish_offline;   // Flag to say whether we SHOULD finish offline
   vector<int> finished_offline; // Counts how many threads HAVE died
@@ -119,6 +118,7 @@ public:
     totm.resize(num_threads);
     tots.resize(num_threads);
     totb.resize(num_threads);
+    totI.resize(num_threads);
     finish_offline.resize(num_threads);
     finished_offline.resize(num_threads);
     for (unsigned int i= 0; i < num_threads; i++)
@@ -126,10 +126,10 @@ public:
         totm[i]= 0;
         tots[i]= 0;
         totb[i]= 0;
+        totI[i]= 0;
         finish_offline[i]= 0;
         finished_offline[i]= 0;
       }
-    totI= 0;
   }
 
   offline_control_data()
@@ -142,4 +142,21 @@ public:
   }
 };
 
+/* The following structure connects the data access instructions from
+ * Instructions.h to have a global function which waits for their
+ * production.
+ * Since there is no INPUT MASK retrieval in the Instructions.h
+ * we assigned a random number (say 0x53) to be continous
+ */
+
+enum {
+  DATA_TRIPLE= 0x50,
+  DATA_BIT= 0x51,
+  DATA_SQUARE= 0x52,
+  DATA_INPUT_MASK= 0x53
+};
+
+// Does thread locking until data type available.
+void Wait_For_Preproc(int type, unsigned int size, int thread,
+                      offline_control_data &OCD, unsigned int player= 0);
 #endif

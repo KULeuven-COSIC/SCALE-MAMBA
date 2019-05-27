@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -96,7 +96,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
         break;
     }
 
-  int lg2N, U= 0; // Assign U to avoid a compiler warning
+  int lg2N, U= 0, V= 0; // Assign U and V to avoid a compiler warning
   double Ssound= exp2((double) ZK_sound_sec_t);
   double S32= Sslack * sqrt(Ssound);
 
@@ -116,10 +116,10 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
         }
       else
         {
-          lg2N= CEIL_LOG2(N);
-          U= DIV_CEIL(ZK_sound_sec_t, lg2N + 1);
-          double SU= exp2(2 + ((double) U) / 2.0);
-          B_Clean*= phim * Sslack * SU * n * pp;
+          lg2N= CEIL_LOG2(2 * N + 1);
+          V= DIV_CEIL(ZK_sound_sec_t + 2, lg2N);
+          U= 2 * V;
+          B_Clean*= phim * Sslack * 4.0 * n * pp;
         }
 
       double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim * hh / 12));
@@ -163,7 +163,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
   cout << "N  = " << N << endl;
   if (version == TopGear)
     {
-      cout << "U = " << U << endl;
+      cout << "U = " << U << "  V = " << V << endl;
     }
   cout << "p  = " << p << " : " << lg2p << " " << numBits(p) << " "
        << p % (2 * N) << endl;

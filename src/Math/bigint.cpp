@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -150,8 +150,7 @@ void outputBigint(string &s, const bigint &x)
   encode_length(buff + 1, num);
 
   bytesFromBigint(buff + 5, x, num);
-  string ss((char *) buff, num + 5);
-  s= s + ss;
+  s.append((char *) buff, num + 5);
   delete[] buff;
 }
 
@@ -175,4 +174,54 @@ void inputBigint(string &s, bigint &x)
         }
     }
   s.erase(0, num + 5);
+}
+
+bigint compute_binomial(int n, int k)
+{
+  // compute ((k+1) * ... * (n-1) * n) / (n-k)!
+  bigint denom= 1; // Compute factorial[n-k]
+  for (int i= 1; i <= n - k; i++)
+    denom*= i;
+
+  bigint nominator= 1;
+  for (int i= k + 1; i <= n; i++)
+    nominator*= i;
+
+  return nominator / denom;
+}
+
+void bigint_to_bits(vector<int> &bits, const bigint &x)
+{
+  bigint y= x;
+  for (unsigned long i= 0; i < bits.size(); i++)
+    {
+      bits[i]= 0;
+      if ((y & 1) == 1)
+        {
+          bits[i]= 1;
+        }
+      y>>= 1;
+    }
+  if (y != 0)
+    {
+      throw arithmetic_bug();
+    }
+}
+
+void ulong_to_bits(vector<int> &bits, unsigned long x)
+{
+  for (unsigned long i= 0; i < 64; i++)
+    {
+      bits[i]= x & 1;
+      x>>= 1;
+    }
+}
+
+void long_to_bits(vector<int> &bits, long x)
+{
+  for (unsigned long i= 0; i < 64; i++)
+    {
+      bits[i]= x & 1;
+      x>>= 1;
+    }
 }

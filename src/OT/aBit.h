@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -14,6 +14,7 @@ All rights reserved
  * and Katz ePrint: 2017/189
  */
 
+#include <list>
 #include <vector>
 using namespace std;
 #include "Math/gf2n.h"
@@ -34,6 +35,8 @@ class aBit
   static gf2n Delta;
 
 public:
+  static gf2n get_Delta() { return Delta; }
+
   static void set_nplayers(int nn, int who, gf2n &D)
   {
     n= nn;
@@ -41,10 +44,8 @@ public:
     Delta= D;
   }
 
-  aBit()
+  void assign_zero()
   {
-    M.resize(n);
-    K.resize(n);
     x.assign_zero();
     for (unsigned int i= 0; i < n; i++)
       {
@@ -53,21 +54,38 @@ public:
       }
   }
 
+  void assign_one()
+  {
+    assign_zero();
+    negate();
+  }
+
+  aBit()
+  {
+    M.resize(n);
+    K.resize(n);
+    assign_zero();
+  }
+
   gf2n get_MAC(int i) const { return M[i]; }
   gf2n get_Key(int i) const { return K[i]; }
 
+  // These should be used with care, as could make an invalid aBit
+  void set_value(int b);
   void set_MAC(int i, const gf2n &y) { M[i]= y; }
   void set_Key(int i, const gf2n &y) { K[i]= y; }
 
   // The following checks we actually have 0/1 entries in x
   int get_value() const;
-  void set_value(int b);
 
   // Return the raw x value
   gf2n get_raw_value() const { return x; }
 
   // Mult the aBit by a gf2n constant
   void mult_by(const gf2n &y, const aBit &z);
+  // Add a constant to aBit
+  void add(const gf2n &y);
+
   // Add two aBit's together
   void add(const aBit &y);
   void add(const aBit &x, const aBit &y);
@@ -86,14 +104,23 @@ public:
   void get_Share_x_Delta_j(vector<gf2n> &ans) const;
 
   friend ostream &operator<<(ostream &s, const aBit &y);
+
+  void output(ostream &s, bool human) const;
+  void input(istream &s, bool human);
 };
 
+/* Open (and check) a single of aBit */
+void Open_aBit(int &dv, const aBit &v, Player &P);
+
 /* Open (and check) a vector of aBits */
-void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P, const gf2n &Delta);
+void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P);
 
 /* Open a vector of aBits to party j 
  *  dv zero if j<>P.whoami
  */
-void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v, Player &P, const gf2n &Delta);
+void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v, Player &P);
+
+void check_Bits(const vector<aBit> &ee, Player &P);
+void check_Bits(const list<aBit> &ee, Player &P);
 
 #endif

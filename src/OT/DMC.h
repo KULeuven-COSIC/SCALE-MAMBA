@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -8,11 +8,13 @@ All rights reserved
 #ifndef _DMC
 #define _DMC
 
-/* The dual mode encryption scheme based on ECC */
+/* The dual mode encryption scheme based on ECC from ePrint 2007/348 */
 
 #include "CRS.h"
 #include "cryptopp/nbtheory.h"
 #include <string>
+
+class DM_PK;
 
 class DM_SK
 {

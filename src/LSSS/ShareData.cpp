@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -105,7 +105,7 @@ void ShareData::Initialize_Sub()
       share_of_one[i].resize(M.shares_per_player(i));
       for (unsigned int j= 0; j < M.shares_per_player(i); j++)
         {
-          share_of_one[i][j].assign(M.G(c, 0));
+          share_of_one[i][j]= M.G(c, 0);
           c++;
         }
     }
@@ -124,29 +124,17 @@ void ShareData::Initialize_Shamir(unsigned int nn, unsigned int t)
   unsigned int n= M.nplayers();
 
   RCt.resize(n, vector<vector<int>>(n));
-  gfp_matrix GenFull(n, vector<gfp>(n));
   for (unsigned int i= 0; i < n; i++)
     {
-      GenFull[i][0].assign_one();
-      gfp te, pow;
-      te.assign((int) i + 1);
-      pow= te;
       for (unsigned int j= 0; j < n; j++)
         {
           RCt[i][j].resize(1);
         }
       for (unsigned int j= 1; j < t + 1; j++)
         {
-          GenFull[i][j].add(pow, GenFull[i][0]);
           RCt[i][(j + i) % n][0]= 1;
-          pow.mul(pow, te);
         }
       RCt[i][i][0]= 1; // Send own share to oneself
-      for (unsigned int j= t + 1; j < n; j++)
-        {
-          GenFull[i][j].add(pow, GenFull[i][0]);
-          pow.mul(pow, te);
-        }
     }
 
   Initialize_Sub();

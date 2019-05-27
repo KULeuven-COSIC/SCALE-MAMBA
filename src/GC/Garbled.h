@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -18,15 +18,20 @@ All rights reserved
  * secure, with "*x" meaning multiplying by x in GF(2^128)
  *
  *   M = m xor (k1*x) xor (k2*x^2)
- *   c = AES_k(M) xor M
+ *   c = AES_k(sigma(M)) xor sigma(M)
  */
 
 #include "Circuit.h"
-#include "OT/aAND.h"
-#include "OT/aBitFactory.h"
+#include "OT/aAND_Factory.h"
 
-class Garbled_Circuit
+/* The Base_Garbled_Circuit operates on inputs which are secret
+ * shared. The derived class operates on inputs which are given
+ * by each player
+ */
+
+class Base_Garbled_Circuit
 {
+protected:
   // Shared signal bits
   vector<aBit> lambda;
 
@@ -43,12 +48,39 @@ class Garbled_Circuit
   // One label per party. When opened we add in Delta here
   vector<gf2n> one_label;
 
+  void Open_Garbling(Player &P);
+
+public:
+  void Garble(const Circuit &C,
+              Player &P,
+              aAND_Factory &aAF);
+
+  // This is the core-evaluate routine
+  //   Gamma holds the external values for all wires
+  // On entry these are defined for all input values of the circuit
+  // On exit these are defined for all wires in the circuit
+  //    - And thus the external values of the output wires
+  void Evaluate_Core(vector<int> &Gamma,
+                     const Circuit &C, Player &P);
+
+  // This gives the reactive GC functionality
+  // The inputs are vectors of shared bits, the outputs are
+  // also vectors of shared bits
+  void Evaluate(vector<vector<aBit>> &output,
+                const vector<vector<aBit>> &input,
+                const Circuit &C, Player &P);
+};
+
+/* This is a traditional garbled circuit interface */
+class Garbled_Circuit : public Base_Garbled_Circuit
+{
+
   /* Assignment of input/output variables to players
    * Vector of length C.num_inputs()/C.num_ouputs()
    * saying who owns this input/output variable
    */
-  vector<int> i_assign;
-  vector<int> o_assign;
+  vector<unsigned int> i_assign;
+  vector<unsigned int> o_assign;
 
   /* The next two vectors have first dimension size 
    *        C.num_inputs()/C.num_outputs()
@@ -62,12 +94,11 @@ class Garbled_Circuit
   // My input wire openings, one for each variable assigned to me
   vector<vector<int>> inputs;
 
-  void Open_Garbling(Player &P);
-
 public:
   void Garble(const Circuit &C,
-              const vector<int> &i_a, const vector<int> &o_a,
-              aAND &aA, aBitFactory &aBF, Player &P);
+              const vector<unsigned int> &i_a, const vector<unsigned int> &o_a,
+              Player &P,
+              aAND_Factory &aAF);
 
   /* input/output is this players input/output. Again these 
    * are of length 
@@ -80,10 +111,6 @@ public:
   void Evaluate(vector<vector<int>> &output,
                 const vector<vector<int>> &input,
                 const Circuit &C, Player &P);
-
-public:
-  void Garble(const Circuit &C,
-              aAND &aA, aBitFactory &aBF, Player &P, PRNG &G);
 };
 
 #endif

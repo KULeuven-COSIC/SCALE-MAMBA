@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -13,6 +13,7 @@ All rights reserved
 
 #include "Math/gfp.h"
 #include "SystemData.h"
+#include "Tools/Timer.h"
 #include "Tools/random.h"
 
 void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD);
@@ -23,21 +24,30 @@ class Player
 {
   unsigned int me; // My player number
 
-  // We have an array of ssl[nplayer][2] connections
+  // We have an array of ssl[nplayer][3] connections
   // The 0th connection is for normal communication
   // The 1th connection is for private input and output
   //  - To avoid problems with instructions ordering
+  // The 2nd connection is for GC and OT operations, again
+  // to avoid issues with instruction ordering
+  //   - Note if you increase the number of connections
+  //     you also need to increase the second dimension
+  //     in csockets
   vector<vector<SSL *>> ssl;
 
   vector<gfp> mac_keys;
 
   // This maintains a running hash to check broadcasts are
   // correct, when we need/want to do this
-  SHA256_CTX sha256;
+  vector<SHA256_CTX> sha256;
 
 public:
   PRNG G; // Each player has a local PRNG
           // Avoids needing to set one up all the time
+
+  // We have a set of timers here to use for debug purposes
+  // when needed.
+  mutable vector<Timer> clocks;
 
   // Thread specifies which thread this instance is related to
   Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
@@ -76,7 +86,7 @@ public:
   void Broadcast_Receive(vector<string> &o, bool check= false, int connection= 0);
 
   /* Runs the broadcast check for any checked broadcast */
-  void Check_Broadcast();
+  void Check_Broadcast(int connection= 0);
 
   /* This sends o[i] to player i for all i,
    * then receives back o[i] from player i

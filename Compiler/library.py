@@ -1121,6 +1121,15 @@ def test(value, lower=None, upper=None, prec=None):
         lineno *= 1000
         store_in_mem(value.v, lineno + 1000)
         reg_type = 'c'
+    # tuple construction for mult2sint
+    # msw and lsw could be replaced by val1 and val2
+    # names where chosen to improve readibility
+    elif type(value) is tuple:
+        msw = reveal(value[0])
+        lsw = reveal(value[1])
+        store_in_mem(msw, lineno + 1000)
+        store_in_mem(lsw, lineno + 2000)
+        reg_type = 'c'
     else:
         if not value.is_clear:
             value = reveal(value)

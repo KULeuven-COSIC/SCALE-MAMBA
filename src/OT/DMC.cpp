@@ -1,10 +1,12 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 #include "DMC.h"
+
+#include "Exceptions/Exceptions.h"
 
 void KeyGen(DM_SK &sk, DM_PK &pk, int sigma, const CRS &crs, CryptoPP::RandomNumberGenerator &RNG)
 {
@@ -69,4 +71,10 @@ void DM_PK::from_string(const string &s, const CRS &crs)
   const unsigned char *data= (const unsigned char *) s.c_str();
   crs.DecodePoint(g, data, len);
   crs.DecodePoint(h, data + len, len);
+
+  // Abort if the public key is invalid
+  if (g.identity == true || h.identity == true)
+    {
+      throw OT_error();
+    }
 }

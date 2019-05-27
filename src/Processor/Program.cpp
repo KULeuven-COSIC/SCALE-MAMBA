@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -21,9 +21,11 @@ void Program::compute_constants()
         {
           max_reg[reg_type]= max(max_reg[reg_type], p[i].get_max_reg(reg_type));
           for (int sec_type= 0; sec_type < MAX_SECRECY_TYPE; sec_type++)
-            max_mem[reg_type][sec_type]=
-                max(max_mem[reg_type][sec_type],
-                    p[i].get_mem(RegType(reg_type), SecrecyType(sec_type)));
+            {
+              max_mem[reg_type][sec_type]=
+                  max(max_mem[reg_type][sec_type],
+                      p[i].get_mem(RegType(reg_type), SecrecyType(sec_type)));
+            }
         }
     }
 }

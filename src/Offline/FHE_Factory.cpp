@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -8,6 +8,7 @@ All rights reserved
 #include "FHE_Factory.h"
 #include "FHE/ZKPoK.h"
 #include "LSSS/PRSS.h"
+#include "Tools/Crypto.h"
 #include "Tools/Timer.h"
 
 #include <list>
@@ -18,6 +19,7 @@ extern Timer global_time;
 
 FHE_Industry::FHE_Industry(unsigned int maxnumber)
 {
+  ready= false;
   Factory_List_Lock= new mutex[maxnumber];
   Current_Factory_Lock= new mutex[maxnumber];
   Factory.resize(maxnumber);
@@ -205,16 +207,15 @@ bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_contro
   // or TopGear
   //printf("Waiting for FL lock %d C\n",num); fflush(stdout);
   Factory_List_Lock[num].lock();
+  int wt= 10;
 #ifndef TOP_GEAR
-  int wt= 60;
   if (Factory[num].size() > 0)
     {
       wait= true;
-      wt= Factory[num].size() * 60;
+      wt= Factory[num].size() * 30;
     }
 #else
-  int wt= 1;
-  if (Factory[num].size() > 5)
+  if (Factory[num].size() > 4)
     {
       wait= true;
       wt= Factory[num].size() * 10;
@@ -268,7 +269,10 @@ void Do_Step0_Step(ZKPoK &ZK, Player &P, const FHE_PK &pk,
   ZK.get_vE(osE);
   vsE[whoami]= osE.str();
   //printf("\n Do_Step0 : B %d\n",P.whoami());
-  P.Broadcast_Receive(vsE);
+
+  // Do commit and open to avoid the attack of Ivan
+  Commit_And_Open(vsE, P, true);
+
   //printf("\n Do_Step0 : R %d\n",P.whoami());
   for (unsigned int i= 0; i < nplayers; i++)
     {
@@ -450,6 +454,10 @@ void FHE_Industry::FHE_Factory(Player &P, const offline_control_data &OCD, const
           {
             Do_ZKPoK(ZK, P, *this, pk, PTD, G, OCD, mynumber, verbose);
             sound+= increment;
+            if (verbose > 0)
+              {
+                cout << "mac ctxs Soundness = " << sound << endl;
+              }
           }
 
         // Now get the ciphertext we are going to use
@@ -466,11 +474,12 @@ void FHE_Industry::FHE_Factory(Player &P, const offline_control_data &OCD, const
             Current_Factory_Lock[i].unlock();
           }
       }
-    }
+      ready= true;
 
-  if (verbose > 0)
-    {
-      printf("Finished mac ctxs : %f \n", global_time.elapsed());
+      if (verbose > 0)
+        {
+          printf("\nFinished mac ctxs : %f \n\n", global_time.elapsed());
+        }
     }
 
   bool finished= false;
@@ -507,7 +516,7 @@ void FHE_Industry::FHE_Factory(Player &P, const offline_control_data &OCD, const
           if (!finished)
             {
               Factory_List_Lock[mynumber].lock();
-              Factory[mynumber].push_back(ZK);
+              Factory[mynumber].push_back(move(ZK));
               if (verbose > 0)
                 {
                   printf("Size of factory %d list is now %lu: %d\n", mynumber, Factory[mynumber].size(),

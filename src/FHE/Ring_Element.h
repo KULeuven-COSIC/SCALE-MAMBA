@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -49,14 +49,6 @@ class Ring_Element
 
   vector<modp> element;
 
-  // Define a copy
-  void assign(const Ring_Element &e)
-  {
-    rep= e.rep;
-    FFTD= e.FFTD;
-    element= e.element;
-  }
-
 public:
   // Used to basically make sure *this is able to cope
   // with being assigned to by something of "type" e
@@ -98,28 +90,6 @@ public:
   }
 
   Ring_Element(const FFT_Data &prd, RepType r= polynomial);
-
-  // Copy Constructor
-  Ring_Element(const Ring_Element &e)
-  {
-    assign(e);
-  }
-
-  // Destructor
-  ~Ring_Element()
-  {
-    ;
-  }
-
-  // Copy Assignment
-  Ring_Element &operator=(const Ring_Element &e)
-  {
-    if (this != &e)
-      {
-        assign(e);
-      }
-    return *this;
-  }
 
   /* Functional Operators */
   void negate();

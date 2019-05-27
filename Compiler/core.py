@@ -115,6 +115,51 @@ class _register(long):
     __radd__ = __add__
     __rmul__ = __mul__
 
+
+class _sbit(_register):
+    __and__ =  lambda self,other,x=None,y=None: sbit(bool(self) & other) if (isinstance(other, _sbit)) else sregint(bool(self) * other)
+    __or__ = lambda self, other, x=None, y=None: sbit(bool(self) | other)
+    __xor__ = lambda self, other, x=None, y=None: sbit(bool(self) ^ other)
+    __neg__ = lambda self, x=None: sbit(1 - bool(self))
+    reveal = lambda self: regint(self)
+sbit = lambda x=0,size=None: (x if isinstance(x, Vector) else _sbit(x)) if size is None else Vector(_sbit(x),size)
+sbit.basic_type = _sbit
+sbit.type = _sbit
+
+
+class _sregint(_register):
+    __and__ =  lambda self,other,x=None,y=None: sregint(long(self) * other) if (isinstance(other, _sbit)) else sregint(long(self) & other)
+    __or__ = lambda self, other, x=None, y=None: sregint(long(self) | other)
+    __xor__ = lambda self, other, x=None, y=None: sregint(long(self) ^ other)
+
+    mul_2_sint = lambda self, other, x = None, y = None: (sregint((long (self) * other ) >> 64), sregint((long (self) * other ) % (2 ** 64)))
+    reveal = lambda self: regint(self)
+    less_than = lambda self,other,x=None,y=None: sbit(long(self) < other)
+    greater_than = lambda self,other,x=None,y=None: sbit(long(self) > other)
+    less_equal = lambda self,other,x=None,y=None: sbit(long(self) <= other)
+    greater_equal = lambda self,other,x=None,y=None: sbit(long(self) >= other)
+    equal = lambda self,other,x=None,y=None: sbit(long(self) == other)
+    not_equal = lambda self,other,x=None,y=None: sbit(long(self) != other)
+
+    __lt__ = less_than
+    __gt__ = greater_than
+    __le__ = less_equal
+    __ge__ = greater_equal
+    __eq__ = equal
+    __ne__ = not_equal
+    __neg__ = lambda self: sregint(-long(self))
+
+    __rand__ = __and__
+    __ror__ = __or__
+    __rxor__ = __xor__
+
+
+
+sregint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sregint(x)) if size is None else Vector(_sregint(x),size)
+sregint.load_mem = _sregint.load_mem
+sregint.basic_type = _sregint
+sregint.type = _sregint
+
 class _sint(_register):
     less_than = lambda self,other,x=None,y=None: sint(long(self) < other)
     greater_than = lambda self,other,x=None,y=None: sint(long(self) > other)
