@@ -255,9 +255,6 @@ class ldi(base.Instruction):
     code = base.opcodes['LDI']
     arg_format = ['cw', 'i']
 
-    def execute(self):
-        self.args[0].value = self.args[1]
-
 
 @base.vectorize
 class ldsi(base.Instruction):
@@ -269,8 +266,6 @@ class ldsi(base.Instruction):
     code = base.opcodes['LDSI']
     arg_format = ['sw', 'i']
 
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 ## ##########################NEW OPCODES##########################
 ## Added opcodes for new data types
@@ -286,8 +281,6 @@ class ldsint(base.Instruction):
     code = base.opcodes['LDSINT']
     arg_format = ['srw', 'i']
 
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 @base.vectorize
 class movsint(base.Instruction):
@@ -299,10 +292,6 @@ class movsint(base.Instruction):
     code = base.opcodes['MOVSINT']
     arg_format = ['srw', 'sr']
 
-    def execute(self):
-        #should it be value in here?
-        self.args[0].value = self.args[1]
-
 
 @base.vectorize
 class opensint(base.Instruction):
@@ -312,8 +301,7 @@ class opensint(base.Instruction):
     __slots__ = []
     code = base.opcodes['OPENSINT']
     arg_format = ['rw', 'sr']
-    def execute(self):
-        self.args[0].value = self.args[1]
+
 
 @base.vectorize
 class opensbit(base.Instruction):
@@ -323,12 +311,11 @@ class opensbit(base.Instruction):
     __slots__ = []
     code = base.opcodes['OPENSBIT']
     arg_format = ['rw', 'sb']
-    def execute(self):
-        self.args[0].value = self.args[1]
+
 
 #arithmetic opcodes
 @base.vectorize
-class addsint(base.AddBase2n):
+class addsint(base.Instruction):
     r""" ADDSINT i j k
          Adds secret registers sr_i=sr_j+sr_k.
          This instruction is vectorizable
@@ -338,7 +325,7 @@ class addsint(base.AddBase2n):
     arg_format = ['srw', 'sr', 'sr']
 
 @base.vectorize
-class addsintc(base.AddBase2n):
+class addsintc(base.Instruction):
     r""" ADDSINTC i j k
          Adds secrent and clear registers sr_i=sr_j+r_k.
          This instruction is vectorizable
@@ -349,7 +336,7 @@ class addsintc(base.AddBase2n):
 
 
 @base.vectorize
-class mulsint(base.MulBase2n):
+class mulsint(base.Instruction):
     r""" MULSINT i j k
          Multiplication of secret registers sr_i=sr_j \cdot sr_k, result is mod 2^64.
          This instruction is vectorizable
@@ -360,7 +347,7 @@ class mulsint(base.MulBase2n):
 
 
 @base.vectorize
-class mulsintc(base.MulBase2n):
+class mulsintc(base.Instruction):
     r""" MULSINTC i j k
          Multiplication of secret and clear registers sr_i=sr_j \cdot r_k, result is mod 2^64.
          This instruction is vectorizable
@@ -370,7 +357,7 @@ class mulsintc(base.MulBase2n):
     arg_format = ['srw', 'sr', 'r']
 
 @base.vectorize
-class mul2sint(base.Mul2Base2n):
+class mul2sint(base.Instruction):
     r""" MUL2SINTC i j u v
          Full multiplication of secret registers (sr_i || sr_j )=sr_u \cdot sr_v.
          Where sr_i is the most significant word and sr_j is the least
@@ -383,7 +370,7 @@ class mul2sint(base.Mul2Base2n):
 
 
 @base.vectorize
-class subsintc(base.SubBase2n):
+class subsintc(base.Instruction):
     r""" SUBC i j k
          Subtracts secret and clear registers sr_i=sr_j-r_k.
          This instruction is vectorizable
@@ -394,7 +381,7 @@ class subsintc(base.SubBase2n):
 
 
 @base.vectorize
-class subsint(base.SubBase2n):
+class subsint(base.Instruction):
     r""" SUBS i j k
          Subtracts secret registers sr_i=sr_j-sr_k.
          This instruction is vectorizable
@@ -405,7 +392,7 @@ class subsint(base.SubBase2n):
 
 
 @base.vectorize
-class subcints(base.SubBase2n):
+class subcints(base.Instruction):
     r""" SUBC i j k
          Subtracts clear and secret registers sr_i=r_j-sr_k.
          This instruction is vectorizable
@@ -416,7 +403,7 @@ class subcints(base.SubBase2n):
 
 
 @base.vectorize
-class divsint(base.DivBase2n):
+class divsint(base.Instruction):
     r""" DIVSINT i j k
          Division of sregint registers sr_i=sr_j / sr_k.
          This instruction is vectorizable
@@ -426,7 +413,7 @@ class divsint(base.DivBase2n):
     arg_format = ['srw', 'sr', 'sr']
 
 @base.vectorize
-class shlsint(base.ShiftLeft):
+class shlsint(base.Instruction):
     r""" SHLSINT i j k
          Shift an sregint register left by k values
          This instruction is vectorizable
@@ -436,7 +423,7 @@ class shlsint(base.ShiftLeft):
     arg_format = ['srw', 'sr', 'int']
 
 @base.vectorize
-class shrsint(base.ShiftRight):
+class shrsint(base.Instruction):
     r""" SHRSINT i j k
          Shift an sregint register right by k values
          This instruction is vectorizable
@@ -447,7 +434,7 @@ class shrsint(base.ShiftRight):
 
 
 @base.vectorize
-class neg(base.NegBase2n):
+class neg(base.Instruction):
     r""" NEG i j
          Negation of a a secret register s_i=-s_j .
          This instruction is vectorizable
@@ -459,7 +446,7 @@ class neg(base.NegBase2n):
 
 # Bitwise and Comparison opcodes
 @base.vectorize
-class sand(base.AndBase2n):
+class sand(base.Instruction):
     r""" SAND i j k
          ANDs secret and secret bit sr_i= sr_j & sb_k.
          This instruction is vectorizable
@@ -469,7 +456,7 @@ class sand(base.AndBase2n):
     arg_format = ['srw', 'sr', 'sb']
 
 @base.vectorize
-class andsint(base.AndBase2n):
+class andsint(base.Instruction):
     r""" ANDSINT i j k
          ANDs secret registers sr_i= sr_j & sr_k.
          This instruction is vectorizable
@@ -479,7 +466,7 @@ class andsint(base.AndBase2n):
     arg_format = ['srw', 'sr', 'sr']
 
 @base.vectorize
-class andsintc(base.AndBase2n):
+class andsintc(base.Instruction):
     r""" ANDSINT i j k
          ANDs secret register with a clear sr_i= sr_j & r_k.
          This instruction is vectorizable
@@ -489,7 +476,7 @@ class andsintc(base.AndBase2n):
     arg_format = ['srw', 'sr', 'r']
 
 @base.vectorize
-class orsint(base.OrBase2n):
+class orsint(base.Instruction):
     r""" ORSINT i j k
          ORs secret registers sr_i= sr_j | sr_k.
          This instruction is vectorizable
@@ -499,7 +486,7 @@ class orsint(base.OrBase2n):
     arg_format = ['srw', 'sr', 'sr']
 
 @base.vectorize
-class orsintc(base.OrBase2n):
+class orsintc(base.Instruction):
     r""" ORSINTC i j k
          ORs secret register with a clear sr_i= sr_j | r_k.
          This instruction is vectorizable
@@ -509,7 +496,7 @@ class orsintc(base.OrBase2n):
     arg_format = ['srw', 'sr', 'r']
     
 @base.vectorize
-class xorsint(base.XorBase2n):
+class xorsint(base.Instruction):
     r""" XORSINT i j k
          XORs secret registers sr_i= sr_j ^ sr_k.
          This instruction is vectorizable
@@ -519,7 +506,7 @@ class xorsint(base.XorBase2n):
     arg_format = ['srw', 'sr', 'sr']
 
 @base.vectorize
-class xorsintc(base.XorBase2n):
+class xorsintc(base.Instruction):
     r""" XORSINTC i j k
          XORs secret register with a clear sr_i= sr_j ^ r_k.
          This instruction is vectorizable
@@ -529,7 +516,7 @@ class xorsintc(base.XorBase2n):
     arg_format = ['srw', 'sr', 'r']
 
 @base.vectorize
-class invsint(base.InvBase2n):
+class invsint(base.Instruction):
     r""" INVSINT i j 
          Bitwise inversion of the register
          This instruction is vectorizable
@@ -542,41 +529,36 @@ class invsint(base.InvBase2n):
 
 
 @base.vectorize
-class xorsb(base.BaseSecretBitInstruction):
+class xorsb(base.Instruction):
     r""" XORSB i j k
          Secret xor of sbit registers sb_i = (sb_j xor sb_k).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['sbw', 'sb', 'sb']
     code = base.opcodes['XORSB']
-    def execute(self):
-        self.args[0].value = (self.args[1].value ^ self.args[2].value)
 
 
 @base.vectorize
-class andsb(base.BaseSecretBitInstruction):
+class andsb(base.Instruction):
     r""" ANDSB i j k
          Secret and of sbit registers sb_i = (sb_j and sb_k).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['sbw', 'sb', 'sb']
     code = base.opcodes['ANDSB']
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value & self.args[2].value)
 
 
 @base.vectorize
-class orsb(base.BaseSecretBitInstruction):
+class orsb(base.Instruction):
     r""" ORSB i j k
          Secret and of sbit registers sr_i = (sb_j or sb_k).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['sbw', 'sb', 'sb']
     code = base.opcodes['ORSB']
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value | self.args[2].value)
 
 
 @base.vectorize
@@ -590,47 +572,38 @@ class negb(base.Instruction):
     arg_format = ['sbw', 'sb']
     code = base.opcodes['NEGB']
 
-    def execute(self):
-        self.args[0].value = (~ self.args[1].value)
-
 
 @base.vectorize
-class ltsint(base.BaseSecretBitComparisonInstruction):
+class ltsint(base.Instruction):
     r""" LTSINT i j K
          Secret less than of secret registers sb_i = ~sr_j < sr_k.
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['sbw', 'sr', 'sr']
     code = base.opcodes['LTSINT']
-
-    def execute(self):
-        self.args[0].value = ( self.args[1].value < self.args[2].value)
 
 
 @base.vectorize
-class gtsint(base.BaseSecretBitComparisonInstruction):
+class gtsint(base.Instruction):
     r""" GTSINT i j K
          Secret greater than of secret registers sb_i = ~sr_j > sr_k.
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['sbw', 'sr', 'sr']
     code = base.opcodes['GTSINT']
-
-    def execute(self):
-        self.args[0].value = ( self.args[1].value > self.args[2].value)
 
 
 @base.vectorize
-class eqsint(base.BaseSecretBitComparisonInstruction):
+class eqsint(base.Instruction):
     r""" EQSINT i j K
          Secret equality test of secret registers sb_i = ~sr_j == sr_k.
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['sbw', 'sr', 'sr']
     code = base.opcodes['EQSINT']
-
-    def execute(self):
-        self.args[0].value = ( self.args[1].value == self.args[2].value)
 
 
 # Conversion opcodes
@@ -643,8 +616,6 @@ class convsintsreg(base.Instruction):
     __slots__ = []
     code = base.opcodes['CONVSINTSREG']
     arg_format = ['srw', 's']
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 
 @base.vectorize
@@ -656,8 +627,6 @@ class convregsreg(base.Instruction):
     __slots__ = []
     code = base.opcodes['CONVREGSREG']
     arg_format = ['srw', 'r']
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 
 @base.vectorize
@@ -669,8 +638,6 @@ class convsregsint(base.Instruction):
     __slots__ = []
     code = base.opcodes['CONVSREGSINT']
     arg_format = ['sw', 'sr']
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 
 # memory instructions
@@ -685,9 +652,6 @@ class ldmsint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     code = base.opcodes['LDMSINT']
     arg_format = ['srw', 'int']
 
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1]]
-
 
 @base.vectorize
 class ldmsinti(base.ReadMemoryInstruction):
@@ -697,9 +661,6 @@ class ldmsinti(base.ReadMemoryInstruction):
      """
     code = base.opcodes['LDMSINTI']
     arg_format = ['srw', 'r']
-
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1].value]
 
 
 @base.vectorize
@@ -712,9 +673,6 @@ class stmsint(base.DirectMemoryWriteInstruction):
     code = base.opcodes['STMSINT']
     arg_format = ['sr', 'int']
 
-    def execute(self):
-        program.mem_s[self.args[1]] = self.args[0].value
-
 
 @base.vectorize
 class stmsinti(base.WriteMemoryInstruction):
@@ -725,8 +683,6 @@ class stmsinti(base.WriteMemoryInstruction):
     code = base.opcodes['STMSINTI']
     arg_format = ['sr', 'r']
 
-    def execute(self):
-        program.mem_s[self.args[1].value] = self.args[0].value
 
 ## #########################END NEW OPCODES#########################
 @base.vectorize
@@ -739,9 +695,6 @@ class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     code = base.opcodes['LDMC']
     arg_format = ['cw', 'int']
 
-    def execute(self):
-        self.args[0].value = program.mem_c[self.args[1]]
-
 
 @base.vectorize
 class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
@@ -752,9 +705,6 @@ class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     __slots__ = ["code"]
     code = base.opcodes['LDMS']
     arg_format = ['sw', 'int']
-
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1]]
 
 
 @base.vectorize
@@ -767,9 +717,6 @@ class stmc(base.DirectMemoryWriteInstruction):
     code = base.opcodes['STMC']
     arg_format = ['c', 'int']
 
-    def execute(self):
-        program.mem_c[self.args[1]] = self.args[0].value
-
 
 @base.vectorize
 class stms(base.DirectMemoryWriteInstruction):
@@ -780,9 +727,6 @@ class stms(base.DirectMemoryWriteInstruction):
     __slots__ = ["code"]
     code = base.opcodes['STMS']
     arg_format = ['s', 'int']
-
-    def execute(self):
-        program.mem_s[self.args[1]] = self.args[0].value
 
 
 @base.vectorize
@@ -795,9 +739,6 @@ class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     code = base.opcodes['LDMINT']
     arg_format = ['rw', 'int']
 
-    def execute(self):
-        self.args[0].value = program.mem_i[self.args[1]]
-
 
 @base.vectorize
 class stmint(base.DirectMemoryWriteInstruction):
@@ -808,9 +749,6 @@ class stmint(base.DirectMemoryWriteInstruction):
     __slots__ = ["code"]
     code = base.opcodes['STMINT']
     arg_format = ['r', 'int']
-
-    def execute(self):
-        program.mem_i[self.args[1]] = self.args[0].value
 
 
 # must have seperate instructions because address is always modp
@@ -823,9 +761,6 @@ class ldmci(base.ReadMemoryInstruction):
     code = base.opcodes['LDMCI']
     arg_format = ['cw', 'r']
 
-    def execute(self):
-        self.args[0].value = program.mem_c[self.args[1].value]
-
 
 @base.vectorize
 class ldmsi(base.ReadMemoryInstruction):
@@ -835,9 +770,6 @@ class ldmsi(base.ReadMemoryInstruction):
      """
     code = base.opcodes['LDMSI']
     arg_format = ['sw', 'r']
-
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1].value]
 
 
 @base.vectorize
@@ -849,9 +781,6 @@ class stmci(base.WriteMemoryInstruction):
     code = base.opcodes['STMCI']
     arg_format = ['c', 'r']
 
-    def execute(self):
-        program.mem_c[self.args[1].value] = self.args[0].value
-
 
 @base.vectorize
 class stmsi(base.WriteMemoryInstruction):
@@ -861,9 +790,6 @@ class stmsi(base.WriteMemoryInstruction):
      """
     code = base.opcodes['STMSI']
     arg_format = ['s', 'r']
-
-    def execute(self):
-        program.mem_s[self.args[1].value] = self.args[0].value
 
 
 @base.vectorize
@@ -875,9 +801,6 @@ class ldminti(base.ReadMemoryInstruction):
     code = base.opcodes['LDMINTI']
     arg_format = ['rw', 'r']
 
-    def execute(self):
-        self.args[0].value = program.mem_i[self.args[1].value]
-
 
 @base.vectorize
 class stminti(base.WriteMemoryInstruction):
@@ -887,9 +810,6 @@ class stminti(base.WriteMemoryInstruction):
      """
     code = base.opcodes['STMINTI']
     arg_format = ['r', 'r']
-
-    def execute(self):
-        program.mem_i[self.args[1].value] = self.args[0].value
 
 
 @base.vectorize
@@ -902,9 +822,6 @@ class movc(base.Instruction):
     code = base.opcodes['MOVC']
     arg_format = ['cw', 'c']
 
-    def execute(self):
-        self.args[0].value = self.args[1].value
-
 
 @base.vectorize
 class movs(base.Instruction):
@@ -915,9 +832,6 @@ class movs(base.Instruction):
     __slots__ = ["code"]
     code = base.opcodes['MOVS']
     arg_format = ['sw', 's']
-
-    def execute(self):
-        self.args[0].value = self.args[1].value
 
 
 @base.vectorize
@@ -1053,7 +967,7 @@ class clear_registers(base.IOInstruction):
 #
 
 @base.vectorize
-class addc(base.AddBase):
+class addc(base.Instruction):
     r""" ADDC i j k
          Adds clear registers c_i=c_j+c_k.
          This instruction is vectorizable
@@ -1064,7 +978,7 @@ class addc(base.AddBase):
 
 
 @base.vectorize
-class adds(base.AddBase):
+class adds(base.Instruction):
     r""" ADDS i j k
          Adds secret registers s_i=s_j+s_k.
          This instruction is vectorizable
@@ -1075,7 +989,7 @@ class adds(base.AddBase):
 
 
 @base.vectorize
-class addm(base.AddBase):
+class addm(base.Instruction):
     r""" ADDM i j k
          Adds a clear register onto a secret one s_i=s_j+c_k.
          This instruction is vectorizable
@@ -1086,7 +1000,7 @@ class addm(base.AddBase):
 
 
 @base.vectorize
-class subc(base.SubBase):
+class subc(base.Instruction):
     r""" SUBC i j k
          Subtracts clear registers c_i=c_j-c_k.
          This instruction is vectorizable
@@ -1097,7 +1011,7 @@ class subc(base.SubBase):
 
 
 @base.vectorize
-class subs(base.SubBase):
+class subs(base.Instruction):
     r""" SUBS i j k
          Subtracts secret registers s_i=s_j-s_k.
          This instruction is vectorizable
@@ -1108,7 +1022,7 @@ class subs(base.SubBase):
 
 
 @base.vectorize
-class subml(base.SubBase):
+class subml(base.Instruction):
     r""" SUBML i j k
          Subtracts a clear register from a secret one s_i=s_j-c_k.
          This instruction is vectorizable
@@ -1119,7 +1033,7 @@ class subml(base.SubBase):
 
 
 @base.vectorize
-class submr(base.SubBase):
+class submr(base.Instruction):
     r""" SUBMR i j k
          Subtracts a secret register from a clear one s_i=c_j-s_k.
          This instruction is vectorizable
@@ -1131,7 +1045,7 @@ class submr(base.SubBase):
 # Multiplication/division
 
 @base.vectorize
-class mulc(base.MulBase):
+class mulc(base.Instruction):
     r""" MULC i j k
          Multiplication of clear registers c_i=c_j \cdot c_k.
          This instruction is vectorizable
@@ -1142,7 +1056,7 @@ class mulc(base.MulBase):
 
 
 @base.vectorize
-class mulm(base.MulBase):
+class mulm(base.Instruction):
     r""" MULM i j k
          Multiplication of clear and secret registers s_i=c_j \cdot s_k.
          This instruction is vectorizable
@@ -1162,9 +1076,6 @@ class divc(base.Instruction):
     code = base.opcodes['DIVC']
     arg_format = ['cw', 'c', 'c']
 
-    def execute(self):
-        self.args[0].value = self.args[1].value * pow(self.args[2].value, program.P - 2, program.P) % program.P
-
 
 @base.vectorize
 class modc(base.Instruction):
@@ -1175,9 +1086,6 @@ class modc(base.Instruction):
     __slots__ = []
     code = base.opcodes['MODC']
     arg_format = ['cw', 'c', 'c']
-
-    def execute(self):
-        self.args[0].value = self.args[1].value % self.args[2].value
 
 
 @base.vectorize
@@ -1216,9 +1124,6 @@ class andc(base.Instruction):
     code = base.opcodes['ANDC']
     arg_format = ['cw', 'c', 'c']
 
-    def execute(self):
-        self.args[0].value = (self.args[1].value & self.args[2].value) % program.P
-
 
 @base.vectorize
 class orc(base.Instruction):
@@ -1229,9 +1134,6 @@ class orc(base.Instruction):
     __slots__ = []
     code = base.opcodes['ORC']
     arg_format = ['cw', 'c', 'c']
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value | self.args[2].value) % program.P
 
 
 @base.vectorize
@@ -1244,9 +1146,6 @@ class xorc(base.Instruction):
     code = base.opcodes['XORC']
     arg_format = ['cw', 'c', 'c']
 
-    def execute(self):
-        self.args[0].value = (self.args[1].value ^ self.args[2].value) % program.P
-
 
 @base.vectorize
 class notc(base.Instruction):
@@ -1258,157 +1157,164 @@ class notc(base.Instruction):
     code = base.opcodes['NOTC']
     arg_format = ['cw', 'c', 'int']
 
-    def execute(self):
-        self.args[0].value = (~self.args[1].value + 2 ** self.args[2]) % program.P
-
 
 #
 # Arithmetic with immediate values
 #
 
 @base.vectorize
-class addci(base.ClearImmediate):
+class addci(base.Instruction):
     """ ADDCI i j n
         Addition of clear register to an immediate value c_i=c_j+n.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['ADDCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__add__'
 
 
 @base.vectorize
-class addsi(base.SharedImmediate):
+class addsi(base.Instruction):
     """ ADDSI i j n
         Addition of secret register to an immediate value s_i=s_j+n.
         This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['ADDSI']
+    arg_format = ['sw', 's', 'i']
     op = '__add__'
 
 
 @base.vectorize
-class subci(base.ClearImmediate):
+class subci(base.Instruction):
     r""" SUBCI i j n
          Subtraction of clear register by an immediate value c_i=c_j-n.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['SUBCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__sub__'
 
 
 @base.vectorize
-class subsi(base.SharedImmediate):
+class subsi(base.Instruction):
     r""" SUBSI i j n
          Subtraction of secret register by an immediate value s_i=s_j-n
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['SUBSI']
+    arg_format = ['sw', 's', 'i']
     op = '__sub__'
 
 
 @base.vectorize
-class subcfi(base.ClearImmediate):
+class subcfi(base.Instruction):
     r""" SUBCFI i j n
          Subtraction of clear register from an immediate value c_i=n-c_j.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['SUBCFI']
+    arg_format = ['cw', 'c', 'i']
     op = '__rsub__'
 
 
 @base.vectorize
-class subsfi(base.SharedImmediate):
+class subsfi(base.Instruction):
     r""" SUBSFI i j n
          Subtraction of secret register from an immediate value s_i=n-s_j.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['SUBSFI']
+    arg_format = ['sw', 's', 'i']
     op = '__rsub__'
 
 
 @base.vectorize
-class mulci(base.ClearImmediate):
+class mulci(base.Instruction):
     r""" MULCI i j n
          Multiplication of clear register by immediate value c_i=c_j \cdot n.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['MULCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__mul__'
 
 
 @base.vectorize
-class mulsi(base.SharedImmediate):
+class mulsi(base.Instruction):
     r""" MULCI i j n
          Multiplication of secret register by immediate value s_i=s_j \cdot n.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['MULSI']
+    arg_format = ['sw', 's', 'i']
     op = '__mul__'
 
 
 @base.vectorize
-class divci(base.ClearImmediate):
+class divci(base.Instruction):
     r""" DIVCI i j n
          Division of clear register by an immediate value c_i=c_j/n mod p.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['DIVCI']
-
-    def execute(self):
-        self.args[0].value = self.args[1].value * pow(self.args[2], program.P - 2, program.P) % program.P
+    arg_format = ['cw', 'c', 'i']
 
 
 @base.vectorize
-class modci(base.ClearImmediate):
+class modci(base.Instruction):
     r""" MODC i j n
          Clear division with remainder c_i=c_j%n (after lifting to the integers) by an immediate
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['MODCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__mod__'
 
 # Bitwise Operations with immediate values
 
 @base.vectorize
-class andci(base.ClearImmediate):
+class andci(base.Instruction):
     r""" ANDCI i j n
          Equivalent of ANDC with an immediate value c_i = c_j and n
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['ANDCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__and__'
 
 
 @base.vectorize
-class xorci(base.ClearImmediate):
+class xorci(base.Instruction):
     r""" XORCI i j n
          Equivalent of XORC with an immediate value c_i = c_j oplus n
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['XORCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__xor__'
 
 
 @base.vectorize
-class orci(base.ClearImmediate):
+class orci(base.Instruction):
     r""" ORCI i j n 
          Equivalent of ORC with an immediate value c_i = c_j or n
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['ORCI']
+    arg_format = ['cw', 'c', 'i']
     op = '__or__'
 
 
@@ -1426,9 +1332,6 @@ class shlc(base.Instruction):
     code = base.opcodes['SHLC']
     arg_format = ['cw', 'c', 'c']
 
-    def execute(self):
-        self.args[0].value = (self.args[1].value << self.args[2].value) % program.P
-
 
 @base.vectorize
 class shrc(base.Instruction):
@@ -1439,9 +1342,6 @@ class shrc(base.Instruction):
     __slots__ = []
     code = base.opcodes['SHRC']
     arg_format = ['cw', 'c', 'c']
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value >> self.args[2].value) % program.P
 
 
 @base.vectorize
@@ -1481,11 +1381,6 @@ class triple(base.DataInstruction):
     arg_format = ['sw', 'sw', 'sw']
     data_type = 'triple'
 
-    def execute(self):
-        self.args[0].value = randint(0, program.P)
-        self.args[1].value = randint(0, program.P)
-        self.args[2].value = (self.args[0].value * self.args[1].value) % program.P
-
 
 @base.vectorize
 class bit(base.DataInstruction):
@@ -1498,9 +1393,6 @@ class bit(base.DataInstruction):
     arg_format = ['sw']
     data_type = 'bit'
 
-    def execute(self):
-        self.args[0].value = randint(0, 1)
-
 
 @base.vectorize
 class square(base.DataInstruction):
@@ -1512,10 +1404,6 @@ class square(base.DataInstruction):
     code = base.opcodes['SQUARE']
     arg_format = ['sw', 'sw']
     data_type = 'square'
-
-    def execute(self):
-        self.args[0].value = randint(0, program.P)
-        self.args[1].value = (self.args[0].value * self.args[0].value) % program.P
 
 
 #
@@ -1543,9 +1431,6 @@ class print_mem(base.IOInstruction):
     code = base.opcodes['PRINTMEM']
     arg_format = ['int']
 
-    def execute(self):
-        pass
-
 
 @base.vectorize
 class print_reg(base.IOInstruction):
@@ -1560,9 +1445,6 @@ class print_reg(base.IOInstruction):
 
     def __init__(self, reg, comment=''):
         super(print_reg_class, self).__init__(reg, self.str_to_int(comment))
-
-    def execute(self):
-        pass
 
 
 @base.vectorize
@@ -1796,42 +1678,46 @@ class ldint(base.Instruction):
 
 
 @base.vectorize
-class addint(base.IntegerInstruction):
+class addint(base.Instruction):
     r""" ADDINT i j k
          Addition regint registers r_i=r_j+r_k.
          This instruction is vectorizable
     """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['ADDINT']
 
 
 @base.vectorize
-class subint(base.IntegerInstruction):
+class subint(base.Instruction):
     r""" SUBINT i j k
          Subtraction of regint registers r_i=r_j-r_k.
          This instruction is vectorizable
     """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['SUBINT']
 
 
 @base.vectorize
-class mulint(base.IntegerInstruction):
+class mulint(base.Instruction):
     r""" MULINT i j k
          Multiplication of regint registers r_i=r_j*r_k.
          This instruction is vectorizable
     """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['MULINT']
 
 
 @base.vectorize
-class divint(base.IntegerInstruction):
+class divint(base.Instruction):
     r""" DIVINT i j k
          Division of regint registers r_i=r_j/r_k.
          This instruction is vectorizable
     """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['DIVINT']
 
 
@@ -1840,58 +1726,57 @@ class divint(base.IntegerInstruction):
 #
 
 @base.vectorize
-class eqzc(base.UnaryComparisonInstruction):
+class eqzc(base.Instruction):
     r""" EQZINT i j
          Clear comparison to zero test of regint registers r_i = (r_j == 0).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['rw', 'r']
     code = base.opcodes['EQZINT']
-
-    def execute(self):
-        if self.args[1].value == 0:
-            self.args[0].value = 1
-        else:
-            self.args[0].value = 0
 
 
 @base.vectorize
-class ltzc(base.UnaryComparisonInstruction):
+class ltzc(base.Instruction):
     r""" LTZINT i j
          Clear comparison of regint registers r_i = (r_j < 0).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['rw', 'r']
     code = base.opcodes['LTZINT']
 
 
 @base.vectorize
-class ltc(base.IntegerInstruction):
+class ltc(base.Instruction):
     r""" LTINT i j k
          Clear comparison of regint registers r_i = (r_j < r_k).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['LTINT']
 
 
 @base.vectorize
-class gtc(base.IntegerInstruction):
+class gtc(base.Instruction):
     r""" GTINT i j k
          Clear comparison of regint registers r_i = (r_j > r_k).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['GTINT']
 
 
 @base.vectorize
-class eqc(base.IntegerInstruction):
+class eqc(base.Instruction):
     r""" EQINT i j k
          Clear comparison of regint registers r_i = (r_j == r_k).
          This instruction is vectorizable
      """
     __slots__ = []
+    arg_format = ['rw', 'r', 'r']
     code = base.opcodes['EQINT']
 
 
@@ -1907,9 +1792,6 @@ class jmp(base.JumpInstruction):
     code = base.opcodes['JMP']
     arg_format = ['int']
     jump_arg = 0
-
-    def execute(self):
-        pass
 
 
 class jmpi(base.JumpInstruction):
@@ -1935,9 +1817,6 @@ class jmpnz(base.JumpInstruction):
     arg_format = ['r', 'int']
     jump_arg = 1
 
-    def execute(self):
-        pass
-
 
 class jmpeqz(base.JumpInstruction):
     r""" JMPEQZ i n
@@ -1947,9 +1826,6 @@ class jmpeqz(base.JumpInstruction):
     code = base.opcodes['JMPEQZ']
     arg_format = ['r', 'int']
     jump_arg = 1
-
-    def execute(self):
-        pass
 
 
 #
@@ -1996,10 +1872,6 @@ class startopen(base.VarArgsInstruction):
     code = base.opcodes['STARTOPEN']
     arg_format = itertools.repeat('s')
 
-    def execute(self):
-        for arg in self.args[::-1]:
-            program.curr_block.open_queue.append(arg.value)
-
 
 @base.vectorize
 class stopopen(base.VarArgsInstruction):
@@ -2010,10 +1882,6 @@ class stopopen(base.VarArgsInstruction):
     __slots__ = []
     code = base.opcodes['STOPOPEN']
     arg_format = itertools.repeat('cw')
-
-    def execute(self):
-        for arg in self.args:
-            arg.value = program.curr_block.open_queue.pop()
 
 
 class start_clock(base.Instruction):

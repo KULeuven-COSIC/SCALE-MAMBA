@@ -417,7 +417,7 @@ def format_str_is_writeable(format_str):
 class Instruction(object):
     """
     Base class for a RISC-type instruction. Has methods for checking arguments,
-    getting byte encoding, emulating the instruction, etc.
+    getting byte encoding, etc.
     """
     __slots__ = ['args', 'arg_format', 'code', 'caller']
     count = 0
@@ -455,9 +455,6 @@ class Instruction(object):
     def get_bytes(self):
         return bytearray(self.get_encoding())
     
-    def execute(self):
-        """ Emulate execution of this instruction """
-        raise NotImplementedError('execute method must be implemented')
     
     def check_args(self):
         """ Check the args match up with that specified in arg_format """
@@ -513,124 +510,7 @@ class Instruction(object):
     def __repr__(self):
         return self.__class__.__name__ + '(' + self.get_pre_arg() + ','.join(str(a) for a in self.args) + ')'
 
-###
-### Basic arithmetic for all instructions (we might need to create separate classes for mod 2 instructions
-###
 
-class AddBase(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value + self.args[2].value) % program.P
-
-class SubBase(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value - self.args[2].value) % program.P
-
-class MulBase(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value * self.args[2].value) % program.P
-
-
-#Base Classes for 2n arithmetic
-class AddBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value + self.args[2].value)
-
-class SubBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value - self.args[2].value)
-
-class MulBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value * self.args[2].value)
-
-class DivBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value / self.args[2].value)
-
-class ShiftRight(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value >> self.args[2].value)
-
-class ShiftLeft(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value << self.args[2].value)
-
-
-class NegBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (0 - self.args[1].value )
-
-class AndBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value & self.args[2].value)
-
-class OrBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value | self.args[2].value)
-
-
-class XorBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value ^ self.args[2].value)
-
-class InvBase2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        self.args[0].value = ~ self.args[1].value
-
-class Mul2Base2n(Instruction):
-    __slots__ = []
-
-    def execute(self):
-        temp = (self.args[2].value * self.args[3].value)
-        self.args[0].value = temp >> 64
-        self.args[1].value = temp % 2**64 #& 0xFFFFFFFFFFFFFFFF
-
-
-###
-### Basic arithmetic with immediate values
-###
-
-class ImmediateBase(Instruction):
-    __slots__ = ['op']
-
-    def execute(self):
-        exec('self.args[0].value = self.args[1].value.%s(self.args[2]) %% program.P' % self.op)
-
-class SharedImmediate(ImmediateBase):
-    __slots__ = []
-    arg_format = ['sw', 's', 'i']
-
-class ClearImmediate(ImmediateBase):
-    __slots__ = []
-    arg_format = ['cw', 'c', 'i']
 
 
 ###
@@ -695,45 +575,19 @@ class DataInstruction(Instruction):
 ### Integer operations
 ### 
 
-class IntegerInstruction(Instruction):
-    """ Base class for integer operations. """
-    __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-
 class StackInstruction(Instruction):
     """ Base class for thread-local stack instructions. """
     __slots__ = []
 
-###
-### Clear comparison instructions
-###
-
-class UnaryComparisonInstruction(Instruction):
-    """ Base class for unary comparisons. """
-    __slots__ = []
-    arg_format = ['rw', 'r']
-
-
-###
-### Base 2 comparison instructions
-###
-class BaseSecretBitInstruction(Instruction):
-    """ Base class for unary comparisons. """
-    __slots__ = []
-    arg_format = ['sbw', 'sb', 'sb']
-
-class BaseSecretBitComparisonInstruction(Instruction):
-    """ Base class for unary comparisons. """
-    __slots__ = []
-    arg_format = ['sbw', 'sr', 'sr']
 
 ### 
 ### Clear shift instructions
 ###   - NPS Where is this used?
 ### 
 
-class ClearShiftInstruction(ClearImmediate):
+class ClearShiftInstruction(Instruction):
     __slots__ = []
+    arg_format = ['cw', 'c', 'i']
 
     def check_args(self):
         super(ClearShiftInstruction, self).check_args()
@@ -754,9 +608,6 @@ class dummywrite(Instruction):
     def __init__(self, *args, **kwargs):
         self.arg_format = [arg.reg_type + 'w' for arg in args]
         super(dummywrite, self).__init__(*args, **kwargs)
-    
-    def execute(self):
-        pass
     
     def get_encoding(self):
         return []
