@@ -1,0 +1,614 @@
+# This is not a proper test routine to run through the
+# test script. It is mainly for finding bugs by the 
+# developers
+
+a = 5424
+b = 3543
+
+
+ca = regint(a)
+cb = regint(b)
+sa = sregint(a)
+sb = sregint(cb)
+ssa = sint(a)
+
+### Test Converting ###
+print_ln("Converting: sregint to sint");
+sia=sint(sa)
+ia=sia.reveal()
+print_reg(ia)
+
+print_ln("Converting: -sregint to sint");
+sib=sint(-sa)
+ib=sib.reveal()
+print_reg(ib)
+
+print_ln("Converting: sint to sregint");
+sc=sregint(ssa)
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Converting: -sint to sregint");
+sd=sregint(-ssa)
+cd=sd.reveal()
+print_int(cd)
+print_ln("")
+
+
+#######################
+
+print_ln("Basic Conversions...");
+cc=sa.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sb.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("sb+sa")
+sc=sb+sa
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("sb-sa")
+sd=sb-sa
+
+cc=sd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("sb+ca")
+sc=sb+ca
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("sb-ca")
+sc=sb-ca
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("ca-sb")
+sc=ca-sb
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("sa*sb")
+sc=sa*sb
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("sa*cb")
+sc=sa*cb
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("-sa")
+sc=-sa
+
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-1")
+sba = sa < cb # 0
+sbb = sb < ca # 1
+sbc = -sa < cb # 1
+sbd = sa < -cb # 0
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+
+print_ln("Comparisons-2")
+sba = ca < sb # 0
+sbb = cb < sa # 1
+sbc = -ca < sb # 1
+sbd = ca < -sb # 0
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-3")
+sba = sa > sb # 1
+sbb = sb > sa # 0
+sbc = -sa > sb # 0
+sbd = sa > -sb # 1
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-4")
+sba = sa > cb # 1
+sbb = sb > ca # 0
+sbc = -sa > cb # 0
+sbd = sa > -cb # 1
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-5")
+sba = ca > sb # 1
+sbb = cb > sa # 0
+sbc = -ca > sb # 0
+sbd = ca > -sb # 1
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-6")
+sba = sa <= sb # 0
+sbb = sb <= sa # 1
+sbc = -sa <= sb # 1
+sbd = sa <= -sb # 0
+
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+
+print_ln("Comparisons-7")
+sba = sa <= cb # 0
+sbb = sb <= ca # 1
+sbc = -sa <= cb # 1
+sbd = sa <= -cb # 0
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+
+print_ln("Comparisons-8")
+sba = ca <= sb # 0
+sbb = cb <= sa # 1
+sbc = -ca <= sb # 1
+sbd = ca <= -sb # 0
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-9")
+sba = sa >= sb # 1
+sbb = sb >= sa # 0
+sbc = -sa >= sb # 0
+sbd = sa >= -sb # 1
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-10")
+sba = sa >= cb # 1
+sbb = sb >= ca # 0
+sbc = -sa >= cb # 0
+sbd = sa >= -cb # 1
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("Comparisons-11")
+sba = ca >= sb # 1
+sbb = cb >= sa # 0
+sbc = -ca >= sb # 0
+sbd = ca >= -sb # 1
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+
+
+print_ln("Comparisons Main")
+sba = sa < sb # 0
+sbb = sb < sa # 1
+sbc = -sa < sb # 1
+sbd = sa < -sb # 0
+
+
+cc=sba.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbb.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+cc=sbd.reveal()
+print_int(cc)
+print_ln("")
+
+
+
+print_ln("AND")
+
+sbc=sba & sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sba & sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sbb & sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sbb & sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+
+print_ln("OR")
+
+sbc=sba | sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sba | sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sbb | sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sbb | sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("XOR")
+
+sbc=sba ^ sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sba ^ sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sbb ^ sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=sbb ^ sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("NEG")
+
+sbc=-sba
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+sbc=-sbb
+cc=sbc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND srint")
+sc=sa& sba
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc=sa& sbb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("DIV");
+sc=sa/sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc=(-sa)/sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc=(sa*sb)/sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc=(-sa*sb)/sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+####
+divisible = a - a % b
+test(regint(divisible) / cb) 
+test(regint(divisible) / b) 
+test(regint(divisible) / sb) 
+test(divisible / cb) 
+test(divisible / sb) 
+test(sregint(divisible) / cb) 
+test(sregint(divisible) / b) 
+test(sregint(divisible) / sb)
+
+
+print_ln("SHIFT_LEFT");
+sc=sa << 10
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("SHIFT_RIGHT");
+sd=sc >> 10
+cd=sd.reveal()
+print_int(cd)
+print_ln("")
+
+print_ln("AND/OR/XOR/INV")
+sc = sa & sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND/OR/XOR/INV")
+sc = sa | sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND/OR/XOR/INV")
+sc = sa ^ sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND/OR/XOR/INV")
+sc = ~sa
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND/OR/XOR/INV")
+sc = sa & sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = sa | sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = sa ^ sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = ~sa 
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND/OR/XOR SC versions")
+sc = sa & cb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = sa | cb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = sa ^ cb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+print_ln("AND/OR/XOR CS versions")
+sc = ca & sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = ca | sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+sc = ca ^ sb
+cc=sc.reveal()
+print_int(cc)
+print_ln("")
+
+
+print_ln("Testing 64x64 -> 128 bit multiplication")
+sa=sregint(2**62+212111)
+sb=sregint(2**62-313131)
+se=sregint(18446744007291022075)
+sf=sregint(1152921504606821720)
+
+sd, sc = sa.mul_2_sint(sb)
+st=sc-se
+ss=sd-sf
+
+ct=st.reveal()
+print("\nct=")
+print_int(ct)
+print_ln("")
+
+cs=ss.reveal()
+print("\ncs=")
+print_int(cs)
+print_ln("")
+
+print_ln("Last two values should be zero")
+
+

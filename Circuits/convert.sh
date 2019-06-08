@@ -1,0 +1,11 @@
+./convert.x adder64
+./convert.x sub64
+./convert.x mult2_64
+./convert.x mult64
+./convert.x divide64
+./convert.x neg64
+./convert.x zero_equal
+./convert.x compare_eq
+./convert.x compare
+./convert.x ModAdd512
+./convert.x LSSS_to_GC

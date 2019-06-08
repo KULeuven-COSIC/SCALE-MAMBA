@@ -1,0 +1,390 @@
+a = 5424
+b = 3543
+
+ca = regint(a)
+cb = regint(b)
+sa = sregint(a)
+sb = sregint(b)
+
+test(sregint(10))
+test(regint(1))
+
+#test LDSINT
+test(ca)
+test(sb)
+
+#test  MOVSINT, CONVREGSREG, CONVSREGSINT
+test(regint(ca))
+test(sregint(sa))
+test(sregint(ca))
+test(sint(sa))
+
+#test ADDSINT, ADDSINTC
+test(ca + cb)
+test(sa + cb)
+test(ca + sb)
+test(sa + sb)
+
+test(ca + b)
+test(a + cb)
+test(sa + b)
+test(a + sb)
+
+#test SUBSINT, SUBSINTC, SUBCINTs
+test(ca - cb)
+test(sa - cb)
+test(ca - sb)
+test(sa - sb)
+
+test(ca - b)
+test(a - cb)
+test(sa - b)
+test(a - sb)
+
+#test MULSINT, MULSINTC
+test(ca * cb)
+test(sa * cb)
+test(ca * sb)
+test(sa * sb)
+
+test(ca * b)
+test(a * cb)
+test(sa * b)
+test(a * sb)
+
+#test DIVSINT (tests all combinations and signs)
+divisible = a - a % b
+test(regint(divisible) / cb) 
+test(regint(divisible) / b) 
+test(regint(divisible) / sb) 
+test(divisible / cb) 
+test(divisible / sb) 
+test(sregint(divisible) / cb) 
+test(sregint(divisible) / b) 
+test(sregint(divisible) / sb)
+
+test(regint(-divisible) / cb)
+test(regint(-divisible) / b)
+test(regint(-divisible) / sb)
+test((-divisible) / cb)
+test((-divisible) / sb)
+test(sregint(-divisible) / cb)
+test(sregint(-divisible) / b)
+test(sregint(-divisible) / sb)
+
+test(regint(divisible) / (-cb))
+test(regint(divisible) / (-b))
+test(regint(divisible) / (-sb))
+test(divisible / (-cb))
+test(divisible / (-sb))
+test(sregint(divisible) / (-cb))
+test(sregint(divisible) / (-b))
+test(sregint(divisible) / (-sb))
+
+test(regint(-divisible) / (-cb))
+test(regint(-divisible) / (-b))
+test(regint(-divisible) / (-sb))
+test((-divisible) / (-cb))
+test((-divisible) / (-sb))
+test(sregint(-divisible) / (-cb))
+test(sregint(-divisible) / (-b))
+test(sregint(-divisible) / (-sb))
+
+
+#test SHR/SHL
+test(sa << 3)
+test(sb << 11)
+saa=sa << 3
+sbb=sb << 11
+test(saa >> 3)
+test(sbb >> 3)
+
+# test INT MAX (instructions for sr to sr only)
+int_max = sregint(2**(64-1) - 1)
+int_min = sregint(-2**(64-1))
+test(1 - int_max < sregint(0))
+test(int_max - 1 <= int_max)
+test(int_max - 1 >= int_max)
+test(int_max - 1 < int_max)
+test(int_max - 1 > int_max)
+test(int_min < int_min + 1)
+test(int_min <= int_min + 1)
+test(int_min <= int_min)
+test(int_max >= sregint(0)) # sr to sr only
+test(int_min <= sregint(1)) # sr to sr only
+test(int_min < int_max)
+test(int_min > int_max)
+test(int_max == sregint(0)) # sr to sr only
+test(int_min == sregint(0)) # sr to sr only
+test(int_min == int_max)
+test(int_min == int_min)
+test(int_max == int_max)
+
+#test LTSINT, GTSINT EQSINT (instructions for sr to sr only)
+test(sa < sb)
+test(sa < sa)
+test(sa < sa + 1)
+test(-sa < sa)
+test(-sb < sb)
+test(sa < -sb)
+test(-sa < -sb)
+
+test(sa > sb)
+test(sa > sa)
+test(sa > sa + 1)
+test(-sa > sa)
+test(-sb > sb)
+test(sa > -sb)
+test(-sa > -sb)
+
+test(sa <= sb)
+test(sa <= sa)
+test(sa <= sa + 1)
+test(-sa <= sa)
+test(-sb <= sb)
+test(sa <= -sb)
+test(-sa <= -sb)
+
+test(sa >= sb)
+test(sa >= sa)
+test(sa >= (sa + 1))
+test(-sa >= sa)
+test(-sb >= sb)
+test(sa >= -sb)
+test(-sa >= -sb)
+
+test(sa == sb)
+test(sa == sa)
+test(sa == sa + 1)
+test(-sa == sa)
+test(-sb == sb)
+test(sa == -sb)
+test(-sa == -sb)
+
+test(sa != sb)
+test(sa != sa)
+test(sa != sa + 1)
+test(-sa != sa)
+test(-sb != sb)
+test(sa != -sb)
+test(-sa != -sb)
+
+#test LTSINT, GTSINT EQSINT (instructions for r to sr only)
+test(sa < cb)
+test(sa < ca)
+test(sa < ca + 1)
+test(-sa < ca)
+test(-sb < cb)
+test(sa < -cb)
+test(-sa < -cb)
+
+test(sa > cb)
+test(sa > ca)
+test(sa > ca + 1)
+test(-sa > ca)
+test(-sb > cb)
+test(sa > -cb)
+test(-sa > -cb)
+
+test(sa <= cb)
+test(sa <= ca)
+test(sa <= ca + 1)
+test(-sa <= ca)
+test(-sb <= cb)
+test(sa <= -cb)
+test(-sa <= -cb)
+
+test(sa >= cb)
+test(sa >= ca)
+test(sa >= (ca + 1))
+test(-sa >= ca)
+test(-sb >= cb)
+test(sa >= -cb)
+test(-sa >= -cb)
+
+test(sa == cb)
+test(sa == ca)
+test(sa == ca + 1)
+test(-sa == ca)
+test(-sb == cb)
+test(sa == -cb)
+test(-sa == -cb)
+
+test(sa != cb)
+test(sa != ca)
+test(sa != ca + 1)
+test(-sa != ca)
+test(-sb != cb)
+test(sa != -cb)
+test(-sa != -cb)
+
+
+#test LTSINT, GTSINT EQSINT (instructions for r to sr only)
+test(ca < sb)
+test(ca < sa)
+test(ca < sa + 1)
+test(-ca < sa)
+test(-cb < sb)
+test(ca < -sb)
+test(-ca < -sb)
+
+test(ca > sb)
+test(ca > sa)
+test(ca > sa + 1)
+test(-ca > sa)
+test(-cb > sb)
+test(ca > -sb)
+test(-ca > -sb)
+
+test(ca <= sb)
+test(ca <= sa)
+test(ca <= sa + 1)
+test(-ca <= sa)
+test(-cb <= sb)
+test(ca <= -sb)
+test(-ca <= -sb)
+
+test(ca >= sb)
+test(ca >= sa)
+test(ca >= (sa + 1))
+test(-ca >= sa)
+test(-cb >= sb)
+test(ca >= -sb)
+test(-ca >= -sb)
+
+test(ca == sb)
+test(ca == sa)
+test(ca == sa + 1)
+test(-ca == sa)
+test(-cb == sb)
+test(ca == -sb)
+test(-ca == -sb)
+
+test(ca != sb)
+test(ca != sa)
+test(ca != sa + 1)
+test(-ca != sa)
+test(-cb != sb)
+test(ca != -sb)
+test(-ca != -sb)
+
+# Bitwise Tests (only between sb)
+sba = sa < sb # 0
+sbb = sb < sa # 1
+
+#test NEGB
+test(-sba) # 1
+test(-sbb) # 0
+
+# test ANDSB
+test(sba & sba)
+test(sba & sbb)
+test(sbb & sba)
+test(sbb & sbb)
+
+# test ORSB
+test(sba | sba)
+test(sba | sbb)
+test(sbb | sba)
+test(sbb | sbb)
+
+# test XORSB
+test(sba ^ sba)
+test(sba ^ sbb)
+test(sbb ^ sba)
+test(sbb ^ sbb)
+
+# test SAND
+test(sa & sba)
+test(sa & sbb)
+test(sb & sba)
+test(sb & sbb)
+
+test(sba & sa)
+test(sba & sb)
+test(sbb & sa)
+test(sbb & sb)
+
+#test NEG
+test(-sa)
+test(-sb)
+
+# test sregint
+la = 32
+lb = 4
+sla = sregint(la)
+slb = sregint(lb)
+
+# test ANDSR
+test(sla & sla)
+test(sla & slb)
+test(slb & sla)
+test(slb & slb)
+
+# test ORSR
+test(sla | sla)
+test(sla | slb)
+test(slb | sla)
+test(slb | slb)
+
+# test XORSR
+test(sla ^ sla)
+test(sla ^ slb)
+test(slb ^ sla)
+test(slb ^ slb)
+
+# test ANDSRR
+test(sla & la)
+test(sla & lb)
+test(slb & la)
+test(slb & lb)
+
+# test ORSRR
+test(sla | la)
+test(sla | lb)
+test(slb | la)
+test(slb | lb)
+
+# test XORSRR
+test(sla ^ la)
+test(sla ^ lb)
+test(slb ^ la)
+test(slb ^ lb)
+
+# test ANDRSR
+test(la & sla)
+test(la & slb)
+test(lb & sla)
+test(lb & slb)
+
+# test ORRSR
+test(la | sla)
+test(la | slb)
+test(lb | sla)
+test(lb | slb)
+
+# test XORRSR
+test(la ^ sla)
+test(la ^ slb)
+test(lb ^ sla)
+test(lb ^ slb)
+
+# test mult 128 bits
+s64a = sregint(2 ** 62+28731371)
+s64b = sregint(2 ** 62-31311)
+test(s64a.mul_2_sint(s64b))
+
+# test memory instructions
+c = 1
+rc = regint(c)
+d = 2
+rd = regint(d)
+
+#int store and load mem
+store_in_mem(sregint(a), 0)
+test(sregint.load_mem(0), a)
+
+#regint
+store_in_mem(sregint(b), rd)
+test(sregint.load_mem(rd), b)
+
