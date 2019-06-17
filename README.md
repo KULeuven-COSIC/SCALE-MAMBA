@@ -7,21 +7,17 @@
 
 
 First type
-'''
-	make doc
-'''
+        make doc
 Then *read* the documentation!
 
 Note: For Leuven maintainers, if wishing to recompile the basic 64 bit 
 circuits then call
-'''
         make circuits
-'''
 These are then compiled down from the netlist down to the Bristol
 fashion again, and then simplified. After doing this run
-'''
+<p>
         ./Test-Convert.x
-'''
+</p>
 to check all is OK.
 
 If you want to recompile the .net circuits from the .vhd see the
