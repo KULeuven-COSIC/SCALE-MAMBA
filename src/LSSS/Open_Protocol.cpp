@@ -17,6 +17,7 @@ using namespace std;
 
 Open_Protocol::Open_Protocol()
 {
+  vals.resize(3);
   macs.resize(3);
   sha256.resize(3);
   for (unsigned int i= 0; i < 3; i++)

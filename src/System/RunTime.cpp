@@ -28,6 +28,9 @@ All rights reserved
 #include <string>
 #include <unistd.h>
 #include <vector>
+#ifdef BENCH_MEMORY
+#include <sys/resource.h>
+#endif
 using namespace std;
 
 extern Base_Circuits Global_Circuit_Store;
@@ -187,6 +190,40 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   Close_Connections(ssocket, csockets, my_number);
 }
 
+#ifdef BENCH_MEMORY
+void Print_Memory_Info(int player_num, int thread_num)
+{
+  int who = RUSAGE_THREAD;
+  //int who = RUSAGE_SELF; // for the calling process
+  struct rusage r_usage;
+
+  int ret = getrusage(who, &r_usage);
+  if (ret != 0)
+  {
+    printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
+               "MEMORY:\n"
+               "  PLAYER#%d->THREAD#%u (PROCESS#%d)\n"
+               "  ERROR: return value -> %d\n"
+               BENCH_MAGIC_END BENCH_ATTR_RESET,
+           player_num, thread_num, who, ret);
+  }
+  else
+  {
+    printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
+               "{\"player\":%u,\n"
+               "  \"thread\":%d,\n"
+               "  \"process\":%d,\n"
+               "  \"memory\":{\n"
+               "    \"max_rss\":{\"KB\":%ld,\"MB\":%.2f}\n"
+               "  }\n"
+               "}\n"
+               BENCH_MAGIC_END BENCH_ATTR_RESET,
+           player_num, thread_num, who, r_usage.ru_maxrss, ((double)r_usage.ru_maxrss/1000));
+  }
+}
+#endif
+
+
 void *Main_Func(void *ptr)
 {
   thread_info *tinfo= (thread_info *) ptr;
@@ -242,5 +279,14 @@ void *Main_Func(void *ptr)
     {
       throw bad_value();
     }
+
+#ifdef BENCH_NETDATA
+  P.print_network_data(num);
+#endif
+
+#ifdef BENCH_MEMORY
+  Print_Memory_Info(me, num);
+#endif
+
   return 0;
 }

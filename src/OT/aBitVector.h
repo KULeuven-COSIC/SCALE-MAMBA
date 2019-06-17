@@ -191,20 +191,27 @@ public:
   }
 
   /* Comparisons */
-  friend aBit less_than(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  aBit less_than_zero() const
   {
-    return eval_circuit_bit(Compare, a, b, P, aAF);
+    return x[sreg_bitl-1];
   }
 
-  friend aBit less_than_equal(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  aBit equal_zero(Player &P, aAND_Factory &aAF) const
   {
-    return eval_circuit_bit(Compare_Eq, a, b, P, aAF);
+    return eval_circuit_bit(Zero_Equal, *this, P, aAF);
   }
 
-  friend aBit equal_zero(const aBitVector &a, Player &P, aAND_Factory &aAF)
+  /* Bit access */
+  aBit get_bit(unsigned int n) const
   {
-    return eval_circuit_bit(Zero_Equal, a, P, aAF);
+    return x[n];
   }
+
+  void set_bit(unsigned int n,const aBit& t)
+  {
+    x[n]=t;
+  }
+
 
   // Input and output from a stream
   //  - Can do in human or machine only format (later should be faster)

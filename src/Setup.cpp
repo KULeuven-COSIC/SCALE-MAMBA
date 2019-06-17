@@ -483,11 +483,13 @@ void init_conversion()
     }
   if (nBits <= sreg_bitl)
     {
-      cout << "The conversion to/from GC routines will definitely not work with primes ";
-      cout << "less than 64 bits in length\n";
-      cout << "There are other restrictions for security, but we test these at runtime" << endl;
+      cout << "There is no need to create a conversion circuit to GC for small primes" << endl;
+      cout << "This is done programmatically in the code" << endl;
       return;
     }
+  unsigned int size1= 64+conv_stat_sec;
+  if (size1>nBits) 
+    { size1=nBits; }
 
   vector<int> p_bits(512);
 
@@ -495,7 +497,7 @@ void init_conversion()
   Circuit CSub, C512;
   SimplifyCircuit CC;
   vector<unsigned int> assign_in;
-  unsigned int nzeros;
+  unsigned int nzeros0,nzeros1;
   ofstream outf;
 
   cout << "Producing conversion circuit LSSS to GC for prime " << p << endl;
@@ -506,16 +508,20 @@ void init_conversion()
 
   /* Now do the specialization */
   assign_in.resize(512 * 3);
-  nzeros= 512 - nBits;
-  cout << "nBits= " << nBits << " nzeros=" << nzeros << endl;
+  nzeros0= 512 - nBits;
+  nzeros1= 512 - size1;
+  cout << "nBits= " << nBits << " nzeros0=" << nzeros0 << " nzeros1=" << nzeros1 << endl;
   for (unsigned int i= 0; i < 512 * 2; i++)
     {
       assign_in[i]= 2;
     }
-  for (unsigned int i= 0; i < nzeros; i++)
+  for (unsigned int i= 0; i < nzeros0; i++)
     {
       assign_in[nBits + i]= 0;
-      assign_in[512 + nBits + i]= 0;
+    }
+  for (unsigned int i= 0; i < nzeros1; i++)
+    {
+      assign_in[512 + size1 + i]= 0;
     }
   for (unsigned int i= 0; i < 512; i++)
     {

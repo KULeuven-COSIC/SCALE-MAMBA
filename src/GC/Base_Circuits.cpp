@@ -48,14 +48,6 @@ void Base_Circuits::initialize(const bigint &p)
   inpf >> BaseC[Zero_Equal];
   inpf.close();
 
-  inpf.open("Circuits/Bristol/compare_eq.txt");
-  inpf >> BaseC[Compare_Eq];
-  inpf.close();
-
-  inpf.open("Circuits/Bristol/compare.txt");
-  inpf >> BaseC[Compare];
-  inpf.close();
-
   /* We can do a conversion if log_2 p bits mod p 
    * give something statistically close to random mod p
    *   AND

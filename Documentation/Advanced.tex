@@ -870,11 +870,12 @@ nb = -sb
 Given $a, b \in \Qk{f}$ this is just the integer addition algorithm for elements
 in $\Zk$ given above
 \begin{enumerate}
-\item $\sshare{d} \asn \sshare{a} + \sshare{b}$.
-\item $\sshare{c} \asn \mathsf{Mod2m}(\sshare{d},k+1,k)$.
+\item $\sshare{c} \asn \sshare{a} + \sshare{b}$.
 \item Return $\sshare{c}$.
 \end{enumerate}
 Obviously from $\mathsf{FxNeg}$ and $\mathsf{FxAdd}$ we can define $\mathsf{FxSub}$.
+Note that, if the sum overflows then the resulting value will be
+invalid.
 \paragraph{MAMBA Example:} To obtain the addition of two fixed point secret shared values you can do as follows:
 \begin{lstlisting}[language={python}]
 a = sfix(3.5)

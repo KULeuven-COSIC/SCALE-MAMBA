@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.4} of the SCALE and MAMBA software.
+This is currently {\bf version 1.4.1} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,23 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software. 
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+
+
+\subsection{Changes in version 1.4.1 from 1.4}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Major bug fix for full threshold, this did not work in 1.4.
+\item Comparison of \verb|sregint| values is now done via comparison
+	to zero only. Thus overflow errors can occur, but on the other
+	hand for general computation this can be much faster.
+        This means there are a few bytecode changes from v1.4.
+\item Conversion of \verb|sint| to \verb|sregint| for large primes $p$
+	on the \verb|sint| side now consume less daBits. This gives
+	a bit of a performance boost.
+\item We can now convert between \verb|sint| and \verb|sregint|
+      when $\log_2 p <64$ as well.
+\end{enumerate}
 
 \subsection{Changes in version 1.4 from 1.3}
 Apart from the usual minor bug fixes...

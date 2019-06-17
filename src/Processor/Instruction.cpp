@@ -109,9 +109,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case XORSB:
       case ANDSB:
       case ORSB:
-      case LTSINT:
-      case GTSINT:
-      case EQSINT:
       case ANDSINT:
       case ANDSINTC:
       case ORSINT:
@@ -150,6 +147,8 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case STMSINTI:
       case MOVSINT:
       case INVSINT:
+      case EQZSINT:
+      case LTZSINT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         break;
@@ -187,6 +186,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case SHRSINT:
       case NOTC:
       case CONVMODP:
+      case BITSINT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         n= get_int(s);
@@ -325,9 +325,9 @@ int BaseInstruction::get_reg_type() const
       case ANDSB:
       case ORSB:
       case NEGB:
-      case LTSINT:
-      case GTSINT:
-      case EQSINT:
+      case LTZSINT:
+      case EQZSINT:
+      case BITSINT:
       case CONVSINTSREG:
       case CONVREGSREG:
       case CONVSREGSINT:
@@ -790,14 +790,14 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case NEGB:
         s << "NEGB";
         break;
-      case LTSINT:
-        s << "LTSINT";
+      case LTZSINT:
+        s << "LTZSINT";
         break;
-      case GTSINT:
-        s << "GTSINT";
+      case EQZSINT:
+        s << "EQZSINT";
         break;
-      case EQSINT:
-        s << "EQSINT";
+      case BITSINT:
+        s << "BITSINT";
         break;
       case CONVSINTSREG:
         s << "CONVSINTSREG";
@@ -928,13 +928,17 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "sr_" << instr.r[1] << " ";
         s << "sb_" << instr.r[2] << " ";
         break;
-      // instructions with 1 sbit and 2 sregint operands
-      case LTSINT:
-      case GTSINT:
-      case EQSINT:
+      // instructions with 1 sbit and 1 sregint operands
+      case LTZSINT:
+      case EQZSINT:
         s << "sb_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
-        s << "sr_" << instr.r[2] << " ";
+        break;
+      // instructions with 1 sbit and 1 sregint and 1 integer operands
+      case BITSINT:
+        s << "sb_" << instr.r[0] << " ";
+        s << "sr_" << instr.r[1] << " ";
+	s << instr.n << " ";
         break;
       // instructions with 1 sint + 1 cint + 1 sint register operands */
       case SUBMR:
@@ -2034,16 +2038,14 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case NEGB:
             Proc.get_sbit_ref(r[0]).negate(Proc.read_sbit(r[1]));
             break;
-          case LTSINT:
-            Proc.get_sbit_ref(r[0])= less_than(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
+          case LTZSINT:
+            Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).less_than_zero();
             break;
-          case GTSINT:
-            Proc.get_sbit_ref(r[0])= less_than_equal(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
-            Proc.get_sbit_ref(r[0]).negate();
+          case EQZSINT:
+            Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).equal_zero(P, Proc.aAF);
             break;
-          case EQSINT:
-            Proc.temp.aBV.sub(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.aAF);
-            Proc.get_sbit_ref(r[0])= equal_zero(Proc.temp.aBV, P, Proc.aAF);
+          case BITSINT:
+            Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).get_bit(n);
             break;
           case CONVSINTSREG:
             Proc.convert_sint_to_sregint(r[1], r[0], P);

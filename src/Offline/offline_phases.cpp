@@ -112,6 +112,7 @@ void mult_phase(int num_online, Player &P, offline_control_data &OCD,
   // Initialize PRSS stuff
   PRSS prss(P);
   PRZS przs(P);
+  FakePrep prep(P);
 
   list<Share> a, b, c;
   list<Share>::iterator it;
@@ -141,7 +142,7 @@ void mult_phase(int num_online, Player &P, offline_control_data &OCD,
               printf("In triples: thread = %d\n", num_online);
               fflush(stdout);
             }
-          offline_phase_triples(P, prss, przs, a, b, c, pk, sk, PTD, industry);
+          offline_phase_triples(P, prss, przs, prep, a, b, c, pk, sk, PTD, industry);
           if (verbose > 1)
             {
               printf("Out of triples: thread = %d\n", num_online);
@@ -169,6 +170,7 @@ void square_phase(int num_online, Player &P, offline_control_data &OCD,
   // Initialize PRSS stuff
   PRSS prss(P);
   PRZS przs(P);
+  FakePrep prep(P);
 
   list<Share> a, b, c;
   list<Share>::iterator it;
@@ -198,7 +200,7 @@ void square_phase(int num_online, Player &P, offline_control_data &OCD,
               printf("In squares: thread = %d\n", num_online);
               fflush(stdout);
             }
-          offline_phase_squares(P, prss, przs, a, b, pk, sk, PTD, industry);
+          offline_phase_squares(P, prss, przs, prep, a, b, pk, sk, PTD, industry);
           if (verbose > 1)
             {
               printf("Out of squares: thread = %d\n", num_online);
@@ -224,6 +226,7 @@ void bit_phase(int num_online, Player &P, offline_control_data &OCD,
   // Initialize PRSS stuff
   PRSS prss(P);
   PRZS przs(P);
+  FakePrep prep(P);
 
   Open_Protocol OP;
 
@@ -255,7 +258,7 @@ void bit_phase(int num_online, Player &P, offline_control_data &OCD,
               printf("In bits: thread = %d\n", num_online);
               fflush(stdout);
             }
-          offline_phase_bits(P, prss, przs, b, OP, pk, sk, PTD, industry);
+          offline_phase_bits(P, prss, przs, prep, b, OP, pk, sk, PTD, industry);
           if (verbose > 1)
             {
               printf("Out of bits: thread = %d\n", num_online);

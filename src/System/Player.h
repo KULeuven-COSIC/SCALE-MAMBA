@@ -24,6 +24,12 @@ class Player
 {
   unsigned int me; // My player number
 
+#ifdef BENCH_NETDATA
+  // network data in bytes
+  mutable long data_sent;
+  mutable long data_received;
+#endif
+
   // We have an array of ssl[nplayer][3] connections
   // The 0th connection is for normal communication
   // The 1th connection is for private input and output
@@ -92,6 +98,22 @@ public:
    * then receives back o[i] from player i
    */
   void Send_Distinct_And_Receive(vector<string> &o, int connection= 0) const;
+
+#ifdef BENCH_NETDATA
+  void print_network_data(int thread_num)
+  {
+    printf(BENCH_TEXT_BOLD BENCH_COLOR_BLUE BENCH_MAGIC_START
+           "{\"player\":%u,\n"
+           "  \"thread\":%d,\n"
+           "  \"netdata\":{\n"
+           "    \"sent\":{\"bytes\":%ld,\"MB\":%.2f},\n"
+           "    \"received\":{\"bytes\":%ld,\"MB\":%.2f}\n"
+           "  }\n"
+           "}\n"
+           BENCH_MAGIC_END BENCH_ATTR_RESET,
+           me, thread_num, data_sent, ((double)data_sent/1000000), data_received, ((double)data_received/1000000));
+  }
+#endif
 };
 
 #endif

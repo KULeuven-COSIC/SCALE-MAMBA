@@ -165,9 +165,9 @@
   PRINTINT= 0xB9,
 
   # Comparison of sregints
-  LTSINT = 0xD0,
-  GTSINT = 0xD1,
-  EQSINT = 0xD2,
+  EQZSINT = 0xD0,
+  LTZSINT = 0xD1,
+  BITSINT = 0xD2,
 
   # Bitwise logical operations on sregints
   ANDSINT = 0xD3,
@@ -574,36 +574,35 @@ class negb(base.Instruction):
 
 
 @base.vectorize
-class ltsint(base.Instruction):
-    r""" LTSINT i j K
-         Secret less than of secret registers sb_i = ~sr_j < sr_k.
+class ltzsint(base.Instruction):
+    r""" LTZSINT i j
+         Secret less than of zero of secret register sb_i = ~sr_j < 0.
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sr', 'sr']
-    code = base.opcodes['LTSINT']
+    arg_format = ['sbw', 'sr']
+    code = base.opcodes['LTZSINT']
 
 
 @base.vectorize
-class gtsint(base.Instruction):
-    r""" GTSINT i j K
-         Secret greater than of secret registers sb_i = ~sr_j > sr_k.
+class eqzsint(base.Instruction):
+    r""" EQZSINT i j 
+         Secret equality test to zero of secret register sb_i = ~sr_j == 0.
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sr', 'sr']
-    code = base.opcodes['GTSINT']
-
+    arg_format = ['sbw', 'sr']
+    code = base.opcodes['EQZSINT']
 
 @base.vectorize
-class eqsint(base.Instruction):
-    r""" EQSINT i j K
-         Secret equality test of secret registers sb_i = ~sr_j == sr_k.
+class bitsint(base.Instruction):
+    r""" BITSINT i j n
+         Assigns sbit register sb_i the n-th bit of register sr_j.
          This instruction is vectorizable
      """
-    __slots__ = []
-    arg_format = ['sbw', 'sr', 'sr']
-    code = base.opcodes['EQSINT']
+    __slots__ = ["code"]
+    code = base.opcodes['BITSINT']
+    arg_format = ['sbw', 'sr', 'int']
 
 
 # Conversion opcodes

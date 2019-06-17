@@ -295,81 +295,7 @@ void test_zero_equal(PRNG &G)
     }
 }
 
-void test_compare(PRNG &G)
-{
-  Circuit C;
-  ifstream inpf("Circuits/Bristol/compare.txt");
-  inpf >> C;
-  inpf.close();
 
-  vector<vector<int>> inp, outp;
-  inp.resize(2);
-  outp.resize(1);
-  inp[0].resize(64);
-  inp[1].resize(64);
-  outp[0].resize(1);
-
-  unsigned long x, y, z, zz;
-  for (unsigned long i= 0; i < 100; i++)
-    {
-      x= random_int(G);
-      y= random_int(G);
-      if ((signed long) x < (signed long) y)
-        {
-          z= 1;
-        }
-      else
-        {
-          z= 0;
-        }
-      ulong_to_bits(inp[0], x);
-      ulong_to_bits(inp[1], y);
-      C.evaluate(inp, outp);
-      zz= bits_to_ulong(outp[0], 1);
-      if (z != zz)
-        {
-          cout << "Error test_compare:  " << z << " " << zz << endl;
-        }
-    }
-}
-
-void test_compareEqual(PRNG &G)
-{
-  Circuit C;
-  ifstream inpf("Circuits/Bristol/compare_eq.txt");
-  inpf >> C;
-  inpf.close();
-
-  vector<vector<int>> inp, outp;
-  inp.resize(2);
-  outp.resize(1);
-  inp[0].resize(64);
-  inp[1].resize(64);
-  outp[0].resize(1);
-
-  unsigned long x, y, z, zz;
-  for (unsigned long i= 0; i < 100; i++)
-    {
-      x= random_int(G);
-      y= random_int(G);
-      if ((signed long) x <= (signed long) y)
-        {
-          z= 1;
-        }
-      else
-        {
-          z= 0;
-        }
-      ulong_to_bits(inp[0], x);
-      ulong_to_bits(inp[1], y);
-      C.evaluate(inp, outp);
-      zz= bits_to_ulong(outp[0], 1);
-      if (z != zz)
-        {
-          cout << "Error test_compareEqual:  " << z << " " << zz << endl;
-        }
-    }
-}
 
 int main()
 {
@@ -387,10 +313,6 @@ int main()
   test_mult2_64(G);
   cout << "Testing zero_equal" << endl;
   test_zero_equal(G);
-  cout << "Testing compare" << endl;
-  test_compare(G);
-  cout << "Testing compareEqual" << endl;
-  test_compareEqual(G);
   cout << "Testing divide64" << endl;
   test_divide64(G);
 }

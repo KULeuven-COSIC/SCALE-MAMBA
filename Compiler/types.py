@@ -987,7 +987,6 @@ class _secretInt(_secretMod2):
         return self.div(other, True)
 
     def __lshift__(self, other):
-
         return self.secret_op(other, shlsint)
 
 
@@ -1152,7 +1151,7 @@ class sbit(_secretMod2):
         return res
 
 ##
-# Base 2^64 secet int type
+# Base 2^64 secret int type
 # It uses the new opcodes from mod 2^n arithmetic
 class sregint(_secretInt):
     """ Shared  mod 2^64 integer type. """
@@ -1197,26 +1196,40 @@ class sregint(_secretInt):
             mul2sint(msw, lsw, self, other)
         return msw, lsw
 
+    def eqz(self):
+        res = sbit()
+        eqzsint(res, self)
+        return res
+
+    def ltz(self):
+        res = sbit()
+        ltzint(res, self)
+        return res
+
+
     # comparison implementation for new opcodes
     def __lt__(self, other):
         res = sbit()
         other_local = parse_sregint(other)
         if isinstance(other_local, type(self)):
-            ltsint(res, self, other_local)
+            other_local = self-other_local;
+            ltzsint(res, other_local)
         return res
 
     def __gt__(self, other):
         res = sbit()
         other_local = parse_sregint(other)
         if isinstance(other_local, type(self)):
-            gtsint(res, self, other_local)
+            other_local=other_local-self;
+            ltzsint(res, other_local)
         return res
 
     def __eq__(self, other):
         res = sbit()
         other_local = parse_sregint(other)
         if isinstance(other_local, type(self)):
-            eqsint(res, self, other_local)
+            other_local = self-other_local;
+            eqzsint(res, other_local)
         return res
 
     def __le__(self, other):
@@ -1532,7 +1545,7 @@ class cfix(_number):
     """ Clear fixed point type. """
     __slots__ = ['value', 'f', 'k', 'size']
     reg_type = 'c'
-    scalars = (int, long, float)
+    scalars = (int, long, float, regint)
 
     @classmethod
     def set_precision(cls, f, k=None):
@@ -1571,7 +1584,12 @@ class cfix(_number):
         if isinstance(v, cint):
             self.v = cint(v, size=self.size)
         elif isinstance(v, cfix.scalars):
-            self.v = cint(int(round(v * (2 ** f))), size=self.size)
+            v = v * (2 ** f)
+            try:
+                v = int(round(v))
+            except TypeError:
+                pass
+            self.v = cint(v, size=self.size)
         elif isinstance(v, cfix):
             self.v = v.v
         elif isinstance(v, MemValue):
@@ -1584,8 +1602,20 @@ class cfix(_number):
         r"""Converts the integer v to a cfix value, basically multiplies v by 2^f """
         self.v = cint(v) * (2 ** self.f)
 
-    def conv(self):
-        return self
+    @classmethod
+    def conv(cls, other):
+        if isinstance(other, MemValue):
+            other = other.read()
+        if isinstance(other, cls):
+            return other
+        else:
+            try:
+                res = cfix()
+                res.load_int(other)
+                return res
+            except (TypeError, CompilerError):
+                pass
+        return cls(other)
 
     def store_in_mem(self, address):
         r"""Stores the cfix value x to the cint memory with address
@@ -1777,8 +1807,20 @@ class sfix(_number):
         else:
             cls.k = k
 
-    def conv(self):
-        return self.v
+    @classmethod
+    def conv(cls, other):
+        if isinstance(other, MemValue):
+            other = other.read()
+        if isinstance(other, cls):
+            return other
+        else:
+            try:
+                res = sfix()
+                sfix.load_int(other)
+                return res
+            except (TypeError, CompilerError):
+                pass
+        return cls(other)
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -1809,7 +1851,12 @@ class sfix(_number):
         if isinstance(_v, sint):
             self.v = _v
         elif isinstance(_v, cfix.scalars):
-            self.v = sint(int(round(_v * (2 ** f))), size=self.size)
+            v = _v * (2 ** f)
+            try:
+                v = int(round(v))
+            except TypeError:
+                pass
+            self.v = sint(v, size=self.size)
         elif isinstance(_v, sfloat):
             p = (f + _v.p)
             b = (p >= 0)
@@ -2772,37 +2819,49 @@ class sfloatMatrix(Matrix):
         return sfloatArray(self.columns, self.multi_array[index].address)
 
 
-class sfixArray(Array):
+class _fixArray(Array):
     def __init__(self, length, address=None):
-        # self.address = address
-        self.array = Array(length, sint, address)
+        self.array = Array(length, self.int_type, address)
         self.address = self.array.address
         self.length = length
-        self.value_type = sfix
 
     def __getitem__(self, index):
         if isinstance(index, slice):
             return Array.__getitem__(self, index)
-        return sfix(self.array[index])
+        return self.value_type(self.array[index])
 
     def __setitem__(self, index, value):
         if isinstance(index, slice):
             return Array.__setitem__(self, index, value)
-        self.array[index] = sfix(value).v
+        self.array[index] = self.value_type.conv(value).v
 
     def get_address(self, index):
         return self.array.get_address(index)
 
+class cfixArray(_fixArray):
+    int_type = cint
+    value_type = cfix
 
-class sfixMatrix(Matrix):
+class sfixArray(_fixArray):
+    int_type = sint
+    value_type = sfix
+
+class _fixMatrix(Matrix):
     def __init__(self, rows, columns, address=None):
         self.rows = rows
         self.columns = columns
-        self.multi_array = Matrix(rows, columns, sint, address)
+        self.multi_array = Matrix(rows, columns, self.int_type, address)
 
     def __getitem__(self, index):
-        return sfixArray(self.columns, self.multi_array[index].address)
+        return self.value_type.Array(self.columns, self.multi_array[index].address)
 
+class cfixMatrix(_fixMatrix):
+    int_type = cint
+    value_type = cfix
+
+class sfixMatrix(_fixMatrix):
+    int_type = sint
+    value_type = sfix
 
 class _mem(_number):
     __add__ = lambda self, other: self.read() + other
@@ -3053,8 +3112,8 @@ cint.MemValue = MemValue
 cint.Array = cintArray
 cint.Matrix = cintMatrix
 
-cfix.Array = cintArray
-cfix.Matrix = cintMatrix
+cfix.Array = cfixArray
+cfix.Matrix = cfixMatrix
 cfix.MemValue = MemFix
 
 sint.MemValue = MemValue

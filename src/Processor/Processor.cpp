@@ -190,22 +190,32 @@ void Processor::execute(const Program &prog, int argument, Player &P,
     }
 }
 
-void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
+
+void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
 {
-  if (Global_Circuit_Store.convert_ok == false)
-    {
-      throw cannot_do_conversion();
-    }
-  // Set up arrays for the GC stuff
   unsigned int size= numBits(gfp::pr());
-  vector<vector<aBit>> input(2, vector<aBit>(size));
-  vector<vector<aBit>> output(1, vector<aBit>(sreg_bitl));
-
-  // Get a daBit
+  unsigned long p=gfp::pr().get_ui();
+  aBitVector x,y,z,r2;
+  aBit bit;
+  int b;
+  bool done=false;
   vector<Share> bpr(size);
-  daBitV.get_daBits(bpr, input[1], daBitGen);
+  vector<aBit>  b2r(size);
+  // Get a set of size daBits, until the value is less than p
+  while (!done)
+    { // Get daBits
+      daBitV.get_daBits(bpr, b2r, daBitGen);
+      r2.assign_zero();
+      for (unsigned int i=0; i<size; i++)
+	{ r2.set_bit(i,b2r[i]); }
+      z.sub(r2,p,P,aAF);
+      bit=z.less_than_zero();
+      Open_aBit(b, bit, P);
+      if (b==1) 
+        { done=true; }
+    }
 
-  // Now form r
+  // Now create the integer r, which is gauranteed to be uniform mod p
   Share r(P.whoami());
   r.assign_zero();
   for (int i= size - 1; i >= 0; i--)
@@ -223,10 +233,80 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
   OP.Open_To_All_Begin(gfp_xr, S_xr, P, 2);
   OP.Open_To_All_End(gfp_xr, S_xr, P, 2);
 
+  // Now add z=(x-r)+r in the GC routines
+  bigint bi_xr;
+  to_bigint(bi_xr, gfp_xr[0]);
+  z.add(bi_xr.get_ui(),r2,P,aAF);
+
+  // Remember to do this modp
+  y.sub(z,p,P,aAF);
+  bit=y.less_than_zero();
+  // z=bit*z+(1-b)*y
+  z.Bit_AND(z,bit,P,aAF);
+  bit.negate();
+  y.Bit_AND(y,bit,P, aAF);
+  z.add(z,y,P,aAF);
+
+
+  // Now compare to p/2 to work out whether we need to negate
+  y.sub(z,p/2,P,aAF);
+  bit=y.less_than_zero();
+  // Now compute   bit*z + (1-bit)*(-z)
+  y.sub(p,z,P,aAF);   y.negate(y,P,aAF);
+  z.Bit_AND(z,bit,P, aAF);
+  bit.negate();
+  y.Bit_AND(y,bit,P, aAF);
+  x.add(z,y,P,aAF);
+
+  // Write back into the processor
+  write_srint(i1, x);
+}
+
+
+void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
+{
+  unsigned int size0= numBits(gfp::pr());
+  unsigned int size1= 64+conv_stat_sec;
+  if (size1>size0) { size1=size0; }
+  if (Global_Circuit_Store.convert_ok == false)
+    {
+      if (sreg_bitl<size0)
+        { throw cannot_do_conversion(); }
+      convert_sint_to_sregint_small(i0, i1, P);
+      return;
+    }
+  // Set up arrays for the GC stuff
+  vector<vector<aBit>> input(2);
+  input[0].resize(size0);
+  input[1].resize(size1);
+  vector<vector<aBit>> output(1, vector<aBit>(sreg_bitl));
+
+  // Get a daBit
+  vector<Share> bpr(size1);
+  daBitV.get_daBits(bpr, input[1], daBitGen);
+
+  // Now form r
+  Share r(P.whoami());
+  r.assign_zero();
+  for (int i= size1 - 1; i >= 0; i--)
+    {
+      r.add(r); // r=2*r
+      r.add(bpr[i]);
+    }
+
+  // Now form x-r
+  vector<Share> S_xr(1);
+  S_xr[0].sub(read_Sp(i0), r);
+
+  // Now open x-r
+  vector<gfp> gfp_xr(1);
+  OP.Open_To_All_Begin(gfp_xr, S_xr, P, 2);
+  OP.Open_To_All_End(gfp_xr, S_xr, P, 2);
+
   // Form vector<aBit> of gfp_xr
   bigint bi_xr;
   to_bigint(bi_xr, gfp_xr[0]);
-  for (unsigned int i= 0; i < size; i++)
+  for (unsigned int i= 0; i < size0; i++)
     {
       if ((bi_xr & 1) == 0)
         {
@@ -247,6 +327,8 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
   // Write back into the processor
   write_srint(i1, output[0]);
 }
+
+
 
 void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
 {

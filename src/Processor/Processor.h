@@ -347,6 +347,9 @@ public:
   //   Uses the daBits
   void convert_sint_to_sregint(int i0, int i1, Player &P);
 
+  // This is a special version for when log_2(p)<sreg_bitl
+  void convert_sint_to_sregint_small(int i0, int i1, Player &P);
+
   // Converts a sregint register i0 to a srint register i1
   //   Uses the daBits
   void convert_sregint_to_sint(int i0, int i1, Player &P);

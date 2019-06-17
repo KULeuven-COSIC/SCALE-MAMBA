@@ -5,7 +5,5 @@
 ./convert.x divide64
 ./convert.x neg64
 ./convert.x zero_equal
-./convert.x compare_eq
-./convert.x compare
 ./convert.x ModAdd512
 ./convert.x LSSS_to_GC

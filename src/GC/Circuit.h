@@ -23,7 +23,7 @@ All rights reserved
  *         - Then niv numbers defining the number of input wires per input value 
  *           ni_1,..,ni_niv
  *   - The number of output values nov (e.g. if doing z=a+b mod p we have nov=1)
- *         - Then nov numbers defining the number of output wires per output valie, 
+ *         - Then nov numbers defining the number of output wires per output value, 
  *           no_1,...,no_nov
  *   - The wire numbering is ordered so that the first i_0 wires correspond to the
  *     first input value, the next i_1 wires correspond to the second input value
@@ -31,21 +31,16 @@ All rights reserved
  *   - With the last (o_0+...+o_{n-1}) wires corresponding to the outputs of
  *     the function, where n=no_1+...+no_nov
  *   - Then n numbers defining the values i_0,...,i_{n-1} of wires in the
- *     inputs to the function for each party.
+ *     inputs to the function for each input value.
  *   - Then n numbers defining the values o_0,...,o_{n-1} of wires in the
- *     inputs to the function for each party.
- *   - The wire numbering is ordered so that the first i_0 wires correspond to the
- *     first input value, the next o_1 wires correspond to the second input value
- *     and so on.
- *   - With the last (o_0+...+o_{n-1}) wires corresponding to the outputs of
- *     the function.
+ *     outputs to the function for each output value.
  *   - The gates are ordered topologically, so we can evaluate them in sequence.
  *   - Each gate is defined by 
  *      -    Number input wires   (1 or 2)
  *      -    Number output wires  (Always 1)
  *      -    List of input wires
  *      -    List of output wires
- *      -    Gate operation (XOR, AND or INV).
+ *      -    Gate operation (XOR, AND, INV, EQ or EQW).
  *     This is a bit redundant, as the first two entries can be inferred from
  *     the last, but we keep this for backwards compatibility reasons
  *   - So for example
@@ -57,8 +52,8 @@ All rights reserved
  *          1 1 1 4 EQ 
  *     to say that wire 3 is assigned the value 0 and wire 4 the value 1
  *   - And we use
- *          1 1 0 4 EQW
- *     to say wire 4 should equal wire 1
+ *          1 1 3 4 EQW
+ *     to say wire 4 should equal wire 3
  */
 
 #include "Exceptions/Exceptions.h"

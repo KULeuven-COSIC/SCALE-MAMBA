@@ -276,5 +276,11 @@ void Machine::stop_timer(unsigned int i)
       throw invalid_length();
     }
   double time= timers[i].elapsed();
-  printf("Elapsed time on timer %d is %lf seconds \n", i, time);
+  printf(BENCH_TEXT_BOLD BENCH_COLOR_GREEN BENCH_MAGIC_START
+         "{\"timer\":%u,\n"
+         "  \"time\":{\"seconds\":%lf,\"ms\":%.4lf}\n"
+         "}\n"
+         BENCH_MAGIC_END BENCH_ATTR_RESET,
+         i, time, (time*1000));
+
 }

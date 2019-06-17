@@ -175,9 +175,9 @@ opcodes = dict(
   PRINTINT= 0xB9,
 
   # Comparison of sregints
-  LTSINT = 0xD0,
-  GTSINT = 0xD1,
-  EQSINT = 0xD2,
+  EQZSINT = 0xD0,
+  LTZSINT = 0xD1,
+  BITSINT = 0xD2,
 
   # Bitwise logical operations on sregints
   ANDSINT = 0xD3,

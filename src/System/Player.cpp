@@ -150,6 +150,11 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   me= mynumber;
   ssl.resize(SD.n);
 
+#ifdef BENCH_NETDATA
+  data_sent = 0;
+  data_received = 0;
+#endif
+
   // When communicating with player i, player me acts as server when i<me
   for (unsigned int i= 0; i < SD.n; i++)
     {
@@ -245,6 +250,9 @@ Player::~Player()
 void Player::send_all(const string &o, int connection, bool verbose) const
 {
   uint8_t buff[4];
+#ifdef BENCH_NETDATA
+  int len_buff = 4;
+#endif
   encode_length(buff, o.length());
   for (unsigned int i= 0; i < ssl.size(); i++)
     {
@@ -258,6 +266,9 @@ void Player::send_all(const string &o, int connection, bool verbose) const
             {
               throw sending_error();
             }
+#ifdef BENCH_NETDATA
+          data_sent += len_buff + o.length();
+#endif
           if (verbose)
             {
               printf("Sent to player %d : ", i);
@@ -279,8 +290,9 @@ void Player::send_all(const string &o, int connection, bool verbose) const
 void Player::send_to_player(int player, const string &o, int connection) const
 {
   uint8_t buff[4];
+  int len_buff = 4;
   encode_length(buff, o.length());
-  if (SSL_write(ssl[player][connection], buff, 4) != 4)
+  if (SSL_write(ssl[player][connection], buff, len_buff) != len_buff)
     {
       throw sending_error();
     }
@@ -288,6 +300,9 @@ void Player::send_to_player(int player, const string &o, int connection) const
     {
       throw sending_error();
     }
+#ifdef BENCH_NETDATA
+  data_sent += len_buff + o.length();
+#endif
 }
 
 void receive(SSL *ssl, uint8_t *data, int len)
@@ -318,15 +333,19 @@ void receive(SSL *ssl, uint8_t *data, int len)
 void Player::receive_from_player(int i, string &o, int connection, bool verbose) const
 {
   uint8_t buff[4];
-  receive(ssl[i][connection], buff, 4);
+  unsigned int len_buff = 4;
+  receive(ssl[i][connection], buff, len_buff);
   int nlen= decode_length(buff);
   uint8_t *sbuff= new uint8_t[nlen];
   receive(ssl[i][connection], sbuff, nlen);
   o.assign((char *) sbuff, nlen);
+#ifdef BENCH_NETDATA
+  data_received += len_buff + nlen;
+#endif
   if (verbose)
     {
       printf("Received from player %d : ", i);
-      for (unsigned int j= 0; j < 4; j++)
+      for (unsigned int j= 0; j < len_buff; j++)
         {
           printf("%.2X", (uint8_t) buff[j]);
         }

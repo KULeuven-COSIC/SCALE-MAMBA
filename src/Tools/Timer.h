@@ -29,6 +29,15 @@ double timeval_diff_in_seconds(struct timeval *start_time, struct timeval *end_t
 long long timespec_diff(struct timespec *start_time, struct timespec *end_time);
 #endif
 
+#define BENCH_TEXT_BOLD   "\x1B[1m"
+#define BENCH_COLOR_RED   "\x1B[31m"
+#define BENCH_COLOR_GREEN "\x1B[32m"
+#define BENCH_COLOR_BLUE  "\x1B[34m"
+#define BENCH_ATTR_RESET  "\x1B[0m"
+
+#define BENCH_MAGIC_START "<b3m4>\n"
+#define BENCH_MAGIC_END   "</b3m4>\n"
+
 class Timer
 {
   timespec startv;

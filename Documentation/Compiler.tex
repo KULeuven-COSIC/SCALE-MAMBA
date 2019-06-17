@@ -321,11 +321,13 @@ we recommend such conversions to be used with care.
 Additionally, we do not support implicit cross type operations in between 
 $\modp$ and $\modn$ types.
 
-As a further caveat the conversion is only possible in certain situations. 
-In particular we must have $\log_2 p > 64$, otherwise we would loose precision in the conversion. 
-There are however additional {\em security} considerations which need to be
-satisfied.
+~
 
+\noindent{\bf sregint to sint conversion:}
+Note that such a conversion may loose precision if 
+$\log_2 p < 64$, thus if this is the case the user should guarantee
+that the number being converted is in the correct range, otherwise
+undefined behaviour will occur.
 Recall a daBit is a doubly shared bit $b_i$ in two secret sharing
 schemes (corresponding to our \verb|sint| and \verb|sbit| types)
 $\sshare{b_i}_p$ and $\sshare{b_i}_2$.
@@ -338,10 +340,21 @@ All parties can then locally produce the sharing as an \verb|sint|
 of the bits $x_i$ by forming
 \[  \sshare{x_i}_p \asn v_i + \sshare{r_i}_p - 2 \cdot v_i \cdot \sshare{r_i}_p. \]
 From these bits we can reconstruct $x$ as an \verb|sint| via
-\[ \sshare{x}_p \asn - \sshare{x_{63}}_p \cdot 2^{63} + \sum_{i=0}^62 \sshare{x_i}_p \cdot 2^i. \]
+\[ \sshare{x}_p \asn - \sshare{x_{63}}_p \cdot 2^{63} + \sum_{i=0}^{62} \sshare{x_i}_p \cdot 2^i. \]
 
+~
+
+\noindent{\bf sint to sregint conversion:}
 To convert from a \verb|sint| to a \verb|sregint| type is more complex.
-We first take $\log_2 p$ daBits $r_i$ and then forming the integer $r = \sum r_i \cdot 2^i$
+We define two cases, one where $\log_2 p > 64$ and one where $\log_2 p < 64$.
+Again in the latter case one needs to be careful that any values converted
+fit in the correct range.
+
+In the former case, We first take either $t=\log_2 p$ daBits $r_i$ 
+(when $64+\mathsf{conv\_stat\_sec} \ge \log_2 p$),
+or $t=64+\mathsf{conv\_stat\_sec}$ daBits $r_i$ 
+(when $64+\mathsf{conv\_stat\_sec}<\log_2 p$),
+and then forming the integer $r = \sum r_i \cdot 2^i$
 in both the $\modp$ and the $\modn$ worlds. 
 The value $\sshare{r}_p$ is subtracted from the input $\sshare{x}_p$ in 
 the $\modp$ world, and the value $x-r$ opened. 
@@ -352,10 +365,10 @@ rounding modulo $p$.
 Of course if you convert a value bigger than $64$ bits in the $\modp$ world over to the $\modn$
 world then you will loose information.
 
-For this latter method to be secure we need that the value $r$ generated above is 
+For this method to be secure we need that the value $r$ generated above is 
 either large enough to drown out a $64$-bit value, or is itself sufficiently close 
 to uniformly random to be secure.
-Thus we require one of three conditions on $p$ to be met:
+Thus we require one of the following three conditions on $p$ to be met:
 \begin{enumerate}
 \item $\log_2 p > 64+ \mathsf{conv\_stat\_sec}$.
 \item $(p - 2^{\log_2 p}) / 2^{\log_2 p} < 2^{-\mathsf{conv\_stat\_sec}}$, i.e. $p$ is just larger than a power of two.
@@ -364,6 +377,26 @@ Thus we require one of three conditions on $p$ to be met:
 If these conditions are not met, then the conversion will abort at runtime.
 The value \verb|conv_stat_sec| is by default equal to 40, but this can be modified in
 \verb|config.h|.
+
+In the latter case, when $\log_2 p < 64$, we first generate $\log_2 p$ random daBits
+$r_i$ until the value $r = \sum_{i=0}^{\log_2 p} r_i \cdot 2^i$ is less than $p$.
+Thus we can treat $r$ as a uniformly random value modulo $p$.
+We then perform the operations above, opening $x-r$, and then adding back on $r$
+using a Garbled Circuit and adjusting to get the sign correct.
+
+~
+
+\noindent
+Extractions of bits from an \verb|sregint| register can be done as follows:
+\begin{lstlisting}
+sa=sregint(5424)
+for j in range(32):
+  sf=sbit()
+  bitsint(sf,sa,j)
+  cc=sf.reveal()
+  print_int(cc)
+print_ln("")
+\end{lstlisting}
 
 \paragraph{On regint and clear data types:} As it was noted before, \verb|regint| offers support for a number of housekeeping tasks. Because of this fact, conversions between all clear types, including \verb|regint| are supported. Furthermore, all operations that involve a clear register with \verb|regint| would return a \verb|regint| register. This can be achieved as follows: 
 \begin{lstlisting}
@@ -562,7 +595,8 @@ si= sint(5)
 print_ln("Value in the clear from si: %s", si.reveal()) # the output is 5.
 \end{lstlisting}
 \begin{footnotesize}
-Note: x type can be: sregint, sbit, sint, sfix, and sfloat.
+Note: x type can be: sregint, sbit, sint, sfix, and sfloat, resulting in a
+regint, regint, cint, cfit and cfloat respectively.
 \end{footnotesize}
 
 \subsubsection{Operations on Data Types}
@@ -588,9 +622,28 @@ and on \verb|sregint| registers.
 This is true as well for the special data type \verb|sbit|, 
 which is classified as a $\modn$ type. 
 The compiler returns \verb|sbit| registers when performing comparisons on \verb|sregint| values. 
-In the case of clear data types, they work as expected for integers of bit length $n$. Whereas for \verb|sbit|, they operate as in boolean algebra. Note that the $\&$ operand is also supported between \verb|sregint| and \verb|sbit| types 
+Note that comparisons are performed using subtraction and then comparison to zero,
+thus overflow errors can result from the subtraction if done at the limits of the range
+of representable numbers.
+In the case of clear data types, comparisons work as expected for integers of bit length $n$. Whereas for \verb|sbit|, they operate as in boolean algebra. Note that the $\&$ operand is also supported between \verb|sregint| and \verb|sbit| types 
 (where it behaves as a bit wise AND of the bits in the \verb|sregint| input by the single bit in the
 \verb|sbit| input).
+
+Access to the direct comparison with zero operations can be done via
+\begin{lstlisting}
+sa=sregint(5424)
+sb1=sbit()
+ltzsint(sb1,sa)
+sb2=sbit()
+eqzsint(sb2,sa)
+\end{lstlisting}
+or
+\begin{lstlisting}
+sa=sregint(5424)
+sb1=sa.ltz()
+sb2=sa.eqz()
+\end{lstlisting}
+
 
 Note that upon compilation all of the above operators return a 
 new register -- it is not possible to directly modify the value 
@@ -900,6 +953,7 @@ a =sint.get_random_bit(5)
 print_ln("the result is smaller that 2^a %s", a.reveal())
 \end{lstlisting}
 The output is a bounded integer by $2^5$. Note that \verb|nbits| can be a public input by the parties. 
+
 \subsubsection{Printing}
 We provide the following functions to printout outputs:
 \func{print_str(string, *args)\\
@@ -915,6 +969,16 @@ z = sint(x)
 print_ln("x = %s, y = %s, z = %s", x, y, z.reveal())
 \end{lstlisting}
 Will print x = 13, y = 5, z = 13.
+
+~\\
+
+\noindent
+There are other member functions which perform printing as well, these are
+\func{cfix.print_fix_plain()\\
+regint.print_reg_plain()\\
+cfloat.print_float_plain()\\
+cint.print_reg_plain()}
+
 
 \subsubsection{How to print Vectorized data}
 Suppose we have two vectorized data types such as sint, sfix, or sfloat. After we have done some operations then we want to print them. We will demonstrate here with sints:

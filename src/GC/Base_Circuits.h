@@ -23,8 +23,6 @@ enum Circ_Type {
   Divide64,
   Neg64,
   Zero_Equal,
-  Compare_Eq,
-  Compare,
   LSSS_to_GC,
   Number_Circuits
 };

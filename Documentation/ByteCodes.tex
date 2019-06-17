@@ -369,6 +369,8 @@ We also implement a number of bitwise logical operations on the $64$-bit
 \verb+XORSINTC+,
 and
 \verb+INVSINT+.
+You can extract bits from an \verb|sregint| variable using the instruction
+\verb+bitsint+.
 
 \subsubsection{Note:}
 The choices of bytecodes here is a bit of a legacy issue. It would
@@ -406,20 +408,17 @@ instructions
  \verb+JMP+,
     \verb+JMPNZ+,
     \verb+JMPEQZ+,
-    \verb+EQZINT+,
-    \verb+LTZINT+,
-    \verb+LTINT+,
-    \verb+GTINT+,
-    \verb+EQINT+,
-and
+    and
     \verb+JMPI+.
 
 \subsection{Comparison Tests for $\modn$}
+We support comparison on $\modn$ clear registers via the instructions
+\verb+EQZINT+, \verb+LTZINT+, \verb+LTINT+, \verb+GTINT+, and \verb+EQINT+.
+
 We also support instructions for comparison tests on $\modn$ secret registers. These return 
 secret $\mod \; 2$ registers (\verb+sbit+), and can be used in conjunction with the logic $\modn$ operators described above. The instructions are the following: 
-\verb+LTSINT+ ,
-\verb+GTSINT+ and
-\verb+EQSINT+.
+\verb+LTZSINT+ ,
+\verb+EQZSINT+.
 
 \subsection{Other Commands}
 The following byte codes are for fine tuning the machine

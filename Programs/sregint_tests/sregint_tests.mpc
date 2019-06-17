@@ -611,4 +611,17 @@ print_ln("")
 
 print_ln("Last two values should be zero")
 
+# Testing bitsint
+
+print_ln("5424=1010100110000")
+sa=sregint(5424)
+
+for j in range(32):
+  sf=sbit()
+  bitsint(sf,sa,j) 
+  cc=sf.reveal()
+  print_int(cc)
+print_ln("")
+
+
 

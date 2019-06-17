@@ -67,6 +67,7 @@ public:
   {
     p= my_num;
     a.resize(SD.M.shares_per_player(p));
+    mac.resize(SD.nmacs);
     assign(aa, alphai);
   }
   // This one is for when the input sc/macs ARE defintely correct

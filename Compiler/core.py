@@ -450,15 +450,28 @@ def for_range_multithread(n_threads, n_parallel, n_loops, thread_mem_req={}):
     return decorator
 
 class Array(list):
-    def __init__(self, length, reg_type, address=None):
-        self[:] = range(length or 1000)
-        self.address = address
+    def __init__(self, length, reg_type, address=0):
+        try:
+            reg_type(0)
+        except:
+            reg_type = lambda x: x
         self.value_type = reg_type
+        self[:] = (reg_type(i) for i in range(length or 1000))
+        self.address = address
     def assign(self, other):
-        self[:] = other
+        self[:] = (self.value_type(x) for x in other)
     def assign_all(self, other):
-        self[:] = [other] * len(self)
-Matrix = lambda *args: defaultdict(lambda: Array(None, None))
+        self[:] = [self.value_type(other)] * len(self)
+    def __setitem__(self, index, value):
+        if isinstance(index, slice):
+            list.__setitem__(self, index, (self.value_type(x) for x in value))
+        else:
+            list.__setitem__(self, index, self.value_type(value))
+
+class Matrix(list):
+    def __init__(self,n,m,t,*args):
+        self[:] = [Array(m, t) for i in range(n)]
+
 mergesort = lambda x: x.sort()
 and_ = lambda *args: lambda: reduce(lambda x,y: x and y(), args, True)
 or_ = lambda *args: lambda: reduce(lambda x,y: x or y(), args, False)
@@ -495,18 +508,21 @@ class MemFix(MemValue, _sfix):
     read = lambda x: x.value
 
 
-class GenericArray(Array):
-    def __init__(self, n, value_type, address=None):
-        Array.__init__(self, n, value_type, address)
+sint.MemValue = lambda value: MemValue(sint(value))
+sint.Array = lambda size, addr=None: Array(size, sint, addr)
+sint.Matrix = lambda n, m, addr=None: Matrix(n, m, sint, addr)
 
-def get_specific_array(value_type):
-    class A(Array):
-        def __init__(self, n, address=None):
-            Array.__init__(self, n, value_type, address)
-    return A
+sfix.MemValue = lambda value: MemValue(sfix(value))
+sfix.Array = lambda size, addr=None: Array(size, sfix, addr)
+sfix.Matrix = lambda n, m, addr=None: Matrix(n, m, sfix, addr)
 
-for value_type in [sint, cint, sfix, cfix, sfloat]:
-    value_type.Array = get_specific_array(value_type)
+cfix.MemValue = lambda value: MemValue(cfix(value))
+cfix.Array = lambda size, addr=None: Array(size, cfix, addr)
+cfix.Matrix = lambda n, m, addr=None: Matrix(n, m, cfix, addr)
+
+sfloat.MemValue = lambda value: MemValue(sfloat(value))
+sfloat.Array = lambda size: Array(size, sfloat)
+sfloat.Matrix = lambda n, m: Matrix(n, m, sfloat)
 
 gprint_reg = lambda x,y=None: None
 time = lambda: None
