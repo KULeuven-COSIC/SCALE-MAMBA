@@ -1,0 +1,104 @@
+AES_128=100
+AES_192=101
+AES_256=102
+SHA_3=103
+
+key = [sregint(0) for _ in range(2)]
+mess = [sregint(-1) for _ in range(2)]
+ciph = [sregint() for _ in range(2)]
+
+print_ln("AES-128")
+# Op, # Output, # Input
+GC(AES_128, 2, 4, *(ciph + key + mess))
+
+m = [None] * 2
+k = [None] * 4
+c = [None] * 2
+
+for i in range(2):
+	m[i] = mess[i].reveal()
+	k[i] = key[i].reveal()
+	c[i] = ciph[i].reveal()
+
+print_ln("Key")
+k[1].public_output()     
+k[0].public_output()
+
+print_ln("Message")
+m[1].public_output()     
+m[0].public_output()
+
+print_ln("Ciphertext")
+c[1].public_output()     
+c[0].public_output()
+
+
+print_ln("AES-192")
+aes_192_ciphertexts = [sregint() for i in range(2)]
+# Op, # Output, # Input
+key.append(sregint(0))
+GC(AES_192, 2, 5, *(aes_192_ciphertexts + key + mess))
+
+k[2]=key[2].reveal()
+
+c[0]=aes_192_ciphertexts[0].reveal()
+c[1]=aes_192_ciphertexts[1].reveal()
+
+print_ln("Key")
+k[2].public_output()     
+k[1].public_output()     
+k[0].public_output()
+
+print_ln("Message")
+m[1].public_output()     
+m[0].public_output()
+
+print_ln("Ciphertext")
+c[1].public_output()     
+c[0].public_output()
+
+
+print_ln("AES-256")
+# Op, # Output, # Input
+
+aes_256_ciphertexts = [sregint() for i in range(2)]
+key.append(sregint(0))
+print(len(key))
+GC(AES_256, 2, 6, *(aes_256_ciphertexts + key + mess))
+
+k[3]=key[3].reveal()
+
+c[0]=aes_256_ciphertexts[0].reveal()
+c[1]=aes_256_ciphertexts[1].reveal()
+
+print_ln("Key")
+k[3].public_output()     
+k[2].public_output()     
+k[1].public_output()     
+k[0].public_output()
+
+print_ln("Message")
+m[1].public_output()     
+m[0].public_output()
+
+print_ln("Ciphertext")
+c[1].public_output()     
+c[0].public_output()
+
+
+print_ln("SHA-3")
+istate = [sregint(0) for i in range(25)]
+ostate_eval1 = [sregint() for i in range(25)]
+
+GC(SHA_3, 25, 25, *(ostate_eval1 + istate))
+
+print_ln("First invocation of SHA-1")
+for i in range(24, 0, -1):
+	ostate_eval1[i].reveal().public_output()
+
+ostate_eval2 = [sregint() for i in range(25)]
+GC(SHA_3, 25, 25, *(ostate_eval2 + ostate_eval1))
+
+print_ln("Second invocation of SHA-1")
+for i in range(24, 0, -1):
+	ostate_eval2[i].reveal().public_output()

@@ -38,7 +38,9 @@ Then do
 This produces the file
 
     NangateOpenCellLibrary_typical_reduced.db
-or
+
+or (if used with the AND optimized library)
+
     NangateOpenCellLibrary_typical_reduced_INV0_XOR0_AND1_NOR2.db
 
 
@@ -64,6 +66,18 @@ Now type (for example), to compile the adder64 program
 
 This should produce a file called adder64.net
 
+For more complex designs the first two commands (analyze/elaborate)
+can be executed more easily via the gui, by logging in using
+    ssh -X vierre64
+and then using within dc_shell the command
+    start_gui
+
+For Keccak do in the Keccak directory
+    dc_shell
+    source script.tcl
+     
+
+
 To tidy up the VHDL directory type 
     make clean
 
@@ -76,13 +90,7 @@ For each *.net file then run (e.g.)
 This produces a *.txt file in the Bristol Fashion in subdirectory
 Bristol
 
-The list of all main files (excluding test ones) to convert (so far) are....
-        ./convert.x adder64
-        ./convert.x sub64
-        ./convert.x mull2_64
-        ./convert.x mult64
-        ./convert.x neg64
-        ./convert.x zero_equal
-        ./convert.x ModAdd512
-        ./convert.x LSSS_to_GC
-  
+The list of all main files (excluding test ones) to convert (and how
+to do so) are given in ./convert.sh
+
+

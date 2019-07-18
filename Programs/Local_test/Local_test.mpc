@@ -1,0 +1,58 @@
+n=2
+l=3
+m=2
+
+# Mult the two matrices
+#  A = [1,2,3;4,5,6]
+#  B = [7,8;9,10;11,12]
+# which should give us
+#  C = [58,64; 139, 154]
+
+
+Cr_inp=[regint(n), regint(l), regint(m)]
+Cp_A=[cint(i+1) for i in range(n*l)]
+Sp_A=[sint(i+1) for i in range(n*l)]
+Cp_B=[cint(i+7) for i in range(l*m)]
+Sp_B=[sint(i+7) for i in range(l*m)]
+
+Cp_out=[cint() for _ in range(n*m)]
+
+LF_CINT(0,n*m,3,0,n*l+l*m,0,*(Cp_out+Cr_inp+Cp_A+Cp_B))
+
+print_ln("Final CC Product is...")
+for i in range(2):
+  for j in range(2):
+    print_str('%s ', Cp_out[i*2+j])
+  print_ln('')
+
+Sp1_out=[sint() for i in range(n*m)]
+Sp2_out=[sint() for i in range(n*m)]
+
+LF_SINT(1,n*m,3,0,l*m,n*l,*(Sp1_out+Cr_inp+Cp_B+Sp_A))
+
+print_ln("Final SC Product is...")
+for i in range(2):
+  for j in range(2):
+    print_str('%s ', Sp1_out[i*2+j].reveal())
+  print_ln('')
+
+LF_SINT(2,n*m,3,0,n*l,l*m,*(Sp2_out+Cr_inp+Cp_A+Sp_B))
+
+print_ln("Final CS Product is...")
+for i in range(2):
+  for j in range(2):
+    print_str('%s ', Sp2_out[i*2+j].reveal())
+  print_ln('')
+
+GEr_inp=[regint(n), regint(l)]
+GE_out=[cint() for _ in range(n*l)]
+LF_CINT(3,n*l,2,0,n*l,0,*(GE_out+GEr_inp+Cp_A))
+
+print_ln("Final Gauss Elim on A is...")
+for i in range(2):
+  for j in range(3):
+    print_str('%s ', GE_out[i*l+j])
+  print_ln('')
+
+
+

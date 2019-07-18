@@ -19,6 +19,7 @@ typedef vector<vector<gfp>> gfp_matrix;
 typedef vector<vector<int>> imatrix;
 
 void print(const imatrix &S);
+void print(const gfp_matrix &S);
 
 // Apply Gaussian Elmination to a gfp_matrix
 //   - Stop when done maxrow rows

@@ -14,7 +14,11 @@ All rights reserved
 
 #include "GC/Circuit.h"
 #include "Math/bigint.h"
+#include <map>
 
+/* This maps the basic functions *directly* called in Instructions.cpp
+ * to numbers in the map table
+ */
 enum Circ_Type {
   Adder64,
   Sub64,
@@ -27,13 +31,37 @@ enum Circ_Type {
   Number_Circuits
 };
 
+/* Mapping integers upto 65535 are reserved for the system.
+ * Please add your own GC's using integers bigger than 65535
+ * If you think the circuits are useful to others please
+ * contact the maintainers and we might add them to future
+ * releases in the reserved section
+ *   
+ * Our reserved numbers are currently (for non-directly called
+ * circuits)
+ *   100 AES-128
+ *   101 AES-192
+ *   102 AES-256
+ *   103 Keccak_f
+ */
 class Base_Circuits
 {
 public:
-  vector<Circuit> BaseC;
+  map<int, Circuit> Circuits;
+
+  /* These are only used for the non-directly called
+   * circuits, means they are only fetched from disk
+   * when first used
+   */
+  map<int, bool> loaded;
+  map<int, string> location;
+
   bool convert_ok; // Signals whether we can do GC <-> LSSS conversion or not
 
   void initialize(const bigint &p);
+
+  // Checks if the indirect circuit is loaded, it not it loads it */
+  void check(int num);
 };
 
 #endif

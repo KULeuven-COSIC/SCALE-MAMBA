@@ -5,12 +5,12 @@ Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 L
 All rights reserved
 */
 #include "HaAND.h"
+#include "OT_Thread_Data.h"
 #include "Tools/MMO.h"
-#include "aBit_Thread.h"
 
 void HaAND::make_more(Player &P, int num_online)
 {
-  extern aBit_Data aBD;
+  extern OT_Thread_Data OTD;
 
   //P.clocks[0].reset(); P.clocks[0].start(); cout << "\t\t\tIn HaAND" << endl;
   unsigned int n= P.nplayers();
@@ -23,8 +23,8 @@ void HaAND::make_more(Player &P, int num_online)
   HKiD.resize(number, vector<gf2n>(n));
   HMi.resize(number, vector<gf2n>(n));
 
-  list<aBit> xL= aBD.get_aShares(num_online, number);
-  list<aBit> yL= aBD.get_aShares(num_online, number);
+  list<aBit> xL= OTD.aBD.get_aShares(num_online, number);
+  list<aBit> yL= OTD.aBD.get_aShares(num_online, number);
 
   x.assign(xL.begin(), xL.end());
   y.assign(yL.begin(), yL.end());

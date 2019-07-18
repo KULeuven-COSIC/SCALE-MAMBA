@@ -5,13 +5,13 @@ Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 L
 All rights reserved
 */
 
-#include "aBit_Thread.h"
+#include "OT_Thread_Data.h"
 #include "aBitFactory.h"
 #include <unistd.h>
 
-#include <fstream>
+extern OT_Thread_Data OTD;
 
-aBit_Data aBD;
+#include <fstream>
 
 // Checks exit, by player zero making decisions and conveying this
 // to all others. This means players are in sync with player zero. Even
@@ -19,12 +19,25 @@ aBit_Data aBD;
 // Returns
 //    0 = OK, prepare some more stuff
 //    1 = Exit
-int check_exit(Player &P, unsigned int no_online_threads, offline_control_data &OCD)
+// Flag flag_aAND=I am in the aAND thread
+//    The aBit thread must not die until the aAND thread
+//    has died
+int check_exit(Player &P, unsigned int no_online_threads, offline_control_data &OCD,
+               bool flag_aAND)
 {
   int result= 1;
   string ss= "E";
   if (P.whoami() == 0)
     {
+      // Do not die if I am aBit and aAND not killed
+      OTD.aBD.aBD_mutex.lock();
+      if (OTD.aBD.kill == false && flag_aAND == false)
+        {
+          ss= "-";
+          result= 0;
+        }
+      OTD.aBD.aBD_mutex.unlock();
+      // Do not die if main offline threads still working
       for (unsigned int i= 0; i < no_online_threads; i++)
         {
           OCD.sacrifice_mutex[i].lock();
@@ -45,6 +58,13 @@ int check_exit(Player &P, unsigned int no_online_threads, offline_control_data &
           result= 0;
         }
     }
+  // Tell aBit thread if the aAND thread is dieing
+  if (result == 1 && flag_aAND == true)
+    {
+      OTD.aBD.aBD_mutex.lock();
+      OTD.aBD.kill= true;
+      OTD.aBD.aBD_mutex.unlock();
+    }
   return result;
 }
 
@@ -63,10 +83,10 @@ int make_aBit_Thread_decision(Player &P)
   string ss= "";
   if (P.whoami() == 0)
     { // Decide whether to pause (lists are too big)
-      aBD.aBD_mutex.lock();
-      for (unsigned int j= 0; j < aBD.aBits.size(); j++)
+      OTD.aBD.aBD_mutex.lock();
+      for (unsigned int j= 0; j < OTD.aBD.aBits.size(); j++)
         {
-          if (aBD.aBits[j].size() < max_aBit_queue)
+          if (OTD.aBD.aBits[j].size() < max_aBit_queue)
             {
               result+= (1 << j);
               ss= ss + "A";
@@ -76,13 +96,13 @@ int make_aBit_Thread_decision(Player &P)
               ss= ss + "N";
             }
         }
-      aBD.aBD_mutex.unlock();
+      OTD.aBD.aBD_mutex.unlock();
       P.send_all(ss, 2);
     }
   else
     {
       P.receive_from_player(0, ss, 2);
-      for (unsigned int j= 0; j < aBD.aBits.size(); j++)
+      for (unsigned int j= 0; j < OTD.aBD.aBits.size(); j++)
         {
           if (ss.c_str()[j] == 'A')
             {
@@ -99,17 +119,20 @@ void aBit_Thread(Player &P, unsigned int no_online_threads,
 {
   aBitFactory aBF;
 
-  aBD.aBits.resize(no_online_threads);
-
   aBF.Initialize(P);
 
-  aBD.aBD_mutex.lock();
-  aBF.tune(P, aBD.aBits[0], verbose);
-  aBD.aBD_mutex.unlock();
+  // Pack the last queue first, as it is used for aANDs
+  OTD.aBD.aBD_mutex.lock();
+  aBF.tune(P, OTD.aBD.aBits[no_online_threads], verbose);
+  if (verbose)
+    {
+      printf("Size of aBit queue %d : %lu \n", no_online_threads, OTD.aBD.aBits[no_online_threads].size());
+    }
+  OTD.aBD.aBD_mutex.unlock();
 
   while (0 == 0)
     { /* Decide whether to finish */
-      if (check_exit(P, no_online_threads, OCD) == 1)
+      if (check_exit(P, no_online_threads, OCD, false) == 1)
         {
           printf("Exiting aBit production thread\n");
           return;
@@ -123,18 +146,18 @@ void aBit_Thread(Player &P, unsigned int no_online_threads,
         }
       else
         {
-          for (unsigned int j= 0; j < aBD.aBits.size(); j++)
+          for (unsigned int j= 0; j < OTD.aBD.aBits.size(); j++)
             {
               if ((decide & 1) == 1)
                 {
                   unsigned int m= aBF.make_aBits(P);
-                  aBD.aBD_mutex.lock();
-                  aBF.copy_aBits(aBD.aBits[j], m);
+                  OTD.aBD.aBD_mutex.lock();
+                  aBF.copy_aBits(OTD.aBD.aBits[j], m);
                   if (verbose)
                     {
-                      printf("Size of aBit queue %d : %lu \n", j, aBD.aBits[j].size());
+                      printf("Size of aBit queue %d : %lu \n", j, OTD.aBD.aBits[j].size());
                     }
-                  aBD.aBD_mutex.unlock();
+                  OTD.aBD.aBD_mutex.unlock();
                 }
               decide>>= 1;
             }
@@ -169,7 +192,7 @@ list<aBit> aBit_Data::get_aShares(unsigned int q, unsigned int num)
 {
   if (num >= max_aBit_queue)
     {
-      throw invalid_length();
+      throw GC_Error("Too many aBits being requested. Contact the developers");
     }
   bool wait= true;
   while (wait)

@@ -16,7 +16,7 @@ All rights reserved
 
 using namespace std;
 
-void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, FakePrep& prep, list<Share> &a,
+void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, list<Share> &a,
                            list<Share> &b, list<Share> &c, const FHE_PK &pk,
                            const FHE_SK &sk, const FFT_Data &PTD,
                            FHE_Industry &industry)
@@ -39,7 +39,7 @@ void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, FakePrep& prep, li
     }
 }
 
-void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, FakePrep& prep, list<Share> &a,
+void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, list<Share> &a,
                            list<Share> &b, const FHE_PK &pk, const FHE_SK &sk,
                            const FFT_Data &PTD,
                            FHE_Industry &industry)
@@ -62,7 +62,7 @@ void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, FakePrep& prep, li
     }
 }
 
-void offline_phase_bits(Player &P, PRSS &prss, PRZS &przs, FakePrep& prep, list<Share> &b,
+void offline_phase_bits(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, list<Share> &b,
                         Open_Protocol &OP, const FHE_PK &pk, const FHE_SK &sk,
                         const FFT_Data &PTD,
                         FHE_Industry &industry)

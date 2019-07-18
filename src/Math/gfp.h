@@ -171,19 +171,19 @@ public:
     Mul(a, a, x.a, ZpD);
   }
 
-  gfp operator+(const gfp &x)
+  gfp operator+(const gfp &x) const
   {
     gfp res;
     res.add(*this, x);
     return res;
   }
-  gfp operator-(const gfp &x)
+  gfp operator-(const gfp &x) const
   {
     gfp res;
     res.sub(*this, x);
     return res;
   }
-  gfp operator*(const gfp &x)
+  gfp operator*(const gfp &x) const
   {
     gfp res;
     res.mul(*this, x);

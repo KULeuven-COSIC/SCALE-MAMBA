@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.4.1} of the SCALE and MAMBA software.
+This is currently {\bf version 1.5} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -26,6 +26,23 @@ The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
 
+\subsection{Changes in version 1.5 from 1.4.1}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item New byte-code instruction \verb+SINTBIT+ (and associated function
+to utilize it from MAMBA) which sets a given bit of an \verb|sregint|
+to a specific \verb|sbit| value.
+\item Ability to define and call your own garbled circuit based operations,
+for user defined circuits. 
+See Section \ref{sec:GC} for more details.
+\item Ability to define and call your own complex local functions.
+See Section \ref{sec:Local} for more details.
+\item Extra thread for \verb|aAND| production to make garbled circuit
+operations a bit more smooth.
+\item Added documentation about SIMD operations.
+\item Moved some sections around in the documentation to make it 
+a little more logical.
+\end{enumerate}
 
 
 \subsection{Changes in version 1.4.1 from 1.4}
@@ -35,7 +52,7 @@ Apart from the usual minor bug fixes...
 \item Comparison of \verb|sregint| values is now done via comparison
 	to zero only. Thus overflow errors can occur, but on the other
 	hand for general computation this can be much faster.
-        This means there are a few bytecode changes from v1.4.
+        This means there are a few byte-code changes from v1.4.
 \item Conversion of \verb|sint| to \verb|sregint| for large primes $p$
 	on the \verb|sint| side now consume less daBits. This gives
 	a bit of a performance boost.
@@ -102,7 +119,7 @@ been using. Thus you will need to generate again FHE parameters
 (using \verb+Setup.x+).
 \item Bug fixed when using Shamir with a large number of parties
 and very very low threshold value.
-\item Renaming of some bytecodes to make their meaning clearer.
+\item Renaming of some byte-codes to make their meaning clearer.
 \item Floating point operations are now (almost) fully supported.
 We have basic operations on floating point \verb+sfloat+ variables
 supported, as well as basic trigonometric functions. Still to
@@ -148,7 +165,7 @@ number, and secure processing of this signal.
 
 \begin{enumerate}
 \item Major bug fix to IO processing of private input and output.
-This has resulted in a change to the bytecodes for these instructions.
+This has resulted in a change to the byte-codes for these instructions.
 \item We now support multiple FHE Factory threads, the precise number
 is controlled from a run-time switch.
 \item The restart methodology now allows the use to programmatically
@@ -169,20 +186,20 @@ over squares.
 By altering the constant in the program  \verb+Program/do_nothing.mpc+
 you can also alter the number of threads used for this timing operation.
 If you enter a negative number for verbose then verbose output
-is given for the online phase; i.e. it prints the bytecodes being
+is given for the online phase; i.e. it prints the byte-codes being
 executed.
 \item The fixed point square root functions have now been extended to
 cope with full precision fixed point numbers.
-\item The \verb+PRINTxxx+ bytecodes now pass their output via the
-\verb+Input_Output+ functionality. These bytecodes are meant for
+\item The \verb+PRINTxxx+ byte-codes now pass their output via the
+\verb+Input_Output+ functionality. These byte-codes are meant for
 debugging purposes, and hence catching them via the IO functionality
 makes most sense. The relevant function in the IO class
 is \verb+debug_output+.
 \item We have added the ability to now also input and output \verb+regint+
-values via the IO functionality, with associated additional bytecodes
+values via the IO functionality, with associated additional byte-codes
 added to enable this.
 \item The IO class now allows one to control the opening and closing of
-channels, this is aided by two new bytecodes for this purpose
+channels, this is aided by two new byte-codes for this purpose
 called \verb+OPEN_CHAN+ and \verb+CLOSE_CHAN+.
 \item Input of clear values via the IO functionality (i.e.
 for \verb+cint+ and \verb+regint+ values) is now internally checked to ensure that
@@ -193,8 +210,8 @@ See the chapter on IO for more details on this.
 \item The way the chosen IO functionality is bound with the main program
 has now also been altered. See the chapter on IO for more details on this.
 \item These changes have meant there are a number of changes to the
-specific byte codes, so you will need to recompile MAMBA programs.
-If you generate your own bytecodes then your backend will need to
+specific byte-codes, so you will need to recompile MAMBA programs.
+If you generate your own byte-codes then your backend will need to
 change as well.
 \end{enumerate}
 
@@ -279,7 +296,7 @@ should not compile any SCALE \verb+.mpc+ programs before running \verb+Setup.x+.
 is removal of the \verb+octetstream+ class, and it's replacement by a combination
 of \verb+stringstream+ and \verb+string+ instead. This makes readibility
 much easier.
-\item All opcodes in the range \verb+0xB*+ have been changed, so any byte codes
+\item All opcodes in the range \verb+0xB*+ have been changed, so any byte-codes
 you have generated from outside the python system will need to be changed.
 \item We have tried to reduce dependencies between classes in the 
 C++ code a lot more. Thus making the code easier to manage.

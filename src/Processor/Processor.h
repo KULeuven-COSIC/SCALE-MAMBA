@@ -10,6 +10,7 @@ All rights reserved
 #include "LSSS/Open_Protocol.h"
 #include "Online/Machine.h"
 
+#include "OT/aAND.h"
 #include "OT/aBitVector.h"
 #include "Offline/DABitGenerator.h"
 #include "Processor_IO.h"
@@ -79,8 +80,6 @@ class Processor
   DABitGenerator daBitGen;
   // This holds the computed daBits
   daBitVector daBitV;
-  // This holds the aAND factory
-  aAND_Factory aAF;
 
   // To make sure we do not need to keep allocating/deallocating memory
   // we maintain some scratch variables for use in routines
@@ -353,6 +352,13 @@ public:
   // Converts a sregint register i0 to a srint register i1
   //   Uses the daBits
   void convert_sregint_to_sint(int i0, int i1, Player &P);
+
+  // Apply one of the indirect GC's
+  void apply_GC(const vector<int> &arguments, Player &P);
+
+  // Apply one of the local functions
+  void apply_local_function(RegType RT, SecrecyType ST,
+                            const vector<int> &arguments);
 };
 
 #endif

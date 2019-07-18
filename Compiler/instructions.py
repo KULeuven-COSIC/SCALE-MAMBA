@@ -167,7 +167,6 @@
   # Comparison of sregints
   EQZSINT = 0xD0,
   LTZSINT = 0xD1,
-  BITSINT = 0xD2,
 
   # Bitwise logical operations on sregints
   ANDSINT = 0xD3,
@@ -181,10 +180,21 @@
   # 64x64 -> 128 multiplier
   MUL2SINT = 0xDA,
 
+  # GC (and allied) commands
+  GC = 0xDB,
+  BITSINT = 0xDC,
+  SINTBIT = 0xDD,
+
   # Others
   RAND= 0xE0,
   START_TIMER= 0xE1,
-  STOP_TIMER= 0xE2
+  STOP_TIMER= 0xE2,
+
+  # Local functions
+  LF_CINT= 0xEA,
+  LF_SINT= 0xEB,
+  LF_REGINT= 0xEC,
+  LF_SREGINT= 0xED
 
 Many instructions can be vectorized, this is done by taking the opcode
 being a 32 bit value. The last nine bits being the base opcode and previous
@@ -367,6 +377,89 @@ class mul2sint(base.Instruction):
     __slots__ = []
     code = base.opcodes['MUL2SINT']
     arg_format = ['srw', 'srw', 'sr', 'sr']
+
+class GC(base.VarArgsInstruction):
+    r""" GC i0, i1, i2, [srint_outputs], [srint_inputs]
+         This calls the Garbled Circuit with index i0, which
+         produces i1 srints as output, and takes i2 srints
+         as input
+    """
+    code = base.opcodes['GC']
+    def __init__(self, *args):
+        self.arg_format = ['int'] + ['int'] + ['int'] \
+                                  + ['srw'] * args[1] \
+                                  + ['sr'] * args[2]
+        super(GC, self).__init__(*args)
+
+class LF_CINT(base.VarArgsInstruction):
+    r""" LF_CINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
+         This calls the Local Function with index i0, which
+         produces i1 cints as output, and takes i2 rints,
+         i3 srints, i4 cints and i5 srints as input.
+    """
+    code = base.opcodes['LF_CINT']
+    def __init__(self, *args):
+        self.arg_format = ['int'] + ['int'] \
+                        + ['int'] + ['int'] + ['int'] + ['int'] \
+                                  + ['cw'] * args[1] \
+                                  + ['r'] * args[2] \
+                                  + ['sr'] * args[3] \
+                                  + ['c'] * args[4] \
+                                  + ['s'] * args[5]
+        super(LF_CINT, self).__init__(*args)
+
+
+class LF_SINT(base.VarArgsInstruction):
+    r""" LF_SINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
+         This calls the Local Function with index i0, which
+         produces i1 sints as output, and takes i2 rints,
+         i3 srints, i4 cints and i5 srints as input.
+    """
+    code = base.opcodes['LF_SINT']
+    def __init__(self, *args):
+        self.arg_format = ['int'] + ['int'] \
+                        + ['int'] + ['int'] + ['int'] + ['int'] \
+                                  + ['sw'] * args[1] \
+                                  + ['r'] * args[2] \
+                                  + ['sr'] * args[3] \
+                                  + ['c'] * args[4] \
+                                  + ['s'] * args[5]
+        super(LF_SINT, self).__init__(*args)
+
+class LF_REGINT(base.VarArgsInstruction):
+    r""" LF_REGINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
+         This calls the Local Function with index i0, which
+         produces i1 regints as output, and takes i2 rints,
+         i3 srints, i4 cints and i5 srints as input.
+    """
+    code = base.opcodes['LF_REGINT']
+    def __init__(self, *args):
+        self.arg_format = ['int'] + ['int'] \
+                        + ['int'] + ['int'] + ['int'] + ['int'] \
+                                  + ['rw'] * args[1] \
+                                  + ['r'] * args[2] \
+                                  + ['sr'] * args[3] \
+                                  + ['c'] * args[4] \
+                                  + ['s'] * args[5]
+        super(LF_REGINT, self).__init__(*args)
+
+class LF_SREGINT(base.VarArgsInstruction):
+    r""" LF_SREGINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
+         This calls the Local Function with index i0, which
+         produces i1 sregints as output, and takes i2 rints,
+         i3 srints, i4 cints and i5 srints as input.
+    """
+    code = base.opcodes['LF_SREGINT']
+    def __init__(self, *args):
+        self.arg_format = ['int'] + ['int'] \
+                        + ['int'] + ['int'] + ['int'] + ['int'] \
+                                  + ['srw'] * args[1] \
+                                  + ['r'] * args[2] \
+                                  + ['sr'] * args[3] \
+                                  + ['c'] * args[4] \
+                                  + ['s'] * args[5]
+        super(LF_SREGINT, self).__init__(*args)
+
 
 
 @base.vectorize
@@ -603,6 +696,17 @@ class bitsint(base.Instruction):
     __slots__ = ["code"]
     code = base.opcodes['BITSINT']
     arg_format = ['sbw', 'sr', 'int']
+
+@base.vectorize
+class sintbit(base.Instruction):
+    r""" SINTBIT i j k n
+         Assigns si to sj, and then sets the n-th bit to be sb_k
+         This instruction is vectorizable
+     """
+    __slots__ = ["code"]
+    code = base.opcodes['SINTBIT']
+    arg_format = ['srw', 'sr', 'sb', 'int']
+
 
 
 # Conversion opcodes
@@ -900,7 +1004,7 @@ class starg(base.Instruction):
 
 class reqbl(base.Instruction):
     r""" REQBL n
-         Signals tape has been built so that it requires bit length n". 
+         Signals tape has been built so that it requires prime bit length n". 
      """
     code = base.opcodes['REQBL']
     arg_format = ['int']

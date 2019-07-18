@@ -35,7 +35,7 @@ byte-code instructions into this directory, along with a
 schedule file \verb+tutorial.sch+. It is this last file which
 tells the run time how to run the program, including how
 many threads to run, and which ``tape'' files to run 
-first\footnote{Historical note, we call the byte code files ``tapes''
+first\footnote{Historical note, we call the byte-code files ``tapes''
 as they are roughly equivalent to simple programs, and
 the initial idea for scheduling came to Nigel when looking at
 the Harwell WITCH computer at TMNOC. They in some sense
@@ -103,7 +103,7 @@ See later for what we mean by memory.
 of $n$ the more diagnostic information is printed. This is mainly
 for our own testing purposes, but verbose level one gives you a method
 to time offline production (see the Changes section for version 1.1).
-If $n$ is negative then the bytecodes being executed by the online
+If $n$ is negative then the byte-codes being executed by the online
 phase are output (and no offline verbose output is produced).
 \item {\bf -max m,s,b}: Stop running the offline phase for each online
 thread when we have generated $m$ multiplication triples, $s$ square

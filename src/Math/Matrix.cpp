@@ -228,6 +228,19 @@ void print(const imatrix &S)
     }
 }
 
+void print(const gfp_matrix &S)
+{
+  unsigned int m= S.size(), n= S[0].size();
+  for (unsigned int i= 0; i < m; i++)
+    {
+      for (unsigned int j= 0; j < n; j++)
+        {
+          cout << S[i][j] << " ";
+        }
+      cout << endl;
+    }
+}
+
 int row_sum(const imatrix &D, int i)
 {
   int sum= 0;

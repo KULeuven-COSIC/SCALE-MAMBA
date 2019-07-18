@@ -279,8 +279,6 @@ void Machine::stop_timer(unsigned int i)
   printf(BENCH_TEXT_BOLD BENCH_COLOR_GREEN BENCH_MAGIC_START
          "{\"timer\":%u,\n"
          "  \"time\":{\"seconds\":%lf,\"ms\":%.4lf}\n"
-         "}\n"
-         BENCH_MAGIC_END BENCH_ATTR_RESET,
-         i, time, (time*1000));
-
+         "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+         i, time, (time * 1000));
 }

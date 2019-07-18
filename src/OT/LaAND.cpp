@@ -7,12 +7,12 @@ All rights reserved
 
 #include "LaAND.h"
 #include "HaAND.h"
+#include "OT_Thread_Data.h"
 #include "Tools/Crypto.h"
-#include "aBit_Thread.h"
 
 void LaAND::make_more(Player &P, int num_online)
 {
-  extern aBit_Data aBD;
+  extern OT_Thread_Data OTD;
 
   //P.clocks[2].reset(); P.clocks[2].start(); cout << "\t\tIn LaAND" << endl;
   // First steps 1,2,3
@@ -24,7 +24,7 @@ void LaAND::make_more(Player &P, int num_online)
 
   gf2n Delta= aBit::get_Delta();
 
-  list<aBit> get_r= aBD.get_aShares(num_online, number);
+  list<aBit> get_r= OTD.aBD.get_aShares(num_online, number);
   vector<string> o(P.nplayers());
   ostringstream os;
   for (unsigned int t= 0; t < number; t++)

@@ -7,16 +7,17 @@ All rights reserved
 
 #include "Processor.h"
 #include "GC/Garbled.h"
+#include "Local/Local_Functions.h"
 #include "Offline/DABitMachine.h"
 
 extern MaliciousDABitMachine daBitMachine;
 extern Base_Circuits Global_Circuit_Store;
+extern Local_Functions Global_LF;
 
 Processor::Processor(int thread_num, unsigned int nplayers,
                      Player &P, offline_control_data &OCD)
     : online_thread_num(thread_num),
       daBitGen(daBitMachine, P, thread_num, OCD),
-      aAF(thread_num),
       iop(nplayers)
 {
   rounds= 0;
@@ -190,29 +191,32 @@ void Processor::execute(const Program &prog, int argument, Player &P,
     }
 }
 
-
 void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
 {
   unsigned int size= numBits(gfp::pr());
-  unsigned long p=gfp::pr().get_ui();
-  aBitVector x,y,z,r2;
+  unsigned long p= gfp::pr().get_ui();
+  aBitVector x, y, z, r2;
   aBit bit;
   int b;
-  bool done=false;
+  bool done= false;
   vector<Share> bpr(size);
-  vector<aBit>  b2r(size);
+  vector<aBit> b2r(size);
   // Get a set of size daBits, until the value is less than p
   while (!done)
     { // Get daBits
       daBitV.get_daBits(bpr, b2r, daBitGen);
       r2.assign_zero();
-      for (unsigned int i=0; i<size; i++)
-	{ r2.set_bit(i,b2r[i]); }
-      z.sub(r2,p,P,aAF);
-      bit=z.less_than_zero();
+      for (unsigned int i= 0; i < size; i++)
+        {
+          r2.set_bit(i, b2r[i]);
+        }
+      z.sub(r2, p, P, online_thread_num);
+      bit= z.less_than_zero();
       Open_aBit(b, bit, P);
-      if (b==1) 
-        { done=true; }
+      if (b == 1)
+        {
+          done= true;
+        }
     }
 
   // Now create the integer r, which is gauranteed to be uniform mod p
@@ -236,42 +240,46 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   // Now add z=(x-r)+r in the GC routines
   bigint bi_xr;
   to_bigint(bi_xr, gfp_xr[0]);
-  z.add(bi_xr.get_ui(),r2,P,aAF);
+  z.add(bi_xr.get_ui(), r2, P, online_thread_num);
 
   // Remember to do this modp
-  y.sub(z,p,P,aAF);
-  bit=y.less_than_zero();
+  y.sub(z, p, P, online_thread_num);
+  bit= y.less_than_zero();
   // z=bit*z+(1-b)*y
-  z.Bit_AND(z,bit,P,aAF);
+  z.Bit_AND(z, bit, P, online_thread_num);
   bit.negate();
-  y.Bit_AND(y,bit,P, aAF);
-  z.add(z,y,P,aAF);
-
+  y.Bit_AND(y, bit, P, online_thread_num);
+  z.add(z, y, P, online_thread_num);
 
   // Now compare to p/2 to work out whether we need to negate
-  y.sub(z,p/2,P,aAF);
-  bit=y.less_than_zero();
+  y.sub(z, p / 2, P, online_thread_num);
+  bit= y.less_than_zero();
   // Now compute   bit*z + (1-bit)*(-z)
-  y.sub(p,z,P,aAF);   y.negate(y,P,aAF);
-  z.Bit_AND(z,bit,P, aAF);
+  y.sub(p, z, P, online_thread_num);
+  y.negate(y, P, online_thread_num);
+  z.Bit_AND(z, bit, P, online_thread_num);
   bit.negate();
-  y.Bit_AND(y,bit,P, aAF);
-  x.add(z,y,P,aAF);
+  y.Bit_AND(y, bit, P, online_thread_num);
+  x.add(z, y, P, online_thread_num);
 
   // Write back into the processor
   write_srint(i1, x);
 }
 
-
 void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
 {
   unsigned int size0= numBits(gfp::pr());
-  unsigned int size1= 64+conv_stat_sec;
-  if (size1>size0) { size1=size0; }
+  unsigned int size1= 64 + conv_stat_sec;
+  if (size1 > size0)
+    {
+      size1= size0;
+    }
   if (Global_Circuit_Store.convert_ok == false)
     {
-      if (sreg_bitl<size0)
-        { throw cannot_do_conversion(); }
+      if (sreg_bitl < size0)
+        {
+          throw cannot_do_conversion();
+        }
       convert_sint_to_sregint_small(i0, i1, P);
       return;
     }
@@ -321,14 +329,12 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
 
   // Evaluate the garbled circuit
   Base_Garbled_Circuit GC;
-  GC.Garble(Global_Circuit_Store.BaseC[LSSS_to_GC], P, aAF);
-  GC.Evaluate(output, input, Global_Circuit_Store.BaseC[LSSS_to_GC], P);
+  GC.Garble(Global_Circuit_Store.Circuits[LSSS_to_GC], P, online_thread_num);
+  GC.Evaluate(output, input, Global_Circuit_Store.Circuits[LSSS_to_GC], P);
 
   // Write back into the processor
   write_srint(i1, output[0]);
 }
-
-
 
 void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
 {
@@ -377,4 +383,167 @@ void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
 
   // Write back into the processor
   write_Sp(i1, ans);
+}
+
+void Processor::apply_GC(const vector<int> &arguments, Player &P)
+{
+  // Check circuit is loaded
+  Global_Circuit_Store.check(arguments[0]);
+
+  // Set up arrays for the IO from the GC and load in the inputs
+  unsigned int numI= Global_Circuit_Store.Circuits[arguments[0]].num_inputs();
+  unsigned int numO= Global_Circuit_Store.Circuits[arguments[0]].num_outputs();
+  vector<vector<aBit>> input(numI);
+  vector<vector<aBit>> output(numO);
+
+  unsigned int numi= 0, numo= 0;
+  unsigned int regi= 0, regib= 0;
+  for (unsigned int i= 0; i < numI; i++)
+    {
+      numi+= Global_Circuit_Store.Circuits[arguments[0]].num_iWires(i);
+      input[i].resize(Global_Circuit_Store.Circuits[arguments[0]].num_iWires(i));
+      for (unsigned int j= 0; j < input[i].size(); j++)
+        {
+          if (2 + regi > arguments.size())
+            {
+              throw GC_Error("Number of inputs does not match up");
+            }
+          input[i][j]= read_srint(arguments[3 + arguments[1] + regi]).get_bit(regib);
+          regib++;
+          if (regib == sreg_bitl)
+            {
+              regib= 0;
+              regi++;
+            }
+        }
+    }
+  if ((numi - sreg_bitl * arguments[2]) != 0)
+    {
+      throw GC_Error("Number of inputs does not match up");
+    }
+
+  for (unsigned int i= 0; i < numO; i++)
+    {
+      numo+= Global_Circuit_Store.Circuits[arguments[0]].num_oWires(i);
+      output[i].resize(Global_Circuit_Store.Circuits[arguments[0]].num_oWires(i));
+    }
+  if ((numo - sreg_bitl * arguments[1]) != 0)
+    {
+      throw GC_Error("Number of outputs does not match up");
+    }
+
+  // Evaluate the garbled circuit
+  Base_Garbled_Circuit GC;
+  GC.Garble(Global_Circuit_Store.Circuits[arguments[0]], P, online_thread_num);
+  GC.Evaluate(output, input, Global_Circuit_Store.Circuits[arguments[0]], P);
+
+  // Now process the outputs
+  regi= 0;
+  regib= 0;
+  for (unsigned int i= 0; i < numO; i++)
+    {
+      for (unsigned int j= 0; j < output[i].size(); j++)
+        {
+          get_srint_ref(arguments[3 + regi]).set_bit(regib, output[i][j]);
+          regib++;
+          if (regib == sreg_bitl)
+            {
+              regib= 0;
+              regi++;
+            }
+        }
+    }
+}
+
+void Processor::apply_local_function(RegType RT, SecrecyType ST,
+                                     const vector<int> &arguments)
+{
+  // First get the arrays of input arguments
+  vector<long> Cr_inp;
+  vector<aBitVector> Sr_inp;
+  vector<gfp> Cp_inp;
+  vector<Share> Sp_inp;
+
+  int instr= arguments[0];
+  Cr_inp.resize(arguments[2]);
+  Sr_inp.resize(arguments[3]);
+  Cp_inp.resize(arguments[4]);
+  Sp_inp.resize(arguments[5]);
+
+  unsigned int cnt= 6 + arguments[1];
+  for (int i= 0; i < arguments[2]; i++)
+    {
+      Cr_inp[i]= read_Ri(arguments[cnt]);
+      cnt++;
+    }
+  for (int i= 0; i < arguments[3]; i++)
+    {
+      Sr_inp[i]= read_srint(arguments[cnt]);
+      cnt++;
+    }
+  for (int i= 0; i < arguments[4]; i++)
+    {
+      Cp_inp[i]= read_Cp(arguments[cnt]);
+      cnt++;
+    }
+  for (int i= 0; i < arguments[5]; i++)
+    {
+      Sp_inp[i]= read_Sp(arguments[cnt]);
+      cnt++;
+    }
+
+  // Now the arrays of output arguments
+  vector<long> Cr_out;
+  vector<aBitVector> Sr_out;
+  vector<gfp> Cp_out;
+  vector<Share> Sp_out;
+
+  if (RT == INT && ST == CLEAR)
+    {
+      Cr_out.resize(arguments[1]);
+    }
+  else if (RT == INT && ST == SECRET)
+    {
+      Sr_out.resize(arguments[1]);
+    }
+  else if (RT == MODP && ST == CLEAR)
+    {
+      Cp_out.resize(arguments[1]);
+    }
+  else if (RT == MODP && ST == SECRET)
+    {
+      Sp_out.resize(arguments[1], Share(Sp[0].get_player()));
+    }
+  else
+    {
+      throw bad_value();
+    }
+
+  // Now call the function
+  Global_LF.apply_Function(instr,
+                           Cr_out, Sr_out, Cp_out, Sp_out,
+                           Cr_inp, Sr_inp, Cp_inp, Sp_inp);
+
+  // Now process the outputs
+  cnt= 6;
+  for (unsigned int i= 0; i < Cr_out.size(); i++)
+    {
+      write_Ri(arguments[cnt], Cr_out[i]);
+      cnt++;
+    }
+  for (unsigned int i= 0; i < Sr_out.size(); i++)
+    {
+      write_srint(arguments[cnt], Sr_out[i]);
+      cnt++;
+    }
+  for (unsigned int i= 0; i < Cp_out.size(); i++)
+    {
+      write_Cp(arguments[cnt], Cp_out[i]);
+      cnt++;
+    }
+  for (unsigned int i= 0; i < Sp_out.size(); i++)
+    {
+      write_Sp(arguments[cnt], Sp_out[i]);
+      cnt++;
+    }
 }

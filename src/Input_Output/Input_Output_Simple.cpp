@@ -71,7 +71,8 @@ long Input_Output_Simple::public_input_int(unsigned int channel)
 
 void Input_Output_Simple::public_output_int(const long output, unsigned int channel)
 {
-  cout << "Output channel " << channel << " : " << output << endl;
+  cout << "Output channel " << channel << " : " << output;
+  cout << " = 0x" << hex << output << dec << endl;
 }
 
 void Input_Output_Simple::output_share(const Share &S, unsigned int channel)

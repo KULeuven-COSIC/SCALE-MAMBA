@@ -36,7 +36,50 @@ unsigned int relabel(const string &ss, const vector<string> &vs)
           return i;
         }
     }
+  cout << "Error with wire : " << ss << endl;
   abort();
+}
+
+/* inputs/outputs only needed when parsing output wires */
+void parse_wires(const vector<string> &tokens,
+                 vector<string> &wirenames,
+                 vector<unsigned int> &input_outputs,
+                 unsigned int start)
+{
+  if (start == 1 && tokens[1].c_str()[0] == '[')
+    { // We have numbered wires here
+      unsigned int e= stoi(tokens[1].substr(1));
+      unsigned int s= stoi(tokens[2]);
+      string var= tokens[3];
+      if (e >= s)
+        {
+          input_outputs.push_back(e - s + 1);
+          for (unsigned int i= s; i <= e; i++)
+            {
+              stringstream ss;
+              ss << var << "[" << i << "]";
+              wirenames.push_back(ss.str());
+            }
+        }
+      else
+        {
+          input_outputs.push_back(s - e + 1);
+          for (int i= s; i >= (int) e; i--)
+            {
+              stringstream ss;
+              ss << var << "[" << i << "]";
+              wirenames.push_back(ss.str());
+            }
+        }
+    }
+  else
+    {
+      for (unsigned int i= start; i < tokens.size(); i++)
+        {
+          wirenames.push_back(tokens[i]);
+          input_outputs.push_back(1);
+        }
+    }
 }
 
 int main(int argc, const char *argv[])
@@ -71,20 +114,16 @@ int main(int argc, const char *argv[])
 
   vector<unsigned int> inputs;
   vector<unsigned int> outputs;
+  vector<unsigned int> dummy;
 
   // Now parse inputs
   do
     {
-      unsigned int e= stoi(tokens[1].substr(1));
-      unsigned int s= stoi(tokens[2]);
-      string var= tokens[3];
-      inputs.push_back(e - s + 1);
-      for (unsigned int i= s; i <= e; i++)
+      if (tokens[0] != "input")
         {
-          stringstream ss;
-          ss << var << "[" << i << "]";
-          wirenames.push_back(ss.str());
+          abort();
         }
+      parse_wires(tokens, wirenames, inputs, 1);
       getline(inpf, line);
       tokenize(tokens, line);
     }
@@ -93,42 +132,38 @@ int main(int argc, const char *argv[])
   // Now parse outputs
   do
     {
-      if (tokens[1].c_str()[0] == '[')
-        { // We have numbered wires here
-          unsigned int e= stoi(tokens[1].substr(1));
-          unsigned int s= stoi(tokens[2]);
-          string var= tokens[3];
-          outputs.push_back(e - s + 1);
-          for (unsigned int i= s; i <= e; i++)
-            {
-              stringstream ss;
-              ss << var << "[" << i << "]";
-              owirenames.push_back(ss.str());
-            }
+      if (tokens[0] != "output")
+        {
+          abort();
         }
-      else
-        { // Just a single wire
-          owirenames.push_back(tokens[1]);
-          outputs.push_back(1);
-        }
+      parse_wires(tokens, owirenames, outputs, 1);
       getline(inpf, line);
       tokenize(tokens, line);
     }
   while (tokens[0] != "wire");
 
   // Now the internal wires
-  unsigned int st= 1;
   do
     {
-      for (unsigned int i= st; i < tokens.size(); i++)
+      if (tokens[0] == "wire")
         {
-          wirenames.push_back(tokens[i]);
+          parse_wires(tokens, wirenames, dummy, 1);
+        }
+      else
+        {
+          parse_wires(tokens, wirenames, dummy, 0);
         }
       getline(inpf, line);
       tokenize(tokens, line);
-      st= 0;
     }
   while (tokens[0] != "XOR2_X1" && tokens[0] != "INV_X1" && tokens[0] != "NOR2_X1" && tokens[0] != "AND2_X1" && tokens[0] != "assign");
+
+  // Now add the contant wires
+  stringstream w0, w1;
+  w0 << "1'b0";
+  w1 << "1'b1";
+  wirenames.push_back(w0.str());
+  wirenames.push_back(w1.str());
 
   // Now load in the gates
   vector<vector<string>> gates;
@@ -247,6 +282,15 @@ int main(int argc, const char *argv[])
         }
     }
 
+  // Now add in the contant wire assignments
+  //   If we do not need these then simplify should get rid of them
+  stringstream s0, s1;
+  s0 << "1 1 0 " << relabel("1'b0", wirenames) << " EQ";
+  s1 << "1 1 1 " << relabel("1'b1", wirenames) << " EQ";
+  // Push in two goes so we have the correct size
+  ngates.push_back(s0.str());
+  ngates.push_back(s1.str());
+
   // Output circuit to stringstream
   stringstream Cout;
   Cout << ngates.size() << " " << wirenames.size() << endl;
@@ -267,6 +311,7 @@ int main(int argc, const char *argv[])
       Cout << ngates[i] << endl;
     }
 
+  cout << "Processed file, now sorting..." << endl;
   Circuit C;
   istringstream is(Cout.str());
   is >> C;
@@ -281,4 +326,6 @@ int main(int argc, const char *argv[])
   ofstream outf(output_file_name.c_str());
   outf << C << endl;
   outf.close();
+
+  cout << "All done" << endl;
 }

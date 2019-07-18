@@ -487,9 +487,11 @@ void init_conversion()
       cout << "This is done programmatically in the code" << endl;
       return;
     }
-  unsigned int size1= 64+conv_stat_sec;
-  if (size1>nBits) 
-    { size1=nBits; }
+  unsigned int size1= 64 + conv_stat_sec;
+  if (size1 > nBits)
+    {
+      size1= nBits;
+    }
 
   vector<int> p_bits(512);
 
@@ -497,7 +499,7 @@ void init_conversion()
   Circuit CSub, C512;
   SimplifyCircuit CC;
   vector<unsigned int> assign_in;
-  unsigned int nzeros0,nzeros1;
+  unsigned int nzeros0, nzeros1;
   ofstream outf;
 
   cout << "Producing conversion circuit LSSS to GC for prime " << p << endl;

@@ -3,7 +3,7 @@
 
 A major change in SCALE over SPDZ is the way input and output
 is handled in the system to an outside data source/sync.
-In SPDZ various hooks were placed within the compiler/bytecode
+In SPDZ various hooks were placed within the compiler/byte-code
 to enable external applications to connect. This resulted in
 code-bloat as the run-time had to support all possible
 ways someone would want to connect.
@@ -13,7 +13,7 @@ getting data in and out of the MPC engine. It is then up
 to the application developer to write code (see below)
 which catches and supplies this data in the way that is
 wanted by their application.
-This should be done without needing to modify then bytecode,
+This should be done without needing to modify then byte-code,
 runtime system, or any compiler being used.
 
 \subsection{Adding your own IO Processing}
@@ -46,7 +46,7 @@ To configure your IO functionality you alter the line
 \end{verbatim}
 Internally the IO class can maintain any number of ``channels''
 for each of the various operations below.
-The runtime bytecodes can then pass the required channel to the 
+The runtime byte-codes can then pass the required channel to the 
 IO class; if no channel is specified in the MAMBA language
 then channel zero is selected by default (although for
 the \verb+input_shares+ and \verb+output_shares+ commands
@@ -66,11 +66,11 @@ all executions.
 
 \subsubsection{Private Output}
 To obtain an $\F_p$ element privately to one party one
-executes the bytecode
+executes the byte-code
 \begin{center}
 \verb+PRIVATE_OUTPUT+.
 \end{center}
-These correspond to a combination of the old SPDZ bytecodes
+These correspond to a combination of the old SPDZ byte-codes
 \verb+STARTPRIVATEOUTPUT+ and \verb+STOPPRIVATEOUTPUT+.
 The instruction enables a designated party to obtain output of
 one of the secretly shared variables, this is then passed
@@ -79,11 +79,11 @@ to the sytem by a call to the function
 
 \subsubsection{Private Input}
 This is the oppposite operation to the one above and it 
-is accomplised by the bytecode
+is accomplised by the byte-code
 \begin{center}
 \verb+PRIVATE_INPUT+.
 \end{center}
-This correspond to the old SPDZ bytecodes
+This correspond to the old SPDZ byte-codes
 \verb+STARTINPUT+ and \verb+STOPINPUT+.
 The instruction enables a designated party to enter a value into
 the computation.
@@ -93,13 +93,13 @@ member function
 
 \subsubsection{Public Output}
 To obtain public output, i.e. the output of an opened variable,
-then the bytecode is \verb+OUTPUT_CLEAR+, corresponding to
-old SPDZ bytecode \verb+RAWOUTPUT+.
+then the byte-code is \verb+OUTPUT_CLEAR+, corresponding to
+old SPDZ byte-code \verb+RAWOUTPUT+.
 This output needs to be caught by the C++ IO class in
 the member function \verb+IO.public_output_gfp(const gfp& output,unsigned int channel)+.
 
 For the same functionality but for \verb|regint| type we have
-that the bytecode is \verb+OUTPUT_INT+.
+that the byte-code is \verb+OUTPUT_INT+.
 This output needs to be caught by the C++ IO class in
 the associated member function 
 \verb+IO.public_output_int(...)+.
@@ -108,11 +108,11 @@ the associated member function
 A clear public input value is something which is input to
 {\em all} players; and must be the same input for all players.
 This hooks into the C++ IO class function 
-\verb+IO.public_input_gfp(unsigned int channel)+, and corresponds to the bytecode
+\verb+IO.public_input_gfp(unsigned int channel)+, and corresponds to the byte-code
 \verb+INPUT_CLEAR+.
-This is a bit like the old SPDZ bytecode \verb+PUBINPUT+
+This is a bit like the old SPDZ byte-code \verb+PUBINPUT+
 but with slightly different semantics.
-For the \verb|regint| type this becomes the bytecode \verb+INPUT_INT+
+For the \verb|regint| type this becomes the byte-code \verb+INPUT_INT+
 and the C++ IO class function
 \verb+IO.public_input_int(...)+.
 
@@ -126,8 +126,8 @@ See the example given in the demonstration \verb+Input_Output_Simple+ class prov
 In some situations the system might want to store some
 internal state, in particular the shares themselves.
 To enable this we provide the \verb+OUTPUT_SHARE+
-bytecode (corresponding roughly to the old 
-\verb+READFILESHARE+ bytecode). The IO class can do
+byte-code (corresponding roughly to the old 
+\verb+READFILESHARE+ byte-code). The IO class can do
 whatever it would like with this share obtained. However,
 one needs to be careful that any usage does not break the
 MPC security model.
@@ -138,10 +138,10 @@ output is the function
 \subsubsection{Share Input}
 Finally, shares can be input from an external source
 (note they need to be correct/suitably MAC'd). This
-is done via the bytecode \verb+INPUT_SHARE+ and the
+is done via the byte-code \verb+INPUT_SHARE+ and the
 member function \verb+IO.input_share(unsigned int channel)+.
 Again the same issues re careful usage of this function
-apply, as they did for the \verb+OUTPUT_SHARE+ bytecode.
+apply, as they did for the \verb+OUTPUT_SHARE+ byte-code.
 
 
 \subsection{Other IO Processing}
@@ -153,7 +153,7 @@ for this purpose;
 \verb+IO.open_channel(unsigned int n)+
 and
 \verb+IO.close_channel(unsigned int n)+.
-These correspond to the bytecodes \verb+OPEN_CHAN+ and
+These correspond to the byte-codes \verb+OPEN_CHAN+ and
 \verb+CLOSE_CHAN+.
 For our default IO functionality one does not need to
 explicitly call these functions before, or after,
@@ -172,12 +172,12 @@ See Section \ref{sec:restart} for further details.
 
 \subsubsection{Debug Output}
 There is a function \verb+IO.debug_output(const stringstream &ss)+
-which passes the responsed from the \verb+PRINTxxx+ bytecodes.
+which passes the responsed from the \verb+PRINTxxx+ byte-codes.
 In the default instantiation this just sends the contents
 of the \verb+stringstream+ to standard output.
 
 \subsubsection{Crashing}
-The bytecode \verb+CRASH+ calls the function 
+The byte-code \verb+CRASH+ calls the function 
 \verb+IO.crash(unsigned int PC, unsigned int thread_num)+.
 This enables the IO class to be able to process any crash
 in an application specific way if needs be.

@@ -9,7 +9,7 @@ until just before execution this can be a problem.
 We therefore provide a mechanism, which we call \verb+RESTART+, to
 enable a program to {\em programatically} restart the online runtime, whilst 
 still maintaining the current offline data.
-In the bytecode this is accessed by the op-code \verb+RESTART+
+In the byte-code this is accessed by the op-code \verb+RESTART+
 and in MAMBA it is accessed by the function \verb+restart(Schedule &schedule)+.
 Both must be called in online thread zero.
 
@@ -70,14 +70,14 @@ First get the next program ready to run by executing
 \end{verbatim}
 Now enter a number on each players console, and 
 the second program should now run.
-Since it also ends with a \verb+RESTART+ bytecode, you can
+Since it also ends with a \verb+RESTART+ byte-code, you can
 continue in this way forever.
 
 \subsection{Memory Management While Restarting}
 As part of the restart functionality we also add some extra commands to aid
 safety of the overall system.
 
-The first of these is \verb+clear_memory()+, which corresponds to the bytecode
+The first of these is \verb+clear_memory()+, which corresponds to the byte-code
 \verb+CLEAR_MEMORY+.
 What this does is initialize all system memory to zero. Thus before calling a 
 \verb+restart()+ one can zero out all the memory, meaning the memory cannot be
@@ -99,7 +99,7 @@ A demonstration of the \verb+clear_memory()+ command called from MAMBA is
 available in the program directory \verb+/Programs/mem_clear_demo+.
 
 The second command is \verb+clear_registers()+, which corresponds to the
-bytecode \verb+CLEAR_REGISTERS+.
+byte-code \verb+CLEAR_REGISTERS+.
 This resets the registers in the calling processor to zero; it does nothing
 to the register files in the other threads.
 The purpose is again to avoid mistakes from programmers. One should consider

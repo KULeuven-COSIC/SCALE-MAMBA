@@ -4,9 +4,9 @@
 
 This chapter describes the implementation of the
 MPC Virtual Machine. 
-The virtual machine is driven by Bytecodes which
+The virtual machine is driven by byte-codes which
 are produced by the MAMBA compiler (see later).
-Of course you could compile Bytecodes from any compiler
+Of course you could compile byte-codes from any compiler
 if you wanted to write one with the correct backend.
 
 The virtual machine structure resembles that of a
@@ -18,7 +18,7 @@ as threads.
 Each thread has a seperate set of registers, as
 well as a stack for {\em integer} values.
 To allow the saving of state, or the transfer of data
-between threads there is a global memory.
+between threads, there is a global memory.
 This global memory (or at least the first $2^{20}$
 values) are saved whenever the SCALE system gracefully
 shuts down.
@@ -32,8 +32,8 @@ to be handled at a higher level.
 \subsection{Overview}
 
 The core of the virtual machine is a set of threads, which
-execute sequences of instructions encoded in a bytecode format.
-Files of bytecode instructions are referred to as \emph{tapes},
+execute sequences of instructions encoded in a byte-code format.
+Files of byte-code instructions are referred to as \emph{tapes},
 and each thread processes a single tape at a time.
 Each of these execution threads has a pairwise point-to-point
 communication channels with the associated threads in all
@@ -56,7 +56,79 @@ performing the offline phase, each again with pairwise
 TLS secured point-to-point channels. Currently the offline
 threads only communicate on ``connection'' zero.
 A single offline thread produces authenticated bits, aBits,
-by OT-extension.
+by OT-extension, whilst another produced authenticated 
+triples for GC operations, so called aANDs.
+
+\begin{figure}[htb!]
+\begin{center}
+\begin{picture}{(370,280)}
+
+\put(0,25){\framebox(50,30){FHE Fact 1}}
+\put(0,75){\framebox(50,30){FHE Fact 2}}
+\put(50,90){\line(1,-1){25}}
+\put(50,40){\line(1,1){25}}
+\put(75,65){\line(1,0){25}}
+\put(100,15){\line(0,1){220}}
+\put(100,235){\vector(1,0){20}}
+\put(100,195){\vector(1,0){20}}
+\put(100,155){\vector(1,0){20}}
+\put(100,95){\vector(1,0){20}}
+\put(100,55){\vector(1,0){20}}
+\put(100,15){\vector(1,0){20}}
+\put(100,125){\line(1,0){130}}
+\put(230,125){\vector(0,1){55}}
+\put(230,125){\vector(0,-1){55}}
+
+
+\put(40,195){\framebox(50,30){aAND}}
+\put(0,150){\framebox(50,30){aBit}}
+
+%aBit->aAND
+\put(25,180){\vector(1,1){15}}
+
+%aBit->Online
+\put(25,180){\line(0,1){100}}
+\put(25,280){\line(1,0){345}}
+\put(370,280){\line(0,-1){235}}
+\put(370,45){\vector(-1,0){20}}
+\put(370,185){\vector(-1,0){20}}
+
+%aAND->Online
+\put(65,225){\line(0,1){40}}
+\put(65,265){\line(1,0){295}}
+\put(360,265){\line(0,-1){210}}
+\put(360,55){\vector(-1,0){10}}
+\put(360,195){\vector(-1,0){10}}
+
+\put(120,220){\framebox(50,30){Mult Triples}}
+\put(170,235){\vector(1,-1){27}}
+\put(120,180){\framebox(50,30){Square Pairs}}
+\put(170,195){\vector(1,0){27}}
+\put(120,140){\framebox(50,30){Bits Pairs}}
+\put(170,155){\vector(1,1){27}}
+
+\put(200,180){\framebox(70,30){Sacrifice/Inputs}}
+\put(270,195){\vector(1,0){30}}
+\put(300,180){\framebox(50,30){Online Two}}
+
+
+\put(120,80){\framebox(50,30){Mult Triples}}
+\put(170,95){\vector(1,-1){27}}
+\put(120,40){\framebox(50,30){Square Pairs}}
+\put(170,55){\vector(1,0){27}}
+\put(120,0){\framebox(50,30){Bits Pairs}}
+\put(170,15){\vector(1,1){27}}
+
+\put(200,40){\framebox(70,30){Sacrifice/Inputs}}
+\put(270,55){\vector(1,0){30}}
+\put(300,40){\framebox(50,30){Online One}}
+
+\end{picture}
+\end{center}
+\caption{Pictorial View of a Players Threads: With Two
+Online Threads and Two FHE Factory Threads}
+\label{fig:threads}
+\end{figure}
 
 In the case of Full Threshold secret sharing another set of
 threads act as a factory for FHE ciphertexts. Actively secure
@@ -65,8 +137,9 @@ zero-knowledge proofs (see Section \ref{sec:fhe}). Thus
 the FHE-Factory threads locates this production into a
 single location. The number of FHE Factory threads can be
 controlled at run-time by the user.
+See Figure \ref{fig:threads} for an pictorial overview.
 
-In addition to bytecode files, each program to be run must
+In addition to byte-code files, each program to be run must
 have a \emph{schedule}. This is a file detailing the execution
 order of the tapes, and which tapes are to be run in parallel.
 There is no limit to the number of concurrent tapes specified in a schedule, 
@@ -74,7 +147,7 @@ but in practice one will be restricted by the number of cores.
 The schedule file allows you to schedule concurrent threads
 of execution, it also defines the maximum number of threads
 a given run-time system will support. It also defines
-the specific bytecode sequences which are pre-loaded
+the specific byte-code sequences which are pre-loaded
 into the system.
 One can also programmatically control execution of new
 threads using the byte-code instructions \verb+RUN_TAPE+ and \verb+JOIN_TAPE+
@@ -96,8 +169,8 @@ not specified as to which order the instructions
 will be performed in.
 Memory comes in four forms, corresponding to
 \verb+sint+, \verb+cint+, \verb+regint+ and \verb+sregint+
-data types. There is not memory for the \verb+sbit+
-datatype.
+data types. There is no memory for the \verb+sbit+
+datatype, as it is meant only for temporary storage of data.
 
 Each execution thread also has its own local clear and secret
 registers, to hold temporary variables.
@@ -108,12 +181,54 @@ between an execution thread running one tape and
 the next tape, so all passing of values
 between two sequential tape executions must be done
 by reading and writing to the virtual machine's main memory.
-This holds even if the two consequtive bytecode
+This holds even if the two consequtive byte-code
 sequences run  on the same ``core''.
+A pictorial representation of the memory and registers is given in 
+Figure \ref{fig:memory}.
 
-\subsection{Bytecode instructions}
 
-The design of the Bytecode instructions within a tape are influenced
+\begin{figure}[htb!]
+\begin{center}
+\begin{picture}{(280,280)}
+
+\put(10,170){Main Memory}
+\put(0,80){\framebox(130,110){}}
+\put(90,150){\framebox(30,20){sint}}
+\put(90,130){\framebox(30,20){cint}}
+\put(90,110){\framebox(30,20){sregint}}
+\put(90,90){\framebox(30,20){regint}}
+
+
+\put(160,260){Thread Two}
+\put(220,190){\rotatebox{90}{Registers}}
+\put(150,150){\framebox(130,130){}}
+\put(240,240){\framebox(30,20){sint}}
+\put(240,220){\framebox(30,20){cint}}
+\put(240,200){\framebox(30,20){sregint}}
+\put(240,180){\framebox(30,20){regint}}
+\put(240,160){\framebox(30,20){sbit}}
+\put(160,160){\framebox(30,20){Stack}}
+
+
+\put(160,110){Thread One}
+\put(220,40){\rotatebox{90}{Registers}}
+\put(150,0){\framebox(130,130){}}
+\put(240,90){\framebox(30,20){sint}}
+\put(240,70){\framebox(30,20){cint}}
+\put(240,50){\framebox(30,20){sregint}}
+\put(240,30){\framebox(30,20){regint}}
+\put(240,10){\framebox(30,20){sbit}}
+\put(160,10){\framebox(30,20){Stack}}
+
+\end{picture}
+\end{center}
+\caption{Pictorial Representation of Memory and Registers:
+With Two Online Threads}
+\end{figure}
+
+\subsection{Byte-code instructions}
+
+The design of the byte-code instructions within a tape are influenced
 by the RISC design strategy, coming in only a few basic
 types and mostly taking between one and three
 operands. The virtual machine also supports a limited form of
@@ -124,7 +239,7 @@ as in traditional SIMD architectures, but exist to provide a compact way of
 executing multiple instructions within a thread, saving on memory
 and code size.
 
-A complete set of byte codes and descriptions is
+A complete set of byte-codes and descriptions is
 given in the html file in 
 \begin{center}
    \verb+$(HOME)/Documentation/Compiler_Documentation/index.html+
@@ -249,7 +364,7 @@ is used to check MACs/Hashes then this can stall when the network buffer fills
 up, and hang indefinitely.
 On our test machines this happens when opening around 10000 elements
 at once, so care must be taken to avoid this when compiling or writing
-bytecode (the Python compiler could automatically detect and avoid
+byte-code (the Python compiler could automatically detect and avoid
 this).
 
 \subsubsection{Instructions for mod $2^n$ registers}
@@ -370,21 +485,22 @@ We also implement a number of bitwise logical operations on the $64$-bit
 and
 \verb+INVSINT+.
 You can extract bits from an \verb|sregint| variable using the instruction
-\verb+bitsint+.
+\verb+BITSINT+, and assign an \verb|sbit| to a specific bit location in
+an \verb|sregint| by using the instruction \verb+SINTBIT+.
 
 \subsubsection{Note:}
-The choices of bytecodes here is a bit of a legacy issue. It would
-make more sense to move almost all the $\modp$ bytecodes (bar the Legendre symbol
+The choices of byte-codes here is a bit of a legacy issue. It would
+make more sense to move almost all the $\modp$ byte-codes (bar the Legendre symbol
 one) to operate on \verb|regint| values only; since they really make
 no sense for $\modp$ values. However, this would break a lot of legacy code.
 So we keep it as it is, for the moment. At some point when (and if) we build a proper
 compiler and language we will not have legacy issues to support, and the
-bytecodes can then change to something more sensible.
+byte-codes can then change to something more sensible.
 
 \subsection{Debuging Output}
 To enable debugging we provide simple commands to send
 debugging information to the \verb+Input_Output+ class.
-These bytecodes are
+These byte-codes are
 \begin{verbatim}
     PRINTINT,           PRINTMEM,          PRINTREG,           PRINTREGPLAIN,
     PRINTCHR,           PRINTSTR,          PRINTCHRINT,        PRINTSTRINT,
@@ -393,7 +509,7 @@ These bytecodes are
 
 \subsection{Data input and output}
 This is entirely dealt with in the later Chapter on IO.
-The associated bytecodes are
+The associated byte-codes are
 \begin{verbatim}
              OUTPUT_CLEAR,           INPUT_CLEAR, 
              OUTPUT_SHARE,           INPUT_SHARE, 
@@ -420,8 +536,18 @@ secret $\mod \; 2$ registers (\verb+sbit+), and can be used in conjunction with 
 \verb+LTZSINT+ ,
 \verb+EQZSINT+.
 
+\subsection{User Defined RunTime Extensions}
+The instruction \verb+GC+ allows the running of user defined
+circuits via the Garbled Circuit engine.
+See Section \ref{sec:GC} for more details.
+
+The instructions \verb|LF_CINT|, \verb|LF_SINT|, \verb|LF_REGINT| 
+and \verb|LF_SREGINT| allow one to execute user defined
+local functions.
+See Section \ref{sec:Local} for more details.
+
 \subsection{Other Commands}
-The following byte codes are for fine tuning the machine
+The following byte-codes are for fine tuning the machine
 \begin{itemize}
 \item \verb+REQBL+ this is output by the compiler to signal that
 the tape requires a minimal bit length. This forces the runtime

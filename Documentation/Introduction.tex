@@ -10,7 +10,7 @@ the offline phase.
 The combined online/offline phase we shall refer
 to as SCALE, the compiler takes a program written
 in our special language MAMBA, and then turns it
-into bytecode which can be executed by the SCALE
+into byte-code which can be executed by the SCALE
 system. 
 
 We provide switches (see below) to obtain 
@@ -145,9 +145,11 @@ optimal.
 which implements pairwise OTs via OT-extension.
 This thread produces a bunch of authenticated bits in various
 queues, one for each online thread.
-Each main online thread then removes aBits from its respective
-queue when it needs these to produce aANDs, daBits or execute
-the garbled circuit protocols.
+A similar thread (number 20001 in the code) does the
+same for authenticated ANDs, i.e. aANDS.
+Each main online thread then removes aBits and aANDs 
+from its respective queue when it needs these to produce  
+daBits or execute the garbled circuit protocols.
 The first time the online thread meets an instruction which
 requires such data there can be a little lag as the sub-queues
 fill up, but this disappears on subsequent instructions

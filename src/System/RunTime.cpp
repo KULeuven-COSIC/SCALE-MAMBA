@@ -10,7 +10,7 @@ All rights reserved
  */
 
 #include "System/RunTime.h"
-#include "OT/aBit_Thread.h"
+#include "OT/OT_Thread_Data.h"
 #include "Offline/DABitMachine.h"
 #include "Offline/FHE_Factory.h"
 #include "Offline/offline_phases.h"
@@ -78,6 +78,9 @@ vector<sacrificed_data> SacrificeD;
 
 MaliciousDABitMachine daBitMachine;
 
+/* Global data structure to hold the OT stuff */
+OT_Thread_Data OTD;
+
 /* Before calling this we assume various things have
  * been set up. In particular the following functions have
  * been called
@@ -110,6 +113,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   Global_Circuit_Store.initialize(gfp::pr());
 
   OCD.resize(no_online_threads);
+  OTD.init(no_online_threads);
 
   TriplesD.resize(no_online_threads);
   SquaresD.resize(no_online_threads);
@@ -123,8 +127,8 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   unsigned int nthreads= 5 * no_online_threads;
   // Add in the FHE threads
   unsigned int tnthreads= nthreads + number_FHE_threads;
-  // Add in the OT thread
-  tnthreads+= 1;
+  // Add in the OT threads
+  tnthreads+= 2;
   daBitMachine.Initialize(SD.n);
 
   /* Initialize the networking TCP sockets */
@@ -193,36 +197,33 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
 #ifdef BENCH_MEMORY
 void Print_Memory_Info(int player_num, int thread_num)
 {
-  int who = RUSAGE_THREAD;
+  int who= RUSAGE_THREAD;
   //int who = RUSAGE_SELF; // for the calling process
   struct rusage r_usage;
 
-  int ret = getrusage(who, &r_usage);
+  int ret= getrusage(who, &r_usage);
   if (ret != 0)
-  {
-    printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
-               "MEMORY:\n"
-               "  PLAYER#%d->THREAD#%u (PROCESS#%d)\n"
-               "  ERROR: return value -> %d\n"
-               BENCH_MAGIC_END BENCH_ATTR_RESET,
-           player_num, thread_num, who, ret);
-  }
+    {
+      printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
+             "MEMORY:\n"
+             "  PLAYER#%d->THREAD#%u (PROCESS#%d)\n"
+             "  ERROR: return value -> %d\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+             player_num, thread_num, who, ret);
+    }
   else
-  {
-    printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
-               "{\"player\":%u,\n"
-               "  \"thread\":%d,\n"
-               "  \"process\":%d,\n"
-               "  \"memory\":{\n"
-               "    \"max_rss\":{\"KB\":%ld,\"MB\":%.2f}\n"
-               "  }\n"
-               "}\n"
-               BENCH_MAGIC_END BENCH_ATTR_RESET,
-           player_num, thread_num, who, r_usage.ru_maxrss, ((double)r_usage.ru_maxrss/1000));
-  }
+    {
+      printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
+             "{\"player\":%u,\n"
+             "  \"thread\":%d,\n"
+             "  \"process\":%d,\n"
+             "  \"memory\":{\n"
+             "    \"max_rss\":{\"KB\":%ld,\"MB\":%.2f}\n"
+             "  }\n"
+             "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+             player_num, thread_num, who, r_usage.ru_maxrss, ((double) r_usage.ru_maxrss / 1000));
+    }
 }
 #endif
-
 
 void *Main_Func(void *ptr)
 {
@@ -274,6 +275,10 @@ void *Main_Func(void *ptr)
   else if (num == 20000)
     {
       aBit_Thread(P, (tinfo->no_online_threads), *(tinfo->OCD), verbose);
+    }
+  else if (num == 20001)
+    {
+      aAND_Thread(P, (tinfo->no_online_threads), *(tinfo->OCD), verbose);
     }
   else
     {

@@ -8,7 +8,7 @@ All rights reserved
 #include "DABitGenerator.h"
 #include "DABitMachine.h"
 #include "LSSS/PRSS.cpp"
-#include "OT/aBit_Thread.h"
+#include "OT/OT_Thread_Data.h"
 #include "Processor/Processor_IO.h"
 #include "Tools/util_containers.h"
 
@@ -16,7 +16,7 @@ All rights reserved
 #include <cassert>
 
 extern vector<sacrificed_data> SacrificeD;
-extern aBit_Data aBD;
+extern OT_Thread_Data OTD;
 
 DABitGenerator::DABitGenerator(MaliciousDABitMachine &machine,
                                Player &P, int thread_num, offline_control_data &OCDm)
@@ -42,7 +42,7 @@ void DABitGenerator::adjust_and_pack(stringstream &ss,
   timers["Processing inputs bits in gf(2)"].start();
   // Seems that get_aShares is the costly bit here
   timers["get aShares"].start();
-  list<aBit> random_masks_2= aBD.get_aShares(xor_machine.get_thread(), num_bits);
+  list<aBit> random_masks_2= OTD.aBD.get_aShares(xor_machine.get_thread(), num_bits);
   timers["get aShares"].stop();
   vector<aBit> vec_random_masks_2;
 

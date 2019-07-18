@@ -6,8 +6,10 @@ All rights reserved
 */
 
 #include "Garbled.h"
-#include "OT/aBit_Thread.h"
+#include "OT/OT_Thread_Data.h"
 #include "Tools/MMO.h"
+
+extern OT_Thread_Data OTD;
 
 // Apply the PRF with keys k1 and k2 to the message (g||j) where
 // j runs through 1 to n. To get an n-vector of gf2n elements out
@@ -55,10 +57,8 @@ void apply_PRF(vector<gf2n> &ans, const gf2n &k1, const gf2n &k2, unsigned int g
 
 void Base_Garbled_Circuit::Garble(const Circuit &C,
                                   Player &P,
-                                  aAND_Factory &aAF)
+                                  unsigned int online_thread_no)
 {
-  extern aBit_Data aBD;
-
   // This follows the method on page 27 of ePrint 2017/214
   unsigned int n= P.nplayers();
 
@@ -80,8 +80,8 @@ void Base_Garbled_Circuit::Garble(const Circuit &C,
     }
 
   // Getting both lots of data at once as that avoid thread locks
-  list<aBit> in_AND_aBits= aBD.get_aShares(aAF.get_thread_number(), cnt);
-  list<aTriple> triples= aAF.get_aANDs(nAG, P);
+  list<aBit> in_AND_aBits= OTD.aBD.get_aShares(online_thread_no, cnt);
+  list<aTriple> triples= OTD.aAD.get_aANDs(online_thread_no, nAG);
   gf2n Delta= aBit::get_Delta();
 
   unsigned int nI= 0;
@@ -187,9 +187,9 @@ void Base_Garbled_Circuit::Garble(const Circuit &C,
 void Garbled_Circuit::Garble(const Circuit &C,
                              const vector<unsigned int> &i_a, const vector<unsigned int> &o_a,
                              Player &P,
-                             aAND_Factory &aAF)
+                             unsigned int online_thread_no)
 {
-  Base_Garbled_Circuit::Garble(C, P, aAF);
+  Base_Garbled_Circuit::Garble(C, P, online_thread_no);
 
   extern aBit_Data aBD;
 

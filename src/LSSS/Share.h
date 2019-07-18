@@ -78,6 +78,10 @@ public:
     mac= macs;
   }
 
+  int get_player() const
+  {
+    return p;
+  }
   const vector<gfp> &get_shares() const
   {
     return a;

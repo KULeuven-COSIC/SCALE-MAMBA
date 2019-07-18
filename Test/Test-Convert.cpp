@@ -295,8 +295,6 @@ void test_zero_equal(PRNG &G)
     }
 }
 
-
-
 int main()
 {
   PRNG G;

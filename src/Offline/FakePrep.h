@@ -12,7 +12,6 @@ All rights reserved
 #include "System/Player.h"
 #include <list>
 
-
 class FakePrep
 {
   //stored triples
@@ -26,14 +25,13 @@ class FakePrep
 
   bool rewind_triples, rewind_squares, rewind_bits;
 
-  Player& P;
+  Player &P;
 
 public:
   FakePrep(Player &P);
-  void produce_triples(list<Share>&a, list<Share>&b, list<Share>&c);
-  void produce_squares(list<Share>&a, list<Share>&b);
-  void produce_bits(list<Share>&b);
-
+  void produce_triples(list<Share> &a, list<Share> &b, list<Share> &c);
+  void produce_squares(list<Share> &a, list<Share> &b);
+  void produce_bits(list<Share> &b);
 };
 
 #endif

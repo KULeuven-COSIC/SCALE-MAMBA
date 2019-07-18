@@ -109,9 +109,8 @@ public:
            "    \"sent\":{\"bytes\":%ld,\"MB\":%.2f},\n"
            "    \"received\":{\"bytes\":%ld,\"MB\":%.2f}\n"
            "  }\n"
-           "}\n"
-           BENCH_MAGIC_END BENCH_ATTR_RESET,
-           me, thread_num, data_sent, ((double)data_sent/1000000), data_received, ((double)data_received/1000000));
+           "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+           me, thread_num, data_sent, ((double) data_sent / 1000000), data_received, ((double) data_received / 1000000));
   }
 #endif
 };

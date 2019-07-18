@@ -14,27 +14,27 @@ All rights reserved
  */
 
 #include "Offline/FakePrep.h"
-#include "offline_subroutines.h"
 #include "config.h"
+#include "offline_subroutines.h"
 
-
-FakePrep::FakePrep(Player& P): P(P) {
-    triples.resize(3);
-    squares.resize(2);
-    rewind_triples = false;
-    rewind_squares = false;
-    rewind_bits = false;
+FakePrep::FakePrep(Player &P) : P(P)
+{
+  triples.resize(3);
+  squares.resize(2);
+  rewind_triples= false;
+  rewind_squares= false;
+  rewind_bits= false;
 }
 
-void FakePrep::produce_triples(list<Share>&a, list<Share>&b, list<Share>&c)
+void FakePrep::produce_triples(list<Share> &a, list<Share> &b, list<Share> &c)
 {
   if (rewind_triples)
-   {
-      a = triples[0];
-      b = triples[1];
-      c = triples[2];
-      return ;
-   }
+    {
+      a= triples[0];
+      b= triples[1];
+      c= triples[2];
+      return;
+    }
   if (P.whoami() == 0)
     {
       PRNG PRG;
@@ -97,20 +97,19 @@ void FakePrep::produce_triples(list<Share>&a, list<Share>&b, list<Share>&c)
           c.push_back(s);
         }
     }
-  triples[0] = a;
-  triples[1] = b;
-  triples[2] = c;
-  rewind_triples = true;
-
+  triples[0]= a;
+  triples[1]= b;
+  triples[2]= c;
+  rewind_triples= true;
 }
-void FakePrep::produce_squares(list<Share>&a, list<Share>&b)
+void FakePrep::produce_squares(list<Share> &a, list<Share> &b)
 {
   if (rewind_squares)
-  {
-      a = squares[0];
-      b = squares[1];
-      return ;
-  }
+    {
+      a= squares[0];
+      b= squares[1];
+      return;
+    }
 
   if (P.whoami() == 0)
     {
@@ -165,19 +164,18 @@ void FakePrep::produce_squares(list<Share>&a, list<Share>&b)
           b.push_back(s);
         }
     }
-  squares[0] = a;
-  squares[1] = b;
-  rewind_squares = true;
+  squares[0]= a;
+  squares[1]= b;
+  rewind_squares= true;
 }
 
-
-void FakePrep::produce_bits(list<Share>&b)
+void FakePrep::produce_bits(list<Share> &b)
 {
   if (rewind_bits)
-  {
-      b = bits;
-      return ;
-  }
+    {
+      b= bits;
+      return;
+    }
 
   if (P.whoami() == 0)
     {
@@ -238,8 +236,6 @@ void FakePrep::produce_bits(list<Share>&b)
             }
         }
     }
-  bits = b;
-  rewind_bits = true;
+  bits= b;
+  rewind_bits= true;
 }
-
-

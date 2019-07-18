@@ -19,7 +19,6 @@ All rights reserved
  */
 
 #include "GC/Base_Circuits.h"
-#include "aAND_Factory.h"
 #include "aBit.h"
 
 #define sreg_bitl 64
@@ -34,25 +33,25 @@ class aBitVector
    */
   void eval_circuit(Circ_Type T,
                     const aBitVector &a,
-                    Player &P, aAND_Factory &aAF);
+                    Player &P, unsigned int online_thread_no);
 
   void eval_circuit(Circ_Type T,
                     const aBitVector &a, const aBitVector &b,
-                    Player &P, aAND_Factory &aAF);
+                    Player &P, unsigned int online_thread_no);
 
   friend aBit eval_circuit_bit(Circ_Type T,
                                const aBitVector &a,
-                               Player &P, aAND_Factory &aAF);
+                               Player &P, unsigned int online_thread_no);
 
   friend aBit eval_circuit_bit(Circ_Type T,
                                const aBitVector &a, const aBitVector &b,
-                               Player &P, aAND_Factory &aAF);
+                               Player &P, unsigned int online_thread_no);
 
   /* This one produces two aBitVectors as output */
   friend void eval_circuit_2(Circ_Type T,
                              aBitVector &x, aBitVector &y,
                              const aBitVector &a, const aBitVector &b,
-                             Player &P, aAND_Factory &aAF);
+                             Player &P, unsigned int online_thread_no);
 
 public:
   static string type_string()
@@ -85,7 +84,6 @@ public:
   void assign_one();
 
   vector<aBit> internal_rep() const { return x; }
-  aBit get_bit(int i) const { return x[i]; }
 
   unsigned long long Open(Player &P) const;
 
@@ -104,11 +102,11 @@ public:
         x[i].negate(a.x[i]);
       }
   }
-  void Bitwise_AND(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF);
-  void Bitwise_OR(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  void Bitwise_AND(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no);
+  void Bitwise_OR(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
   {
     aBitVector te;
-    te.Bitwise_AND(a, b, P, aAF);
+    te.Bitwise_AND(a, b, P, online_thread_no);
     Bitwise_XOR(a, b);
     Bitwise_XOR(*this, te);
   }
@@ -149,56 +147,56 @@ public:
   }
 
   /* AND all bits in a by the bit b */
-  void Bit_AND(const aBitVector &a, const aBit &b, Player &P, aAND_Factory &aAF);
+  void Bit_AND(const aBitVector &a, const aBit &b, Player &P, unsigned int online_thread_no);
 
   /* SHL/SHR */
   void SHL(const aBitVector &a, unsigned int n);
   void SHR(const aBitVector &a, unsigned int n);
 
   /* Arithmetic Operations */
-  void add(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  void add(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
   {
-    eval_circuit(Adder64, a, b, P, aAF);
+    eval_circuit(Adder64, a, b, P, online_thread_no);
   }
 
-  void sub(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  void sub(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
   {
-    eval_circuit(Sub64, a, b, P, aAF);
+    eval_circuit(Sub64, a, b, P, online_thread_no);
   }
 
   /* This mult does the mult mod 2^64 */
-  void mul(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  void mul(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
   {
-    eval_circuit(Mult64, a, b, P, aAF);
+    eval_circuit(Mult64, a, b, P, online_thread_no);
   }
 
   /* This produces two 64 bit answers */
   friend void mul(aBitVector &x, aBitVector &y,
-                  const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+                  const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
   {
-    eval_circuit_2(Mult2_64, x, y, a, b, P, aAF);
+    eval_circuit_2(Mult2_64, x, y, a, b, P, online_thread_no);
   }
 
   // This does a SIGNED division
-  void div(const aBitVector &a, const aBitVector &b, Player &P, aAND_Factory &aAF)
+  void div(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
   {
-    eval_circuit(Divide64, a, b, P, aAF);
+    eval_circuit(Divide64, a, b, P, online_thread_no);
   }
 
-  void negate(const aBitVector &a, Player &P, aAND_Factory &aAF)
+  void negate(const aBitVector &a, Player &P, unsigned int online_thread_no)
   {
-    eval_circuit(Neg64, a, P, aAF);
+    eval_circuit(Neg64, a, P, online_thread_no);
   }
 
   /* Comparisons */
   aBit less_than_zero() const
   {
-    return x[sreg_bitl-1];
+    return x[sreg_bitl - 1];
   }
 
-  aBit equal_zero(Player &P, aAND_Factory &aAF) const
+  aBit equal_zero(Player &P, unsigned int online_thread_no) const
   {
-    return eval_circuit_bit(Zero_Equal, *this, P, aAF);
+    return eval_circuit_bit(Zero_Equal, *this, P, online_thread_no);
   }
 
   /* Bit access */
@@ -207,11 +205,10 @@ public:
     return x[n];
   }
 
-  void set_bit(unsigned int n,const aBit& t)
+  void set_bit(unsigned int n, const aBit &t)
   {
-    x[n]=t;
+    x[n]= t;
   }
-
 
   // Input and output from a stream
   //  - Can do in human or machine only format (later should be faster)

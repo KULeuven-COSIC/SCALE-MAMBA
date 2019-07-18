@@ -1,0 +1,8 @@
+Compiler_Documentation/
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.toc

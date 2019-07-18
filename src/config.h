@@ -128,8 +128,9 @@ All rights reserved
  */
 #define OT_stat_sec 40
 
-/* Approx max size of each aBit queue in the OT thread */
+/* Approx max size of each aBit and aAND queues in the OT thread */
 #define max_aBit_queue 500000
+#define max_aAND_queue 200000
 
 /* This says use the SimpleROT from ePrint 2015/267 instead of the DMC 
  * version (the latter introduces a problem in our usage)

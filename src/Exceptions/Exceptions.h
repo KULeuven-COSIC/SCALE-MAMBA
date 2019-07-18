@@ -383,4 +383,40 @@ class cannot_do_conversion : public exception
   }
 };
 
+class GC_Error : public exception
+{
+  string msg;
+
+public:
+  GC_Error(string m)
+  {
+    msg= "GC-Error : " + m;
+  }
+  ~GC_Error() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
+  }
+};
+
+class LF_Error : public exception
+{
+  string msg;
+
+public:
+  LF_Error(string m)
+  {
+    msg= "LF-Error : " + m;
+  }
+  ~LF_Error() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
+  }
+};
+
 #endif

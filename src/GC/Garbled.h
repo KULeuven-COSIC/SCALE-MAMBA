@@ -22,7 +22,7 @@ All rights reserved
  */
 
 #include "Circuit.h"
-#include "OT/aAND_Factory.h"
+#include "OT/aAND_Thread.h"
 
 /* The Base_Garbled_Circuit operates on inputs which are secret
  * shared. The derived class operates on inputs which are given
@@ -53,7 +53,7 @@ protected:
 public:
   void Garble(const Circuit &C,
               Player &P,
-              aAND_Factory &aAF);
+              unsigned int online_thread_no);
 
   // This is the core-evaluate routine
   //   Gamma holds the external values for all wires
@@ -98,7 +98,7 @@ public:
   void Garble(const Circuit &C,
               const vector<unsigned int> &i_a, const vector<unsigned int> &o_a,
               Player &P,
-              aAND_Factory &aAF);
+              unsigned int online_thread_no);
 
   /* input/output is this players input/output. Again these 
    * are of length 

@@ -191,9 +191,8 @@ enum {
   PRINTINT= 0xB9,
 
   // Comparison of sregints
-  EQZSINT = 0xD0,
-  LTZSINT = 0xD1,
-  BITSINT = 0xD2,
+  EQZSINT= 0xD0,
+  LTZSINT= 0xD1,
 
   // Bitwise logical operations on sregints
   ANDSINT= 0xD3,
@@ -207,10 +206,22 @@ enum {
   // 64x64 -> 128 multiplier
   MUL2SINT= 0xDA,
 
+  // GC (and allied) commands
+  GC= 0xDB,
+  BITSINT= 0xDC,
+  SINTBIT= 0xDD,
+
   // Others
   RAND= 0xE0,
   START_TIMER= 0xE1,
-  STOP_TIMER= 0xE2
+  STOP_TIMER= 0xE2,
+
+  // Local functions
+  LF_CINT= 0xEA,
+  LF_SINT= 0xEB,
+  LF_REGINT= 0xEC,
+  LF_SREGINT= 0xED
+
 };
 
 // Register types

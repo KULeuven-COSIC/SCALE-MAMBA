@@ -7,6 +7,7 @@ All rights reserved
 
 #include "Base_Circuits.h"
 #include <fstream>
+#include <mutex>
 
 #include "OT/aBitVector.h"
 #include "config.h"
@@ -16,37 +17,44 @@ Base_Circuits Global_Circuit_Store;
 
 void Base_Circuits::initialize(const bigint &p)
 {
-  BaseC.resize(Number_Circuits);
+  Circuit C;
 
   ifstream inpf;
 
   inpf.open("Circuits/Bristol/adder64.txt");
-  inpf >> BaseC[Adder64];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(0, C));
 
   inpf.open("Circuits/Bristol/sub64.txt");
-  inpf >> BaseC[Sub64];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(1, C));
 
   inpf.open("Circuits/Bristol/mult2_64.txt");
-  inpf >> BaseC[Mult2_64];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(2, C));
 
   inpf.open("Circuits/Bristol/mult64.txt");
-  inpf >> BaseC[Mult64];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(3, C));
 
   inpf.open("Circuits/Bristol/divide64.txt");
-  inpf >> BaseC[Divide64];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(4, C));
 
   inpf.open("Circuits/Bristol/neg64.txt");
-  inpf >> BaseC[Neg64];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(5, C));
 
   inpf.open("Circuits/Bristol/zero_equal.txt");
-  inpf >> BaseC[Zero_Equal];
+  inpf >> C;
   inpf.close();
+  Circuits.insert(make_pair(6, C));
 
   /* We can do a conversion if log_2 p bits mod p 
    * give something statistically close to random mod p
@@ -72,8 +80,9 @@ void Base_Circuits::initialize(const bigint &p)
       ((lg2p > sreg_bitl + conv_stat_sec) || (y1 > conv_stat_sec) || (y2 > conv_stat_sec)))
     {
       inpf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
-      inpf >> BaseC[LSSS_to_GC];
+      inpf >> C;
       inpf.close();
+      Circuits.insert(make_pair(7, C));
 
       convert_ok= true;
     }
@@ -81,4 +90,41 @@ void Base_Circuits::initialize(const bigint &p)
     {
       convert_ok= false;
     }
+
+  /* Now the reserved indirect called circuits 
+   *   - Those called by the GC opcode
+   */
+  loaded.insert(make_pair(100, false));
+  location.insert(make_pair(100, "Circuits/Bristol/aes_128.txt"));
+  loaded.insert(make_pair(101, false));
+  location.insert(make_pair(101, "Circuits/Bristol/aes_192.txt"));
+  loaded.insert(make_pair(102, false));
+  location.insert(make_pair(102, "Circuits/Bristol/aes_256.txt"));
+  loaded.insert(make_pair(103, false));
+  location.insert(make_pair(103, "Circuits/Bristol/Keccak_f.txt"));
+
+  /* Now any user defined ones */
+
+  /* PUT YOUR ONES HERE 
+   *    - USE INTEGERS BIGGER THAN 65536 IN THE MAP OPERATIONS
+   */
+}
+
+mutex mutex_GC_load;
+
+void Base_Circuits::check(int num)
+{
+  /* Use mutex here just in case */
+  mutex_GC_load.lock();
+  if (loaded[num] == false)
+    {
+      loaded[num]= true;
+
+      Circuit C;
+      ifstream inpf(location[num]);
+      inpf >> C;
+      inpf.close();
+      Circuits.insert(make_pair(num, C));
+    }
+  mutex_GC_load.unlock();
 }

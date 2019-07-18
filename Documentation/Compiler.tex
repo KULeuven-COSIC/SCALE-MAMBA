@@ -43,7 +43,7 @@ command:
 
 \displaytt{compile.py [options] Programs/some\_program}
 
-\noindent The compiled bytecode and schedule files are then stored in the 
+\noindent The compiled byte-code and schedule files are then stored in the 
 same directory as the main program. 
 
 
@@ -58,7 +58,7 @@ are not as relevant for the casual user).
 Don't optimize the program by merging independent rounds of communication.
 
 \func{-o --output <name>}
-Specify a prefix \verb|name-| for output bytecode files (defaults to the input file name).
+Specify a prefix \verb|name-| for output byte-code files (defaults to the input file name).
 
 \func{-d --debug}
 Keep track of the call stack and display when an error occurs.
@@ -148,7 +148,7 @@ Writing to Programs/tutorial/tutorial-0.bc
 Writing to Programs/tutorial/tutorial-0.bc
 \end{verbatim}
 The compilation output in this case corresponds  to a 3-party scenario using Shamir Secret Sharing for both, online and offline phases. 
-The output introduces first some program level parameters, followed by the rolling of the tape (converting all operations to bytecode instructions), and offline data requirements. We now proceed to analyze the output more into detail.
+The output introduces first some program level parameters, followed by the rolling of the tape (converting all operations to byte-code instructions), and offline data requirements. We now proceed to analyze the output more into detail.
 
 \subsubsection{Program Level Parameters}
 
@@ -189,7 +189,7 @@ sfloat.kappa=50
 
 
 \subsubsection{Compilation comments regarding the tape enrollment:} 
-The compiler output showcases a typical example of instructions from the compiler. They reflect the tasks being performed while writing down the instructions in the bytecode.
+The compiler output showcases a typical example of instructions from the compiler. They reflect the tasks being performed while writing down the instructions in the byte-code.
 \func{Compiling basic block}
 Signals the start of compilation of a new basic block on the tape. It also adds operations to such block.
 \func{Processing tape}
@@ -224,7 +224,7 @@ Programs for the compiler are written in a restricted form of Python code,
 with an additional library of functions and classes specifically for MPC
 functionalities. The compiler then executes the Python code, and the MPC
 library functions cause this to output
-bytecode suitable for running on the virtual machine.
+byte-code suitable for running on the virtual machine.
 Whilst the compiler will, in theory, accept any valid Python
 code as input, some language features may not work as expected.
 The key point is that any native Python constructs are evaluated at compile
@@ -300,8 +300,8 @@ Moreover, the clear type \verb|regint| was designed in such a way that it can be
 One example is as array index, since values used in range-loops and some of while-loops are \verb|regint|s. 
 Also value in MemValue(described later) is stored as \verb|regint|. 
 We use \verb|regint| in such a generic way, given that operations on regint are faster than on \verb|cint|. 
-This is because \verb+regint+ values map directly to the integer values in the Bytecodes,
-whereas \verb+cint+ map to the clear type in the Bytecode.
+This is because \verb+regint+ values map directly to the integer values in the byte-codes,
+whereas \verb+cint+ map to the clear type in the byte-code.
 
 \paragraph{Conversions:} We can perform conversions between \verb|sint| and \verb|sregint|, bearing in mind that both have to be allocated in the same integer range. This can be done by simply instantiating either an \verb|sregint| or a
 \verb|sint| object passing the corresponding register as a parameter in the constructor as follows: 
@@ -390,13 +390,26 @@ using a Garbled Circuit and adjusting to get the sign correct.
 Extractions of bits from an \verb|sregint| register can be done as follows:
 \begin{lstlisting}
 sa=sregint(5424)
-for j in range(32):
+for j in range(32,0,-1):
   sf=sbit()
   bitsint(sf,sa,j)
   cc=sf.reveal()
   print_int(cc)
 print_ln("")
 \end{lstlisting}
+
+Setting specific bits in an \verb|sregint| via a \verb|sbit| are done as follows:
+\begin{lstlisting}
+ans=sregint(0)
+for j in range(0,32):
+  temp=sregint()
+  sintbit(temp,ans,sbb,j)
+  ans=temp;
+  cc=ans.reveal()
+  print_int(cc)
+  print_ln("")
+\end{lstlisting}
+
 
 \paragraph{On regint and clear data types:} As it was noted before, \verb|regint| offers support for a number of housekeeping tasks. Because of this fact, conversions between all clear types, including \verb|regint| are supported. Furthermore, all operations that involve a clear register with \verb|regint| would return a \verb|regint| register. This can be achieved as follows: 
 \begin{lstlisting}
@@ -997,7 +1010,7 @@ for i in range(n):
 \end{lstlisting}
 This might seem useless - why do we want to do the same multiplication but 10 fold? Well we can put different data in each slot by first dumping same length arrays to $x$ and $y$ and then multiplication is going to be faster due to SIMD.
 
-\subsection{Advanced Data Type Explanation}
+\subsection{Advanced Data Type and Programming Explanation}
 		
 \subsubsection{class sfix}
 The \verb|sfix| class is based on Catrina and Saxena's work on processing fixed point precision arithmetic within MPC~\cite{CS10}. Basically, we use an integer mapping to encode a rational element represented up to certain precision. 
@@ -1735,11 +1748,69 @@ branches must be tested manually using \verb|test_mem|, and any programs that
 rely on reading or writing to or from main memory may not emulate correctly
 either.
 
+\subsubsection{SIMD Operations}
+As explained in the section on byte-codes (Section \ref{ch:vm}) {\em most} byte-codes
+can be vectorized.
+In most cases this results in just a saving on resulting code size, and also
+in cycles for processing the byte-codes. 
+However for the \verb|STARTOPEN| and \verb|STOPOPEN| commands this
+results also in a reduction in the number of rounds of communication needed.
+
+Just as one can call the non-vectorized byte-codes directly from MAMBA, one
+can also call the vectorized ones directly as well. See how a parallel
+load and store from memory is done in the following example.
+The \verb|ldms| byte-code is executed $n$ times in parallel by
+changing it to \verb|vldms| and then giving the number of 
+times this should be executed as the first argument.
+\begin{lstlisting}
+n = 1000
+
+A = Array(n, sint)
+B = Array(n, sint)
+C = Array(n, sint)
+
+# assign some dummy values
+for i in range(n):
+    A[i] = sint(2 * i)
+    B[i] = sint(3 * i)
+
+a = sint(size=n)
+b = sint(size=n)
+
+vldms(n, a, A.address)
+vldms(n, b, B.address)
+
+c = a < b
+
+vstms(n, c, C.address)
+
+C[0].reveal().print_reg()
+C[1].reveal().print_reg()
+C[n / 2].reveal().print_reg()
+C[n - 1].reveal().print_reg()
+\end{lstlisting}
+Suppose we replaced the \verb|c = a < b| operation by the 
+operation \verb|c = a * b|, then this single parallel multiplication would
+be compiled down to the following byte-codes...
+\begin{lstlisting}
+vtriple 100, s100, s0, s200 # 0
+vsubs 100, s400, s500, s0 # 2
+vsubs 100, s300, s500, s100 # 4
+vstartopen 100, 2, s300, s400 # 5
+vstopopen 100, 2, c100, c200 # 6
+vmulm 100, s300, s0, c100 # 7
+vadds 100, s0, s200, s300 # 8
+vmulm 100, s200, s100, c200 # 9
+vadds 100, s100, s0, s200 # 10
+vmulc 100, c0, c100, c200 # 11
+vaddm 100, s0, s100, c0 # 12
+\end{lstlisting}
+
 \subsection{The Compilation Process}
 Compilation is performed by a single call to the Python function
 \verb|execfile| on the main source code file. The creation and optimization
-of bytecode tapes is done on-the-fly, as the program is being parsed. As soon
-as a tape is finished parsing it is optimized and written to a bytecode
+of byte-code tapes is done on-the-fly, as the program is being parsed. As soon
+as a tape is finished parsing it is optimized and written to a byte-code
 file, and all its resources freed to save on memory usage.
 
 During parsing, instructions are created such that every output of an
@@ -1928,8 +1999,8 @@ do not forget anything. Please add stuff here when you notice
 something which might be useful for people down the line.
 
 \begin{enumerate}
-\item Instructions/ByteCodes can be re-ordered. Sometimes this is a bad idea,
-e.g. for IO instructions. All instructions/bytecodes which inherit from
+\item Instructions/byte-codes can be re-ordered. Sometimes this is a bad idea,
+e.g. for IO instructions. All instructions/byte-codes which inherit from
 \verb+IOInstruction+ are never reordered.
 \item Instructions executed in the test scripts need to be emulated in
 python. So do not use an instruction here which does not have an emulation.
