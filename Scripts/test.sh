@@ -38,7 +38,7 @@ if test "$1"; then
 else
     test_opts="-s"
     compile_opts="--stop"
-    for test in test_all test_array test_branch test_branching test_comparison test_count test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_for_range_multithread test_function test_idle_threads test_lib test_loop test_map_reduce test_mem_order test_new_threads test_sregint test_threads test_vector test_sfix test_sqrt test_math test_custom_array test_fix_array; do
+    for test in test_array test_branch test_branching test_comparison test_count test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_for_range_multithread test_function test_idle_threads test_lib test_loop test_map_reduce test_mem_order test_new_threads test_sregint test_threads test_vector test_sfix test_sqrt test_math test_custom_array test_fix_array test_all; do
 	run_test $test
     done
 fi

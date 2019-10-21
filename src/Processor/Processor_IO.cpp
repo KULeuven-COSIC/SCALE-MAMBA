@@ -34,7 +34,7 @@ void Processor_IO::private_input(unsigned int player, int target, unsigned int c
     }
 
   stringstream ss;
-  OCD.sacrifice_mutex[thread].lock();
+  OCD.OCD_mutex[thread].lock();
   rshares[player]= SacrificeD[thread].ID.ios[player].front();
   SacrificeD[thread].ID.ios[player].pop_front();
   if (player == P.whoami())
@@ -43,7 +43,7 @@ void Processor_IO::private_input(unsigned int player, int target, unsigned int c
       SacrificeD[thread].ID.opened_ios.pop_front();
       i_epsilon.output(ss, false);
     }
-  OCD.sacrifice_mutex[thread].unlock();
+  OCD.OCD_mutex[thread].unlock();
   Proc.increment_counters(Share::SD.M.shares_per_player(P.whoami()));
 
   if (player == P.whoami())
@@ -76,7 +76,7 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
   int thread= Proc.get_thread_num();
   Wait_For_Preproc(DATA_INPUT_MASK, 1, thread, OCD, player);
 
-  OCD.sacrifice_mutex[thread].lock();
+  OCD.OCD_mutex[thread].lock();
 
   gfp o_epsilon;
 
@@ -90,7 +90,7 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
   vector<gfp> values(1);
   shares[0]= SacrificeD[thread].ID.ios[player].front();
   SacrificeD[thread].ID.ios[player].pop_front();
-  OCD.sacrifice_mutex[thread].unlock();
+  OCD.OCD_mutex[thread].unlock();
 
   shares[0].add(Proc.get_Sp_ref(source));
 

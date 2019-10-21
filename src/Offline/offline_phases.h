@@ -11,25 +11,31 @@ All rights reserved
 #include "System/Player.h"
 #include "offline_data.h"
 
-void mult_phase(int num_online, Player &P, offline_control_data &OCD,
+void mult_phase(int num_online, Player &P, int fake_sacrifice,
+                offline_control_data &OCD,
                 const FHE_PK &pk, const FHE_SK &sk, const FFT_Data &PTD,
                 FHE_Industry &industry,
                 int verbose);
 
-void square_phase(int num_online, Player &P, offline_control_data &OCD,
+void square_phase(int num_online, Player &P, int fake_sacrifice,
+                  offline_control_data &OCD,
                   const FHE_PK &pk, const FHE_SK &sk, const FFT_Data &PTD,
                   FHE_Industry &industry,
                   int verbose);
 
-void bit_phase(int num_online, Player &P, offline_control_data &OCD,
+void bit_phase(int num_online, Player &P, int fake_sacrifice,
+               offline_control_data &OCD,
                const FHE_PK &pk, const FHE_SK &sk, const FFT_Data &PTD,
                FHE_Industry &industry,
                int verbose);
 
-void sacrifice_phase(int num_online, Player &P, int fake_sacrifice,
-                     offline_control_data &OCD, const FHE_PK &pk,
-                     const FHE_SK &sk, const FFT_Data &PTD,
-                     FHE_Industry &industry,
-                     int verbose);
+/* As well as doing the input generation, this also acts as a bit
+ * of a control to ensure things close down cleanly
+ */
+void inputs_phase(int num_online, Player &P, int fake_sacrifice,
+                  offline_control_data &OCD, const FHE_PK &pk,
+                  const FHE_SK &sk, const FFT_Data &PTD,
+                  FHE_Industry &industry,
+                  int verbose);
 
 #endif

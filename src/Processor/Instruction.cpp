@@ -137,6 +137,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case STMINTI:
       case LEGENDREC:
       case SQUARE:
+      case DABIT:
       case CONVINT:
       case LTZINT:
       case EQZINT:
@@ -160,16 +161,15 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         break;
       // instructions with 1 register operand
       case BIT:
-      case PRINTREGPLAIN:
+      case PRINT_REG:
       case LDTN:
       case LDARG:
       case STARG:
-      case JMPI:
       case PUSHINT:
       case POPINT:
-      case PRINTCHRINT:
-      case PRINTSTRINT:
-      case PRINTINT:
+      case PRINT_CHAR_REGINT:
+      case PRINT_CHAR4_REGINT:
+      case PRINT_INT:
         r[0]= get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
@@ -215,7 +215,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case STMINT:
       case JMPNZ:
       case JMPEQZ:
-      case PRINTREG:
       case LDINT:
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
@@ -236,19 +235,20 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         m= get_int(s);
         break;
       // instructions with 1 reg + 2 integer operand
-      case PRINTFIXPLAIN:
+      case PRINT_FIX:
         r[0]= get_int(s);
         n= get_int(s);
         m= get_int(s);
         break;
       // instructions with 1 integer operand
-      case PRINTSTR:
-      case PRINTCHR:
+      case PRINT_CHAR4:
+      case PRINT_CHAR:
       case JMP:
-      case START_TIMER:
-      case STOP_TIMER:
+      case CALL:
+      case START_CLOCK:
+      case STOP_CLOCK:
       case CLOSE_CHAN:
-      case PRINTMEM:
+      case PRINT_MEM:
       case JOIN_TAPE:
         n= get_int(s);
         break;
@@ -257,9 +257,10 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case CLEAR_REGISTERS:
       case RESTART:
       case CRASH:
+      case RETURN:
         break;
       // instructions with 4 register operands
-      case PRINTFLOATPLAIN:
+      case PRINT_FLOAT:
       case MUL2SINT:
         get_vector(4, start, s);
         break;
@@ -298,10 +299,10 @@ void BaseInstruction::parse_operands(istream &s, int pos)
     }
 }
 
-int BaseInstruction::get_reg_type() const
+RegType BaseInstruction::get_reg_type() const
 {
   switch (opcode)
-    { // List here commands which write to a regint/sregint/sbit register or regint memory
+    { // List here commands which write to a specific type of register or a direct memory access
       case LDMINT:
       case LDMINTI:
       case MOVINT:
@@ -309,7 +310,6 @@ int BaseInstruction::get_reg_type() const
       case LDTN:
       case LDARG:
       case INPUT_INT:
-      case OPEN_CHAN:
       case RAND:
       case LDINT:
       case CONVMODP:
@@ -323,6 +323,8 @@ int BaseInstruction::get_reg_type() const
       case EQINT:
       case EQZINT:
       case STMINT:
+      case STMSINT:
+      case STMSINTI:
       case LDMSINT:
       case LDMSINTI:
       case MOVSINT:
@@ -339,17 +341,9 @@ int BaseInstruction::get_reg_type() const
       case SHRSINT:
       case NEG:
       case SAND:
-      case XORSB:
-      case ANDSB:
-      case ORSB:
-      case NEGB:
-      case LTZSINT:
-      case EQZSINT:
-      case BITSINT:
       case SINTBIT:
       case CONVSINTSREG:
       case CONVREGSREG:
-      case CONVSREGSINT:
       case OPENSINT:
       case OPENSBIT:
       case ANDSINT:
@@ -364,22 +358,88 @@ int BaseInstruction::get_reg_type() const
       case LF_REGINT:
       case LF_SREGINT:
         return INT;
+      case XORSB:
+      case ANDSB:
+      case ORSB:
+      case NEGB:
+      case LTZSINT:
+      case EQZSINT:
+      case BITSINT:
+        return SBIT;
+      case PUSHINT:
+      case STARG:
+      case REQBL:
+      case RUN_TAPE:
+      case JOIN_TAPE:
+      case CRASH:
+      case CLEAR_MEMORY:
+      case CLEAR_REGISTERS:
+      case PRINT_MEM:
+      case PRINT_REG:
+      case PRINT_CHAR:
+      case PRINT_CHAR4:
+      case PRINT_CHAR_REGINT:
+      case PRINT_CHAR4_REGINT:
+      case PRINT_FLOAT:
+      case PRINT_FIX:
+      case PRINT_INT:
+      case OPEN_CHAN:
+      case CLOSE_CHAN:
+      case OUTPUT_SHARE:
+      case OUTPUT_INT:
+      case PRIVATE_OUTPUT:
+      case JMP:
+      case JMPNZ:
+      case JMPEQZ:
+      case STARTOPEN:
+      case START_CLOCK:
+      case STOP_CLOCK:
+      case CALL:
+      case RETURN:
+        return NONE;
+      case DABIT:
+        return DUAL;
       default:
         return MODP;
     }
 }
 
-int BaseInstruction::get_max_reg(int reg_type) const
+/* This does an overestimate as it counts ALL values, even 
+ * if they are reading. But the reg_type looks only at
+ * the RETURN value type. So we will overcount some register
+ * usage. If we got the exact register usage it would cost
+ * more logic, and would save little in terms of memeory
+ *
+ * The trick is that if a register is read it must be
+ * written so if we only count the instructions which
+ * write, and then take the max register in that
+ * instruction it will be OK
+ *   
+ * So if we hade
+ *      blah with c0,c1,s0,s1 registers
+ *      c5 <- add c0, c1
+ *      s3 <- add c5, s1
+ * Then the max registers *should* be
+ *    c : 5    s: 3
+ * But we actually count
+ *    c : 5    s: 5
+ * due to the c5 read in the last instruction. But we only
+ * need a max and 3<5 so all is OK
+ *
+ * Dual is a weird one to catch the different write types
+ * of the DABIT instruction
+ *
+ */
+int BaseInstruction::get_max_reg(RegType reg_type) const
 {
-  if (get_reg_type() != reg_type)
+  if ((get_reg_type() == reg_type) || (get_reg_type() == DUAL && (reg_type == SBIT || reg_type == MODP)))
     {
-      return 0;
+      if (start.size())
+        return *max_element(start.begin(), start.end()) + size;
+      else
+        return *max_element(r, r + 3) + size;
     }
-
-  if (start.size())
-    return *max_element(start.begin(), start.end()) + size;
-  else
-    return *max_element(r, r + 3) + size;
+  return 0;
 }
 
 int Instruction::get_mem(RegType reg_type, SecrecyType sec_type) const
@@ -499,6 +559,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       case STARG:
         s << "STARG";
+        break;
+      case CALL:
+        s << "CALL";
+        break;
+      case RETURN:
+        s << "RETURN";
         break;
       case RUN_TAPE:
         s << "RUN_TAPE";
@@ -632,6 +698,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case SQUARE:
         s << "SQUARE";
         break;
+      case DABIT:
+        s << "DABIT";
+        break;
       case ANDC:
         s << "ANDC";
         break;
@@ -689,9 +758,6 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case EQINT:
         s << "EQINT";
         break;
-      case JMPI:
-        s << "JMPI";
-        break;
       case LDINT:
         s << "LDINT";
         break;
@@ -713,44 +779,41 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case CONVMODP:
         s << "CONVMODP";
         break;
-      case PRINTMEM:
-        s << "PRINTMEM";
+      case PRINT_MEM:
+        s << "PRINT_MEM";
         break;
-      case PRINTREG:
-        s << "PRINTREG";
+      case PRINT_REG:
+        s << "PRINT_REG";
         break;
-      case PRINTREGPLAIN:
-        s << "PRINTREGPLAIN";
+      case PRINT_CHAR:
+        s << "PRINT_CHAR";
         break;
-      case PRINTCHR:
-        s << "PRINTCHR";
+      case PRINT_CHAR4:
+        s << "PRINT_CHAR4";
         break;
-      case PRINTSTR:
-        s << "PRINTSTR";
+      case PRINT_CHAR_REGINT:
+        s << "PRINT_CHAR_REGINT";
         break;
-      case PRINTCHRINT:
-        s << "PRINTCHRINT";
+      case PRINT_CHAR4_REGINT:
+        s << "PRINT_CHAR4_REGINT";
         break;
-      case PRINTSTRINT:
-        s << "PRINTSTRINT";
+      case PRINT_FLOAT:
+        s << "PRINT_FLOAT";
         break;
-      case PRINTFLOATPLAIN:
-        s << "PRINTFLOATPLAIN";
+      case PRINT_FIX:
+        s << "PRINT_FIX";
         break;
-      case PRINTFIXPLAIN:
-        s << "PRINTFIXPLAIN";
-        break;
-      case PRINTINT:
-        s << "PRINTINT";
+      case PRINT_INT:
+        s << "PRINT_INT";
         break;
       case RAND:
         s << "RAND";
         break;
-      case START_TIMER:
-        s << "START_TIMER";
+      case START_CLOCK:
+        s << "START_CLOCK";
         break;
-      case STOP_TIMER:
-        s << "STOP_TIMER";
+      case STOP_CLOCK:
+        s << "STOP_CLOCK";
         break;
       case LDMSINT:
         s << "LDMSINT";
@@ -1035,8 +1098,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       // instructions with 1 sint + 1 sregint register operand
       case CONVSREGSINT:
-        s << "s_" << instr.r[0] << " ";
+	s << "s_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
+        break;
+      case DABIT:
+        s << "s_" << instr.r[0] << " ";
+        s << "sb_" << instr.r[1] << " ";
         break;
       // instructions with 1 rint + 1 sregint register operand
       case OPENSINT:
@@ -1085,7 +1152,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "sb_" << instr.r[1] << " ";
         break;
       // instructions with 1 cint register operands
-      case PRINTREGPLAIN:
+      case PRINT_REG:
         s << "c_" << instr.r[0] << " ";
         break;
       // instructions with 1 sint register operands
@@ -1093,10 +1160,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "s_" << instr.r[0] << " ";
         break;
       // instructions with 1 rint register operands
-      case PRINTINT:
-      case PRINTCHRINT:
-      case PRINTSTRINT:
-      case JMPI:
+      case PRINT_INT:
+      case PRINT_CHAR_REGINT:
+      case PRINT_CHAR4_REGINT:
       case PUSHINT:
       case POPINT:
       case STARG:
@@ -1166,7 +1232,6 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDI:
       case LDMC:
       case STMC:
-      case PRINTREG:
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
         s << "c_" << instr.r[0] << " ";
@@ -1187,21 +1252,22 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << instr.m << " ";
         break;
       // instructions with 1 sint + 2 integer operands
-      case PRINTFIXPLAIN:
+      case PRINT_FIX:
         s << "c_" << instr.r[0] << " ";
         s << instr.n << " ";
         s << instr.m << " ";
         break;
       // instructions with 1 integer operand
-      case PRINTSTR:
-      case PRINTCHR:
+      case PRINT_CHAR:
+      case PRINT_CHAR4:
       case REQBL:
       case JMP:
-      case START_TIMER:
-      case STOP_TIMER:
+      case START_CLOCK:
+      case STOP_CLOCK:
       case CLOSE_CHAN:
-      case PRINTMEM:
+      case PRINT_MEM:
       case JOIN_TAPE:
+      case CALL:
         s << instr.n << " ";
         break;
       // instructions with no operand
@@ -1209,6 +1275,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case CRASH:
       case CLEAR_MEMORY:
       case CLEAR_REGISTERS:
+      case RETURN:
         break;
       // Three integer operands
       case RUN_TAPE:
@@ -1223,7 +1290,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
             s << "sr_" << instr.start[i] << " ";
           }
         break;
-      case PRINTFLOATPLAIN:
+      case PRINT_FLOAT:
       case STOPOPEN:
         for (unsigned int i= 0; i < instr.start.size(); i++)
           {
@@ -1332,7 +1399,6 @@ void Instruction::execute_using_sacrifice_data(
   // Check to see if we have to wait
   Wait_For_Preproc(opcode, size, thread, OCD);
   // Now do the work
-  OCD.sacrifice_mutex[thread].lock();
   Proc.increment_PC();
 
   int r[3]= {this->r[0], this->r[1], this->r[2]};
@@ -1342,22 +1408,28 @@ void Instruction::execute_using_sacrifice_data(
       switch (opcode)
         {
           case TRIPLE:
+            OCD.mul_mutex[thread].lock();
             Proc.get_Sp_ref(r[0])= SacrificeD[thread].TD.ta.front();
             SacrificeD[thread].TD.ta.pop_front();
             Proc.get_Sp_ref(r[1])= SacrificeD[thread].TD.tb.front();
             SacrificeD[thread].TD.tb.pop_front();
             Proc.get_Sp_ref(r[2])= SacrificeD[thread].TD.tc.front();
             SacrificeD[thread].TD.tc.pop_front();
+            OCD.mul_mutex[thread].unlock();
             break;
           case SQUARE:
+            OCD.sqr_mutex[thread].lock();
             Proc.get_Sp_ref(r[0])= SacrificeD[thread].SD.sa.front();
             SacrificeD[thread].SD.sa.pop_front();
             Proc.get_Sp_ref(r[1])= SacrificeD[thread].SD.sb.front();
             SacrificeD[thread].SD.sb.pop_front();
+            OCD.sqr_mutex[thread].unlock();
             break;
           case BIT:
+            OCD.bit_mutex[thread].lock();
             Proc.get_Sp_ref(r[0])= SacrificeD[thread].BD.bb.front();
             SacrificeD[thread].BD.bb.pop_front();
+            OCD.bit_mutex[thread].unlock();
             break;
           default:
             throw bad_value();
@@ -1370,7 +1442,6 @@ void Instruction::execute_using_sacrifice_data(
           r[2]++;
         }
     }
-  OCD.sacrifice_mutex[thread].unlock();
 }
 
 bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
@@ -1396,6 +1467,16 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
 
   int r[3]= {this->r[0], this->r[1], this->r[2]};
   int n= this->n;
+
+  // Extract daBit
+  if (opcode == DABIT)
+    {
+      for (unsigned int i= 0; i < size; i++)
+        {
+          Proc.write_daBit(r[0] + i, r[1] + i);
+        }
+      return restart;
+    }
 
   for (unsigned int i= 0; i < size; i++)
     {
@@ -1784,9 +1865,6 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case JMP:
             Proc.relative_jump((signed int) n);
             break;
-          case JMPI:
-            Proc.relative_jump((signed int) Proc.read_Ri(r[0]));
-            break;
           case JMPNZ:
             if (Proc.read_Ri(r[0]) != 0)
               {
@@ -1798,6 +1876,15 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               {
                 Proc.relative_jump((signed int) n);
               }
+            break;
+          case CALL:
+            Proc.pushi(Proc.get_PC());
+            Proc.relative_jump((signed int) n);
+            break;
+          case RETURN:
+            long ret_pos;
+            Proc.popi(ret_pos);
+            Proc.jump(ret_pos);
             break;
           case EQZINT:
             if (Proc.read_Ri(r[1]) == 0)
@@ -1851,7 +1938,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             to_signed_bigint(Proc.temp.aa, Proc.read_Cp(r[1]), n);
             Proc.write_Ri(r[0], Proc.temp.aa.get_si());
             break;
-          case PRINTMEM:
+          case PRINT_MEM:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1859,16 +1946,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTREG:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << "Reg[" << r[0] << "] = " << Proc.read_Cp(r[0]) << " # "
-                   << string((char *) &n, sizeof(n)) << endl;
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINTREGPLAIN:
+          case PRINT_REG:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1876,7 +1954,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTFIXPLAIN:
+          case PRINT_FIX:
             if (P.whoami() == 0)
               {
                 gfp v= Proc.read_Cp(r[0]);
@@ -1893,7 +1971,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTFLOATPLAIN:
+          case PRINT_FLOAT:
             if (P.whoami() == 0)
               {
                 gfp v= Proc.read_Cp(start[0]);
@@ -1920,7 +1998,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTINT:
+          case PRINT_INT:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1928,7 +2006,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTSTR:
+          case PRINT_CHAR4:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1936,7 +2014,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTCHR:
+          case PRINT_CHAR:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1944,7 +2022,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTCHRINT:
+          case PRINT_CHAR_REGINT:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1952,7 +2030,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().debug_output(ss);
               }
             break;
-          case PRINTSTRINT:
+          case PRINT_CHAR4_REGINT:
             if (P.whoami() == 0)
               {
                 stringstream ss;
@@ -1963,10 +2041,10 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case RAND:
             Proc.write_Ri(r[0], Proc.get_random_uint() % (1 << Proc.read_Ri(r[1])));
             break;
-          case START_TIMER:
+          case START_CLOCK:
             machine.start_timer(n);
             break;
-          case STOP_TIMER:
+          case STOP_CLOCK:
             machine.stop_timer(n);
             break;
           case REQBL:

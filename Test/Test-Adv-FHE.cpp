@@ -29,7 +29,7 @@ void Gen_FHE_Data(int &n, Ring &Rg, FFT_Data &PTD, FHE_Params &params,
   n= 2;
   bigint p0, p1, pr= 0;
   unsigned int hwt= 64, N;
-  Generate_Parameters(N, p0, p1, pr, 128, hwt, n, version);
+  Generate_Parameters(N, p0, p1, pr, 128, n, version, hwt);
 
   Rg.initialize(2 * N);
   gfp::init_field(pr);

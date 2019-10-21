@@ -61,67 +61,66 @@ triples for GC operations, so called aANDs.
 
 \begin{figure}[htb!]
 \begin{center}
-\begin{picture}{(370,280)}
+\begin{picture}{(370,360)}
 
-\put(0,25){\framebox(50,30){FHE Fact 1}}
-\put(0,75){\framebox(50,30){FHE Fact 2}}
-\put(50,90){\line(1,-1){25}}
-\put(50,40){\line(1,1){25}}
-\put(75,65){\line(1,0){25}}
-\put(100,15){\line(0,1){220}}
+\put(0,65){\framebox(50,30){FHE Fact 1}}
+\put(0,115){\framebox(50,30){FHE Fact 2}}
+\put(50,130){\line(1,-1){25}}
+\put(50,80){\line(1,1){25}}
+\put(75,105){\line(1,0){25}}
+\put(100,15){\line(0,1){300}}
+\put(100,315){\vector(1,0){20}}
+\put(100,275){\vector(1,0){20}}
 \put(100,235){\vector(1,0){20}}
 \put(100,195){\vector(1,0){20}}
-\put(100,155){\vector(1,0){20}}
+\put(100,135){\vector(1,0){20}}
 \put(100,95){\vector(1,0){20}}
 \put(100,55){\vector(1,0){20}}
 \put(100,15){\vector(1,0){20}}
-\put(100,125){\line(1,0){130}}
-\put(230,125){\vector(0,1){55}}
-\put(230,125){\vector(0,-1){55}}
 
 
-\put(40,195){\framebox(50,30){aAND}}
-\put(0,150){\framebox(50,30){aBit}}
+\put(40,235){\framebox(50,30){aAND}}
+\put(0,190){\framebox(50,30){aBit}}
 
 %aBit->aAND
-\put(25,180){\vector(1,1){15}}
+\put(25,220){\vector(1,1){15}}
 
 %aBit->Online
-\put(25,180){\line(0,1){100}}
-\put(25,280){\line(1,0){345}}
-\put(370,280){\line(0,-1){235}}
-\put(370,45){\vector(-1,0){20}}
-\put(370,185){\vector(-1,0){20}}
+\put(25,220){\line(0,1){140}}
+\put(25,360){\line(1,0){345}}
+\put(370,360){\line(0,-1){275}}
+\put(370,85){\vector(-1,0){57}}
+\put(370,225){\vector(-1,0){57}}
 
 %aAND->Online
-\put(65,225){\line(0,1){40}}
-\put(65,265){\line(1,0){295}}
-\put(360,265){\line(0,-1){210}}
-\put(360,55){\vector(-1,0){10}}
-\put(360,195){\vector(-1,0){10}}
+\put(65,265){\line(0,1){80}}
+\put(65,345){\line(1,0){295}}
+\put(360,345){\line(0,-1){250}}
+\put(360,95){\vector(-1,0){47}}
+\put(360,235){\vector(-1,0){47}}
 
-\put(120,220){\framebox(50,30){Mult Triples}}
-\put(170,235){\vector(1,-1){27}}
-\put(120,180){\framebox(50,30){Square Pairs}}
-\put(170,195){\vector(1,0){27}}
-\put(120,140){\framebox(50,30){Bits Pairs}}
-\put(170,155){\vector(1,1){27}}
+\put(120,300){\framebox(50,30){Mult Triples}}
+\put(170,315){\vector(3,-2){92}}
+\put(120,260){\framebox(50,30){Square Pairs}}
+\put(170,275){\vector(3,-1){83}}
+\put(120,220){\framebox(50,30){Bits Pairs}}
+\put(170,235){\vector(1,0){87}}
+\put(120,180){\framebox(70,30){Sacrifice/Inputs}}
+\put(190,185){\vector(2,1){65}}
 
-\put(200,180){\framebox(70,30){Sacrifice/Inputs}}
-\put(270,195){\vector(1,0){30}}
-\put(300,180){\framebox(50,30){Online Two}}
+\put(260,220){\framebox(50,30){Online Two}}
 
 
-\put(120,80){\framebox(50,30){Mult Triples}}
-\put(170,95){\vector(1,-1){27}}
-\put(120,40){\framebox(50,30){Square Pairs}}
-\put(170,55){\vector(1,0){27}}
-\put(120,0){\framebox(50,30){Bits Pairs}}
-\put(170,15){\vector(1,1){27}}
+\put(120,120){\framebox(50,30){Mult Triples}}
+\put(170,135){\vector(3,-1){84}}
+\put(120,80){\framebox(50,30){Square Pairs}}
+\put(170,95){\vector(1,0){83}}
+\put(120,40){\framebox(50,30){Bits Pairs}}
+\put(170,55){\vector(3,1){88}}
+\put(120,0){\framebox(70,30){Sacrifice/Inputs}}
+\put(190,15){\vector(1,1){67}}
 
-\put(200,40){\framebox(70,30){Sacrifice/Inputs}}
-\put(270,55){\vector(1,0){30}}
-\put(300,40){\framebox(50,30){Online One}}
+\put(260,80){\framebox(50,30){Online One}}
 
 \end{picture}
 \end{center}
@@ -224,6 +223,7 @@ Figure \ref{fig:memory}.
 \end{center}
 \caption{Pictorial Representation of Memory and Registers:
 With Two Online Threads}
+\label{fig:memory}
 \end{figure}
 
 \subsection{Byte-code instructions}
@@ -341,6 +341,8 @@ and they take as argument three, two, and one secret registers
 respectively.
 The associated data is loaded from the concurrently running
 offline threads and loaded into the registers given as arguments.
+There is also an instruction \verb+DABIT+ to load a doubly authenticated
+bit into a \verb|sint| and an \verb|sbit| register.
 
 \subsection{Open instructions}
 There are tailor-made approaches to open registers depending on whether they are $\modp$ or $\modn$. We detail both in this section. 
@@ -502,9 +504,9 @@ To enable debugging we provide simple commands to send
 debugging information to the \verb+Input_Output+ class.
 These byte-codes are
 \begin{verbatim}
-    PRINTINT,           PRINTMEM,          PRINTREG,           PRINTREGPLAIN,
-    PRINTCHR,           PRINTSTR,          PRINTCHRINT,        PRINTSTRINT,
-    PRINTFLOATPLAIN,    PRINTFIXPLAIN.
+    PRINT_INT,        PRINT_MEM,            PRINT_REG,              PRINT_CHAR,         
+    PRINT_CHAR4,      PRINT_CHAR_REGINT,    PRINT_CHAR4_REGINT,     PRINT_FLOAT,  
+    PRINT_FIX.
 \end{verbatim}
 
 \subsection{Data input and output}
@@ -518,14 +520,16 @@ The associated byte-codes are
              OPEN_CHAN,              CLOSE_CHAN
 \end{verbatim}
 
-\subsection{Branching on clear registers}
-Branching on clear registers is supported by the following
-instructions
+\subsection{Branching}
+Branching is supported by the following instructions
  \verb+JMP+,
     \verb+JMPNZ+,
     \verb+JMPEQZ+,
-    and
-    \verb+JMPI+.
+
+\subsection{Call/Return}
+Call and return to subroutines is supported by the following
+instructions
+\verb+CALL+ and \verb+RETURN+.
 
 \subsection{Comparison Tests for $\modn$}
 We support comparison on $\modn$ clear registers via the instructions
@@ -563,11 +567,11 @@ See Section \ref{sec:restart} for how this intended to be used.
 See Section \ref{sec:restart} for more details on how this is used.
 \item \verb+CLEAR_REGISTERS+ which clears the registers of this processor core (i.e. thread).
 See Section \ref{sec:restart} for more details on how this is used.
-\item \verb+START_TIMER+ and \verb+STOP_TIMER+ are used to time different
+\item \verb+START_CLOCK+ and \verb+STOP_CLOCK+ are used to time different
 parts of the code. There are 100 times available in the system;
 each is initialized to zero at the start of the machine running.
-The operation \verb+START_TIMER+ re-initializes a specified timer,
-whereas \verb+STOP_TIMER+ prints the elapsed time since the last
+The operation \verb+START_CLOCK+ re-initializes a specified timer,
+whereas \verb+STOP_CLOCK+ prints the elapsed time since the last
 initialization (it does not actually reinitialise/stop the timer itself).
 These are accessed from MAMBA via the functions
 \verb+start_timer(n)+ and \verb+stop_timer(n)+.

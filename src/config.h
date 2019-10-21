@@ -10,30 +10,10 @@ All rights reserved
 #define _CONFIG
 
 /* The minimum batch size for offline production per call 
- * to base routine. For FHE based routines these are likely to
- * be exceeded by a huge amount!
+ * to base routine. 
  */
 #define sz_offline_batch 60000
 #define sz_IO_batch 10000
-
-
-/* This are the maximum batch sizes for sacrificing per call
- * 
- * Note we do not need many squares in the end so this max
- * can be set quite low if we want
- */
-
-#define sz_triples_sacrifice 10000
-#define sz_squares_sacrifice 10000
-#define sz_bits_sacrifice 10000
-
-/* The max number of triples etc in the offline production queue 
- * These numbers are to avoid memory filling up, if data is not
- * being consumed. These are the size of the queues before sacrificing
- */
-#define max_triples_offline 200000
-#define max_squares_offline 200000
-#define max_bits_offline 200000
 
 /* The max number of triples etc in the sacrifice production queue 
  * where we stop producing stuff.
@@ -127,6 +107,16 @@ All rights reserved
  * Wang et al choose 40 here, so we will too
  */
 #define OT_stat_sec 40
+
+/* This is the bound we use on for the NewHope approximation
+ * to a discrete Gaussian with sigma=sqrt(B/2)
+ */
+#define NewHopeB 1
+
+/* This gives the Hamming Weight of the secret key distribution.
+ * Set this to -1 to use a Gaussian secret key distribution
+ */
+#define HwtSK 64
 
 /* Approx max size of each aBit and aAND queues in the OT thread */
 #define max_aBit_queue 500000

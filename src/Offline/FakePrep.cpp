@@ -102,7 +102,7 @@ void FakePrep::produce_triples(list<Share> &a, list<Share> &b, list<Share> &c)
   triples[2]= c;
   rewind_triples= true;
 }
-void FakePrep::produce_squares(list<Share> &a, list<Share> &b)
+void FakePrep::produce_squares(list<Share> &a, list<Share> &b, unsigned int rep)
 {
   if (rewind_squares)
     {
@@ -127,7 +127,7 @@ void FakePrep::produce_squares(list<Share> &a, list<Share> &b)
       vector<gfp> amacs(Share::SD.nmacs);
       vector<gfp> bmacs(Share::SD.nmacs);
       vector<Share> sa(n), sb(n);
-      for (int i= 0; i < sz_offline_batch; i++)
+      while (a.size() < sz_offline_batch * rep)
         {
           aa.randomize(PRG);
           bb.mul(aa, aa);
@@ -152,7 +152,7 @@ void FakePrep::produce_squares(list<Share> &a, list<Share> &b)
     }
   else
     {
-      for (int i= 0; i < sz_offline_batch; i++)
+      while (a.size() < sz_offline_batch * rep)
         {
           string ss;
           P.receive_from_player(0, ss);

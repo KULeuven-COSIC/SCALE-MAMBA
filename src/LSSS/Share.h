@@ -152,7 +152,12 @@ public:
     res.mul(*this, x);
     return res;
   }
-
+  Share operator<<(int i) const
+  {
+	  Share res;
+	  res.mul(*this, gfp(1) << i);
+	  return res;
+  }
   Share &operator+=(const Share &x)
   {
     add(x);
@@ -162,6 +167,10 @@ public:
   {
     mul(*this, x);
     return *this;
+  }
+  Share &operator<<=(int i)
+  {
+	  return *this = *this<<i;
   }
 
   // Input and output from a stream

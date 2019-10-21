@@ -231,8 +231,9 @@ void offline_Reduced_triples(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
     }
 }
 
-void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
-                             list<Share> &b)
+void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs,
+                             list<Share> &a, list<Share> &b,
+                             unsigned int rep)
 {
   Share aa;
   vector<Share> cc(amortize), cc_m(amortize);
@@ -241,7 +242,7 @@ void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
       Init_Configure(P.whoami());
     }
 
-  for (int i= 0; i < sz_offline_batch / amortize; i++)
+  while (a.size() < sz_offline_batch * rep)
     {
       vector<stringstream> ss_m(P.nplayers()); // This line is here to make sure
                                                // ss is reinitialized every loop

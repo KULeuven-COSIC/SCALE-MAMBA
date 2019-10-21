@@ -204,7 +204,8 @@ void offline_FHE_triples(Player &P, list<Share> &a, list<Share> &b,
 void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
                          const FHE_PK &pk, const FHE_SK &sk,
                          const FFT_Data &PTD,
-                         FHE_Industry &industry)
+                         FHE_Industry &industry,
+                         unsigned int rep)
 {
   unsigned int nmacs= P.get_mac_keys().size();
 
@@ -213,7 +214,7 @@ void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
   Ciphertext ca(pk.get_params()), cc(pk.get_params()), nc(pk.get_params());
   Ciphertext tmp(pk.get_params());
 
-  while (a.size() < sz_offline_batch)
+  while (a.size() < sz_offline_batch * rep)
     {
       industry.Next_Off_Production_Line(va, ca, P, "Square a");
 
@@ -289,63 +290,147 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
     }
 }
 
-/* We do not need to do ZKPoKs for input data, we just need for
- * the given person to encrypt some random stuff, send the
- * ciphertext, all parties multiply through by the alpha ciphertext 
- * and then reshare both ciphertexts.
+void Update_ZKPoK(ZKPoK &ZKP, Player &P,
+                  unsigned int prover,
+                  const FHE_PK &pk,
+                  const FFT_Data &PTD)
+{
+  unsigned int nplayers= P.nplayers();
+
+#ifdef TOP_GEAR
+  ZKP.Step0(General, TopGear, pk, PTD, P.G, P.get_mac_keys());
+#else
+  ZKP.Step0(General, HighGear, pk, PTD, P.G, P.get_mac_keys());
+#endif
+
+  // Transmit E data if we are prover, receive data if
+  // we are verifier
+  if (ZKP.is_prover())
+    {
+      stringstream osE;
+      ZKP.get_vE(osE);
+      P.send_all(osE.str());
+    }
+  else
+    {
+      string vsE;
+      P.receive_from_player(prover, vsE);
+      istringstream isE(vsE);
+      ZKP.Step0_Step(isE, pk);
+    }
+
+  ZKP.Step1(pk, PTD, P.G);
+
+  // Again transmit A data if we are prover, receive data if
+  // we are verifier
+  if (ZKP.is_prover())
+    {
+      stringstream osA;
+      ZKP.get_vA(osA);
+      P.send_all(osA.str());
+    }
+  else
+    {
+      string vsA;
+      P.receive_from_player(prover, vsA);
+      istringstream isA(vsA);
+      ZKP.Step1_Step(isA, pk);
+    }
+
+  // Step 2 first step
+  uint8_t seed[SEED_SIZE];
+  AgreeRandom(P, seed, SEED_SIZE);
+  vector<int> e;
+  ZKP.Generate_e(e, seed);
+
+  ZKP.Step2(e, pk);
+
+  if (ZKP.is_prover())
+    {
+      // Transmit T and Z data
+      stringstream osT, osZ;
+      ZKP.get_vT(osT);
+      ZKP.get_vZ(osZ);
+      P.send_all(osT.str());
+      P.send_all(osZ.str());
+    }
+  else
+    {
+      string vsT, vsZ;
+      P.receive_from_player(prover, vsT);
+      P.receive_from_player(prover, vsZ);
+      istringstream isT(vsT), isZ(vsZ);
+      ZKP.Step2_Step(isT, isZ, pk);
+    }
+
+  // Step 3
+  if (!ZKP.Step3(pk, PTD, nplayers))
+    {
+      throw ZKPoK_Fail();
+    }
+}
+
+/* We *need* to do ZKPoKs for input data, unlike what SPDZ-2
+ * paper says.
  */
 void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
                     list<gfp> &opened, const FHE_PK &pk, const FHE_SK &sk,
                     const FFT_Data &PTD,
+                    offline_control_data &OCD,
+                    unsigned int online_thread,
                     FHE_Industry &industry)
 {
-  // Spin until ctx_macs are ready
-  while (industry.is_ready() == false)
+
+  // Update the relevant ZKPoK (do this now for ALL input players as
+  // we are probably in the first iteration waiting for the ctx for alpha
+  // to be created)
+  for (unsigned int i= 0; i < P.nplayers(); i++)
     {
-      sleep(5);
+      if (OCD.IO_ZKPoKs[online_thread][i].isempty())
+        {
+          Update_ZKPoK(OCD.IO_ZKPoKs[online_thread][i], P, i, pk, PTD);
+        }
     }
 
+  int used= OCD.IO_ZKPoKs[online_thread][player_num].get_next_unused();
+
+  Plaintext va(PTD), aa(PTD);
+  Ciphertext ca(pk.get_params()), tmp(pk.get_params());
+  OCD.IO_ZKPoKs[online_thread][player_num].get_entry(va, ca, used);
+
+  // Reshare the actual shares
+  Reshare(aa, ca, P, sk);
+
+  // Spin until the Macs are ready
+  bool ready= false;
+  while (ready == false)
+    {
+      ready= industry.is_ready();
+      if (ready == false)
+        {
+          sleep(5);
+        }
+    }
+
+  // Reshare the MACS
   unsigned int nmacs= P.get_mac_keys().size();
-
-  Plaintext m(PTD), va(PTD);
   vector<Plaintext> ga(nmacs, PTD);
-  Ciphertext c(pk.get_params()), tmp(pk.get_params());
-
-  // Construct the send/receive the main ciphertext
-  if (P.whoami() == player_num)
-    {
-      m.randomize(P.G);
-      c= pk.encrypt(m);
-      ostringstream s;
-      c.output(s);
-      P.send_all(s.str());
-    }
-  else
-    {
-      string s;
-      P.receive_from_player(player_num, s);
-      istringstream is(s);
-      c.input(is);
-    }
-
-  // Reshare the input ciphertext and the MACS
-  Reshare(va, c, P, sk);
   for (unsigned int i= 0; i < nmacs; i++)
     {
-      mul(tmp, c, industry.ct_mac(i), pk);
+      mul(tmp, ca, industry.ct_mac(i), pk);
       Reshare(ga[i], tmp, P, sk);
     }
 
-  // Construct the actual shares
+  // Create the shares
   unsigned int sz= pk.get_params().phi_m();
   vector<Share> alist(sz);
-  vector<gfp> openedlist(sz);
   vector<gfp> s(1), macs(nmacs);
   Share ss;
   for (unsigned int i= 0; i < sz; i++)
     {
-      get_share(s, macs, va, ga, i);
-      a.emplace_back(P.whoami(), s, macs);
+      get_share(s, macs, aa, ga, i);
+      ss.assign(P.whoami(), s, macs);
+      a.push_back(ss);
       alist[i]= ss;
     }
 
@@ -354,7 +439,7 @@ void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
     {
       for (unsigned int i= 0; i < sz; i++)
         {
-          opened.push_back(m.element(i));
+          opened.push_back(va.element(i));
         }
     }
 }

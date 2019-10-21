@@ -41,6 +41,8 @@ opcodes = dict(
   LDARG= 0x11,
   REQBL= 0x12,
   STARG= 0x13,
+  CALL= 0x14,
+  RETURN=0x15,
   RUN_TAPE= 0x19,
   JOIN_TAPE= 0x1A,
   CRASH= 0x1B,
@@ -97,6 +99,7 @@ opcodes = dict(
   TRIPLE= 0x50,
   BIT= 0x51,
   SQUARE= 0x52,
+  DABIT= 0x53,
 
   # sregint/sbit instructions
   LDMSINT= 0x60,
@@ -146,7 +149,6 @@ opcodes = dict(
   LTINT= 0x95,
   GTINT= 0x96,
   EQINT= 0x97,
-  JMPI= 0x98,
 
   # Integers
   LDINT= 0x9A,
@@ -163,16 +165,15 @@ opcodes = dict(
   CONVSREGSINT= 0xC4,
 
   # Debug Printing
-  PRINTMEM= 0xB0,
-  PRINTREG= 0XB1,
-  PRINTREGPLAIN= 0xB2,
-  PRINTCHR= 0xB3,
-  PRINTSTR= 0xB4,
-  PRINTCHRINT= 0xB5,
-  PRINTSTRINT= 0xB6,
-  PRINTFLOATPLAIN= 0xB7,
-  PRINTFIXPLAIN= 0xB8,
-  PRINTINT= 0xB9,
+  PRINT_MEM= 0xB0,
+  PRINT_REG= 0xB2,
+  PRINT_CHAR= 0xB3,
+  PRINT_CHAR4= 0xB4,
+  PRINT_CHAR_REGINT= 0xB5,
+  PRINT_CHAR4_REGINT= 0xB6,
+  PRINT_FLOAT= 0xB7,
+  PRINT_FIX= 0xB8,
+  PRINT_INT= 0xB9,
 
   # Comparison of sregints
   EQZSINT = 0xD0,
@@ -197,8 +198,8 @@ opcodes = dict(
 
   # Others
   RAND= 0xE0,
-  START_TIMER= 0xE1,
-  STOP_TIMER= 0xE2,
+  START_CLOCK= 0xE1,
+  STOP_CLOCK= 0xE2,
 
   # Local functions
   LF_CINT= 0xEA,
@@ -631,6 +632,8 @@ class JumpInstruction(Instruction):
         self.args[self.jump_arg] = value
 
     def get_relative_jump(self):
+        if self.jump_arg == -1:
+	  return -1
         return self.args[self.jump_arg]
 
 

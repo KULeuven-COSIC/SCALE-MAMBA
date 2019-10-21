@@ -9,6 +9,9 @@ All rights reserved
 
 #include "Online.h"
 #include "Processor/Processor.h"
+#include "OT/OT_Thread_Data.h"
+
+extern OT_Thread_Data OTD;
 
 void online_phase(int online_num, Player &P, offline_control_data &OCD,
                   Machine &machine)
@@ -21,13 +24,35 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
   bool wait= true;
   while (wait)
     {
-      OCD.sacrifice_mutex[online_num].lock();
-      if (OCD.totm[online_num] > OCD.minm && OCD.tots[online_num] > OCD.mins &&
-          OCD.totb[online_num] > OCD.minb)
+      wait= false;
+      OCD.mul_mutex[online_num].lock();
+      if (OCD.totm[online_num] < OCD.minm)
         {
-          wait= false;
+          wait= true;
         }
-      OCD.sacrifice_mutex[online_num].unlock();
+      OCD.mul_mutex[online_num].unlock();
+
+      OCD.sqr_mutex[online_num].lock();
+      if (OCD.tots[online_num] < OCD.mins)
+        {
+          wait= true;
+        }
+      OCD.sqr_mutex[online_num].unlock();
+
+      OCD.bit_mutex[online_num].lock();
+      if (OCD.totb[online_num] < OCD.minb)
+        {
+          wait= true;
+        }
+      OCD.bit_mutex[online_num].unlock();
+
+      OTD.aBD.aBD_mutex.lock();
+      if (OTD.ready==false)
+	{
+	  wait=true;
+        }
+      OTD.aBD.aBD_mutex.unlock();
+
       if (wait)
         {
           sleep(1);
@@ -36,7 +61,7 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
   printf("Starting online phase\n");
 
   // Initialise the program
-  Processor Proc(online_num, P.nplayers(), P, OCD);
+  Processor Proc(online_num, P.nplayers(), P);
 
   bool flag= true;
 
@@ -89,8 +114,9 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
   machine.Lock_Until_Ready(online_num);
 
   // Signal offline threads I am dying now
-  OCD.sacrifice_mutex[online_num].lock();
+  OCD.OCD_mutex[online_num].lock();
   OCD.finish_offline[online_num]= 1;
-  OCD.sacrifice_mutex[online_num].unlock();
+  OCD.finished_online[online_num]= 1;
+  OCD.OCD_mutex[online_num].unlock();
   printf("Exiting online phase : %d\n", online_num);
 }

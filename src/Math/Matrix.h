@@ -52,6 +52,7 @@ vector<gfp> BackSubst(const gfp_matrix &A);
 
 bool is_zero(const vector<gfp> &x);
 
+// Hwt returns the hamming weight of vector D
 int Hwt(const vector<int> &D);
 
 #endif

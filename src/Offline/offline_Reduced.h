@@ -17,8 +17,9 @@ using namespace std;
 void offline_Reduced_triples(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
                              list<Share> &b, list<Share> &c);
 
-void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
-                             list<Share> &b);
+void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs,
+                             list<Share> &a, list<Share> &b,
+                             unsigned int rep= 1);
 
 void offline_Reduced_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b,
                           Open_Protocol &OP);

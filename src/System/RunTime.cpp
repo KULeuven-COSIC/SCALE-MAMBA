@@ -71,9 +71,6 @@ Timer global_time;
 // Forward declarations to make code easier to read
 void *Main_Func(void *ptr);
 
-vector<triples_data> TriplesD;
-vector<squares_data> SquaresD;
-vector<bits_data> BitsD;
 vector<sacrificed_data> SacrificeD;
 
 MaliciousDABitMachine daBitMachine;
@@ -112,12 +109,9 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
 
   Global_Circuit_Store.initialize(gfp::pr());
 
-  OCD.resize(no_online_threads);
+  OCD.resize(no_online_threads, SD.n, my_number);
   OTD.init(no_online_threads);
 
-  TriplesD.resize(no_online_threads);
-  SquaresD.resize(no_online_threads);
-  BitsD.resize(no_online_threads);
   SacrificeD.resize(no_online_threads);
   for (unsigned int i= 0; i < no_online_threads; i++)
     {
@@ -129,7 +123,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   unsigned int tnthreads= nthreads + number_FHE_threads;
   // Add in the OT threads
   tnthreads+= 2;
-  daBitMachine.Initialize(SD.n);
+  daBitMachine.Initialize(SD.n, OCD);
 
   /* Initialize the networking TCP sockets */
   int ssocket;
@@ -192,6 +186,20 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
     }
 
   Close_Connections(ssocket, csockets, my_number);
+
+  global_time.stop();
+  cout << "Total Time (with thread locking) = " << global_time.elapsed() << " seconds" << endl;
+
+  long long total_triples = 0, total_squares = 0, total_bits = 0;
+  for (size_t i = 0; i < no_online_threads; i++) {
+    total_triples += OCD.totm[i];
+    total_squares += OCD.tots[i];
+    total_bits += OCD.totb[i];
+  }
+  cout << "Produced a total of " << total_triples << " triples" << endl;
+  cout << "Produced a total of " << total_squares << " squares" << endl;
+  cout << "Produced a total of " << total_bits << " bits" << endl;
+
 }
 
 #ifdef BENCH_MEMORY
@@ -235,6 +243,7 @@ void *Main_Func(void *ptr)
   fflush(stdout);
 
   Player P(me, *(tinfo->SD), num, (tinfo->ctx), (tinfo->csockets), (tinfo->MacK), verbose - 1);
+
   printf("Set up player %d in thread %d \n", me, num);
   fflush(stdout);
 
@@ -245,20 +254,20 @@ void *Main_Func(void *ptr)
       switch (num5)
         {
           case 0:
-            mult_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
-                       *(tinfo->PTD), *(tinfo)->industry, verbose);
+            mult_phase(num_online, P, (tinfo->SD)->fake_sacrifice, *(tinfo->OCD),
+                       *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD), *(tinfo)->industry, verbose);
             break;
           case 1:
-            square_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
-                         *(tinfo->PTD), *(tinfo)->industry, verbose);
+            square_phase(num_online, P, (tinfo->SD)->fake_sacrifice, *(tinfo->OCD),
+                         *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD), *(tinfo)->industry, verbose);
             break;
           case 2:
-            bit_phase(num_online, P, *(tinfo->OCD), *(tinfo->pk), *(tinfo->sk),
-                      *(tinfo->PTD), *(tinfo)->industry, verbose);
+            bit_phase(num_online, P, (tinfo->SD)->fake_sacrifice, *(tinfo->OCD),
+                      *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD), *(tinfo)->industry, verbose);
             break;
           case 3:
-            sacrifice_phase(num_online, P, (tinfo->SD)->fake_sacrifice, *(tinfo->OCD),
-                            *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD), *(tinfo)->industry, verbose);
+            inputs_phase(num_online, P, (tinfo->SD)->fake_sacrifice, *(tinfo->OCD),
+                         *(tinfo->pk), *(tinfo->sk), *(tinfo->PTD), *(tinfo)->industry, verbose);
             break;
           case 4:
             online_phase(num_online, P, *(tinfo->OCD), *(tinfo)->machine);

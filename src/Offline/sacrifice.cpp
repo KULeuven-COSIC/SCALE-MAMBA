@@ -236,7 +236,7 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
   vector<Share> bits1(amortize);
   Share temp;
 
-  int left_todo= bits.size();
+  int left_todo= min(bits.size(), a.size() / rep);
   while (left_todo > 0)
     {
       int this_loop= amortize;

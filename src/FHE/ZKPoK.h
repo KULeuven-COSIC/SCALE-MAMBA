@@ -12,7 +12,12 @@ All rights reserved
  * correctness of plaintexts
  *
  * Each player runs an instance of ZKPoK
- *
+ *   When single=true this runs as the prover or verifier
+ *   otherwise it runs as the prover being all (as in 
+ *   HighGear/TopGear), with a sum as the final statement.
+ *   The former case is needed for FHE_IO creation. When
+ *   single=true we need to know if we are the prover
+ *   or the verifier
  *
  * Step 1:
  *
@@ -67,6 +72,7 @@ class ZKPoK
 {
   condition PoKType;
   PoKVersion version;
+  bool single, prover;
 
   unsigned int U, V;
   // The *actual* soundness security we achieve
@@ -74,6 +80,7 @@ class ZKPoK
   unsigned int ssec;
 
   // Associated random coins for this player for the valid ciphertexts
+  //   If single=true this only holds something if I am the prover
   vector<Random_Coins> r;
 
   vector<int> e;
@@ -82,16 +89,22 @@ class ZKPoK
 
   // A[j] is the j-ciphertext of the test vectors in Step 1
   // In Step1_Step we add in the other players A vectors one by one
+  // if single=false, otherwise this is just the data from the prover/me
   vector<Ciphertext> A;
 
   // E[j] is j th ciphertext from me in Step 1
   // In Step1_Step we add in the other players E vectors one by one
+  // if single=false, otherwise this is just the data from the prover
+  // when prover=false, and my ciphertexts when prover=true
   vector<Ciphertext> E;
 
+  //   If single=true this is just the data from the prover/me
   vector<Rq_Element> Z;   // The vector of z's
   vector<Random_Coins> T; // The vector of T's
 
-  vector<Plaintext> m; // The plaintexts for this player
+  // The plaintexts for this player
+  //   If single=true this only holds something if I am the prover
+  vector<Plaintext> m;
 
   vector<Ciphertext> eq; // Main equation checking vector
 
@@ -99,6 +112,30 @@ class ZKPoK
   int M(unsigned int k, unsigned int l, const vector<int> &e);
 
 public:
+  // Default settings (standard TopGear)
+  ZKPoK()
+  {
+    single= false;
+    prover= false;
+  }
+
+  // Settings for use with the IO setting
+  //   - Basically run old SPDZ-2 proof with new technology
+  void set_params(bool sin= false, bool prov= false)
+  {
+    single= sin;
+    prover= prov;
+  }
+
+  bool is_single() const
+  {
+    return single;
+  }
+  bool is_prover() const
+  {
+    return prover;
+  }
+
   /* Set up the initial ciphertexts we are going to prove.
    * We do this in a seperate call, as then we can repeat the proof
    * for the same ciphertexts over and over again, to increase
@@ -115,6 +152,9 @@ public:
 
   void Step1(const FHE_PK &pk, const FFT_Data &PTD, PRNG &G);
 
+  // Player calls this to enter the each other players vectors vA
+  void Step1_Step(istream &vA, const FHE_PK &pk);
+
   // Get my vA for broadcasting
   void get_vA(ostream &s) const;
   // Get my vE for broadcasting
@@ -123,9 +163,6 @@ public:
   void get_vT(ostream &s) const;
   // Get my vz for broadcasting
   void get_vZ(ostream &s) const;
-
-  // Player calls this to enter the each other players vectors vA
-  void Step1_Step(istream &vA, const FHE_PK &pk);
 
   // Generate the vector e for Step 2 from a random seed
   void Generate_e(vector<int> &e, uint8_t seed[SEED_SIZE]);

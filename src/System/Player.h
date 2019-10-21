@@ -15,6 +15,7 @@ All rights reserved
 #include "SystemData.h"
 #include "Tools/Timer.h"
 #include "Tools/random.h"
+#include <map>
 
 void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD);
 
@@ -28,6 +29,9 @@ class Player
   // network data in bytes
   mutable long data_sent;
   mutable long data_received;
+  // messages sent (broadcast and pp)
+  mutable long pp_messages_sent;
+  mutable long br_messages_sent;
 #endif
 
   // We have an array of ssl[nplayer][3] connections
@@ -100,18 +104,7 @@ public:
   void Send_Distinct_And_Receive(vector<string> &o, int connection= 0) const;
 
 #ifdef BENCH_NETDATA
-  void print_network_data(int thread_num)
-  {
-    printf(BENCH_TEXT_BOLD BENCH_COLOR_BLUE BENCH_MAGIC_START
-           "{\"player\":%u,\n"
-           "  \"thread\":%d,\n"
-           "  \"netdata\":{\n"
-           "    \"sent\":{\"bytes\":%ld,\"MB\":%.2f},\n"
-           "    \"received\":{\"bytes\":%ld,\"MB\":%.2f}\n"
-           "  }\n"
-           "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
-           me, thread_num, data_sent, ((double) data_sent / 1000000), data_received, ((double) data_received / 1000000));
-  }
+  void print_network_data(int thread_num);
 #endif
 };
 

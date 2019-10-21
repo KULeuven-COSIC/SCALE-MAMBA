@@ -18,7 +18,7 @@ All rights reserved
 // 1/2=0, 1/4=-1, 1/4=1
 int sample_half(PRNG &G);
 
-// Following is std dev =3.2
+// Following is std dev = sigma
 int sample_Gauss(PRNG &G);
 
 class RandomGenerator : public Generator<bigint>

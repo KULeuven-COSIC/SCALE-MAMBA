@@ -19,7 +19,7 @@ void Program::compute_constants()
     {
       for (int reg_type= 0; reg_type < MAX_REG_TYPE; reg_type++)
         {
-          max_reg[reg_type]= max(max_reg[reg_type], p[i].get_max_reg(reg_type));
+          max_reg[reg_type]= max(max_reg[reg_type], p[i].get_max_reg(RegType(reg_type)));
           for (int sec_type= 0; sec_type < MAX_SECRECY_TYPE; sec_type++)
             {
               max_mem[reg_type][sec_type]=
@@ -28,6 +28,16 @@ void Program::compute_constants()
             }
         }
     }
+
+  /*
+  cout << "Counts....\ntype\tmaxreg\tmemc\tmems\n";
+  for (int reg_type= 0; reg_type < MAX_REG_TYPE; reg_type++)
+    { cout <<  reg_type << "\t" << max_reg[reg_type] << "\t";
+      for (int sec_type= 0; sec_type < MAX_SECRECY_TYPE; sec_type++)
+        { cout << max_mem[reg_type][sec_type] << "\t"; }
+      cout << endl;
+    }
+  */
 }
 
 void Program::parse(stringstream &s)

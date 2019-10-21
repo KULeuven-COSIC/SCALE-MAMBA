@@ -34,7 +34,7 @@ class FHE_Industry
 
   // The encryptions of the macs
   vector<Ciphertext> ctx_macs;
-  // Signals whether ctx_macs are ready
+  // bool to say if they are ready yet
   bool ready;
 
   // Assume Current_Factory_Lock[num] is locked!!!
@@ -45,6 +45,7 @@ public:
   ~FHE_Industry();
 
   bool is_ready() const { return ready; }
+
   const Ciphertext &ct_mac(unsigned int i) const
   {
     return ctx_macs[i];

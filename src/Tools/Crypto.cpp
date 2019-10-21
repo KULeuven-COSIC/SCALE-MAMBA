@@ -25,8 +25,10 @@ string Hash(const string &data)
   stringstream ss;
   for (int i= 0; i < SHA256_DIGEST_LENGTH; i++)
     {
-      ss << hex << setw(2) << setfill('0') << (int) hash[i];
+      // (human form) ss << hex << setw(2) << setfill('0') << (int) hash[i];
+      ss << hash[i];
     }
+
   return ss.str();
 }
 

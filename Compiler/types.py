@@ -254,12 +254,15 @@ class _clear(_register):
     @set_instruction_type
     @vectorize
     def print_reg(self, comment=''):
-        print_reg(self, comment)
+        print_reg(self)
+        print_char4("  # ")
+        print_char4(comment)
+	print_char("\n")
 
     @set_instruction_type
     @vectorize
-    def print_reg_plain(self):
-        print_reg_plain(self)
+    def print_reg_pl(self):
+        print_reg(self)
 
     @set_instruction_type
     @vectorize
@@ -652,17 +655,17 @@ class regint(_register, _int):
         return other ** cint(self)
 
     def __eq__(self, other):
-        return self.int_op(other, eqc)
+        return self.int_op(other, eqint)
 
     def __ne__(self, other):
         if isinstance(other, _secretMod2): return NotImplemented
         return 1 - (self == other)
 
     def __lt__(self, other):
-        return self.int_op(other, ltc)
+        return self.int_op(other, ltint)
 
     def __gt__(self, other):
-        return self.int_op(other, gtc)
+        return self.int_op(other, gtint)
 
     def __le__(self, other):
         if isinstance(other, _secretMod2): return NotImplemented
@@ -731,7 +734,8 @@ class regint(_register, _int):
     def reveal(self):
         return self
 
-    def print_reg_plain(self):
+    @vectorize
+    def print_reg(self):
         print_int(self)
 
 
@@ -1145,6 +1149,12 @@ class sbit(_secretMod2):
             orsb(res, self, other)
         return res
 
+    # There are two ways of doing negation, neg and invert
+    def __invert__(self):
+        res = sbit()
+        negb(res, self)
+        return res
+
     def __neg__(self):
         res = sbit()
         negb(res, self)
@@ -1203,7 +1213,7 @@ class sregint(_secretInt):
 
     def ltz(self):
         res = sbit()
-        ltzint(res, self)
+        ltzsint(res, self)
         return res
 
 
@@ -1596,6 +1606,7 @@ class cfix(_number):
             self.v = v
         else:
             raise NotImplementedError
+        program.curr_tape.require_bit_length(2*self.k+1)
 
     @vectorize
     def load_int(self, v):
@@ -1785,9 +1796,9 @@ class cfix(_number):
             raise TypeError('Incompatible fixed point types in division')
 
     @vectorize
-    def print_fix_plain(self):
+    def print_fix(self):
         r"""Prints the cfix in as a vector (y,f,k)"""
-        print_fix_plain(self.v, self.f, self.k)
+        print_fix(self.v, self.f, self.k)
 
 
 ##
@@ -1870,6 +1881,7 @@ class sfix(_number):
         elif isinstance(_v, regint):
             self.v = sint(_v, size=self.size) * 2 ** f
         self.kappa = sfix.kappa
+        program.curr_tape.require_bit_length(2*self.k+self.kappa+1)
 
     @vectorize
     def load_int(self, v):
@@ -2107,7 +2119,7 @@ class sfloat(_number):
             else:
                 v, p, z, s, err = self.convert_float(v, self.vlen, self.plen)
 
-        if isinstance(v, int):
+        if isinstance(v, (int,long)):
             if not ((v >= 2 ** (self.vlen - 1) and v < 2 ** (self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
             self.v = library.load_int_to_secret(v)
@@ -2140,6 +2152,7 @@ class sfloat(_number):
             self.err = library.load_int_to_secret(err)
         else:
             self.err = err
+        program.curr_tape.require_bit_length(2*self.vlen+self.kappa+1)
 
     def __iter__(self):
         yield self.v
@@ -2289,18 +2302,37 @@ class sfloat(_number):
             other_parse = parse_float(other)
             return self * other_parse  # self.mul(scalar_float)
 
-    def __sub__(self, other):
-        return (self + -other)
+    ##
+    # float division (FLDiv) as described in ABZS12.
+    # Additional conditions for err added in algiment with
+    # the way we work with floating point numbers.
+    def local_division_ABZS12(self, other):
+        if isinstance(other, (cfloat, sfloat)):
+            l = self.vlen
+            v = floatingpoint.SDiv_ABZS12(self.v, other.v + other.z, l, self.kappa)
+            b = v.less_than(2 ** l, l + 1, self.kappa)
+            v = floatingpoint.Trunc(v * b + v, l + 1, 1, self.kappa)
+            p = (1 - self.z) * (self.p - other.p - l + 1 - b)
+            z = self.z
+            
+            #simple xor of sign
+            s = self.s + other.s - 2*self.s * other.s
+            if isinstance(other, sfloat):
+                err = other.err
+            err = err + self.err
+            err = err + self.__flow_detect__(p)
+            err = err + other.z
+            return sfloat(v, p, z, s, err)
+        else:
 
-    def __rsub__(self, other):
-        return -1 * self + other
+            other_parse = parse_float(other)
+            return self / other_parse
 
     ##
     # realizes the division protocol for several different types.
     # @param other: value dividing self, could be any type
-    # @return sloat: new sfloat instance
-    def __div__(self, other):
-
+    # @return sloat: new sfloat instance   
+    def local_division(self, other):
         if isinstance(other, (cfloat, sfloat)):
             v = floatingpoint.SDiv(self.v, other.v + other.z * (2 ** self.vlen - 1),
                                    self.vlen, self.kappa)
@@ -2327,6 +2359,16 @@ class sfloat(_number):
 
             other_parse = parse_float(other)
             return self / other_parse
+
+
+    def __sub__(self, other):
+        return (self + -other)
+
+    def __rsub__(self, other):
+        return -1 * self + other
+
+    def __div__(self, other):
+        return self.local_division_ABZS12(other)
 
     @vectorize
     def __neg__(self):
@@ -2503,6 +2545,7 @@ class cfloat(object):
             self.v = v
         else:  # missmatch of types validation
             raise CompilerError('Missmatching input type ')
+        program.curr_tape.require_bit_length(2*self.vlen+1)
 
         # validation of p
         if isinstance(p, int):
@@ -2554,8 +2597,8 @@ class cfloat(object):
     # facade method that evokes low level instructions
     # to print float number.
     # No params, uses instance records.
-    def print_float_plain(self):
-        print_float_plain(self.v, self.p, self.z, self.s)
+    def print_float(self):
+        print_float(self.v, self.p, self.z, self.s)
 
     ##
     # computes the product times -1 of the cfloat

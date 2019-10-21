@@ -59,7 +59,7 @@ def main():
         prog.write_bytes(options.outfile)
         if options.asmoutfile:
             for tape in prog.tapes:
-                tape.write_str(options.asmoutfile + '-' + tape.name)
+                tape.write_str(options.asmoutfile + '-' + tape.name+'.asm')
 
     if options.profile:
         import cProfile

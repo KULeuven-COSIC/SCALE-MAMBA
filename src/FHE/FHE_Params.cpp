@@ -16,11 +16,10 @@ All rights reserved
  * security parameters. Please see the Chapter in the document
  * for how this is created etc
  */
-#define num_params 6
+#define num_params 7
 int FHE_Sec_Params[num_params][4]= {
-    {1024, 44, 29, 16}, {2048, 86, 56, 31}, {4096, 171, 111, 60}, {8192, 344, 220, 120}, {16384, 690, 440, 239}, {32768, 998, 883, 478}};
+    {1024, 40, 25, 12}, {2048, 82, 52, 26}, {4096, 167, 106, 56}, {8192, 340, 215, 115}, {16384, 686, 436, 235}, {32768, 1392, 879, 473}, {65536, 2830, 1778, 953}};
 
-#define sigma 3.16
 
 void produce_epsilon_constants(double C[3])
 {
@@ -65,8 +64,10 @@ bigint make_prime(int lg2, int N, const bigint &q= 0,
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-                         unsigned int h, unsigned int n,
+			 unsigned int n,
                          PoKVersion version,
+                         unsigned int h, 
+			 int NewHopeB_t,
                          int comp_sec_t,
                          int DD_stat_sec_t,
                          int ZK_sound_sec_t,
@@ -74,7 +75,8 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
 {
   double pp= exp2((double) lg2p), ss= exp2((double) DD_stat_sec_t);
   double Sslack= exp2((double) ZK_slack_sec_t);
-  double lgp0, lgp1, lgq, hh= h;
+  double lgp0, lgp1, lgq;
+  double sigma=sqrt(NewHopeB_t/2.0);
 
   double C[3];
   produce_epsilon_constants(C);
@@ -106,10 +108,13 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
     {
       N= FHE_Sec_Params[i][0];
       double phim= N;
+      double varsk=sigma*sqrt(phim);
+      if (h>0)
+	{ varsk=sqrt((double) h); }
 
       // New
       double B_Clean=
-          1.0 / 2 + 20 * C[1] * sigma * sqrt(phim) + 20 + 20 * C[1] * sqrt(h);
+          1.0 / 2 + NewHopeB * C[1] * sigma * sqrt(phim) + NewHopeB + NewHopeB * C[1] * varsk;
       if (version == HighGear)
         {
           B_Clean*= phim * S32 * 2 * n * pp;
@@ -122,7 +127,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
           B_Clean*= phim * Sslack * 4.0 * n * pp;
         }
 
-      double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim * hh / 12));
+      double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim / 12)*varsk);
       double B_KS= pp * C[2] * sigma * phim / sqrt(12);
       for (lgq= 10; lgq < FHE_Sec_Params[i][index] && !done; lgq+= 10)
         {
@@ -174,7 +179,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
 }
 
 void FHE_Params::set(const Ring &R, const bigint &p0, const bigint &p1,
-                     unsigned int h, unsigned int n,
+                     int h, unsigned int n,
                      bool check)
 {
   Zp_Data prD0(p0);
@@ -201,8 +206,8 @@ vector<bigint> FHE_Params::sample_Hwt(PRNG &G) const
     {
       ans[i]= 0;
     }
-  unsigned int cnt= 0, j= 0;
   uint8_t ch= 0;
+  int cnt=0, j=0;
   while (cnt < hwt)
     {
       unsigned int i= G.get_uint() % n;

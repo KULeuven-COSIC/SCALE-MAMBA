@@ -24,7 +24,8 @@ void offline_FHE_triples(Player &P, list<Share> &a, list<Share> &b,
 void offline_FHE_squares(Player &P, list<Share> &a, list<Share> &b,
                          const FHE_PK &pk, const FHE_SK &sk,
                          const FFT_Data &PTD,
-                         FHE_Industry &industry);
+                         FHE_Industry &industry,
+                         unsigned int rep= 1);
 
 void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
                       const FHE_SK &sk, const FFT_Data &PTD,
@@ -32,7 +33,8 @@ void offline_FHE_bits(Player &P, list<Share> &a, const FHE_PK &pk,
 
 void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
                     list<gfp> &opened, const FHE_PK &pk, const FHE_SK &sk,
-                    const FFT_Data &PTD,
+                    const FFT_Data &PTD, offline_control_data &OCD,
+                    unsigned int online_thread,
                     FHE_Industry &industry);
 
 #endif

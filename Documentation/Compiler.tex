@@ -811,7 +811,6 @@ Similarly shifts can be performed for \verb|sregint| variables.
 \paragraph{Exponentiation:}
 We also provide a built-in exponentiation operator for exponentiation over integer and 
 fractional $\modp$ data types ($**$), when the base is secret shared. 
-For the fractional case, 
 This overload provides a simple implementation for successive multiplications. 
 We provide more comprehensive protocols for exponentiation of fractional inputs 
 in the following sections. 
@@ -831,6 +830,13 @@ f = f**2	#returns $1.5**2$
 the exponent has to be of \textit{native Python integer} type. 
 This is not the case for integer types. We invite the reader to revise the Advance Protocols 
 section for a revision of alternatives to compute the exponent on fractional data types.
+
+One can also raise a \verb|sfix| value to another \verb|sfix| value using the 
+function \verb|mpc_math.pow_fx|. However, when doing this the routine uses 
+\verb|sfloat| variables internally, thus you need to ensure the two types
+are parametrized correctly.
+In particular you must have \verb|k| parameter for \verb|sfix| being greater than
+the \verb|vlen| for \verb|sfloat|.
 
 \paragraph{Comparisons (Inequality Tests):}
 We have in-built operators for comparisons as well. 
@@ -987,10 +993,10 @@ Will print x = 13, y = 5, z = 13.
 
 \noindent
 There are other member functions which perform printing as well, these are
-\func{cfix.print_fix_plain()\\
-regint.print_reg_plain()\\
-cfloat.print_float_plain()\\
-cint.print_reg_plain()}
+\func{cfix.print_fix()\\
+regint.print_reg()\\
+cfloat.print_float()\\
+cint.print_reg()}
 
 
 \subsubsection{How to print Vectorized data}
@@ -1028,7 +1034,7 @@ The results might be slightly different given the truncation of the information 
 	\func{v}
 	\textbf{Accessed by:} \verb|Default|.\\
 	\textbf{Type:} \verb|sint|.\\
-	S	Stores a register of type \verb|sint| on the $\{-2^k-1, 2^k-1\}$ interval, encoding of the rational original value.
+	Stores a register of type \verb|sint| on the $\{-2^k-1, 2^k-1\}$ interval, encoding of the rational original value.
 	\func{f}
 	\textbf{Accessed by:} \verb|Default|.\\
 	\textbf{Type:} \verb|int|.\\
@@ -1078,7 +1084,7 @@ sfix.set_precision(fixed_f, fixed_k)
 a = sfix()
 a.load_int(5)
 b = a*3.0
-print_ln(b.reveal(b))  #the output is 15   	
+print_ln("the answer is %s", b.reveal())  #the output is 15   	
 \end{lstlisting}	 
 \func{sfix.conv()}
 			\textbf{Accessed by:} \verb|Default|.		 \\
@@ -1092,7 +1098,7 @@ print_ln(b.reveal(b))  #the output is 15
 a =sfix()
 a.load_int(4.5)
 v = a.conv()
-print_ln(v.reveal())  # the output is 4718592   	
+print_ln("the answer is %s", v.reveal())  # the output is 4718592   	
 \end{lstlisting}	 
 %\func{sfix.store_in_mem}
 		
@@ -1110,7 +1116,7 @@ print_ln(v.reveal())  # the output is 4718592
 a =sfix()
 a.load_int(4.5)
 r = a.sizeof()
-print_ln(r)  # the output is 1. 
+print_ln("the answer is %s", r)  # the output is 1. 
              # By Default the global_vector_size is set to 1.    	
 \end{lstlisting}	 
 \func{sfix.compute_reciprocal()}		
@@ -1126,7 +1132,7 @@ print_ln(r)  # the output is 1.
 a =sfix()
 a.load_int(4.5)
 r = a.compute_reciprocal()
-print_ln(r.reveal())  # the output is 0.222222   	
+print_ln("the answer is %s", r.reveal())  # the output is 0.222222   	
 \end{lstlisting}	 
 	\paragraph{Observations:}
 	\begin{description}
@@ -1203,7 +1209,7 @@ cfix.set_precision(fixed_f, fixed_k)
 a = cfix()
 a.load_int(5)
 b = a*3.0
-print_ln(b)  #the output is 15   	
+print_ln("the answer is %s", b)  #the output is 15   	
 \end{lstlisting}	 
 \func{cfix.conv()}
 			\textbf{Accessed by:} \verb|Default|.		 \\
@@ -1217,7 +1223,7 @@ print_ln(b)  #the output is 15
 a =cfix()
 a.load_int(4.5)
 v = a.conv()
-print_ln(v)  # the output is 4718592   	
+print_ln("the answer is %s", v)  # the output is 4718592   	
 \end{lstlisting}	 
 %\func{sfix.store_in_mem}
 		
@@ -1235,7 +1241,7 @@ print_ln(v)  # the output is 4718592
 a =cfix()
 a.load_int(4.5)
 r = a.sizeof()
-print_ln(r)  # the output is 4. 
+print_ln("the answer is %s", r)  # the output is 4. 
 			 # By Default the global_vector_size is set to 1.    	
 \end{lstlisting}	 
 \func{cfix.compute_reciprocal()}		
@@ -1250,7 +1256,7 @@ print_ln(r)  # the output is 4.
 a =sfix()
 a.load_int(4.5)
 r = a.compute_reciprocal()
-print_ln(r)  # the output is 0.222222   	
+print_ln("the answer is %s", r)  # the output is 0.222222   	
 \end{lstlisting}	 
 	\paragraph{Observations:}
 	\begin{description}
@@ -1414,7 +1420,7 @@ print_ln("The float representation of 9999 is %s", float_value.reveal())
 \begin{lstlisting}
 a = sfloat(4.5)
 r = a.sizeof()
-print_ln(r)  # the output is 5. 
+print_ln("the answer is %s", r)  # the output is 5. 
 			 # By Default the global_vector_size is set to 1.
 \end{lstlisting}
                         
@@ -1473,7 +1479,7 @@ given that such flag is not necessary.
 \begin{lstlisting}
 a =cfloat(4.5)             
 r = a.sizeof()
-print_ln(r)  # the output is 4. 
+print_ln("the answer is %s", r)  # the output is 4. 
 			 # By Default the global_vector_size is set to 1.
 \end{lstlisting}
 
@@ -1612,7 +1618,7 @@ def range_body(i):
 
 @while_do(lambda x: x < 5, 0)
 def while_body(i):
-    print_ln("%s",new_array[i].reveal())
+    print_ln("%s", new_array[i].reveal())
     return i+1
 \end{lstlisting}
 Declares new array of size 10, then fills it with values from 1 to 10, at the end prints first five values, so it prints numbers from 1 to 5. Note that the values of array can be modified inside the function, they are exacly like MemValue. \\

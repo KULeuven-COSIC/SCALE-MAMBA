@@ -571,6 +571,22 @@ def SDiv_mono(a, b, l, kappa):
     y = TruncPr(y, 3 * l, 2 * l, kappa)
     return y
 
+##
+# SDiv as annotated in ABZS12. It perfroms 
+# division using rapson newton from approx on 
+# 2^l
+def SDiv_ABZS12(a, b, l, kappa):
+    theta = int(ceil(log(l, 2)))
+    x = b
+    y = a
+    for i in range(theta -1):
+        y = y * ((2 ** (l + 1)) - x)
+        y = TruncPr(y, 2 * l + 1, l, kappa)
+        x = x * ((2 ** (l + 1)) - x)
+        x = TruncPr(x, 2 * l + 1, l, kappa)
+    y = y * ((2 ** (l + 1)) - x)
+    y = TruncPr(y, 2 * l + 1, l, kappa)
+    return y
 
 def AdditionKOp(a,b):
     return a + b

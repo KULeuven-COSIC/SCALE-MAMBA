@@ -40,14 +40,26 @@ int check_exit(Player &P, unsigned int no_online_threads, offline_control_data &
       // Do not die if main offline threads still working
       for (unsigned int i= 0; i < no_online_threads; i++)
         {
-          OCD.sacrifice_mutex[i].lock();
+          OCD.OCD_mutex[i].lock();
           if (OCD.finish_offline[i] != 1)
             {
               ss= "-";
               result= 0;
             }
-          OCD.sacrifice_mutex[i].unlock();
+          OCD.OCD_mutex[i].unlock();
         }
+      // Do not die if an online thread is still working
+      for (unsigned int i= 0; i < OCD.finish_offline.size(); i++)
+        {
+          OCD.OCD_mutex[i].lock();
+          if (OCD.finished_online[i] == 0)
+            {
+              ss= "-";
+              result= 0;
+            }
+          OCD.OCD_mutex[i].unlock();
+        }
+
       P.send_all(ss, 2);
     }
   else
@@ -123,6 +135,7 @@ void aBit_Thread(Player &P, unsigned int no_online_threads,
 
   // Pack the last queue first, as it is used for aANDs
   OTD.aBD.aBD_mutex.lock();
+  OTD.ready=true;
   aBF.tune(P, OTD.aBD.aBits[no_online_threads], verbose);
   if (verbose)
     {

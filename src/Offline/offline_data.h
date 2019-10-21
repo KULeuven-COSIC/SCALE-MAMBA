@@ -11,6 +11,7 @@ All rights reserved
 #include <mutex>
 using namespace std;
 
+#include "FHE/ZKPoK.h"
 #include "LSSS/Share.h"
 
 /* These datatypes are just the data store for the offline phase
@@ -82,21 +83,21 @@ class offline_control_data
 {
   void clean_up()
   {
-    if (mult_mutex != NULL)
+    if (OCD_mutex != NULL)
       {
-        delete[] mult_mutex;
-        delete[] square_mutex;
+        delete[] OCD_mutex;
+        delete[] mul_mutex;
+        delete[] sqr_mutex;
         delete[] bit_mutex;
-        delete[] sacrifice_mutex;
-        mult_mutex= NULL;
+        OCD_mutex= NULL;
       }
   }
 
 public:
-  mutex *mult_mutex;      // Lock for mult threads
-  mutex *square_mutex;    // Lock for square threads
-  mutex *bit_mutex;       // Lock for bit threads
-  mutex *sacrifice_mutex; // Lock for sacrifice threads
+  mutex *OCD_mutex; // Lock for control OCD and input data
+  mutex *mul_mutex; // Lock for mult triples
+  mutex *sqr_mutex; // Lock for sqr pairs
+  mutex *bit_mutex; // Lock for bits
 
   // Min number produced before we start online
   unsigned int minm, mins, minb;
@@ -106,20 +107,27 @@ public:
   vector<unsigned int> totm, tots, totb, totI;
 
   vector<int> finish_offline;   // Flag to say whether we SHOULD finish offline
+  vector<int> finished_online;  // Flag to say whether online has finished
   vector<int> finished_offline; // Counts how many threads HAVE died
 
-  void resize(unsigned int num_threads)
+  // The ZKPoKs needed for IO production when doing Full Threshold
+  vector<vector<ZKPoK>> IO_ZKPoKs;
+
+  void resize(unsigned int num_threads,
+              unsigned int nplayers,
+              unsigned int whoami)
   {
     clean_up();
-    mult_mutex= new mutex[num_threads];
-    square_mutex= new mutex[num_threads];
+    OCD_mutex= new mutex[num_threads];
+    mul_mutex= new mutex[num_threads];
+    sqr_mutex= new mutex[num_threads];
     bit_mutex= new mutex[num_threads];
-    sacrifice_mutex= new mutex[num_threads];
     totm.resize(num_threads);
     tots.resize(num_threads);
     totb.resize(num_threads);
     totI.resize(num_threads);
     finish_offline.resize(num_threads);
+    finished_online.resize(num_threads);
     finished_offline.resize(num_threads);
     for (unsigned int i= 0; i < num_threads; i++)
       {
@@ -129,12 +137,37 @@ public:
         totI[i]= 0;
         finish_offline[i]= 0;
         finished_offline[i]= 0;
+        finished_online[i]= 0;
       }
+    if (Share::SD.type == Full)
+      {
+        IO_ZKPoKs.resize(num_threads);
+        for (unsigned int i= 0; i < num_threads; i++)
+          {
+            IO_ZKPoKs[i].resize(nplayers);
+            for (unsigned int j= 0; j < nplayers; j++)
+              {
+                if (j == whoami)
+                  {
+                    IO_ZKPoKs[i][j].set_params(true, true);
+                  }
+                else
+                  {
+                    IO_ZKPoKs[i][j].set_params(true, false);
+                  }
+              }
+          }
+      }
+  }
+
+  unsigned int num_online_threads() const
+  {
+    return totm.size();
   }
 
   offline_control_data()
   {
-    mult_mutex= NULL;
+    OCD_mutex= NULL;
   }
   ~offline_control_data()
   {

@@ -15,12 +15,18 @@ All rights reserved
 #include "DABitMachine.h"
 #include "config.h"
 
-DABitMachineBase::DABitMachineBase() : nBitsPerLoop(kdaBitsPerLoop), sec(daBits_stat_sec), cnc_param(0), bucket_size(0)
+DABitMachineBase::DABitMachineBase() : nBitsPerLoop(kdaBitsPerLoop), sec(daBits_stat_sec), cnc_param(0),
+	bucket_size(0)
 {
 }
 
-void MaliciousDABitMachine::Initialize(uint nparties)
+MaliciousDABitMachine::MaliciousDABitMachine(): n_parties(0), OCD(0)
 {
+}
+
+void MaliciousDABitMachine::Initialize(uint nparties, offline_control_data& _OCD)
+{
+  this->OCD = &_OCD;
   // add pre computed cnc parameters using input/triple factor 15.0
   // 40 bit stat sec, 8192 dabits per loop; C = 2, B = 3
   pre_cnc_params[make_pair(40, 8192)]= make_pair(2, 3);
@@ -86,4 +92,12 @@ void MaliciousDABitMachine::find_cnc_params()
         }
     }
   //cout << "Selected for bucketing: C = " << cnc_param << " B = " << bucket_size << endl;
+}
+
+AbstractDABitGenerator *MaliciousDABitMachine::new_generator(Player &P, int thread_num)
+{
+  if (numBits(gfp::pr()) >= 64 and Share::SD.type == Full)
+	  return new LargePrimeDABitGenerator(*this, P, thread_num);
+  else
+	  return new SmallPrimeDABitGenerator(*this, P, thread_num);
 }

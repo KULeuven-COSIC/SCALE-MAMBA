@@ -576,7 +576,7 @@ int main()
   cout << "\n\nTesting Main FHE parameters" << endl;
   unsigned int hwt= 64;
   p= 0;
-  Generate_Parameters(N, p0, p1, p, 128, hwt, 3, TopGear);
+  Generate_Parameters(N, p0, p1, p, 128, 3, TopGear, hwt);
 
   Rg.initialize(2 * N);
 

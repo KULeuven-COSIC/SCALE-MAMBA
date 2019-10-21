@@ -151,6 +151,8 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   ssl.resize(SD.n);
 
 #ifdef BENCH_NETDATA
+  br_messages_sent= 0;
+  pp_messages_sent= 0;
   data_sent= 0;
   data_received= 0;
 #endif
@@ -251,6 +253,7 @@ void Player::send_all(const string &o, int connection, bool verbose) const
 {
   uint8_t buff[4];
 #ifdef BENCH_NETDATA
+  br_messages_sent++;
   int len_buff= 4;
 #endif
   encode_length(buff, o.length());
@@ -301,6 +304,7 @@ void Player::send_to_player(int player, const string &o, int connection) const
       throw sending_error();
     }
 #ifdef BENCH_NETDATA
+  pp_messages_sent++;
   data_sent+= len_buff + o.length();
 #endif
 }
@@ -458,3 +462,22 @@ void Player::Send_Distinct_And_Receive(vector<string> &o, int connection) const
         }
     }
 }
+
+#ifdef BENCH_NETDATA
+void Player::print_network_data(int thread_num)
+{
+  printf(BENCH_TEXT_BOLD BENCH_COLOR_BLUE BENCH_MAGIC_START
+         "{\"player\":%u,\n"
+         "  \"thread\":%d,\n"
+         "  \"netdata\":{\n"
+         "    \"sent\":{\"bytes\":%ld,\"MB\":%.2f},\n"
+         "    \"received\":{\"bytes\":%ld,\"MB\":%.2f}\n"
+         "  }\n"
+         "  \"roundsdata\":{\n"
+         "    \"broadcast\":%ld\n"
+         "    \"p-to-p\":%ld\n"
+         "  }\n"
+         "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+         me, thread_num, data_sent, ((double) data_sent / 1000000), data_received, ((double) data_received / 1000000), br_messages_sent, pp_messages_sent);
+}
+#endif

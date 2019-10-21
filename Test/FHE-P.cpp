@@ -17,6 +17,10 @@ int main()
   cout << "Enter plaintext modulus size " << endl;
   cin >> lg2p;
 
+  int newHB;
+  cout << "Enter the NewHope loop bound" << endl;
+  cin >> newHB;
+
   vector<int> sec= {1, 40, 80, 128};
 
   for (int s1= 2; s1 < 4; s1++)
@@ -30,7 +34,7 @@ int main()
                   cout << "\nn = 2: Comp_Sec = " << sec[s1] << ": DD_stat_sec = " << sec[s2];
                   cout << ": ZK_sound_sec = " << sec[s3] << ": ZK_slack_sec=" << sec[s4] << endl;
                   p= 0;
-                  Generate_Parameters(N, p0, p1, p, lg2p, hwt, 2, TopGear, sec[s1], sec[s2], sec[s3], sec[s4]);
+                  Generate_Parameters(N, p0, p1, p, lg2p, 2, TopGear, hwt, newHB, sec[s1], sec[s2], sec[s3], sec[s4]);
                 }
             }
         }

@@ -47,9 +47,9 @@ void init_FHE_Params(FHE_Params &params, bigint &pr, bigint &p0, bigint &p1,
 {
 // Assumes here pr=0 if we want it to be so
 #ifdef TOP_GEAR
-  Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n, TopGear);
+  Generate_Parameters(N, p0, p1, pr, lg2p, n, TopGear, hwt);
 #else
-  Generate_Parameters(N, p0, p1, pr, lg2p, hwt, n, HighGear);
+  Generate_Parameters(N, p0, p1, pr, lg2p, n, HighGear, hwt);
 #endif
 
   Ring Rg(2 * N);
@@ -76,7 +76,7 @@ void init_FHE(bigint &pr, int lg2p, unsigned int n)
 {
   bigint p0, p1;
   FHE_Params params;
-  unsigned int N, hwt= 64;
+  unsigned int N, hwt= HwtSK;
   init_FHE_Params(params, pr, p0, p1, N, lg2p, n, hwt);
 
   FHE_PK pk(params, pr);
@@ -191,10 +191,15 @@ void init_certs()
     }
   EVP_PKEY_free(pkey);
 
+  /* XXXX
   cout << "Fake offline?" << endl;
   output << input_YN() << endl;
   cout << "Fake sacrifice?" << endl;
   output << input_YN() << endl;
+*/
+  // Choose non-fake in both cases
+  output << 0 << endl;
+  output << 0 << endl;
 
   output.close();
 }
@@ -286,7 +291,7 @@ void init_replicated(ShareData &SD, unsigned int n)
       AS.assign(n, t);
     }
 
-  cout << "What type of Offline Phase do you want (assuming non-fake)?\n";
+  cout << "What type of Offline Phase do you want ?\n";
   cout << "\t 1) Maurer\n";
   cout << "\t 2) Reduced";
   cout << endl;

@@ -15,11 +15,10 @@ extern Base_Circuits Global_Circuit_Store;
 extern Local_Functions Global_LF;
 
 Processor::Processor(int thread_num, unsigned int nplayers,
-                     Player &P, offline_control_data &OCD)
-    : online_thread_num(thread_num),
-      daBitGen(daBitMachine, P, thread_num, OCD),
-      iop(nplayers)
+                     Player &P) : online_thread_num(thread_num), iop(nplayers)
 {
+
+  daBitGen = daBitMachine.new_generator(P, thread_num);
   rounds= 0;
   sent= 0;
 }
@@ -27,6 +26,12 @@ Processor::Processor(int thread_num, unsigned int nplayers,
 Processor::~Processor()
 {
   fprintf(stderr, "Sent %d elements in %d rounds\n", sent, rounds);
+#ifdef VERBOSE 
+  cout << "dabitgen statistics:" << endl;
+  cout << "Produced " << daBitGen->total << " dabits" << endl;
+  for (auto &timer: daBitGen->timers)
+      cout << timer.first << " took time " << timer.second.elapsed() / 1e6 << endl;
+#endif
 }
 
 void Processor::POpen_Start(const vector<int> &reg, int size, Player &P)
@@ -129,11 +134,13 @@ void Processor::execute(const Program &prog, int argument, Player &P,
 {
   reg_maxp= prog.num_reg(MODP);
   reg_maxi= prog.num_reg(INT);
+  reg_maxb= prog.num_reg(SBIT);
+
   Cp.resize(reg_maxp);
   Sp.resize(reg_maxp);
   Ri.resize(reg_maxi);
   srint.resize(reg_maxi);
-  sbit.resize(reg_maxi);
+  sbit.resize(reg_maxb);
 
   for (int i= 0; i < reg_maxp; i++)
     {
@@ -148,11 +155,14 @@ void Processor::execute(const Program &prog, int argument, Player &P,
     }
   rwi.resize(reg_maxi);
   rwsr.resize(reg_maxi);
-  rwsb.resize(reg_maxi);
   for (int i= 0; i < reg_maxi; i++)
     {
       rwi[i]= 0;
       rwsr[i]= 0;
+    }
+  rwsb.resize(reg_maxb);
+  for (int i= 0; i < reg_maxb; i++)
+    {
       rwsb[i]= 0;
     }
 #endif
@@ -202,6 +212,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   vector<Share> bpr(size);
   vector<aBit> b2r(size);
   // Get a set of size daBits, until the value is less than p
+  auto& daBitGen = get_generator();
   while (!done)
     { // Get daBits
       daBitV.get_daBits(bpr, b2r, daBitGen);
@@ -291,6 +302,7 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
 
   // Get a daBit
   vector<Share> bpr(size1);
+  auto& daBitGen = get_generator();
   daBitV.get_daBits(bpr, input[1], daBitGen);
 
   // Now form r
@@ -341,6 +353,7 @@ void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
   /* Get sreg_bitl daBits */
   vector<aBit> a2r(sreg_bitl);
   vector<Share> apr(sreg_bitl);
+  auto& daBitGen = get_generator();
   daBitV.get_daBits(apr, a2r, daBitGen);
 
   /* Add onto the input register */

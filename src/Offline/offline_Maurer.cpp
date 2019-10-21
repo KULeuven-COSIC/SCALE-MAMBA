@@ -8,6 +8,12 @@ All rights reserved
 #include "config.h"
 #include "offline_subroutines.h"
 
+void clear_vector_sstream(vector<stringstream> &ss)
+{
+  for (unsigned int i=0; i<ss.size(); i++)
+    { ss[i]=stringstream(); }
+}
+
 void mult_inner_subroutine_one(const Share &aa, const Share &bb,
                                vector<Share> &cc, vector<stringstream> &ss,
                                Player &P)
@@ -50,10 +56,11 @@ void offline_Maurer_triples(Player &P, PRSS &prss, list<Share> &a,
 {
   Share aa, bb;
   vector<vector<Share>> cc(amortize, vector<Share>(P.nplayers()));
+  vector<stringstream> ss(P.nplayers()); 
   for (int i= 0; i < sz_offline_batch / amortize; i++)
     {
-      vector<stringstream> ss(P.nplayers()); // This line is here to make sure ss
-                                             // is reinitialized every loop
+      clear_vector_sstream(ss);
+
       for (int j= 0; j < amortize; j++)
         {
           aa= prss.next_share(P);
@@ -81,16 +88,18 @@ void offline_Maurer_triples(Player &P, PRSS &prss, list<Share> &a,
     }
 }
 
-void offline_Maurer_squares(Player &P, PRSS &prss, list<Share> &a,
-                            list<Share> &b)
+void offline_Maurer_squares(Player &P, PRSS &prss,
+                            list<Share> &a, list<Share> &b,
+                            unsigned int rep)
 {
   Share aa;
   vector<vector<Share>> bb(amortize, vector<Share>(P.nplayers()));
   vector<string> sstr(P.nplayers());
-  for (int i= 0; i < sz_offline_batch / amortize; i++)
+  vector<stringstream> ss(P.nplayers()); 
+  while (a.size() < sz_offline_batch * rep)
     {
-      vector<stringstream> ss(P.nplayers()); // This line is here to make sure ss
-                                             // is reinitialized every loop
+      clear_vector_sstream(ss);
+
       for (int j= 0; j < amortize; j++)
         {
           aa= prss.next_share(P);
@@ -125,12 +134,15 @@ void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b,
   gfp prod, one(1), twoi(2);
   twoi.invert();
   vector<string> sstr(P.nplayers());
+  vector<stringstream> ss(P.nplayers());
   for (int i= 0; i < sz_offline_batch / amortize; i++)
     {
       /* Essentially run the square protocol to get amortize
        * number of sharing of a and sharing of b=a^2
        */
-      vector<stringstream> ss(P.nplayers());
+
+      clear_vector_sstream(ss);
+
       for (int j= 0; j < amortize; j++)
         {
           aa[j]= prss.next_share(P);

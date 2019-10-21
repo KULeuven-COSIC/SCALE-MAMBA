@@ -46,7 +46,11 @@ Rq_Element FHE_PK::sample_secret_key(PRNG &G)
 {
   Rq_Element sk= FHE_SK(*this).s();
   // Generate the secret key
-  sk.from_vec((*params).sample_Hwt(G));
+  if ((*params).get_hwt()>0)
+    { sk.from_vec((*params).sample_Hwt(G)); }
+  else
+    { sk.from(GaussianGenerator(G));        }
+
   return sk;
 }
 

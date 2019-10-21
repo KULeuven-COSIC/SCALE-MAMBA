@@ -430,7 +430,7 @@ class RefRAM(object):
 class RAM(RefRAM):
     """ List of entries in memory. """
     def __init__(self, size, entry_type, index=0):
-        #print_reg(cint(0), 'r in')
+        #print_reg_char4(cint(0), 'r in')
         self.size = size
         self.entry_type = entry_type
         self.l = [t.dynamic_array(self.size, t) for t in entry_type]
@@ -885,16 +885,16 @@ class RefBucket(object):
                 self.ref_children(1).__repr__(depth + 1)
         return result
     def output(self):
-        print_reg(cint(self.depth), 'buck')
+        print_reg_char4(cint(self.depth), 'buck')
         Program.prog.curr_tape.start_new_basicblock()
         self.bucket.output()
-        print_reg(cint(self.depth), 'dep')
+        print_reg_char4(cint(self.depth), 'dep')
         Program.prog.curr_tape.start_new_basicblock()
         @if_(self.p_children(1) < oram.n_buckets())
         def f():
             for i in (0,1):
                 child = self.ref_children(i)
-                print_reg(cint(i), 'chil')
+                print_reg_char4(cint(i), 'chil')
                 Program.prog.curr_tape.start_new_basicblock()
                 child.output()
 
@@ -954,7 +954,7 @@ class LocalIndexStructure(List):
         return self.value_type(read_value)
     def output(self):
         for i,v in enumerate(self):
-            print_reg(v.reveal(), 'i %d' % i)
+            print_reg_char4(v.reveal(), 'i %d' % i)
     __getitem__ = lambda self,index: List.__getitem__(self, index)[0]
 
 def get_n_threads_for_tree(size):
@@ -1013,7 +1013,7 @@ class TreeORAM(AbstractORAM):
         l = state
         self.root.bucket.add(Entry(v, (l,) + x, is_empty))
     def evict_bucket(self, bucket, d):
-        #print_reg(cint(0), 'evb')
+        #print_reg_char4(cint(0), 'evb')
         #print 'pre', bucket
         entry = bucket.bucket.pop()
         #print 'evict', entry
@@ -1107,7 +1107,7 @@ class TreeORAM(AbstractORAM):
     def add(self, entry, state=None):
         if state is None:
             state = self.state.read()
-        #print_reg(cint(0), 'add')
+        #print_reg_char4(cint(0), 'add')
         #print 'add', id(self)
         #print 'pre-add', self
         maybe_start_timer(4)
@@ -1122,21 +1122,21 @@ class TreeORAM(AbstractORAM):
         #print 'post-evict', self
     def evict(self):
         #print 'evict root', id(self)
-        #print_reg(cint(0), 'ev_r')
+        #print_reg_char4(cint(0), 'ev_r')
         self.evict_bucket(self.root, 0)
         self.check()
         if self.D > 1:
             #print 'evict 1', id(self)
-            #print_reg(cint(0), 'ev1')
+            #print_reg_char4(cint(0), 'ev1')
             self.evict2(self.root.p_children(0), self.root.p_children(1), 1)
             self.check()
         if self.D > 2:
-            #print_reg(cint(self.D), 'D')
+            #print_reg_char4(cint(self.D), 'D')
             @for_range(2, self.D)
             def f(d):
-                #print_reg(d, 'ev2')
+                #print_reg_char4(d, 'ev2')
                 #print 'evict 2', id(self)
-                #print_reg(d, 'evl2')
+                #print_reg_char4(d, 'evl2')
                 s1 = regint.get_random(d)
                 s2 = MemValue(regint(0))
                 @do_while
@@ -1537,8 +1537,8 @@ class PackedIndexStructure(object):
         return repr(self.l)
     def output(self):
         if self.small:
-            print_reg(self.l[0].reveal(), 'i0')
-            print_reg(self.l[1].reveal(), 'i1')
+            print_reg_char4(self.l[0].reveal(), 'i0')
+            print_reg_char4(self.l[1].reveal(), 'i1')
 
 class PackedORAMWithEmpty(AbstractORAM, PackedIndexStructure):
     def __init__(self, size, entry_size=None, value_type=sint, init_rounds=-1):
@@ -1657,7 +1657,7 @@ def test_oram_access(oram_type, N, value_type=sint, index_size=None, iterations=
     oram = oram_type(N, value_type=value_type, entry_size=32, \
                          init_rounds=0)
     print 'initialized'
-    print_reg(cint(0), 'init')
+    print_reg_char4(cint(0), 'init')
     stop_timer()
     # synchronize
     Program.prog.curr_tape.start_new_basicblock(name='sync')
@@ -1686,9 +1686,9 @@ def test_batch_init(oram_type, N):
     value_type = sint
     oram = oram_type(N, value_type)
     print 'initialized'
-    print_reg(cint(0), 'init')
+    print_reg_char4(cint(0), 'init')
     oram.batch_init([value_type(i) for i in range(N)])
-    print_reg(cint(0), 'done')
+    print_reg_char4(cint(0), 'done')
     @for_range(N)
     def f(i):
         x = oram[value_type(i)]

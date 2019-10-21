@@ -19,7 +19,6 @@ extern Timer global_time;
 
 FHE_Industry::FHE_Industry(unsigned int maxnumber)
 {
-  ready= false;
   Factory_List_Lock= new mutex[maxnumber];
   Current_Factory_Lock= new mutex[maxnumber];
   Factory.resize(maxnumber);
@@ -37,6 +36,7 @@ FHE_Industry::FHE_Industry(unsigned int maxnumber)
           Current_Factory_Lock[i].lock();
         }
     }
+  ready= false;
 }
 
 FHE_Industry::~FHE_Industry()
@@ -189,67 +189,69 @@ int FHE_Industry::Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
 /* If one party says every thread is finished then finish */
 bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_control_data &OCD)
 {
-  bool finished= true, wait= false;
-  for (unsigned int i= 0; i < OCD.finished_offline.size() && finished; i++)
+  bool finished= false, wait= true;
+  // Loop if we are waiting and not finished
+  while (wait && !finished)
     {
-      //printf("Waiting for sacrifice lock %d %d B\n",num,i); fflush(stdout);
-      OCD.sacrifice_mutex[i].lock();
-      //printf("Got sacrifice lock %d %d B\n",num,i); fflush(stdout);
-      if (OCD.finished_offline[i] < 4)
+      finished= true, wait= false;
+      for (unsigned int i= 0; i < OCD.finished_offline.size() && finished; i++)
         {
-          finished= false;
+          //printf("Waiting for sacrifice lock %d %d B\n",num,i); fflush(stdout);
+          OCD.OCD_mutex[i].lock();
+          //printf("Got sacrifice lock %d %d B\n",num,i); fflush(stdout);
+          if (OCD.finished_offline[i] < 4)
+            {
+              finished= false;
+            }
+          OCD.OCD_mutex[i].unlock();
+          //printf("Released sacrifice lock %d %d B\n",num,i); fflush(stdout);
         }
-      OCD.sacrifice_mutex[i].unlock();
-      //printf("Released sacrifice lock %d %d B\n",num,i); fflush(stdout);
-    }
-  // We want to sleep if the factory list is getting too big the amount
-  // and trigger for sleep depending on whether we are using HighGear
-  // or TopGear
-  //printf("Waiting for FL lock %d C\n",num); fflush(stdout);
-  Factory_List_Lock[num].lock();
-  int wt= 10;
+      // We want to sleep if the factory list is getting too big the amount
+      // and trigger for sleep depending on whether we are using HighGear
+      // or TopGear
+      //printf("Waiting for FL lock %d C\n",num); fflush(stdout);
+      Factory_List_Lock[num].lock();
 #ifndef TOP_GEAR
-  if (Factory[num].size() > 0)
-    {
-      wait= true;
-      wt= Factory[num].size() * 30;
-    }
-#else
-  if (Factory[num].size() > 4)
-    {
-      wait= true;
-      wt= Factory[num].size() * 10;
-    }
-#endif
-  Factory_List_Lock[num].unlock();
-  // Need to sync players
-  vector<string> o(P.nplayers());
-  o[P.whoami()]= "N";
-  if (wait)
-    {
-      o[P.whoami()]= "W";
-    }
-  if (finished)
-    {
-      o[P.whoami()]= "Y";
-    }
-  //printf("\n is_finished B : %d %s\n",P.whoami(),o[P.whoami()].c_str());
-  P.Broadcast_Receive(o);
-  for (unsigned int p= 0; p < P.nplayers(); p++)
-    {
-      //printf("\n is_finished R : %d %s\n",p,o[p].c_str());
-      if (o[p].compare("Y") == 0)
-        {
-          finished= true;
-        }
-      if (o[p].compare("W") == 0)
+      if (Factory[num].size() > 2)
         {
           wait= true;
         }
-    }
-  if (wait && !finished)
-    {
-      sleep(wt);
+#else
+      if (Factory[num].size() > 4)
+        {
+          wait= true;
+        }
+#endif
+      Factory_List_Lock[num].unlock();
+      // Need to sync players
+      vector<string> o(P.nplayers());
+      o[P.whoami()]= "N";
+      if (wait)
+        {
+          o[P.whoami()]= "W";
+        }
+      if (finished)
+        {
+          o[P.whoami()]= "Y";
+        }
+      //printf("\n is_finished B : %d %s\n",P.whoami(),o[P.whoami()].c_str());
+      P.Broadcast_Receive(o);
+      for (unsigned int p= 0; p < P.nplayers(); p++)
+        {
+          //printf("\n is_finished R : %d %s\n",p,o[p].c_str());
+          if (o[p].compare("Y") == 0)
+            {
+              finished= true;
+            }
+          if (o[p].compare("W") == 0)
+            {
+              wait= true;
+            }
+        }
+      if (wait && !finished)
+        {
+          sleep(5);
+        }
     }
   return finished;
 }
@@ -308,7 +310,7 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
       return true;
     }
 
-  // Transmit E and A data
+  // Transmit A data
   //   - Put within a scoping to ensure data is removed
   if (verbose > 0)
     {
@@ -473,9 +475,10 @@ void FHE_Industry::FHE_Factory(Player &P, const offline_control_data &OCD, const
           {
             Current_Factory_Lock[i].unlock();
           }
-      }
-      ready= true;
 
+        // And signal we are ready
+        ready= true;
+      }
       if (verbose > 0)
         {
           printf("\nFinished mac ctxs : %f \n\n", global_time.elapsed());
@@ -488,14 +491,7 @@ void FHE_Industry::FHE_Factory(Player &P, const offline_control_data &OCD, const
       finished= is_finished(mynumber, P, OCD);
 
       // Only execute a new ZKPoK if we have not finished
-      // AND the size is not too big
-      bool too_big= false;
-#ifndef TOP_GEAR
-      too_big= Factory[mynumber].size() > 5;
-#else
-      too_big= Factory[mynumber].size() > 10;
-#endif
-      if (!finished && !too_big)
+      if (!finished)
         {
           ZKPoK ZK;
           if (verbose > 0)

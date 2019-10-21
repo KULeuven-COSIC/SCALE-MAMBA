@@ -103,6 +103,20 @@ public:
    */
   void get_Share_x_Delta_j(vector<gf2n> &ans) const;
 
+  /* Arithmetic Operators */
+  aBit operator+(const aBit &x) const
+  {
+    aBit res;
+    res.add(*this, x);
+    return res;
+  }
+
+  aBit &operator+=(const aBit &x)
+  {
+    add(x);
+    return *this;
+  }
+
   friend ostream &operator<<(ostream &s, const aBit &y);
 
   void output(ostream &s, bool human) const;

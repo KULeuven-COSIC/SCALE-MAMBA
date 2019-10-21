@@ -35,15 +35,16 @@ class Sender_COT
 #endif
   int pair;
 
+public:
   // Execute the next extraction procedure
   // This is protocol of Figure 19 of eprint 2015/901
   // We pass in the aBit here and this procedure sets the t value
   // Note we pass in sz_aB, as aB/x could be much bigger
+  //   - This is passively secure only!
   void next_iteration(Player &P, unsigned int sz_aB,
                       vector<aBit> &aB,
                       const BitVector &x);
 
-public:
   void init(Player &P, int i, CryptoPP::RandomPool &RNG);
 
   // This is a COT with player i
@@ -67,15 +68,16 @@ class Receiver_COT
   int pair;
   gf2n Delta;
 
+  void compute_Delta();
+
+public:
   // Execute the next extraction procedure
   // This is protocol of Figure 19 of eprint 2015/901
   // We pass in the aBit here and this procedure sets the q value
   // Note we pass in sz_aB, as aB could be much bigger
+  //   - This is passively secure only!
   void next_iteration(Player &P, unsigned int sz_aB, vector<aBit> &aB);
 
-  void compute_Delta();
-
-public:
   // This is a COT with player i
   void init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int> choicebits);
 

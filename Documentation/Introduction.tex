@@ -72,28 +72,6 @@ key and distribute it to the different players.
 In any real system this entire setup phase will need
 investigating, with perhaps using HSMs to construct and deploy
 keys if no actively secure key generation protocol is available.
-\item
-There is a security hole in how we have implemented things.
-As the
-\begin{center}
-  \verb+offline->sacrifice->online+ 
-\end{center}
-pipeline is run continously in separate threads, each with their own channels etc., we 
-may {\bf use} a data item in the online phase {\bf before} the checking
-of a data item has {\bf fully completed} (i.e. before in an associated
-sacrifice etc. has been MAC-checked, for full-threshold,
-or hash-checked, for other LSSS schemes). 
-In a real system you will want to address this by having some
-other list of stuff (between sacrifice and online), which
-ensures that all checks are complete before online is
-allowed to use any data; or by ensuring MAC/hash-checking is
-done before the sacrifice queues are passed to the online phase.
-In our current system if something bad is introduced by an adversary
-then the system {\bf will} halt.
-But, before doing so there is a {\em small} chance that some data will 
-have leaked from the computation if the adversary can schedule the 
-error at exactly the right point (depending on what is happening in
-other threads).
 \end{itemize}
 
 
@@ -108,18 +86,13 @@ language (see later).
 Using multiple threads enables you to get high throughput. Almost all
 of our experimental results are produced using multiple threads.
 \item Each online is associated with another four ``feeder'' threads.
-One produces multiplication triples, one produces square pairs
-and one produces shared bits.
-The fourth thread performs the sacrificing step, as well as
-the preprocessing data for player IO.
-The chain of events is that the multiplication thread produces
-an unchecked triple. This triple is added to a triple-list (which is
-done in batches for efficiency).
-At some point the sacrifice thread decides to take some
-data off the triple-list and perform the triple checking via
-sacrificing.
-Once a triple passes sacrificing it is passed onto another
-list, called the sacrificed-list, for consumption by the online phase.
+One produces multiplication triples, one produces square pairs,
+one produces shared bits and one produces data for input/output
+of data items.
+The chain of events is that the multiplication thread (say) produces
+a fully checked triple. This triple is added to a triple-list (which is
+done in batches for efficiency) for consumption by the online
+phase.
 The sizes of these lists can be controlled (somewhat) by the
 values in the file \verb+config.h+.
 One can control the number of entries {\em ever}

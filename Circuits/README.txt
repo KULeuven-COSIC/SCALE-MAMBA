@@ -94,3 +94,47 @@ The list of all main files (excluding test ones) to convert (and how
 to do so) are given in ./convert.sh
 
 
+-------------------------------------------------------------
+
+There is a program to utilize YoSys synthesis tools to produce
+a Bristol Fashion circuit representation. This is untested by the
+SCALE maintainers, but has been provided by Mark Will.
+
+
+./convert_yosys.py --help
+usage: convert_yosys.py [-h] [-t TOP_MODULE] [-sy] [-a ADD_FILE]
+                        [-l {verilog,vhdl}] [-v]
+                        input_file output_file
+
+positional arguments:
+  input_file            File to be converted
+  output_file           Bristol output file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TOP_MODULE, --top_module TOP_MODULE
+                        Top module of the design
+  -sy, --skip_yosys     Input file is now assumed to have been synthesised.
+                        This allows you to run Yosys manually
+  -a ADD_FILE, --add_file ADD_FILE
+                        Add more files to the design
+  -l {verilog,vhdl}, --lang {verilog,vhdl}
+                        Input langauge. Note vhdl requires Yosys to be built
+                        with Verific support, probably better to convert to
+                        Verilog for this converter
+  -v, --verbose
+
+
+So a basic use could be the following:
+
+> cat mult64_2.v
+module mult64_2 (a,b,res);
+    input signed [63:0] a;
+    input signed [63:0] b;
+    output [127:0] res;
+    assign res = (a * b);
+endmodule
+
+> ./convert_yosys.py mult64_2.v mult64_2.txt
+
+

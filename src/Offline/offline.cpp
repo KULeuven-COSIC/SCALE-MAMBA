@@ -13,12 +13,14 @@ All rights reserved
 #include "offline_Maurer.h"
 #include "offline_Reduced.h"
 #include "offline_subroutines.h"
+#include "sacrifice.h"
 
 using namespace std;
 
 void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, list<Share> &a,
                            list<Share> &b, list<Share> &c, const FHE_PK &pk,
                            const FHE_SK &sk, const FFT_Data &PTD,
+                           int fake_sacrifice, Open_Protocol &OP,
                            FHE_Industry &industry)
 {
   if (Share::SD.Otype == Fake)
@@ -37,11 +39,15 @@ void offline_phase_triples(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, li
     {
       offline_FHE_triples(P, a, b, c, pk, sk, PTD, industry);
     }
+
+  sacrifice_phase_triples(P, fake_sacrifice, a, b, c, OP);
 }
 
-void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, list<Share> &a,
-                           list<Share> &b, const FHE_PK &pk, const FHE_SK &sk,
+void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep,
+                           list<Share> &a, list<Share> &b,
+                           const FHE_PK &pk, const FHE_SK &sk,
                            const FFT_Data &PTD,
+                           int fake_sacrifice, Open_Protocol &OP,
                            FHE_Industry &industry)
 {
   if (Share::SD.Otype == Fake)
@@ -60,27 +66,41 @@ void offline_phase_squares(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, li
     {
       offline_FHE_squares(P, a, b, pk, sk, PTD, industry);
     }
+
+  sacrifice_phase_squares(P, fake_sacrifice, a, b, OP);
 }
 
-void offline_phase_bits(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep, list<Share> &b,
-                        Open_Protocol &OP, const FHE_PK &pk, const FHE_SK &sk,
+void offline_phase_bits(Player &P, PRSS &prss, PRZS &przs, FakePrep &prep,
+                        list<Share> &bits,
+                        const FHE_PK &pk, const FHE_SK &sk,
                         const FFT_Data &PTD,
+                        int fake_sacrifice, Open_Protocol &OP,
                         FHE_Industry &industry)
 {
+  // We need to get rep more squares than bits
+  int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
+
+  list<Share> a, b;
   if (Share::SD.Otype == Fake)
     {
-      prep.produce_bits(b);
+      prep.produce_bits(bits);
+      prep.produce_squares(a, b, rep);
     }
   else if (Share::SD.Otype == Maurer)
     {
-      offline_Maurer_bits(P, prss, b, OP);
+      offline_Maurer_bits(P, prss, bits, OP);
+      offline_Maurer_squares(P, prss, a, b, rep);
     }
   else if (Share::SD.Otype == Reduced)
     {
-      offline_Reduced_bits(P, prss, przs, b, OP);
+      offline_Reduced_bits(P, prss, przs, bits, OP);
+      offline_Reduced_squares(P, prss, przs, a, b, rep);
     }
   else
     {
-      offline_FHE_bits(P, b, pk, sk, PTD, industry);
+      offline_FHE_bits(P, bits, pk, sk, PTD, industry);
+      offline_FHE_squares(P, a, b, pk, sk, PTD, industry, rep);
     }
+
+  sacrifice_phase_bits(P, fake_sacrifice, bits, a, b, OP);
 }

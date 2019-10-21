@@ -108,7 +108,8 @@ void make_IO_data_fake(Player &P, unsigned int player_num, list<Share> &a,
 void make_IO_data(Player &P, int fake_sacrifice, PRSS &prss,
                   unsigned int player_num, list<Share> &a, list<gfp> &opened,
                   const FHE_PK &pk, const FHE_SK &sk, const FFT_Data &PTD,
-                  Open_Protocol &OP,
+                  offline_control_data &OCD, Open_Protocol &OP,
+                  unsigned int online_thread,
                   FHE_Industry &industry)
 {
   a.resize(0);
@@ -116,7 +117,7 @@ void make_IO_data(Player &P, int fake_sacrifice, PRSS &prss,
 
   if (Share::SD.type == Full && !fake_sacrifice)
     {
-      offline_FHE_IO(P, player_num, a, opened, pk, sk, PTD, industry);
+      offline_FHE_IO(P, player_num, a, opened, pk, sk, PTD, OCD, online_thread, industry);
     }
   else if (fake_sacrifice)
     {

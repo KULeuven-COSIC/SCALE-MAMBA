@@ -68,15 +68,15 @@ def print_str(s, *args):
                 val = args[i]
             if isinstance(val, program.Tape.Register):
                 if val.is_clear:
-                    val.print_reg_plain()
+                    val.print_reg()
                 else:
                     raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, sfix) or isinstance(val, sfloat):
                 raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, cfloat):
-                val.print_float_plain()
+                val.print_float()
             elif isinstance(val, cfix):
-                val.print_fix_plain()
+                val.print_fix()
             elif isinstance(val, list):
                 print_str('[' + ', '.join('%s' for i in range(len(val))) + ']', *val)
             else:
@@ -322,8 +322,7 @@ class FunctionBlock(Function):
         print 'Done compiling function', self.name
         p_return_address = get_tape().program.malloc(1, 'r')
         get_tape().function_basicblocks[block] = p_return_address
-        return_address = regint.load_mem(p_return_address)
-        get_tape().active_basicblock.set_exit(instructions.jmpi(return_address, add_to_prog=False))
+        get_tape().active_basicblock.set_exit(instructions.RETURN(add_to_prog=False))
         self.last_sub_block = get_tape().active_basicblock
         get_tape().close_scope(old_block, parent_node, 'end-' + self.name)
         old_block.set_exit(instructions.jmp(0, add_to_prog=False), get_tape().active_basicblock)
@@ -336,11 +335,9 @@ class FunctionBlock(Function):
         if block not in get_tape().function_basicblocks:
             raise CompilerError('unknown function')
         old_block = get_tape().active_basicblock
-        old_block.set_exit(instructions.jmp(0, add_to_prog=False), block)
+        old_block.set_exit(instructions.CALL(0, add_to_prog=False), block)
         p_return_address = get_tape().function_basicblocks[block]
         return_address = get_tape().new_reg('r')
-        old_block.return_address_store = instructions.ldint(return_address, 0)
-        instructions.stmint(return_address, p_return_address)
         get_tape().start_new_basicblock(name='call-' + self.name)
         get_tape().active_basicblock.set_return(old_block, self.last_sub_block)
         get_tape().req_node.children.append(self.node)

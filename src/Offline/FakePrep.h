@@ -30,7 +30,7 @@ class FakePrep
 public:
   FakePrep(Player &P);
   void produce_triples(list<Share> &a, list<Share> &b, list<Share> &c);
-  void produce_squares(list<Share> &a, list<Share> &b);
+  void produce_squares(list<Share> &a, list<Share> &b, unsigned int rep= 1);
   void produce_bits(list<Share> &b);
 };
 

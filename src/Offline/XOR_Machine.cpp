@@ -74,7 +74,7 @@ void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
   Wait_For_Preproc(DATA_TRIPLE, n, thread, OCD);
   list<Share> ta, tb, tc;
 
-  OCD.sacrifice_mutex[thread].lock();
+  OCD.mul_mutex[thread].lock();
 
   auto &sd_ta= SacrificeD[thread].TD.ta;
   auto &sd_tb= SacrificeD[thread].TD.tb;
@@ -84,7 +84,7 @@ void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
   tb.splice(tb.begin(), sd_tb, sd_tb.begin(), next(sd_tb.begin(), n));
   tc.splice(tc.begin(), sd_tc, sd_tc.begin(), next(sd_tc.begin(), n));
 
-  OCD.sacrifice_mutex[thread].unlock();
+  OCD.mul_mutex[thread].unlock();
 
   vector<vector<Share>> triples(3);
   for (int i= 0; i < 3; i++)

@@ -47,8 +47,6 @@ class Processor
   vector<aBitVector> srint;
   vector<aBit> sbit;
 
-  int reg_maxp, reg_maxi;
-
 // In DEBUG mode we keep track of valid/invalid read/writes on the registers
 #ifdef DEBUG
   vector<int> rwp;
@@ -59,6 +57,9 @@ class Processor
 
   // Program counter
   unsigned int PC;
+
+  // These are here for DEBUG mode
+  int reg_maxp, reg_maxi, reg_maxb;
 
   // This is the vector of partially opened values and shares we need to store
   // as the Open commands are split in two
@@ -77,7 +78,7 @@ class Processor
    * within instructions
    */
   // In the case when the OT thread is active this holds the daBitGenerator for this thread
-  DABitGenerator daBitGen;
+  AbstractDABitGenerator* daBitGen;
   // This holds the computed daBits
   daBitVector daBitV;
 
@@ -88,11 +89,16 @@ class Processor
   // Data structures for input and output of private data
   Processor_IO iop;
 
+  // retrieve dabit generator to avoid dealing with pointers
+  AbstractDABitGenerator& get_generator()
+  {
+    return *daBitGen;
+  }
+
 public:
   friend class Instruction;
 
-  Processor(int online_thread_num, unsigned int nplayers, Player &P,
-            offline_control_data &OCD);
+  Processor(int online_thread_num, unsigned int nplayers, Player &P);
   ~Processor();
 
   void clear_registers();
@@ -238,6 +244,15 @@ public:
     sbit.at(i)= x;
   }
 
+  void write_daBit(int i1, int j1)
+  {
+    daBitV.get_daBit(temp.Sansp, temp.aB, daBitGen);
+    rwp[i1 + reg_maxp]= 1;
+    rwsb[j1]= 1;
+    Sp.at(i1)= temp.Sansp;
+    sbit.at(j1)= temp.aB;
+  }
+
 #else
   const gfp &read_Cp(int i) const
   {
@@ -301,6 +316,12 @@ public:
   void write_sbit(int i, const aBit &x)
   {
     sbit[i]= x;
+  }
+  void write_daBit(int i1, int j1)
+  {
+     daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
+     write_Sp(i1, temp.Sansp);
+     write_sbit(j1, temp.aB);
   }
 
 #endif

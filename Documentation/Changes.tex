@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.5} of the SCALE and MAMBA software.
+This is currently {\bf version 1.6} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,55 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software. 
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+
+\subsection{Changes in version 1.6 from 1.5}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Call/Return byte-codes have been added, removing the need for the \verb+JMPI+
+instruction. This makes things much simplier going forward we hope.
+\item Some byte-code names have been changed, and made more consistent. This
+is purely cosmetic, unless you look at the assembler output from the compiler.
+\item \verb|sfloat|, \verb|sfix| are now a little more robust. A program will
+now definitely abort if the desired security bounds are not met. 
+We also removed a limitation on the mantissa size in \verb|sfloat|.
+\item Fake offline mode is now depreciated and you {\em cannot} select it
+from the Setup menu. This is due to a bug, and the fact we never actually
+use/test it ourselves.
+\item Re the change in version 1.4 for Full Threshold input production.
+Turns out the method in SPDZ-2 and in Overdrive are both insecure.
+One needs to execute a ZKPoK to prove that party $P_i$'s input is correct;
+which is basically the TopGear proof done without a summation. Then
+one operates as in SPDZ-2. This has now been alterred.
+\item Compiler now outputs assembler for all tapes which are compiled, if 
+directed to.
+\item Direct access to the DABITs via a DABIT opcode.
+\item Upgrade to the DABIT production for dishonest majority.
+\item Change to the threading to place sacrificing into the production
+threads. This makes the configuration in \verb+config.h+ a little
+simpler to understand, and also removes a potential security hole
+we discussed in earlier documentation. 
+This means some of the data structures previously defined in 
+the RunTime are no longer needed.
+\item The Discrete Gaussians can now be selected using different
+bounds on the NewHope loop. This bound is defined in \verb|config.h|.
+The previous value was hardwired to 20, we now allow the user
+to compile the system with any value. The default is now one.
+See Section \ref{sec:fhe} for details of this.
+\item We have extended the range of ring dimensions available,
+so bigger parameters can be utilized. Note, this is untested
+in terms of memory usage, so could result in huge memory 
+and/or network problems.
+\item You can also, by editing \verb|config.h| use discrete Gaussian
+secret keys instead of short Hamming weight keys if you so desire.
+This makes the FHE parameters a little bigger though.
+\item We fixed some bugs in the \verb|sfloat| class in relation to
+some division operations.
+\item We have added a program provided by Mark Will which allows
+people using YoSys synthesis tools to produce circuits in Bristol
+Fashion.
+\end{enumerate}
+
 
 \subsection{Changes in version 1.5 from 1.4.1}
 Apart from the usual minor bug fixes...

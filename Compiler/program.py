@@ -22,6 +22,7 @@ data_types = dict(
     bit = 2,
     inverse = 3,
     bittriple = 4,
+    dabit = 5,
 )
 
 field_types = dict(
@@ -279,9 +280,9 @@ class Program(object):
         if not tape.purged:
             tape.optimize(self.options)
             tape.write_bytes()
+            if self.options.asmoutfile:
+                tape.write_str(self.options.asmoutfile + '-' + tape.name+'.asm')
             tape.purge()
-        if self.options.asmoutfile:
-            tape.write_str(self.options.asmoutfile + '-' + tape.name)
     
     
     def restart_main_thread(self):
@@ -349,6 +350,7 @@ class Program(object):
         self.curr_tape.start_new_basicblock(None, 'memory-usage')
         # reset register counter to 0
         self.curr_tape.init_registers()
+        library.jmp(0);  # Create a new basic block for the set memory instructions
         for mem_type,size in self.allocated_mem.items():
             if size:
                 print "Memory of type '%s' of size %d" % (mem_type, size)
@@ -417,10 +419,6 @@ class Tape:
             self.previous_block = previous_block
             self.sub_block = sub_block
 
-        def adjust_return(self):
-            offset = self.sub_block.get_offset(self)
-            self.previous_block.return_address_store.args[1] = offset
-        
         def set_exit(self, condition, exit_true=None):
             """ Sets the block which we start from next, depending on the condition.
 
@@ -554,8 +552,6 @@ class Tape:
         for block in self.basicblocks:
             if block.exit_block is not None:
                 block.adjust_jump()
-            if block.previous_block is not None:
-                block.adjust_return()
 
         # now remove any empty blocks (must be done after setting jumps)
         self.basicblocks = filter(lambda x: len(x.instructions) != 0, self.basicblocks)
@@ -579,7 +575,9 @@ class Tape:
                         (block.name, i, len(self.basicblocks))
                 if block.exit_condition is not None:
                     jump = block.exit_condition.get_relative_jump()
-                    if isinstance(jump, (int,long)) and jump < 0 and \
+                    if jump != -1 and  \
+                            isinstance(jump, (int,long)) and \
+                            jump < 0 and \
                             block.exit_block.scope is not None:
                         alloc_loop(block.exit_block.scope)
                 allocator.process(block.instructions, block.alloc_pool)

@@ -48,11 +48,16 @@ public:
  */
 class MaliciousDABitMachine : public DABitMachineBase
 {
+
 public:
   unsigned int n_parties;
+  offline_control_data* OCD;
 
-  void Initialize(unsigned int n_parties);
+  MaliciousDABitMachine();
+  void Initialize(unsigned int n_parties, offline_control_data& OCD);
   void find_cnc_params();
+  AbstractDABitGenerator *new_generator(Player &P, int thread_num);
 };
+
 
 #endif /* SRC_OFFLINE_DABITMACHINE_H_ */

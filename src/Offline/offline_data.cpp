@@ -25,25 +25,42 @@ void Wait_For_Preproc(int type, unsigned int size, int thread,
   bool wait= true;
   while (wait)
     {
-      OCD.sacrifice_mutex[thread].lock();
       wait= false;
-      if (type == DATA_TRIPLE && SacrificeD[thread].TD.ta.size() < size)
+      switch (type)
         {
-          wait= true;
+          case DATA_TRIPLE:
+            OCD.mul_mutex[thread].lock();
+            if (SacrificeD[thread].TD.ta.size() < size)
+              {
+                wait= true;
+              }
+            OCD.mul_mutex[thread].unlock();
+            break;
+          case DATA_SQUARE:
+            OCD.sqr_mutex[thread].lock();
+            if (SacrificeD[thread].SD.sa.size() < size)
+              {
+                wait= true;
+              }
+            OCD.sqr_mutex[thread].unlock();
+            break;
+          case DATA_BIT:
+            OCD.bit_mutex[thread].lock();
+            if (SacrificeD[thread].BD.bb.size() < size)
+              {
+                wait= true;
+              }
+            OCD.bit_mutex[thread].unlock();
+            break;
+          case DATA_INPUT_MASK:
+            OCD.OCD_mutex[thread].lock();
+            if (SacrificeD[thread].ID.ios[player].size() < size)
+              {
+                wait= true;
+              }
+            OCD.OCD_mutex[thread].unlock();
+            break;
         }
-      if (type == DATA_SQUARE && SacrificeD[thread].SD.sa.size() < size)
-        {
-          wait= true;
-        }
-      if (type == DATA_BIT && SacrificeD[thread].BD.bb.size() < size)
-        {
-          wait= true;
-        }
-      if (type == DATA_INPUT_MASK && SacrificeD[thread].ID.ios[player].size() < size)
-        {
-          wait= true;
-        }
-      OCD.sacrifice_mutex[thread].unlock();
       if (wait)
         {
           sleep(1);

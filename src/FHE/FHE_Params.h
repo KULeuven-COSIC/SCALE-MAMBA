@@ -32,10 +32,15 @@ enum PoKVersion { HighGear,
  *   - The default values here are what we use in the main system
  *     We have them as parameters here so we can test different
  *     things in the Test routines (FHE-p.x)
+ *
+ *     Use h=-1 to define a secret key with discrete Gaussian as
+ *     opposed to Hwt distribution
  */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-                         unsigned int h, unsigned int n,
+			 unsigned int n,
                          PoKVersion version,
+                         unsigned int h=HwtSK, 
+			 int NewHopeB_t=NewHopeB,
                          int comp_sec_t= comp_sec,
                          int DD_stat_sec_t= DD_stat_sec,
                          int ZK_sound_sec_t= ZK_sound_sec,
@@ -50,7 +55,8 @@ protected:
   // Data for distributed decryption
   bigint Bval; // Bound
 
-  unsigned int hwt;
+  // Hamming weight of secret key or -1 if using Gaussian secret key
+  int hwt;
 
 public:
   FHE_Params()
@@ -61,8 +67,9 @@ public:
   // Rely on default copy assignment/constructor (not that they should
   // ever be needed)
 
-  void set(const Ring &R, const bigint &pr0, const bigint &pr1, unsigned int hwt, unsigned int n,
-           bool check= true);
+  void set(const Ring &R, const bigint &pr0, const bigint &pr1, int hwtSK, unsigned int n, bool check= true);
+
+  int get_hwt() const { return hwt; }
 
   const vector<FFT_Data> &FFTD() const
   {

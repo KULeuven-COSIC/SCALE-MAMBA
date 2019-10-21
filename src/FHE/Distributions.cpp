@@ -7,6 +7,7 @@ All rights reserved
 
 #include "Distributions.h"
 #include "math.h"
+#include "config.h"
 
 int sample_half(PRNG &G)
 {
@@ -19,21 +20,29 @@ int sample_half(PRNG &G)
     return -1;
 }
 
-/* This uses the approximation to a Gaussian via binomial distribution */
+/* This uses the approximation to a Gaussian via 
+ * binomial distribution 
+ *  
+ * This procedure consumes 2*NewHopeB bits, where NewHopeB
+ * is defined in config.h
+ */
 int sample_Gauss(PRNG &G)
 {
   int s= 0;
-  uint8_t ss[5];
-  G.get_random_bytes(ss, 5);
-  for (int j= 0; j < 5; j++)
+  uint8_t ss[(2*NewHopeB+7)/8];
+  G.get_random_bytes(ss, (2*NewHopeB+7)/8);
+  int cnt=0;
+  for (int j= 0; j < (2*NewHopeB+7)/8; j++)
     {
-      for (int k= 0; k < 4; k++)
+      for (int k= 0; k < 4 && cnt < NewHopeB; k++)
         {
           s= s + (int) (ss[j] & 1);
           ss[j]= ss[j] >> 1;
           s= s - (int) (ss[j] & 1);
           ss[j]= ss[j] >> 1;
+	  cnt++;
         }
     }
   return s;
 }
+
