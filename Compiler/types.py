@@ -2066,8 +2066,9 @@ class sfloat(_number):
               x.load_mem(address)
         """
         res = []
-        for i in range(5):
+        for i in range(4):
             res.append(sint.load_mem(address + i * get_global_vector_size()))
+        res.append(0) # throw away errors when going through memory
         return sfloat(*res)
 
     @classmethod
