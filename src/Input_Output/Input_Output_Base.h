@@ -47,6 +47,7 @@ protected:
 
 public:
   Input_Output_Base();
+  virtual ~Input_Output_Base() {}
   string Get_Check();
 
   // Open and close channels
