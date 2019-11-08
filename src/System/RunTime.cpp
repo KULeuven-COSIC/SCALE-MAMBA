@@ -78,6 +78,45 @@ MaliciousDABitMachine daBitMachine;
 /* Global data structure to hold the OT stuff */
 OT_Thread_Data OTD;
 
+struct Cleanup {
+  int ssocket = -1;
+  vector<vector<vector<int>>> csockets;
+  int verbose = 0;
+  unsigned int playerNumber = -1;
+
+  Cleanup(unsigned int playerNumber, int verbose)
+    : playerNumber(playerNumber)
+    , verbose(verbose)
+  {}
+
+  ~Cleanup() {
+    if (verbose==1) std::cout << "sm::" << playerNumber << ":: cleaning up ..." << std::endl;
+    if (verbose==1) std::cout << "    - threads" << std::endl;
+    threads.clear();
+    if (verbose==1) std::cout << "    - time" << std::endl;
+    try
+      {
+        global_time.stop();
+        global_time.reset();
+      }
+    catch (std::exception &e)
+      {
+        if (verbose==1) std::cout << "      -> " << e.what() << std::endl;
+      }
+    if (verbose==1) std::cout << "    - otd" << std::endl;
+    OTD.aBD.aBits.clear();
+    OTD.aAD.aANDs.clear();
+    if (verbose==1) std::cout << "    - sacrifices" << std::endl;
+    SacrificeD.clear();
+    //
+    playerNumber= -1;
+    ssocket= -1;
+    if (verbose==1) std::cout << "    - sockets" << std::endl;
+    csockets.clear();
+    if (verbose==1) std::cout << "    => done" << std::endl;
+  }
+};
+
 /* Before calling this we assume various things have
  * been set up. In particular the following functions have
  * been called
@@ -92,7 +131,7 @@ OT_Thread_Data OTD;
  * We also assume the machine.schedule has been initialised
  * with some stringstream tapes and a stringstream to a schedule file
  *
- * This function assumes that afterwards we sort out 
+ * This function assumes that afterwards we sort out
  * closing down SSL and Dump'ing memory if need be
  * for a future application
  *
@@ -104,6 +143,8 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
                Machine &machine, offline_control_data &OCD,
                unsigned int number_FHE_threads, int verbose)
 {
+  Cleanup auto_cleanup(my_number, verbose);
+
   machine.Load_Schedule_Into_Memory();
   machine.SetUp_Threads(no_online_threads);
 
@@ -126,9 +167,8 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   daBitMachine.Initialize(SD.n, OCD);
 
   /* Initialize the networking TCP sockets */
-  int ssocket;
-  vector<vector<vector<int>>> csockets(tnthreads, vector<vector<int>>(SD.n, vector<int>(3)));
-  Get_Connections(ssocket, csockets, portnum, my_number, SD, verbose - 2);
+  auto_cleanup.csockets.resize(tnthreads, vector<vector<int>>(SD.n, vector<int>(3)));
+  Get_Connections(auto_cleanup.ssocket, auto_cleanup.csockets, portnum, my_number, SD, verbose - 2);
   printf("All connections now done\n");
 
   FHE_Industry industry(number_FHE_threads);
@@ -158,7 +198,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
       tinfo[i].ctx= ctx;
       tinfo[i].me= my_number;
       tinfo[i].no_online_threads= no_online_threads;
-      tinfo[i].csockets= csockets[i];
+      tinfo[i].csockets= auto_cleanup.csockets[i];
       tinfo[i].MacK= MacK;
       tinfo[i].machine= &machine;
       tinfo[i].industry= &industry;
@@ -185,7 +225,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
       pthread_join(threads[i], NULL);
     }
 
-  Close_Connections(ssocket, csockets, my_number);
+  Close_Connections(auto_cleanup.ssocket, auto_cleanup.csockets, my_number);
 
   global_time.stop();
   cout << "Total Time (with thread locking) = " << global_time.elapsed() << " seconds" << endl;
