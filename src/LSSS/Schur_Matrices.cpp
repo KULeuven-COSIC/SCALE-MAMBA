@@ -80,6 +80,7 @@ bool Schur_Matrices::initialize(const MSP &M)
   bool result= Solvable(T);
   if (result == false)
     {
+      throw std::invalid_argument("MSP is not multiplicative");
       return false;
     }
 
