@@ -17,7 +17,7 @@ All rights reserved
 #include "Tools/random.h"
 #include <map>
 
-void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD);
+void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD, const string& rootDirectory = "");
 
 inline void Destroy_SSL_CTX(SSL_CTX *ctx) { SSL_CTX_free(ctx); }
 
