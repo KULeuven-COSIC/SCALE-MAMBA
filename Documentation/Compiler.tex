@@ -102,7 +102,7 @@ We include a short analysis of the compilation output and a basic description of
 \begin{verbatim}
 Compiling program in Programs/tutorial
 tutorial
-p = 34359738368
+p = 34359738421
 Prime size: 32
 Default bit length: 24
 Default statistical security parameter: 6
@@ -297,7 +297,7 @@ type for all \verb|sregint| comparison tests.
 It can be used to perform boolean operations on top of it, making it ideal for building complex logic predicates.
 
 Moreover, the clear type \verb|regint| was designed in such a way that it can be used for other tasks. 
-One example is as array index, since values used in range-loops and some of while-loops are \verb|regint|s. 
+One example is array index, since values used in range-loops and some of while-loops are \verb|regint|s. 
 Also value in MemValue(described later) is stored as \verb|regint|. 
 We use \verb|regint| in such a generic way, given that operations on regint are faster than on \verb|cint|. 
 This is because \verb+regint+ values map directly to the integer values in the byte-codes,

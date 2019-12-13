@@ -6,10 +6,12 @@ libraries:
 \begin{itemize}
 \item GCC/G++: Tested with version 8.2.0 
 \item MPIR library, compiled with C++ support (use flag --enable-cxx when running configure) : Tested with version 3.0.0
-\item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
+\item Python2, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
 \item CPU supporting AES-NI and PCLMUL
 \item OpenSSL: Tested with version 1.1.0.b
 \item Crypto++: Tested with version 7.0
+\item yasm
+\item m4
 \item CMake, only if you want to use it instead of make: Version 3.1 to 3.14 is required
 \end{itemize}
 Developers will also require
@@ -18,7 +20,7 @@ Developers will also require
 \end{itemize}
 
 \subsubsection{Installing MPIR and OpenSSL}
-This bit, on explaining how to install  MPIR and OpenSSL inside \verb+$HOME/local+, 
+This bit, on explaining how to install MPIR, OpenSSL, and Crypto++ inside \verb+$HOME/local+, 
 is inspired from \href{https://rdragos.github.io/2019/01/07/scale/}{this} blogpost.
 The target directory here can be changed to whatever you wish.
 If you follow this section we assume that you have \textbf{cloned}
@@ -42,8 +44,14 @@ the main repository in your \verb+$HOME+ directory.
     cd openssl-1.1.0j
     ./config --prefix="${mylocal}/openssl"
     make && make install
+
+    # install crypto++
+    curl -O https://www.cryptopp.com/cryptopp820.zip
+    unzip cryptopp820.zip -d cryptopp820
+    cd cryptopp820
+    make && make install PREFIX=${mylocal}/cryptopp
 \end{verbatim}
-Now export MPIR and OpenSSL paths by copying the following
+Now export MPIR, OpenSSL, and Crypto++ paths by copying the following
 lines at the end of your \verb+$HOME/.bashrc+ configuration file.
 \begin{verbatim}
     # this goes at the end of your $HOME/.bashrc file
@@ -62,6 +70,11 @@ lines at the end of your \verb+$HOME/.bashrc+ configuration file.
     export CPLUS_INCLUDE_PATH="${mylocal}/mpir/include/:${CPLUS_INCLUDE_PATH}"
     export LIBRARY_PATH="${mylocal}/mpir/lib/:${LIBRARY_PATH}"
     export LD_LIBRARY_PATH="${mylocal}/mpir/lib/:${LD_LIBRARY_PATH}"
+
+    # export Crypto++ paths
+    export CPLUS_INCLUDE_PATH="${mylocal}/cryptopp/include/:${CPLUS_INCLUDE_PATH}"
+    export LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LD_LIBRARY_PATH}"
 \end{verbatim}
 
 \subsubsection{Change CONFIG.mine}
