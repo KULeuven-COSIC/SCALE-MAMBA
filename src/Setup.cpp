@@ -429,9 +429,10 @@ void init_secret_sharing()
           {
             bd++;
           }
-        while (t < 1 || t >= bd)
+        t = bd;
+        while (t >= bd)
           {
-            cout << "Enter threshold 0 < t < " << bd << endl;
+            cout << "Enter threshold 0 <= t < " << bd << endl;
             cin >> t;
           }
         SD.Initialize_Shamir(n, t);
