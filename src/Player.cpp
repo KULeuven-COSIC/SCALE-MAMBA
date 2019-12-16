@@ -313,6 +313,10 @@ int main(int argc, const char *argv[])
       stringstream ss;
       ss << "Data/FHE-Key-" << my_number << ".key";
       inp.open(ss.str().c_str());
+      if (inp.fail())
+        {
+          throw file_error(ss.str());
+        }
       bigint p0, p1, pr;
       unsigned int hwt, N;
       inp >> N >> p0 >> p1 >> pr >> hwt;

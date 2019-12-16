@@ -58,6 +58,8 @@ public:
 
   bool convert_ok; // Signals whether we can do GC <-> LSSS conversion or not
 
+  static Circuit load_circuit(const string &path);
+
   void initialize(const bigint &p);
 
   // Checks if the indirect circuit is loaded, it not it loads it */

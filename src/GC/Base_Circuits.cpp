@@ -15,46 +15,50 @@ All rights reserved
 /* This it the global store of circuits */
 Base_Circuits Global_Circuit_Store;
 
-void Base_Circuits::initialize(const bigint &p)
+Circuit Base_Circuits::load_circuit(const string &path)
 {
+  ifstream inpf;
   Circuit C;
 
-  ifstream inpf;
-
-  inpf.open("Circuits/Bristol/adder64.txt");
+  inpf.open(path);
+  if (inpf.fail())
+    throw file_error(path);
   inpf >> C;
   inpf.close();
-  Circuits.insert(make_pair(0, C));
 
-  inpf.open("Circuits/Bristol/sub64.txt");
-  inpf >> C;
-  inpf.close();
-  Circuits.insert(make_pair(1, C));
+  return C;
+}
 
-  inpf.open("Circuits/Bristol/mult2_64.txt");
-  inpf >> C;
-  inpf.close();
-  Circuits.insert(make_pair(2, C));
+void Base_Circuits::initialize(const bigint &p)
+{
 
-  inpf.open("Circuits/Bristol/mult64.txt");
-  inpf >> C;
-  inpf.close();
-  Circuits.insert(make_pair(3, C));
+  Circuits.insert(make_pair(
+    0, load_circuit("Circuits/Bristol/adder64.txt")
+  ));
 
-  inpf.open("Circuits/Bristol/divide64.txt");
-  inpf >> C;
-  inpf.close();
-  Circuits.insert(make_pair(4, C));
+  Circuits.insert(make_pair(
+    1, load_circuit("Circuits/Bristol/sub64.txt")
+  ));
 
-  inpf.open("Circuits/Bristol/neg64.txt");
-  inpf >> C;
-  inpf.close();
-  Circuits.insert(make_pair(5, C));
+  Circuits.insert(make_pair(
+    2, load_circuit("Circuits/Bristol/mult2_64.txt")
+  ));
 
-  inpf.open("Circuits/Bristol/zero_equal.txt");
-  inpf >> C;
-  inpf.close();
-  Circuits.insert(make_pair(6, C));
+  Circuits.insert(make_pair(
+    3, load_circuit("Circuits/Bristol/mult64.txt")
+  ));
+
+  Circuits.insert(make_pair(
+    4, load_circuit("Circuits/Bristol/divide64.txt")
+  ));
+
+  Circuits.insert(make_pair(
+    5, load_circuit("Circuits/Bristol/neg64.txt")
+  ));
+
+  Circuits.insert(make_pair(
+    6, load_circuit("Circuits/Bristol/zero_equal.txt")
+  ));
 
   /* We can do a conversion if log_2 p bits mod p 
    * give something statistically close to random mod p
@@ -79,10 +83,9 @@ void Base_Circuits::initialize(const bigint &p)
   if (lg2p > sreg_bitl &&
       ((lg2p > sreg_bitl + conv_stat_sec) || (y1 > conv_stat_sec) || (y2 > conv_stat_sec)))
     {
-      inpf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
-      inpf >> C;
-      inpf.close();
-      Circuits.insert(make_pair(7, C));
+      Circuits.insert(make_pair(
+        7, load_circuit("Data/ConversionCircuit-LSSS_to_GC.txt")
+      ));
 
       convert_ok= true;
     }
@@ -120,11 +123,9 @@ void Base_Circuits::check(int num)
     {
       loaded[num]= true;
 
-      Circuit C;
-      ifstream inpf(location[num]);
-      inpf >> C;
-      inpf.close();
-      Circuits.insert(make_pair(num, C));
+      Circuits.insert(make_pair(
+        num, load_circuit(location[num])
+      ));
     }
   mutex_GC_load.unlock();
 }

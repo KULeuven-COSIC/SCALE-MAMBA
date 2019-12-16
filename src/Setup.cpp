@@ -90,6 +90,11 @@ void init_FHE(bigint &pr, int lg2p, unsigned int n)
       stringstream ss;
       ss << "Data/FHE-Key-" << i << ".key";
       ofstream outk(ss.str().c_str());
+      if (outk.fail())
+        {
+          cout << "Could not open output file " << ss.str() << endl;
+          exit(1);
+        }
       sk.assign(si[i]);
       outk << N << " " << p0 << " " << p1 << " " << pr << " " << hwt << endl
            << ":";
@@ -107,6 +112,11 @@ void init_certs()
   // SSL_CTX *ctx = InitServerCTX();
 
   ofstream output("Data/NetworkData.txt");
+  if (output.fail())
+    {
+      cout << "Could not open output file Data/NetworkData.txt." << endl;
+      exit(1);
+    }
 
   cout << "Enter the name of the root CA (e.g. RootCA)" << endl;
   string CAName;
@@ -114,6 +124,11 @@ void init_certs()
 
   string str= "Cert-Store/" + CAName + ".crt";
   ifstream cert_file(str);
+  if (cert_file.fail())
+    {
+      cout << "Could not open certificate file " << str << " ." << endl;
+      exit(1);
+    }
   stringstream cert_buff;
   cert_buff << cert_file.rdbuf();
   cout << "Cert is\n"
@@ -157,6 +172,11 @@ void init_certs()
       output << str << " ";
       str= "Cert-Store/" + str;
       ifstream player_cert_file(str);
+      if (player_cert_file.fail())
+        {
+          cout << "Could not open certificate file " << str << endl;
+          exit(1);
+        }
       stringstream player_cert_buff;
       player_cert_buff << player_cert_file.rdbuf();
       cout << "Cert is\n"
@@ -357,6 +377,12 @@ void init_Q2_MSP(ShareData &SD, unsigned int n)
 void init_secret_sharing()
 {
   ifstream input("Data/NetworkData.txt");
+  if (input.fail())
+    {
+      cout << "Could not open Data/NetworkData.txt.\n"
+          << "Make sure to run setup phase 1." << endl;
+      exit(1);
+    }
   string str;
   input >> str;
   unsigned int n;
@@ -447,6 +473,11 @@ void init_secret_sharing()
     }
 
   ofstream out("Data/SharingData.txt");
+  if (out.fail())
+    {
+      cout << "Could not open output file Data/SharingData.txt." << endl;
+      exit(1);
+    }
   out << p << endl;
   out << SD;
   out.close();
@@ -458,6 +489,11 @@ void init_secret_sharing()
       stringstream ss;
       ss << "Data/MKey-" << i << ".key";
       ofstream outk(ss.str().c_str());
+      if (outk.fail())
+        {
+          cout << "Cout not open output file " << ss.str() << endl;
+          exit(1);
+        }
       for (unsigned int j= 0; j < SD.nmacs; j++)
         {
           gfp aa;
@@ -476,6 +512,12 @@ void init_conversion()
 {
   bigint p;
   ifstream inpf("Data/SharingData.txt");
+  if (inpf.fail())
+    {
+      cout << "Could not open Data/SharingData.txt.\n"
+          << "Make sure to run setup phase 2." << endl;
+      exit(1);
+    }
   inpf >> p;
   inpf.close();
 
@@ -510,6 +552,11 @@ void init_conversion()
   cout << "Producing conversion circuit LSSS to GC for prime " << p << endl;
   // Now load the 512 bit adder
   inpf.open("Circuits/Bristol/LSSS_to_GC.txt");
+  if (inpf.fail())
+    {
+      cout << "Could not open Circuits/Bristol/LSSS_to_GC.txt. Make sure the file is available." << endl;
+      exit(1);
+    }
   inpf >> C512;
   inpf.close();
 
@@ -560,6 +607,11 @@ void init_conversion()
   CSub= CC.Get_Circuit();
 
   outf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
+  if (outf.fail())
+    {
+      cout << "Could not open conversion circuit output file (ConversionCircuit-LSSS_to_GC.txt)." << endl;
+      exit(1);
+    }
   outf << CSub << endl;
   outf.close();
 

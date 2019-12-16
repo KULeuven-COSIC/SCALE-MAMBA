@@ -26,6 +26,8 @@ unsigned int cnt_numI(const GateType &T)
 
 istream &operator>>(istream &s, Circuit &C)
 {
+  if (s.fail())
+    throw std::invalid_argument("the given istream instance is in a failure state!");
   unsigned int nG, te;
   s >> nG >> C.nWires;
 
