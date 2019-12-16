@@ -1,0 +1,16 @@
+# Custom Configuration
+CONFIG.mine
+
+# Test Logs
+Scripts/logs
+
+# MAMBA Compilation Products
+Programs/**
+!Programs/**/*.mpc
+
+# Build Prodcuts
+src/**/*.o
+Setup.x
+Player.x
+src/libMPC.a
+
