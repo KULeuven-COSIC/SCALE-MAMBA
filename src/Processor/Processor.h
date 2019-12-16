@@ -246,7 +246,7 @@ public:
 
   void write_daBit(int i1, int j1)
   {
-    daBitV.get_daBit(temp.Sansp, temp.aB, daBitGen);
+    daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
     rwp[i1 + reg_maxp]= 1;
     rwsb[j1]= 1;
     Sp.at(i1)= temp.Sansp;
