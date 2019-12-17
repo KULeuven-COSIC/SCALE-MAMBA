@@ -1,0 +1,96 @@
+# Offline data, runtime logs #
+##############################
+logs/*
+
+# Ignore files without extension
+*
+!*/
+!*.*
+
+# Personal CONFIG file #
+##############################
+CONFIG.mine
+config_mine.py
+
+# Temporary files #
+###################
+*.bak
+*.orig
+*.rej
+*.tmp
+callgrind.out.*
+
+# Vim
+.*.swp
+tags
+
+# Eclipse #
+###########
+.project
+.cproject
+.settings
+
+# VS Code IDE #
+###############
+.vscode/**
+
+# Temporary files #
+###################
+*.bak
+*.orig
+*.rej
+*.tmp
+callgrind.out.*
+
+# Compiled source #
+###################
+Programs/*/*.sch
+Programs/*/*.bc
+*.com
+*.class
+*.dll
+*.exe
+*.x
+*.o
+*.so
+*.pyc
+*.bc
+*.sch
+*.a
+*.static
+*.d
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Latex #
+#########
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.bbl
+*.bcf
+*.blg
+
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.data
