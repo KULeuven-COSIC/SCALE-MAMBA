@@ -40,13 +40,17 @@ want to maintain stability between releases for people using the
 system. Thus we have created the following rules of thumb:
 
 i)   New releases will be about every quarter.
+
 ii)  Only major bug fixes will be done in the mean time.
+
 iii) Join the mailing list to get updates (spdz@googlegroups.com)
+
 iv)  For small changes/bug fixes you find, either email the group
      or make a pull request here. We will then look at the code,
      integrate it into our private master system and perform the
      testing on it. Then we will push to GitHub with the next
      release.
+
 v)   Major changes (more than the odd line here or there), please
      talk  with us first. You may be doing something which we
      plan to scrap in the near future. So you dont want to waste
