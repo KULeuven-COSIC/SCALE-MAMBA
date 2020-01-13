@@ -25,24 +25,17 @@ EXCEPTIONS = $(patsubst %.cpp,%.o,$(wildcard Exceptions/*.cpp))
 
 LIB = libMPC.a
 
-OBJ = Setup.o Player.o 
-
-SRC = Setup.cpp Player.cpp 
-
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $< 
-
-$(OBJ): $(SRC)
-	$(CC) $(CFLAGS) -c $*.cpp
 
 $(LIB): $(SYSTEM) $(MATH) $(TOOLS) $(LSSS) $(OFFLINE) $(ONLINE) $(OT) $(PROCESSOR) $(IO) $(FHE) $(GC) $(LOCAL_FUNC) $(EXCEPTIONS)
 	$(AR) -crs libMPC.a $^
 
-Setup.x: $(OBJ) $(LIB)
+Setup.x: Setup.o $(LIB)
 	$(CC) $(CFLAGS) -o Setup.x Setup.o $(LIB) $(LDLIBS)
 	- mv Setup.x ../
 
-Player.x: $(OBJ) $(LIB)
+Player.x: Player.o $(LIB)
 	$(CC) $(CFLAGS) -o Player.x Player.o $(LIB) $(LDLIBS)
 	- mv Player.x ../
 
