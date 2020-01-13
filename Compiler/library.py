@@ -14,6 +14,11 @@ from Compiler import instructions,instructions_base,comparison,program
 import inspect,math
 import random
 import collections
+import sys
+
+if sys.version[0] == "3":
+    # If we're in python3, integers have unlimited size
+    long = int
 
 def get_program():
     return instructions.program
@@ -256,7 +261,7 @@ class Function(object):
         self.compile_args = compile_args
     def __call__(self, *args):
         args = tuple(arg.read() if isinstance(arg, MemValue) else arg for arg in args)
-        get_reg_type = lambda x: regint if isinstance(x, (int, int)) else type(x)
+        get_reg_type = lambda x: regint if isinstance(x, (int, long)) else type(x)
         if len(args) not in self.type_args:
             # first call
             type_args = collections.defaultdict(list)
@@ -1164,7 +1169,7 @@ def no_result_testing():
 # Fixed point ops
 
 from math import ceil, log
-from floatingpoint import PreOR, TruncPr, two_power
+from Compiler.floatingpoint import PreOR, TruncPr, two_power
 
 def approximate_reciprocal(divisor, k, f, theta):
     """

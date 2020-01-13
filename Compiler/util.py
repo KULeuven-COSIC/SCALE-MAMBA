@@ -5,6 +5,11 @@ from past.utils import old_div
 import math
 import operator
 from functools import reduce
+import sys
+
+if sys.version[0] == "3":
+    # If we're in python3, integers have unlimited size
+    long = int
 
 def format_trace(trace, prefix='  '):
     if trace is None:
@@ -51,7 +56,7 @@ def right_shift(a, b, bits):
         return a.right_shift(b, bits)
 
 def bit_decompose(a, bits):
-    if isinstance(a, (int,int)):
+    if isinstance(a, (int,long)):
         return [int((a >> i) & 1) for i in range(bits)]
     else:
         return a.bit_decompose(bits)
@@ -134,4 +139,4 @@ def reveal(x):
     return x
 
 def is_constant(x):
-    return isinstance(x, (int, int, bool))
+    return isinstance(x, (int, long, bool))

@@ -10,9 +10,9 @@ from builtins import range
 from past.utils import old_div
 from math import log, floor, ceil
 from Compiler.instructions import *
-import types
-import comparison
-import program
+import Compiler.types
+import Compiler.comparison
+import Compiler.program
 
 
 ##
@@ -24,7 +24,7 @@ def two_power(n):
     if isinstance(n, int) and n < 31:
         return 2**n
     else:
-        max = types.cint(1) << 31
+        max = Compiler.types.cint(1) << 31
         res = 2**(n%31)
         for i in range(old_div(n, 31)):
             res *= max
@@ -47,7 +47,7 @@ def shift_two(n, pos):
 # @return sint \{0,1\} where a < 0.
 def FLLT (fl_a, fl_b):
     t = fl_a.err
-    if isinstance(fl_b, types.sfloat):
+    if isinstance(fl_b, Compiler.types.sfloat):
         t = t + fl_b.err
     t = t == 0
     z1 = fl_a.z
@@ -69,12 +69,12 @@ def FLLT (fl_a, fl_b):
 
 
 def EQZ(a, k, kappa):
-    r_dprime = types.sint()
-    r_prime = types.sint()
-    c = types.cint()
+    r_dprime = Compiler.types.sint()
+    r_prime = Compiler.types.sint()
+    c = Compiler.types.cint()
     d = [None]*k
-    r = [types.sint() for i in range(k)]
-    comparison.PRandM(r_dprime, r_prime, r, k, k, kappa)
+    r = [Compiler.types.sint() for i in range(k)]
+    Compiler.comparison.PRandM(r_dprime, r_prime, r, k, k, kappa)
     startopen(a + two_power(k) * r_dprime + r_prime)# + 2**(k-1))
     stopopen(c)
     for i,b in enumerate(bits(c, k)):
@@ -135,8 +135,8 @@ def bits(a,m):
             res[i] = a & 1
             a >>= 1
     else:
-        c = [[types.cint() for i in range(m)] for i in range(2)]
-        res = [types.cint() for i in range(m)]
+        c = [[Compiler.types.cint() for i in range(m)] for i in range(2)]
+        res = [Compiler.types.cint() for i in range(m)]
         modci(res[0], a, 2)
         c[1][0] = a
         for i in range(1,m):
@@ -171,15 +171,15 @@ def PreORC(a, kappa=None, m=None, raw=False):
     if k == 1:
         return [a[0]]
     m = m or k
-    max_k = int(old_div(log(program.Program.prog.P), log(2))) - kappa
+    max_k = int(old_div(log(Compiler.program.Program.prog.P), log(2))) - kappa
     if k <= max_k:
         p = [None] * m
         if m == k:
             p[0] = a[0]
-        t = [types.sint() for i in range(m)]
-        b = comparison.PreMulC([a[i] + 1 for i in range(k)])
+        t = [Compiler.types.sint() for i in range(m)]
+        b = Compiler.comparison.PreMulC([a[i] + 1 for i in range(k)])
         for i in range(m):
-           comparison.Mod2(t[i], b[k-1-i], k, kappa, False)
+           Compiler.comparison.Mod2(t[i], b[k-1-i], k, kappa, False)
            p[m-1-i] = 1 - t[i]
         return p
     else:
@@ -216,7 +216,7 @@ def PreOpN(op, items):
     return output
 
 def PreOR(a, kappa=None, raw=False):
-    if comparison.const_rounds:
+    if Compiler.comparison.const_rounds:
         return PreORC(a, kappa, raw=raw)
     else:
         return PreOpL(or_op, a)
@@ -244,25 +244,25 @@ def KORC(a, kappa):
     return PreORC(a, kappa, 1)[0]
 
 def KOR(a, kappa):
-    if comparison.const_rounds:
+    if Compiler.comparison.const_rounds:
         return KORC(a, kappa)
     else:
         return KORL(a, None)
 
 def KMul(a):
-    if comparison.const_rounds:
-        return comparison.KMulC(a)
+    if Compiler.comparison.const_rounds:
+        return Compiler.comparison.KMulC(a)
     else:
         return KOpL(mul_op, a)
 
 def FlAbs(a):
-    return types.sfloat(v = a.v, p = a.p, z = a.z, s = types.sint(0), err = a.err)
+    return Compiler.types.sfloat(v = a.v, p = a.p, z = a.z, s = Compiler.types.sint(0), err = a.err)
 
 def Inv(a):
     """ Invert a non-zero value """
-    t = [types.sint() for i in range(2)]
-    c = [types.cint() for i in range(2)]
-    one = types.cint()
+    t = [Compiler.types.sint() for i in range(2)]
+    c = [Compiler.types.cint() for i in range(2)]
+    one = Compiler.types.cint()
     ldi(one, 1)
     square(t[0],t[1]);
     s = t[0]*a
@@ -331,19 +331,19 @@ def BitAdd(a, b, bits_to_compute=None):
     return s
 
 def BitDec(a, k, m, kappa, bits_to_compute=None):
-    r_dprime = types.sint()
-    r_prime = types.sint()
-    c = types.cint()
-    r = [types.sint() for i in range(m)]
-    comparison.PRandM(r_dprime, r_prime, r, k, m, kappa)
-    #assert(r_prime.value == sum(r[i].value*2**i for i in range(m)) % comparison.program.P)
+    r_dprime = Compiler.types.sint()
+    r_prime = Compiler.types.sint()
+    c = Compiler.types.cint()
+    r = [Compiler.types.sint() for i in range(m)]
+    Compiler.comparison.PRandM(r_dprime, r_prime, r, k, m, kappa)
+    #assert(r_prime.value == sum(r[i].value*2**i for i in range(m)) % Compiler.comparison.program.P)
     pow2 = two_power(k + kappa)
     asm_open(c, pow2 + two_power(k) + a - two_power(m)*r_dprime - r_prime)
     #rval = 2**m*r_dprime.value + r_prime.value
     #assert(rval % 2**m == r_prime.value)
-    #assert(rval == (2**m*r_dprime.value + sum(r[i].value*2**i for i in range(m)) % comparison.program.P ))
+    #assert(rval == (2**m*r_dprime.value + sum(r[i].value*2**i for i in range(m)) % Compiler.comparison.program.P ))
     try:
-        pass#assert(c.value == (2**(k + kappa) + 2**k + (a.value%2**k) - rval) % comparison.program.P)
+        pass#assert(c.value == (2**(k + kappa) + 2**k + (a.value%2**k) - rval) % Compiler.comparison.program.P)
     except AssertionError:
         print('BitDec assertion failed')
         print('a =', a.value)
@@ -354,8 +354,8 @@ def BitDec(a, k, m, kappa, bits_to_compute=None):
 def Pow2(a, l, kappa):
     m = int(ceil(log(l, 2)))
     t = BitDec(a, m, m, kappa)
-    x = [types.sint() for i in range(m)]
-    pow2k = [types.cint() for i in range(m)]
+    x = [Compiler.types.sint() for i in range(m)]
+    pow2k = [Compiler.types.cint() for i in range(m)]
     for i in range(m):
         pow2k[i] = two_power(2**i)
         t[i] = t[i]*pow2k[i] + 1 - t[i]
@@ -364,14 +364,14 @@ def Pow2(a, l, kappa):
 def B2U(a, l, kappa):
     pow2a = Pow2(a, l, kappa)
     #assert(pow2a.value == 2**a.value)
-    r = [types.sint() for i in range(l)]
-    t = types.sint()
-    c = types.cint()
+    r = [Compiler.types.sint() for i in range(l)]
+    t = Compiler.types.sint()
+    c = Compiler.types.cint()
     for i in range(l):
         bit(r[i])
-    comparison.PRandInt(t, kappa)
+    Compiler.comparison.PRandInt(t, kappa)
     asm_open(c, pow2a + two_power(l) * t + sum(two_power(i)*r[i] for i in range(l)))
-    comparison.program.curr_tape.require_bit_length(l + kappa)
+    Compiler.comparison.program.curr_tape.require_bit_length(l + kappa)
     c = list(bits(c, l))
     x = [c[i] + r[i] - 2*c[i]*r[i] for i in range(l)]
     #print ' '.join(str(b.value) for b in x)
@@ -386,13 +386,13 @@ def Trunc(a, l, m, kappa, compute_modulo=False):
             return a * m, 1 + m
         else:
             return a * (1 - m)
-    r = [types.sint() for i in range(l)]
-    r_dprime = types.sint(0)
-    r_prime = types.sint(0)
-    rk = types.sint()
-    c = types.cint()
-    ci = [types.cint() for i in range(l)]
-    d = types.sint()
+    r = [Compiler.types.sint() for i in range(l)]
+    r_dprime = Compiler.types.sint(0)
+    r_prime = Compiler.types.sint(0)
+    rk = Compiler.types.sint()
+    c = Compiler.types.cint()
+    ci = [Compiler.types.cint() for i in range(l)]
+    d = Compiler.types.sint()
     x, pow2m = B2U(m, l, kappa)
     #assert(pow2m.value == 2**m.value)
     #assert(sum(b.value for b in x) == m.value)
@@ -402,36 +402,36 @@ def Trunc(a, l, m, kappa, compute_modulo=False):
         t2 = t1*x[i]
         r_prime += t2
         r_dprime += t1 - t2
-    #assert(r_prime.value == (sum(2**i*x[i].value*r[i].value for i in range(l)) % comparison.program.P))
-    comparison.PRandInt(rk, kappa)
+    #assert(r_prime.value == (sum(2**i*x[i].value*r[i].value for i in range(l)) % Compiler.comparison.program.P))
+    Compiler.comparison.PRandInt(rk, kappa)
     r_dprime += two_power(l) * rk
-    #assert(r_dprime.value == (2**l * rk.value + sum(2**i*(1 - x[i].value)*r[i].value for i in range(l)) % comparison.program.P))
+    #assert(r_dprime.value == (2**l * rk.value + sum(2**i*(1 - x[i].value)*r[i].value for i in range(l)) % Compiler.comparison.program.P))
     asm_open(c, a + r_dprime + r_prime)
     for i in range(1,l):
         ci[i] = c % two_power(i)
         #assert(ci[i].value == c.value % 2**i)
     c_dprime = sum(ci[i]*(x[i-1] - x[i]) for i in range(1,l))
-    #assert(c_dprime.value == (sum(ci[i].value*(x[i-1].value - x[i].value) for i in range(1,l)) % comparison.program.P))
+    #assert(c_dprime.value == (sum(ci[i].value*(x[i-1].value - x[i].value) for i in range(1,l)) % Compiler.comparison.program.P))
     lts(d, c_dprime, r_prime, l, kappa)
     if compute_modulo:
         b = c_dprime - r_prime + pow2m * d
         return b, pow2m
     else:
         pow2inv = Inv(pow2m)
-        #assert(pow2inv.value * pow2m.value % comparison.program.P == 1)
+        #assert(pow2inv.value * pow2m.value % Compiler.comparison.program.P == 1)
         b = (a - c_dprime + r_prime) * pow2inv - d
     return b
 
 def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
-    t = comparison.TruncRoundNearest(a, length, length - target_length, kappa)
+    t = Compiler.comparison.TruncRoundNearest(a, length, length - target_length, kappa)
     overflow = t.greater_equal(two_power(target_length), target_length + 1, kappa)
     s = (1 - overflow) * t + old_div(overflow * t, 2)
     return s, overflow
 
 def Int2FL(a, gamma, l, kappa):
     lam = gamma - 1
-    s = types.sint()
-    comparison.LTZ(s, a, gamma, kappa)
+    s = Compiler.types.sint()
+    Compiler.comparison.LTZ(s, a, gamma, kappa)
     z = EQZ(a, gamma, kappa)
     a = (1 - 2 * s) * a
 
@@ -441,12 +441,12 @@ def Int2FL(a, gamma, l, kappa):
     t = a * (1 + sum(2**i * (1 - b_i) for i,b_i in enumerate(b)))
     p = - (lam - sum(b))
     if lam > l:
-        if types.sfloat.round_nearest:
+        if Compiler.types.sfloat.round_nearest:
             v, overflow = TruncRoundNearestAdjustOverflow(t, gamma - 1, l, kappa)
             p = p + overflow
         else:
-            v = types.sint()
-            comparison.Trunc(v, t, gamma - 1, gamma - l - 1, kappa, False)
+            v = Compiler.types.sint()
+            Compiler.comparison.Trunc(v, t, gamma - 1, gamma - l - 1, kappa, False)
             #TODO: Shouldnt this be only gamma
     else:
         v = 2**(l-gamma+1) * t
@@ -493,8 +493,8 @@ def FLRound(x, mode):
     """ Rounding with floating point output.
     *mode*: 0 -> floor, 1 -> ceil, -1 > trunc """
     v1, p1, z1, s1, l, k = x.v, x.p, x.z, x.s, x.vlen, x.plen
-    a = types.sint()
-    comparison.LTZ(a, p1, k, x.kappa)
+    a = Compiler.types.sint()
+    Compiler.comparison.LTZ(a, p1, k, x.kappa)
     b = p1.less_than(-l + 1, k, x.kappa)
     v2, inv_2pow_p1 = Trunc(v1, l, -a * (1 - b) * x.p, x.kappa, True)
     c = EQZ(v2, l, x.kappa)
@@ -517,15 +517,15 @@ def TruncPr(a, k, m, kappa=None):
     """ Probabilistic truncation [a/2^m + u]
         where Pr[u = 1] = (a % 2^m) / 2^m
     """
-    if isinstance(a, types.cint):
+    if isinstance(a, Compiler.types.cint):
         return shift_two(a, m)
 
     if kappa is None:
        kappa = 40 
 
     b = two_power(k-1) + a
-    r_prime, r_dprime = types.sint(), types.sint()
-    comparison.PRandM(r_dprime, r_prime, [types.sint() for i in range(m)],
+    r_prime, r_dprime = Compiler.types.sint(), Compiler.types.sint()
+    Compiler.comparison.PRandM(r_dprime, r_prime, [Compiler.types.sint() for i in range(m)],
                       k, m, kappa)
     two_to_m = two_power(m)
     r = two_to_m * r_dprime + r_prime
@@ -538,21 +538,21 @@ def TruncPr(a, k, m, kappa=None):
 def SDiv(a, b, l, kappa):
     theta = int(ceil(old_div(log(l / 3.5), log(2))))
     alpha = two_power(2*l)
-    beta = old_div(1, types.cint(two_power(l)))
-    w = types.cint(int(2.9142 * two_power(l))) - 2 * b
+    beta = old_div(1, Compiler.types.cint(two_power(l)))
+    w = Compiler.types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
     y = TruncPr(y, 2 * l, l, kappa)
-    x2 = types.sint()
-    comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
+    x2 = Compiler.types.sint()
+    Compiler.comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
     x1 = (x - x2) * beta
     for i in range(theta-1):
         y = y * (x1 + two_power(l)) + TruncPr(y * x2, 2 * l, l, kappa)
         y = TruncPr(y, 2 * l + 1, l + 1, kappa)
         x = x1 * x2 + TruncPr(x2**2, 2 * l + 1, l + 1, kappa)
         x = x1 * x1 + TruncPr(x, 2 * l + 1, l - 1, kappa)
-        x2 = types.sint()
-        comparison.Mod2m(x2, x, 2 * l, l, kappa, False)
+        x2 = Compiler.types.sint()
+        Compiler.comparison.Mod2m(x2, x, 2 * l, l, kappa, False)
         x1 = (x - x2) * beta
     y = y * (x1 + two_power(l)) + TruncPr(y * x2, 2 * l, l, kappa)
     y = TruncPr(y, 2 * l + 1, l - 1, kappa)
@@ -561,7 +561,7 @@ def SDiv(a, b, l, kappa):
 def SDiv_mono(a, b, l, kappa):
     theta = int(ceil(old_div(log(l / 3.5), log(2))))
     alpha = two_power(2*l)
-    w = types.cint(int(2.9142 * two_power(l))) - 2 * b
+    w = Compiler.types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
     y = TruncPr(y, 2 * l + 1, l + 1, kappa)

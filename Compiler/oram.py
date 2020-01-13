@@ -15,6 +15,12 @@ import operator
 import sys
 from functools import reduce
 
+
+if sys.version[0] == "3":
+    # If we're in python3, integers have unlimited size
+    long = int
+
+
 if 'Emulation' in sys.path:
     print('emulation mode')
     from Emulation.library import *
@@ -252,7 +258,7 @@ class Value(object):
         return Value(other * self.value, other * self.empty)
     __rmul__ = __mul__
     def equal(self, other, length=None):
-        if isinstance(other, (int, int)) and isinstance(self.value, (int, int)):
+        if isinstance(other, (int, long)) and isinstance(self.value, (int, long)):
             return (1 - self.empty) * (other == self.value)
         return (1 - self.empty) * self.value.equal(other, length)
     def reveal(self):

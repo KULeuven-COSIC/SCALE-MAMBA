@@ -14,8 +14,8 @@ from Compiler.exceptions import *
 from Compiler.instructions_base import RegType
 import Compiler.instructions
 import Compiler.instructions_base
-import compilerLib
-import allocator as al
+import Compiler.compilerLib
+import Compiler.allocator as al
 import random
 import time
 import sys, os, errno
@@ -24,6 +24,13 @@ from collections import defaultdict
 import itertools
 import math
 from functools import reduce
+import sys
+
+
+IS_PY3 = sys.version[0] == "3"
+if IS_PY3:
+    # If we're in python3, integers have unlimited size
+    long = int
 
 
 data_types = dict(
@@ -327,7 +334,7 @@ class Program(object):
     
     def malloc(self, size, mem_type, reg_type=None):
         """ Allocate memory from the top """
-        if not isinstance(size, (int, int)):
+        if not isinstance(size, (int, long)):
             raise CompilerError('size must be known at compile time')
         if size == 0:
             return
@@ -586,7 +593,7 @@ class Tape(object):
                 if block.exit_condition is not None:
                     jump = block.exit_condition.get_relative_jump()
                     if jump != -1 and  \
-                            isinstance(jump, (int,int)) and \
+                            isinstance(jump, (int,long)) and \
                             jump < 0 and \
                             block.exit_block.scope is not None:
                         alloc_loop(block.exit_block.scope)
@@ -622,7 +629,10 @@ class Tape(object):
     @unpurged
     def get_bytes(self):
         """ Get the byte encoding of the program as an actual string of bytes. """
-        return "".join(bytes(i.get_bytes()) for i in self._get_instructions() if i is not None)
+        if IS_PY3:
+            return "".join(str(i.get_bytes(), encoding="latin1") for i in self._get_instructions() if i is not None)
+        else:
+            return "".join(bytes(i.get_bytes()) for i in self._get_instructions() if i is not None)
     
     @unpurged
     def write_encoding(self, filename):
@@ -778,7 +788,7 @@ class Tape(object):
         
         The 'value' property is for emulation.
         """
-        __slots__ = ["reg_type", "program", "i", "value", "_is_active", \
+        __slots__ = ["reg_type", "program", "i", "_is_active", \
                          "size", "vector", "vectorbase", "caller", \
                          "can_eliminate"]
 
@@ -812,12 +822,12 @@ class Tape(object):
             if self.size == size:
                 return
             elif self.size == 1 and self.vectorbase is self:
-                if '%s%d' % (self.reg_type, self.i) in compilerLib.VARS:
+                if '%s%d' % (self.reg_type, self.i) in Compiler.compilerLib.VARS:
                     # create vector register in assembly mode
                     self.size = size
                     self.vector = [self]
                     for i in range(1,size):
-                        reg = compilerLib.VARS['%s%d' % (self.reg_type, self.i + i)]
+                        reg = Compiler.compilerLib.VARS['%s%d' % (self.reg_type, self.i + i)]
                         reg.set_vectorbase(self)
                         self.vector.append(reg)
                 else:

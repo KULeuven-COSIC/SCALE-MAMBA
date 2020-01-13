@@ -26,12 +26,18 @@ from Compiler.program import Tape
 from Compiler.exceptions import *
 from Compiler.instructions import *
 from Compiler.instructions_base import *
-from floatingpoint import two_power
-import comparison, floatingpoint
+from Compiler.floatingpoint import two_power
+import Compiler.comparison
+import Compiler.floatingpoint
 import math
-import util
 import operator
+import sys
 from functools import reduce
+
+
+if sys.version[0] == "3":
+    # If we're in python3, integers have unlimited size
+    long = int
 
 
 class MPCThread(object):
@@ -137,16 +143,16 @@ class _number(object):
         return self * self
 
     def __add__(self, other):
-        if other is 0 or other is 0L:
+        if other is 0:
             return self
         else:
             var = self.add(other)
             return var
 
     def __mul__(self, other):
-        if other is 0 or other is 0L:
+        if other is 0:
             return 0
-        elif other is 1 or other is 1L:
+        elif other is 1:
             return self
         else:
             return self.mul(other)
@@ -265,7 +271,7 @@ class _clear(_register):
         print_reg(self)
         print_char4("  # ")
         print_char4(comment)
-	print_char("\n")
+        print_char("\n")
 
     @set_instruction_type
     @vectorize
@@ -327,9 +333,13 @@ class _clear(_register):
 
     def __div__(self, other):
         return self.clear_op(other, divc, divci)
+    __truediv__ = __div__
 
     def __rdiv__(self, other):
         return self.coerce_op(other, divc, True)
+    __rtruediv__ = __rdiv__
+
+    __hash__ = object.__hash__
 
     def __eq__(self, other):
         if isinstance(other, (_clear, int, long)):
@@ -518,7 +528,7 @@ class cint(_clear, _int):
         if bit_length == 0:
             return []
         bit_length = bit_length or program.bit_length
-        return floatingpoint.bits(self, bit_length)
+        return Compiler.floatingpoint.bits(self, bit_length)
 
     def legendre(self):
         r"""Returns the legendre symbol of x, wrt the cint prime p
@@ -649,9 +659,11 @@ class regint(_register, _int):
 
     def __div__(self, other):
         return self.int_op(other, divint)
+    __truediv__ = __div__
 
     def __rdiv__(self, other):
         return self.int_op(other, divint, True)
+    __rtruediv__ = __rdiv__
 
     def __mod__(self, other):
         return self - (old_div(self, other)) * other
@@ -661,6 +673,8 @@ class regint(_register, _int):
 
     def __rpow__(self, other):
         return other ** cint(self)
+
+    __hash__ = object.__hash__
 
     def __eq__(self, other):
         return self.int_op(other, eqint)
@@ -850,10 +864,12 @@ class _sec(_register):
     @vectorize
     def __div__(self, other):
         return NotImplemented
+    __truediv__ = __div__
 
     @vectorize
     def __rdiv__(self, other):
         return NotImplemented
+    __rtruediv__ = __rdiv__
 
     @set_instruction_type
     @vectorize
@@ -990,6 +1006,7 @@ class _secretInt(_secretMod2):
         """
         #return self.secret_op(other, divsint)
         return self.div(other)
+    __truediv__ = __div__
 
     def __rdiv__(self, other):
         r"""
@@ -997,6 +1014,7 @@ class _secretInt(_secretMod2):
         """
         # return self.secret_op(other, divsint, True)
         return self.div(other, True)
+    __rtruediv__ = __rdiv__
 
     def __lshift__(self, other):
         return self.secret_op(other, shlsint)
@@ -1084,11 +1102,13 @@ class _secretModp(_sec):
     @vectorize
     def __div__(self, other):
         return self * (old_div(self.clear_type(1), other))
+    __truediv__ = __div__
 
     @vectorize
     def __rdiv__(self, other):
         a, b = self.get_random_square()
         return old_div(other * a, (a * self).reveal())
+    __rtruediv__ = __rdiv__
 
     @set_instruction_type
     @vectorize
@@ -1242,6 +1262,8 @@ class sregint(_secretInt):
             ltzsint(res, other_local)
         return res
 
+    __hash__ = object.__hash__
+
     def __eq__(self, other):
         res = sbit()
         other_local = parse_sregint(other)
@@ -1337,7 +1359,7 @@ class sint(_secretModp, _int):
           assigns a to be a random integer in the range [0..,2^n]
         """
         res = sint()
-        comparison.PRandInt(res, bits)
+        Compiler.comparison.PRandInt(res, bits)
         return res
 
     @classmethod
@@ -1378,7 +1400,7 @@ class sint(_secretModp, _int):
             return other > self
 
         res = sint()
-        comparison.LTZ(res, self - other, bit_length or program.bit_length + 1,
+        Compiler.comparison.LTZ(res, self - other, bit_length or program.bit_length + 1,
                        security or program.security)
         return res
 
@@ -1389,7 +1411,7 @@ class sint(_secretModp, _int):
             return other < self
 
         res = sint()
-        comparison.LTZ(res, other - self, bit_length or program.bit_length + 1,
+        Compiler.comparison.LTZ(res, other - self, bit_length or program.bit_length + 1,
                        security or program.security)
         return res
 
@@ -1404,12 +1426,14 @@ class sint(_secretModp, _int):
 
         return 1 - self.less_than(other, bit_length, security)
 
+    __hash__ = object.__hash__
+
     @read_mem_value
     @vectorize
     def __eq__(self, other, bit_length=None, security=None):
         if isinstance(other, (cfloat, sfloat)):
             return other == self
-        return floatingpoint.EQZ(self - other, bit_length or program.bit_length,
+        return Compiler.floatingpoint.EQZ(self - other, bit_length or program.bit_length,
                                  security or program.security)
 
     def __ne__(self, other, bit_length=None, security=None):
@@ -1443,16 +1467,16 @@ class sint(_secretModp, _int):
                 return self
             res = sint()
             if m == 1:
-                comparison.Mod2(res, self, bit_length, security, signed)
+                Compiler.comparison.Mod2(res, self, bit_length, security, signed)
             else:
-                comparison.Mod2m(res, self, bit_length, m, security, signed)
+                Compiler.comparison.Mod2m(res, self, bit_length, m, security, signed)
         else:
-            res, pow2 = floatingpoint.Trunc(self, bit_length, m, security, True)
+            res, pow2 = Compiler.floatingpoint.Trunc(self, bit_length, m, security, True)
         return res
 
     @vectorize
     def __rpow__(self, base):
-        if isinstance(base, (int,int)):
+        if isinstance(base, (int,long)):
             if base == 2:
                 return self.pow2()
             else:
@@ -1462,7 +1486,7 @@ class sint(_secretModp, _int):
 
     def pow2(self, bit_length=None, security=None):
 
-        return floatingpoint.Pow2(self, bit_length or program.bit_length, \
+        return Compiler.floatingpoint.Pow2(self, bit_length or program.bit_length, \
                                   security or program.security)
 
     def __lshift__(self, other):
@@ -1477,12 +1501,12 @@ class sint(_secretModp, _int):
             if other == 0:
                 return self
             res = sint()
-            comparison.Trunc(res, self, bit_length, other, security, True)
+            Compiler.comparison.Trunc(res, self, bit_length, other, security, True)
             return res
         elif isinstance(other, sint):
-            return floatingpoint.Trunc(self, bit_length, other, security)
+            return Compiler.floatingpoint.Trunc(self, bit_length, other, security)
         else:
-            return floatingpoint.Trunc(self, bit_length, sint(other), security)
+            return Compiler.floatingpoint.Trunc(self, bit_length, sint(other), security)
 
     right_shift = __rshift__
 
@@ -1491,14 +1515,14 @@ class sint(_secretModp, _int):
 
     @vectorize
     def __rrshift__(self, other):
-        return floatingpoint.Trunc(other, program.bit_length, self, program.security)
+        return Compiler.floatingpoint.Trunc(other, program.bit_length, self, program.security)
 
     def bit_decompose(self, bit_length=None, security=None):
         if bit_length == 0:
             return []
         bit_length = bit_length or program.bit_length
         security = security or program.security
-        return floatingpoint.BitDec(self, bit_length, bit_length, security)
+        return Compiler.floatingpoint.BitDec(self, bit_length, bit_length, security)
 
 
 sint.bit_type = sint
@@ -1696,6 +1720,8 @@ class cfix(_number):
     def __rsub__(self, other):
         return -self + other
 
+    __hash__ = object.__hash__
+
     @vectorize
     def __eq__(self, other):
         """ parses all types to  fix registers and performs test.
@@ -1797,11 +1823,12 @@ class cfix(_number):
     def __div__(self, other):
         other = parse_type(other)
         if isinstance(other, cfix):
-            return cfix(library.cint_cint_division(self.v, other.v, self.k, self.f))
+            return cfix(Compiler.library.cint_cint_division(self.v, other.v, self.k, self.f))
         elif isinstance(other, sfix):
-            return sfix(library.FPDiv(self.v, other.v, self.k, self.f, other.kappa))
+            return sfix(Compiler.library.FPDiv(self.v, other.v, self.k, self.f, other.kappa))
         else:
             raise TypeError('Incompatible fixed point types in division')
+    __truediv__ = __div__
 
     @vectorize
     def print_fix(self):
@@ -1931,7 +1958,7 @@ class sfix(_number):
         else:
             other = parse_type(other)
             if isinstance(other, (sfix, cfix)):
-                val = floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
+                val = Compiler.floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
                 return sfix(val)
             elif isinstance(other, cfix.scalars):
                 scalar_fix = cfix(other)
@@ -1953,6 +1980,8 @@ class sfix(_number):
 
     def __rsub__(self, other):
         return -(self) + other
+
+    __hash__ = object.__hash__
 
     @vectorize
     def __eq__(self, other):
@@ -2024,15 +2053,16 @@ class sfix(_number):
     def __div__(self, other):
         other = parse_type(other)
         if isinstance(other, sfix):
-            return sfix(library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
+            return sfix(Compiler.library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
         elif isinstance(other, cfix):
-            return sfix(library.sint_cint_division(self.v, other.v, self.k, self.f, self.kappa))
+            return sfix(Compiler.library.sint_cint_division(self.v, other.v, self.k, self.f, self.kappa))
         else:
             raise TypeError('Incompatible fixed point types in division')
+    __truediv__ = __div__
 
     @vectorize
     def compute_reciprocal(self):
-        return sfix(library.FPDiv(cint(2) ** self.f, self.v, self.k, self.f, self.kappa, True))
+        return sfix(Compiler.library.FPDiv(cint(2) ** self.f, self.v, self.k, self.f, self.kappa, True))
 
     def reveal(self):
         val = self.v.reveal()
@@ -2088,7 +2118,7 @@ class sfloat(_number):
 
     @staticmethod
     def convert_float(v, vlen, plen):
-        v, p, z, s = floatingpoint.convert_float(v, vlen, plen)
+        v, p, z, s = Compiler.floatingpoint.convert_float(v, vlen, plen)
         err = sint(0)
         return v, p, z, s, err
 
@@ -2112,14 +2142,14 @@ class sfloat(_number):
                 s = v.s
                 v = v.v
             elif isinstance(v, sint):
-                v, p, z, s = floatingpoint.Int2FL(v, program.bit_length,
+                v, p, z, s = Compiler.floatingpoint.Int2FL(v, program.bit_length,
                                                   self.vlen, self.kappa)
 
                 err = self.__flow_detect__(p)
 
             elif isinstance(v, sfix):
                 f = v.f
-                v, p, z, s = floatingpoint.Int2FL(v.v, v.k,
+                v, p, z, s = Compiler.floatingpoint.Int2FL(v.v, v.k,
                                                   self.vlen, self.kappa)
                 p = p - f
                 err = self.__flow_detect__(p)
@@ -2127,17 +2157,17 @@ class sfloat(_number):
             else:
                 v, p, z, s, err = self.convert_float(v, self.vlen, self.plen)
 
-        if isinstance(v, (int,int)):
+        if isinstance(v, (int,long)):
             if not ((v >= 2 ** (self.vlen - 1) and v < 2 ** (self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
-            self.v = library.load_int_to_secret(v)
+            self.v = Compiler.library.load_int_to_secret(v)
         else:
             self.v = v
         if isinstance(p, int):
             if not (p >= -2 ** (self.plen - 1) and p < 2 ** (self.plen - 1)):
                 raise CompilerError(
                     'Floating point number malformed: exponent %d not unsigned %d-bit integer' % (p, self.plen))
-            self.p = library.load_int_to_secret(p)
+            self.p = Compiler.library.load_int_to_secret(p)
         else:
             self.p = p
         if isinstance(z, int):
@@ -2157,7 +2187,7 @@ class sfloat(_number):
         if isinstance(err, int):
             if not (err >= 0):
                 raise CompilerError('Floating point number malformed: err')
-            self.err = library.load_int_to_secret(err)
+            self.err = Compiler.library.load_int_to_secret(err)
         else:
             self.err = err
         program.curr_tape.require_bit_length(2*self.vlen+self.kappa+1)
@@ -2204,7 +2234,7 @@ class sfloat(_number):
             z1 = self.z
             z2 = other.z
             a = p1.less_than(p2, self.plen, self.kappa)
-            b = floatingpoint.EQZ(p1 - p2, self.plen, self.kappa)
+            b = Compiler.floatingpoint.EQZ(p1 - p2, self.plen, self.kappa)
             c = v1.less_than(v2, self.vlen, self.kappa)
             ap1 = a * p1
             ap2 = a * p2
@@ -2220,9 +2250,9 @@ class sfloat(_number):
             vmax = bneg * (av2 + v1 - av1) + b * (cv2 + v1 - cv1)
             vmin = bneg * (av1 + v2 - av2) + b * (cv1 + v2 - cv2)
             s3 = s1 + s2 - 2 * s1 * s2
-            comparison.LTZ(d, self.vlen + pmin - pmax + sfloat.round_nearest,
+            Compiler.comparison.LTZ(d, self.vlen + pmin - pmax + sfloat.round_nearest,
                            self.plen, self.kappa)
-            pow_delta = floatingpoint.Pow2((1 - d) * (pmax - pmin),
+            pow_delta = Compiler.floatingpoint.Pow2((1 - d) * (pmax - pmin),
                                            self.vlen + 1 + sfloat.round_nearest,
                                            self.kappa)
             # deviate from paper for more precision
@@ -2230,27 +2260,27 @@ class sfloat(_number):
             v3 = vmax
             v4 = vmax * pow_delta + (1 - 2 * s3) * vmin
             v = (d * v3 + (1 - d) * v4) * two_power(self.vlen + sfloat.round_nearest) \
-                * floatingpoint.Inv(pow_delta)
-            comparison.Trunc(t, v, 2 * self.vlen + 1 + sfloat.round_nearest,
+                * Compiler.floatingpoint.Inv(pow_delta)
+            Compiler.comparison.Trunc(t, v, 2 * self.vlen + 1 + sfloat.round_nearest,
                              self.vlen - 1, self.kappa, False)
             v = t
-            u = floatingpoint.BitDec(v, self.vlen + 2 + sfloat.round_nearest,
+            u = Compiler.floatingpoint.BitDec(v, self.vlen + 2 + sfloat.round_nearest,
                                      self.vlen + 2 + sfloat.round_nearest, self.kappa,
                                      list(range(1 + sfloat.round_nearest,
                                            self.vlen + 2 + sfloat.round_nearest)))
             # using u[0] doesn't seem necessary
-            h = floatingpoint.PreOR(u[:sfloat.round_nearest:-1], self.kappa)
+            h = Compiler.floatingpoint.PreOR(u[:sfloat.round_nearest:-1], self.kappa)
             p0 = self.vlen + 1 - sum(h)
             pow_p0 = 1 + sum([two_power(i) * (1 - h[i]) for i in range(len(h))])
             if self.round_nearest:
                 t2, overflow = \
-                    floatingpoint.TruncRoundNearestAdjustOverflow(pow_p0 * v,
+                    Compiler.floatingpoint.TruncRoundNearestAdjustOverflow(pow_p0 * v,
                                                                   self.vlen + 3,
                                                                   self.vlen,
                                                                   self.kappa)
                 p0 = p0 - overflow
             else:
-                comparison.Trunc(t2, pow_p0 * v, self.vlen + 2, 2, self.kappa, False)
+                Compiler.comparison.Trunc(t2, pow_p0 * v, self.vlen + 2, 2, self.kappa, False)
             v = t2
             # deviate for more precision
             # p = pmax - p0 + 1 - d
@@ -2258,7 +2288,7 @@ class sfloat(_number):
             zz = self.z * other.z
             zprod = 1 - self.z - other.z + zz
             v = zprod * t2 + self.z * v2 + other.z * v1
-            z = floatingpoint.EQZ(v, self.vlen, self.kappa)
+            z = Compiler.floatingpoint.EQZ(v, self.vlen, self.kappa)
             p = (zprod * p + self.z * p2 + other.z * p1) * (1 - z)
             s = (1 - b) * (a * other.s + aneg * self.s) + b * (c * other.s + cneg * self.s)
             s = zprod * s + (other.z - zz) * self.s + (self.z - zz) * other.s
@@ -2286,15 +2316,15 @@ class sfloat(_number):
             v2 = sint()
             b = sint()
             c2expl = cint()
-            comparison.ld2i(c2expl, self.vlen)
+            Compiler.comparison.ld2i(c2expl, self.vlen)
             if sfloat.round_nearest:
-                v1 = comparison.TruncRoundNearest(self.v * other.v, 2 * self.vlen,
+                v1 = Compiler.comparison.TruncRoundNearest(self.v * other.v, 2 * self.vlen,
                                                   self.vlen - 1, self.kappa)
             else:
-                comparison.Trunc(v1, self.v * other.v, 2 * self.vlen, self.vlen - 1, self.kappa, False)
+                Compiler.comparison.Trunc(v1, self.v * other.v, 2 * self.vlen, self.vlen - 1, self.kappa, False)
             t = v1 - c2expl
-            comparison.LTZ(b, t, self.vlen + 1, self.kappa)
-            comparison.Trunc(v2, b * v1 + v1, self.vlen + 1, 1, self.kappa, False)
+            Compiler.comparison.LTZ(b, t, self.vlen + 1, self.kappa)
+            Compiler.comparison.Trunc(v2, b * v1 + v1, self.vlen + 1, 1, self.kappa, False)
             z = self.z + other.z - self.z * other.z  # = OR(z1, z2)
             s = self.s + other.s - 2 * self.s * other.s  # = XOR(s1,s2)
             p = (self.p + other.p - b + self.vlen) * (1 - z)
@@ -2317,9 +2347,9 @@ class sfloat(_number):
     def local_division_ABZS12(self, other):
         if isinstance(other, (cfloat, sfloat)):
             l = self.vlen
-            v = floatingpoint.SDiv_ABZS12(self.v, other.v + other.z, l, self.kappa)
+            v = Compiler.floatingpoint.SDiv_ABZS12(self.v, other.v + other.z, l, self.kappa)
             b = v.less_than(2 ** l, l + 1, self.kappa)
-            v = floatingpoint.Trunc(v * b + v, l + 1, 1, self.kappa)
+            v = Compiler.floatingpoint.Trunc(v * b + v, l + 1, 1, self.kappa)
             p = (1 - self.z) * (self.p - other.p - l + 1 - b)
             z = self.z
             
@@ -2342,7 +2372,7 @@ class sfloat(_number):
     # @return sloat: new sfloat instance   
     def local_division(self, other):
         if isinstance(other, (cfloat, sfloat)):
-            v = floatingpoint.SDiv(self.v, other.v + other.z * (2 ** self.vlen - 1),
+            v = Compiler.floatingpoint.SDiv(self.v, other.v + other.z * (2 ** self.vlen - 1),
                                    self.vlen, self.kappa)
             b = v.less_than(two_power(self.vlen - 1), self.vlen + 1, self.kappa)
             overflow = v.greater_equal(two_power(self.vlen), self.vlen + 1, self.kappa)
@@ -2377,6 +2407,7 @@ class sfloat(_number):
 
     def __div__(self, other):
         return self.local_division_ABZS12(other)
+    __truediv__ = __div__
 
     @vectorize
     def __neg__(self):
@@ -2391,7 +2422,7 @@ class sfloat(_number):
     @vectorize
     def __lt__(self, other):
         if isinstance(other, (cfloat, sfloat)):
-            return floatingpoint.FLLT(self, other)
+            return Compiler.floatingpoint.FLLT(self, other)
         else:
             other_parse = parse_float(other)
             return self < other_parse
@@ -2402,8 +2433,8 @@ class sfloat(_number):
     # @param other: value comparing self, could be any type
     # @return sint: new sint bitwise instance
     def __gt__(self, other):
-        # return floatingpoint.FLLT(other, self)
-        return (other - self) < 0  # floatingpoint.FLLTZ(other - self)
+        # return Compiler.floatingpoint.FLLT(other, self)
+        return (other - self) < 0  # Compiler.floatingpoint.FLLTZ(other - self)
 
     ##
     # realizes the less equal  protocol for several different types.
@@ -2419,6 +2450,8 @@ class sfloat(_number):
     def __ge__(self, other):
         return 1 - (self < other)
 
+    __hash__ = object.__hash__
+
     ##
     # realizes the equality test protocol for several different types.
     # @param other: value comparing self, could be any type
@@ -2432,8 +2465,8 @@ class sfloat(_number):
             t = t == 0
             # the sign can be both ways for zeroes
             both_zero = self.z * other.z
-            return (floatingpoint.EQZ(self.v - other.v, self.vlen, self.kappa) * \
-                    floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
+            return (Compiler.floatingpoint.EQZ(self.v - other.v, self.vlen, self.kappa) * \
+                    Compiler.floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
                     (1 - self.s - other.s + 2 * self.s * other.s) * \
                     (1 - both_zero) + both_zero) * t
         else:
@@ -2531,15 +2564,15 @@ class cfloat(object):
                 # raise CompilerError('Unsupported operation for clear registries')
                 v_clear = parse_type(v)
                 f = v_clear.f
-                v, p, z, s = library.int2FL_plain(v_clear.v, program.bit_length, self.vlen, self.kappa)
+                v, p, z, s = Compiler.library.int2FL_plain(v_clear.v, program.bit_length, self.vlen, self.kappa)
                 p = p - f
-                # v, p, z, s = library.int2FL_plain(v, program.bit_length, self.vlen, self.kappa)
+                # v, p, z, s = Compiler.library.int2FL_plain(v, program.bit_length, self.vlen, self.kappa)
 
             # instantiate v, p z, s as int
             elif isinstance(v, cfloat.scalars):
                 # convert float verfies p < 2** vlen, which is then done again here.
                 # this is for legacy reasons, the method is a geacy method embedded in sfloat
-                v, p, z, s = floatingpoint.convert_float(v, self.vlen, self.plen)
+                v, p, z, s = Compiler.floatingpoint.convert_float(v, self.vlen, self.plen)
 
             else:  # missmatch of types validation
                 raise CompilerError('Missmatching input type')
@@ -2707,7 +2740,7 @@ class Array(object):
             res_length = old_div((stop - start - 1), step) + 1
             res = Array(res_length, self.value_type)
 
-            @library.for_range(res_length)
+            @Compiler.library.for_range(res_length)
             def f(i):
                 res[i] = self[start + i * step]
 
@@ -2719,7 +2752,7 @@ class Array(object):
             start, stop, step = self.get_slice(index)
             source_index = MemValue(0)
 
-            @library.for_range(start, stop, step)
+            @Compiler.library.for_range(start, stop, step)
             def f(i):
                 self[i] = value[source_index]
                 source_index.iadd(1)
@@ -2745,7 +2778,7 @@ class Array(object):
             def loop(i):
                 self[i] = other[i]
 
-            library.range_loop(loop, len(self))
+            Compiler.library.range_loop(loop, len(self))
         elif isinstance(other, Tape.Register):
             if len(other) == self.length:
                 self[0] = other
@@ -2760,7 +2793,7 @@ class Array(object):
         mem_value = MemValue(value)
         n_loops = 8 if len(self) > 2 ** 20 else 1
 
-        @library.for_range_multithread(n_loops, 1024, len(self))
+        @Compiler.library.for_range_multithread(n_loops, 1024, len(self))
         def f(i):
             self[i] = mem_value
 
@@ -2790,7 +2823,7 @@ class Matrix(object):
         return self.rows
 
     def assign_all(self, value):
-        @library.for_range(len(self))
+        @Compiler.library.for_range(len(self))
         def f(i):
             self[i].assign_all(value)
 
@@ -2919,6 +2952,7 @@ class _mem(_number):
     __sub__ = lambda self, other: self.read() - other
     __mul__ = lambda self, other: self.read() * other
     __div__ = lambda self, other: old_div(self.read(), other)
+    __truediv__ = __div__
     __mod__ = lambda self, other: self.read() % other
     __pow__ = lambda self, other: self.read() ** other
     __neg__ = lambda self, other: -self.read()
@@ -2998,7 +3032,7 @@ class MemValue(_mem):
     def read(self):
         self.check()
         if program.curr_block != self.last_write_block:
-            self.register = library.load_mem(self.address, self.value_type)
+            self.register = Compiler.library.load_mem(self.address, self.value_type)
             self.last_write_block = program.curr_block
         return self.register
 
@@ -3136,7 +3170,7 @@ def getNamedTupleType(*names):
     return NamedTuple
 
 
-import library
+import Compiler.library
 
 
 class cintArray(Array):

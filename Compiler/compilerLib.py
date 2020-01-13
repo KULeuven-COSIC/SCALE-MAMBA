@@ -3,7 +3,10 @@ from past.builtins import execfile
 from Compiler.program import Program
 from Compiler.config import *
 from Compiler.exceptions import *
-import instructions, instructions_base, types, comparison, library
+import Compiler.instructions
+import Compiler.instructions_base
+import Compiler.types
+import Compiler.comparison
 
 import random
 import time
@@ -18,19 +21,19 @@ def run(args, options, param=-1, merge_opens=True, \
     instructions. """
     
     prog = Program(args, options, param)
-    instructions.program = prog
-    instructions_base.program = prog
-    types.program = prog
-    comparison.program = prog
+    Compiler.instructions.program = prog
+    Compiler.instructions_base.program = prog
+    Compiler.types.program = prog
+    Compiler.comparison.program = prog
     prog.DEBUG = debug
     VARS['program'] = prog
-    comparison.set_variant(options)
+    Compiler.comparison.set_variant(options)
     
     print('Compiling file', prog.infile)
     
-    if instructions_base.Instruction.count != 0:
-        print('instructions count', instructions_base.Instruction.count)
-        instructions_base.Instruction.count = 0
+    if Compiler.instructions_base.Instruction.count != 0:
+        print('instructions count', Compiler.instructions_base.Instruction.count)
+        Compiler.instructions_base.Instruction.count = 0
     prog.FIRST_PASS = False
     prog.reset_values()
     # make compiler modules directly accessible

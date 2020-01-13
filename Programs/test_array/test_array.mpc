@@ -2,7 +2,7 @@ for k in range(10):
     for t in cint, sint:
         a = Array(10, t)
 
-        print len(a)
+        print(len(a))
 
         for i,j in enumerate(a):
             a[i] = j + i

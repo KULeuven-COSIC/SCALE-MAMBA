@@ -20,7 +20,7 @@ from builtins import range
 from past.utils import old_div
 const_rounds = False
 
-import instructions_base
+import Compiler.instructions_base
 
 def set_variant(options):
     """ Set flags based on the command-line option provided """
@@ -47,11 +47,11 @@ inverse_of_two = {}
 
 def divide_by_two(res, x):
     """ Faster clear division by two using a cached value of 2^-1 mod p """
-    from program import Program
-    import types
+    from Compiler.program import Program
+    import Compiler.types
     block = Program.prog.curr_block
     if len(inverse_of_two) == 0 or block not in inverse_of_two:
-        inverse_of_two[block] = old_div(types.cint(1), 2)
+        inverse_of_two[block] = old_div(Compiler.types.cint(1), 2)
     mulc(res, x, inverse_of_two[block])
 
 def LTZ(s, a, k, kappa):
@@ -96,8 +96,8 @@ def TruncRoundNearest(a, k, m, kappa):
     k: bit length of m
     m: compile-time integer
     """
-    from types import sint, cint
-    from library import reveal, load_int_to_secret
+    from Compiler.types import sint, cint
+    from Compiler.library import reveal, load_int_to_secret
     if m == 1:
         lsb = sint()
         Mod2(lsb, a, k, kappa, False)
@@ -206,7 +206,7 @@ def BitLTC1(u, a, b, kappa):
     """
     k = len(b)
     p = [program.curr_block.new_reg('s') for i in range(k)]
-    if instructions_base.get_global_vector_size() == 1:
+    if Compiler.instructions_base.get_global_vector_size() == 1:
         b_vec = program.curr_block.new_reg('s', size=k)
         for i in range(k):
             movs(b_vec[i], b[i])
@@ -229,7 +229,7 @@ def BitLTC1(u, a, b, kappa):
         subc(c[0][i], c[1][i-1], a_bits[i-1])
         divide_by_two(c[1][i], c[0][i])
         modci(a_bits[i], c[1][i], 2)
-    if instructions_base.get_global_vector_size() == 1:
+    if Compiler.instructions_base.get_global_vector_size() == 1:
         vmulci(k, c[2], a_bits, 2)
         vmulm(k, t[0], b_vec, c[2])
         vaddm(k, t[1], b_vec, a_bits)
@@ -401,16 +401,16 @@ def PreMulC_end(p, a, c, m, z):
 
 def PreMulC(a):
     p = [type(a[0])() for i in range(len(a))]
-    instructions_base.set_global_instruction_type(a[0].instruction_type)
+    Compiler.instructions_base.set_global_instruction_type(a[0].instruction_type)
     PreMulC_without_inverses(p, a)
-    instructions_base.reset_global_instruction_type()
+    Compiler.instructions_base.reset_global_instruction_type()
     return p
 
 def KMulC(a):
     """
     Return just the product of all items in a
     """
-    from types import sint, cint
+    from Compiler.types import sint, cint
     p = sint()
     PreMulC_without_inverses(p, a)
     return p
@@ -451,4 +451,4 @@ def Mod2(a_0, a, k, kappa, signed):
 
 
 # hack for circular dependency
-from instructions import *
+from Compiler.instructions import *

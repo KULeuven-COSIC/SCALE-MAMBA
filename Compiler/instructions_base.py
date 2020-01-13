@@ -7,9 +7,15 @@ from random import randint
 import time
 import inspect
 import functools
+import sys
 from Compiler.exceptions import *
 from Compiler.config import *
 from Compiler import util
+
+
+if sys.version[0] == "3":
+  # If we're in python3, integers have unlimited size
+  long = int
 
 
 ###
@@ -637,7 +643,7 @@ class JumpInstruction(Instruction):
 
     def get_relative_jump(self):
         if self.jump_arg == -1:
-	  return -1
+          return -1
         return self.args[self.jump_arg]
 
 
