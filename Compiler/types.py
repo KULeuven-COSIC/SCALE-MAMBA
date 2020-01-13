@@ -14,7 +14,14 @@ And mod 2^n types:
     sregint
     sbit
 """
+from __future__ import print_function
+from __future__ import division
 ##@types.py
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 from Compiler.program import Tape
 from Compiler.exceptions import *
 from Compiler.instructions import *
@@ -24,6 +31,7 @@ import comparison, floatingpoint
 import math
 import util
 import operator
+from functools import reduce
 
 
 class MPCThread(object):
@@ -399,12 +407,12 @@ class cint(_clear, _int):
             ldi(self, val)
         else:
             max = 2 ** 31 - 1
-            sign = abs(val) / val
+            sign = old_div(abs(val), val)
             val = abs(val)
             chunks = []
             while val:
                 mod = val % max
-                val = (val - mod) / max
+                val = old_div((val - mod), max)
                 chunks.append(mod)
             sum = cint(sign * chunks.pop())
             for i, chunk in enumerate(reversed(chunks)):
@@ -646,7 +654,7 @@ class regint(_register, _int):
         return self.int_op(other, divint, True)
 
     def __mod__(self, other):
-        return self - (self / other) * other
+        return self - (old_div(self, other)) * other
 
     def __rmod__(self, other):
         return regint(other) % self
@@ -683,7 +691,7 @@ class regint(_register, _int):
 
     def __rshift__(self, other):
         if isinstance(other, (int, long)):
-            return self / 2 ** other
+            return old_div(self, 2 ** other)
         else:
             return regint(cint(self) >> other)
 
@@ -717,7 +725,7 @@ class regint(_register, _int):
         x = self
         two = regint(2)
         for i in range(bit_length or program.bit_length):
-            y = x / two
+            y = old_div(x, two)
             res.append(x - two * y)
             x = y
         return res
@@ -1075,12 +1083,12 @@ class _secretModp(_sec):
 
     @vectorize
     def __div__(self, other):
-        return self * (self.clear_type(1) / other)
+        return self * (old_div(self.clear_type(1), other))
 
     @vectorize
     def __rdiv__(self, other):
         a, b = self.get_random_square()
-        return other * a / (a * self).reveal()
+        return old_div(other * a, (a * self).reveal())
 
     @set_instruction_type
     @vectorize
@@ -1444,7 +1452,7 @@ class sint(_secretModp, _int):
 
     @vectorize
     def __rpow__(self, base):
-        if isinstance(base, (int,long)):
+        if isinstance(base, (int,int)):
             if base == 2:
                 return self.pow2()
             else:
@@ -2119,7 +2127,7 @@ class sfloat(_number):
             else:
                 v, p, z, s, err = self.convert_float(v, self.vlen, self.plen)
 
-        if isinstance(v, (int,long)):
+        if isinstance(v, (int,int)):
             if not ((v >= 2 ** (self.vlen - 1) and v < 2 ** (self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
             self.v = library.load_int_to_secret(v)
@@ -2228,8 +2236,8 @@ class sfloat(_number):
             v = t
             u = floatingpoint.BitDec(v, self.vlen + 2 + sfloat.round_nearest,
                                      self.vlen + 2 + sfloat.round_nearest, self.kappa,
-                                     range(1 + sfloat.round_nearest,
-                                           self.vlen + 2 + sfloat.round_nearest))
+                                     list(range(1 + sfloat.round_nearest,
+                                           self.vlen + 2 + sfloat.round_nearest)))
             # using u[0] doesn't seem necessary
             h = floatingpoint.PreOR(u[:sfloat.round_nearest:-1], self.kappa)
             p0 = self.vlen + 1 - sum(h)
@@ -2326,7 +2334,7 @@ class sfloat(_number):
         else:
 
             other_parse = parse_float(other)
-            return self / other_parse
+            return old_div(self, other_parse)
 
     ##
     # realizes the division protocol for several different types.
@@ -2358,7 +2366,7 @@ class sfloat(_number):
         else:
 
             other_parse = parse_float(other)
-            return self / other_parse
+            return old_div(self, other_parse)
 
 
     def __sub__(self, other):
@@ -2696,7 +2704,7 @@ class Array(object):
     def __getitem__(self, index):
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
-            res_length = (stop - start - 1) / step + 1
+            res_length = old_div((stop - start - 1), step) + 1
             res = Array(res_length, self.value_type)
 
             @library.for_range(res_length)
@@ -2836,7 +2844,7 @@ class VectorArray(object):
 
 class sfloatArray(Array):
     def __init__(self, length, address=None):
-        print length, address
+        print(length, address)
         self.matrix = Matrix(length, 5, sint, address)
         self.length = length
         self.value_type = sfloat
@@ -2910,7 +2918,7 @@ class _mem(_number):
     __add__ = lambda self, other: self.read() + other
     __sub__ = lambda self, other: self.read() - other
     __mul__ = lambda self, other: self.read() * other
-    __div__ = lambda self, other: self.read() / other
+    __div__ = lambda self, other: old_div(self.read(), other)
     __mod__ = lambda self, other: self.read() % other
     __pow__ = lambda self, other: self.read() ** other
     __neg__ = lambda self, other: -self.read()
@@ -2929,7 +2937,7 @@ class _mem(_number):
     __radd__ = lambda self, other: other + self.read()
     __rsub__ = lambda self, other: other - self.read()
     __rmul__ = lambda self, other: other * self.read()
-    __rdiv__ = lambda self, other: other / self.read()
+    __rdiv__ = lambda self, other: old_div(other, self.read())
     __rmod__ = lambda self, other: other % self.read()
     __rand__ = lambda self, other: other & self.read()
     __rxor__ = lambda self, other: other ^ self.read()
@@ -2938,7 +2946,7 @@ class _mem(_number):
     __iadd__ = lambda self, other: self.write(self.read() + other)
     __isub__ = lambda self, other: self.write(self.read() - other)
     __imul__ = lambda self, other: self.write(self.read() * other)
-    __idiv__ = lambda self, other: self.write(self.read() / other)
+    __idiv__ = lambda self, other: self.write(old_div(self.read(), other))
     __imod__ = lambda self, other: self.write(self.read() % other)
     __ipow__ = lambda self, other: self.write(self.read() ** other)
     __iand__ = lambda self, other: self.write(self.read() & other)

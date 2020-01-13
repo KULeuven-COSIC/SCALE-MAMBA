@@ -242,6 +242,7 @@ The opcodes are copied here from instruction_base.py to here for ease of use in 
 
 ##@instruction.py
 
+from builtins import range
 import itertools
 import tools
 from random import randint

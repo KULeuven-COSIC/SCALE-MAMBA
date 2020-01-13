@@ -1,10 +1,15 @@
+from __future__ import division
 # This file is only used in the scripts for doing auto testing
 
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import operator
 from collections import defaultdict
 import sys
+from functools import reduce
 
-class Vector:
+class Vector(object):
     def __init__(self,value=0,size=0):
         self.v = [value] * size
     def store_in_mem(self,addr):
@@ -98,20 +103,20 @@ class _register(long):
     store_in_mem = lambda x,y: None
     load_mem = classmethod(lambda cls,addr,size=None: cls(0) if size is None else Vector(cls(0),size))
     get_random = classmethod(lambda cls,*args: cls(0))
-    __add__ = lambda x,y: type(x)(long(x) + y)
-    __sub__ = lambda x,y: type(x)(long(x) - y)
-    __rsub__ = lambda x,y: type(x)(y - long(x))
-    __mul__ = lambda x,y: type(x)(long(x) * y)
-    __div__ = lambda x,y: type(x)(long(x) / y)
-    __rdiv__ = lambda x,y: type(x)(y / long(x))
-    __mod__ = lambda x,y: type(x)(long(x) % y)
-    __rmod__ = lambda x,y: type(x)(y % long(x))
-    __neg__ = lambda x: type(x)(-long(x))
-    __pow__ = lambda x,y: type(x)(long(x) ** y)
-    __lshift__ = lambda x,y: type(x)(long(x) << y)
-    __rshift__ = lambda x,y: type(x)(long(x) >> y)
-    __rlshift__ = lambda x,y: type(x)(y << long(x))
-    __rrshift__ = lambda x,y: type(x)(y >> long(x))
+    __add__ = lambda x,y: type(x)(int(x) + y)
+    __sub__ = lambda x,y: type(x)(int(x) - y)
+    __rsub__ = lambda x,y: type(x)(y - int(x))
+    __mul__ = lambda x,y: type(x)(int(x) * y)
+    __div__ = lambda x,y: type(x)(old_div(int(x), y))
+    __rdiv__ = lambda x,y: type(x)(old_div(y, int(x)))
+    __mod__ = lambda x,y: type(x)(int(x) % y)
+    __rmod__ = lambda x,y: type(x)(y % int(x))
+    __neg__ = lambda x: type(x)(-int(x))
+    __pow__ = lambda x,y: type(x)(int(x) ** y)
+    __lshift__ = lambda x,y: type(x)(int(x) << y)
+    __rshift__ = lambda x,y: type(x)(int(x) >> y)
+    __rlshift__ = lambda x,y: type(x)(y << int(x))
+    __rrshift__ = lambda x,y: type(x)(y >> int(x))
     __radd__ = __add__
     __rmul__ = __mul__
 
@@ -128,18 +133,18 @@ sbit.type = _sbit
 
 
 class _sregint(_register):
-    __and__ =  lambda self,other,x=None,y=None: sregint(long(self) * other) if (isinstance(other, _sbit)) else sregint(long(self) & other)
-    __or__ = lambda self, other, x=None, y=None: sregint(long(self) | other)
-    __xor__ = lambda self, other, x=None, y=None: sregint(long(self) ^ other)
+    __and__ =  lambda self,other,x=None,y=None: sregint(int(self) * other) if (isinstance(other, _sbit)) else sregint(int(self) & other)
+    __or__ = lambda self, other, x=None, y=None: sregint(int(self) | other)
+    __xor__ = lambda self, other, x=None, y=None: sregint(int(self) ^ other)
 
-    mul_2_sint = lambda self, other, x = None, y = None: (sregint((long (self) * other ) >> 64), sregint((long (self) * other ) % (2 ** 64)))
+    mul_2_sint = lambda self, other, x = None, y = None: (sregint((int (self) * other ) >> 64), sregint((int (self) * other ) % (2 ** 64)))
     reveal = lambda self: regint(self)
-    less_than = lambda self,other,x=None,y=None: sbit(long(self) < other)
-    greater_than = lambda self,other,x=None,y=None: sbit(long(self) > other)
-    less_equal = lambda self,other,x=None,y=None: sbit(long(self) <= other)
-    greater_equal = lambda self,other,x=None,y=None: sbit(long(self) >= other)
-    equal = lambda self,other,x=None,y=None: sbit(long(self) == other)
-    not_equal = lambda self,other,x=None,y=None: sbit(long(self) != other)
+    less_than = lambda self,other,x=None,y=None: sbit(int(self) < other)
+    greater_than = lambda self,other,x=None,y=None: sbit(int(self) > other)
+    less_equal = lambda self,other,x=None,y=None: sbit(int(self) <= other)
+    greater_equal = lambda self,other,x=None,y=None: sbit(int(self) >= other)
+    equal = lambda self,other,x=None,y=None: sbit(int(self) == other)
+    not_equal = lambda self,other,x=None,y=None: sbit(int(self) != other)
 
     __lt__ = less_than
     __gt__ = greater_than
@@ -147,7 +152,7 @@ class _sregint(_register):
     __ge__ = greater_equal
     __eq__ = equal
     __ne__ = not_equal
-    __neg__ = lambda self: sregint(-long(self))
+    __neg__ = lambda self: sregint(-int(self))
 
     __rand__ = __and__
     __ror__ = __or__
@@ -161,12 +166,12 @@ sregint.basic_type = _sregint
 sregint.type = _sregint
 
 class _sint(_register):
-    less_than = lambda self,other,x=None,y=None: sint(long(self) < other)
-    greater_than = lambda self,other,x=None,y=None: sint(long(self) > other)
-    less_equal = lambda self,other,x=None,y=None: sint(long(self) <= other)
-    greater_equal = lambda self,other,x=None,y=None: sint(long(self) >= other)
-    equal = lambda self,other,x=None,y=None: sint(long(self) == other)
-    not_equal = lambda self,other,x=None,y=None: sint(long(self) != other)
+    less_than = lambda self,other,x=None,y=None: sint(int(self) < other)
+    greater_than = lambda self,other,x=None,y=None: sint(int(self) > other)
+    less_equal = lambda self,other,x=None,y=None: sint(int(self) <= other)
+    greater_equal = lambda self,other,x=None,y=None: sint(int(self) >= other)
+    equal = lambda self,other,x=None,y=None: sint(int(self) == other)
+    not_equal = lambda self,other,x=None,y=None: sint(int(self) != other)
     reveal = lambda self: cint(self)
     mod2m = lambda self,other,x=None,y=None: self % 2**other
     pow2 = lambda self,x=None,y=None: 2**self
@@ -179,7 +184,7 @@ class _sint(_register):
     __ge__ = greater_equal
     __eq__ = equal
     __ne__ = not_equal
-    __neg__ = lambda self: sint(-long(self))
+    __neg__ = lambda self: sint(-int(self))
 
 sint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sint(x)) if size is None else Vector(_sint(x),size)
 sint.load_mem = _sint.load_mem
@@ -198,7 +203,7 @@ cint = lambda x=0,size=None: (x if isinstance(x, Vector) else _cint(x)) if size 
 cint.load_mem = cint
 cint.get_random = cint
 
-class A:
+class A(object):
     def malloc(self, size, reg_type):
         pass
     def run_tape(self, f, x):
@@ -399,7 +404,7 @@ program.curr_tape.start_new_basicblock = lambda: None
 program.security = None
 program.public_input = lambda x: None
 
-class MPCThread:
+class MPCThread(object):
     def __init__(self, target, name, args=[]):
         target(*args)
     def start(self, arg=None):
@@ -423,7 +428,7 @@ def intify(a):
         return [intify(x) for x in a]
     else:
         return regint(a) if isinstance(a, int) else a
-class FunctionTape:
+class FunctionTape(object):
     def __init__(self, f):
         self.f = f
     def __call__(self, *args):
@@ -480,7 +485,7 @@ if_then = lambda x: None
 else_then = end_if = lambda: None
 do_while = lambda x: x()
 while_do = lambda y,*args: lambda x: x(*args)
-class MemValue:
+class MemValue(object):
     def __init__(x,y):
         if not isinstance(y, (_sint,_cint,float)):
             y = regint(y)

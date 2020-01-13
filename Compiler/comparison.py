@@ -13,8 +13,11 @@ overloading.
 [1] https://www1.cs.fau.de/filepool/publications/octavian_securescm/smcint-scn10.pdf
 [2] https://www1.cs.fau.de/filepool/publications/octavian_securescm/SecureSCM-D.9.2.pdf
 """
+from __future__ import division
 
 # Use constant rounds protocols instead of log rounds
+from builtins import range
+from past.utils import old_div
 const_rounds = False
 
 import instructions_base
@@ -34,7 +37,7 @@ def ld2i(c, n):
     """ Load immediate 2^n into clear GF(p) register c """
     t1 = program.curr_block.new_reg('c')
     ldi(t1, 2 ** (n % 30))
-    for i in range(n / 30):
+    for i in range(old_div(n, 30)):
         t2 = program.curr_block.new_reg('c')
         mulci(t2, t1, 2 ** 30)
         t1 = t2
@@ -48,7 +51,7 @@ def divide_by_two(res, x):
     import types
     block = Program.prog.curr_block
     if len(inverse_of_two) == 0 or block not in inverse_of_two:
-        inverse_of_two[block] = types.cint(1) / 2
+        inverse_of_two[block] = old_div(types.cint(1), 2)
     mulc(res, x, inverse_of_two[block])
 
 def LTZ(s, a, k, kappa):
@@ -98,7 +101,7 @@ def TruncRoundNearest(a, k, m, kappa):
     if m == 1:
         lsb = sint()
         Mod2(lsb, a, k, kappa, False)
-        return (a + lsb) / 2
+        return old_div((a + lsb), 2)
     r_dprime = sint()
     r_prime = sint()
     r = [sint() for i in range(m)]
@@ -110,13 +113,13 @@ def TruncRoundNearest(a, k, m, kappa):
         BitLTC1(u, c_prime, r[:-1], kappa)
     else:
         BitLTL(u, c_prime, r[:-1], kappa)
-    bit = ((c - c_prime) / (cint(1) << (m - 1))) % 2
+    bit = (old_div((c - c_prime), (cint(1) << (m - 1)))) % 2
     xor = bit + u - 2 * bit * u
     prod = xor * r[-1]
     # u_prime = xor * u + (1 - xor) * r[-1]
     u_prime = bit * u + u - 2 * bit * u + r[-1] - prod
     a_prime = (c % (cint(1) << m)) - r_prime + (cint(1) << m) * u_prime
-    d = (a - a_prime) / (cint(1) << m)
+    d = old_div((a - a_prime), (cint(1) << m))
     rounding = xor + r[-1] - 2 * prod
     return d + rounding
 
@@ -279,12 +282,12 @@ def CarryOutAux(d, a, kappa):
     if k > 1 and k % 2 == 1:
         a.append(None)
         k += 1
-    u = [None]*(k/2)
+    u = [None]*(old_div(k,2))
     a = a[::-1]
     if k > 1:
-        for i in range(k/2):
-            u[i] = carry(a[2*i+1], a[2*i], i != k/2-1)
-        CarryOutAux(d, u[:k/2][::-1], kappa)
+        for i in range(old_div(k,2)):
+            u[i] = carry(a[2*i+1], a[2*i], i != old_div(k,2)-1)
+        CarryOutAux(d, u[:old_div(k,2)][::-1], kappa)
     else:
         movs(d, a[0][1])
 

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from past.builtins import execfile
 from Compiler.program import Program
 from Compiler.config import *
 from Compiler.exceptions import *
@@ -24,10 +26,10 @@ def run(args, options, param=-1, merge_opens=True, \
     VARS['program'] = prog
     comparison.set_variant(options)
     
-    print 'Compiling file', prog.infile
+    print('Compiling file', prog.infile)
     
     if instructions_base.Instruction.count != 0:
-        print 'instructions count', instructions_base.Instruction.count
+        print('instructions count', instructions_base.Instruction.count)
         instructions_base.Instruction.count = 0
     prog.FIRST_PASS = False
     prog.reset_values()
@@ -42,8 +44,8 @@ def run(args, options, param=-1, merge_opens=True, \
     
     if prog.main_thread_running:
         prog.update_req(prog.curr_tape)
-    print 'Program requires:', repr(prog.req_num)
-    print 'Memory size:', prog.allocated_mem
+    print('Program requires:', repr(prog.req_num))
+    print('Memory size:', prog.allocated_mem)
 
     # finalize the memory
     prog.finalize_memory()

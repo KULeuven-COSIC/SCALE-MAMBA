@@ -1,3 +1,12 @@
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 from Compiler.types import cint,sint,cfix,sfix,sfloat,cfloat,MPCThread,Array,MemValue,_number,_mem,_register,regint,Matrix,_types
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify
@@ -223,7 +232,7 @@ def make_array(l):
     return res
 
 
-class FunctionTapeCall:
+class FunctionTapeCall(object):
     def __init__(self, thread, base, bases):
         self.thread = thread
         self.base = base
@@ -234,10 +243,10 @@ class FunctionTapeCall:
     def join(self):
         self.thread.join()
         instructions.program.free(self.base, 'r')
-        for reg_type,addr in self.bases.iteritems():
+        for reg_type,addr in self.bases.items():
             get_program().free(addr, reg_type.reg_type)
 
-class Function:
+class Function(object):
     def __init__(self, function, name=None, compile_args=[]):
         self.type_args = {}
         self.function = function
@@ -247,7 +256,7 @@ class Function:
         self.compile_args = compile_args
     def __call__(self, *args):
         args = tuple(arg.read() if isinstance(arg, MemValue) else arg for arg in args)
-        get_reg_type = lambda x: regint if isinstance(x, (int, long)) else type(x)
+        get_reg_type = lambda x: regint if isinstance(x, (int, int)) else type(x)
         if len(args) not in self.type_args:
             # first call
             type_args = collections.defaultdict(list)
@@ -258,7 +267,7 @@ class Function:
                 bases = dict((t, regint.load_mem(base + i)) \
                                  for i,t in enumerate(type_args))
                 runtime_args = [None] * len(args)
-                for t,i_args in type_args.iteritems():
+                for t,i_args in type_args.items():
                     for i,i_arg in enumerate(i_args):
                         runtime_args[i_arg] = t.load_mem(bases[t] + i)
                 return self.function(*(list(compile_args) + runtime_args))
@@ -313,13 +322,13 @@ class FunctionBlock(Function):
         block.alloc_pool = defaultdict(set)
         del parent_node.children[-1]
         self.node = get_tape().req_node
-        print 'Compiling function', self.name
+        print('Compiling function', self.name)
         result = wrapped_function(*self.compile_args)
         if result is not None:
             self.result = memorize(result)
         else:
             self.result = None
-        print 'Done compiling function', self.name
+        print('Done compiling function', self.name)
         p_return_address = get_tape().program.malloc(1, 'r')
         get_tape().function_basicblocks[block] = p_return_address
         get_tape().active_basicblock.set_exit(instructions.RETURN(add_to_prog=False))
@@ -387,7 +396,7 @@ def sort(a):
     res = a
     
     for i in range(len(a)):
-        for j in reversed(range(i)):
+        for j in reversed(list(range(i))):
             res[j], res[j+1] = cond_swap(res[j], res[j+1])
 
     return res
@@ -401,7 +410,7 @@ def odd_even_merge(a):
         odd_even_merge(even)
         odd_even_merge(odd)
         a[0] = even[0]
-        for i in range(1, len(a) / 2):
+        for i in range(1, old_div(len(a), 2)):
             a[2*i-1], a[2*i] = cond_swap(odd[i-1], even[i])
         a[-1] = odd[-1]
 
@@ -409,8 +418,8 @@ def odd_even_merge_sort(a):
     if len(a) == 1:
         return
     elif len(a) % 2 == 0:
-        lower = a[:len(a)/2]
-        upper = a[len(a)/2:]
+        lower = a[:old_div(len(a),2)]
+        upper = a[old_div(len(a),2):]
         odd_even_merge_sort(lower)
         odd_even_merge_sort(upper)
         a[:] = lower + upper
@@ -430,10 +439,10 @@ def chunky_odd_even_merge_sort(a):
             def round():
                 for i in range(len(a)):
                     a[i] = type(a[i]).load_mem(i * a[i].sizeof())
-                for i in range(len(a) / l):
-                    for j in range(l / k):
+                for i in range(old_div(len(a), l)):
+                    for j in range(old_div(l, k)):
                         base = i * l + j
-                        step = l / k
+                        step = old_div(l, k)
                         if k == 2:
                             a[base], a[base+step] = cond_swap(a[base], a[base+step])
                         else:
@@ -472,7 +481,7 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
     def run_chunk(size, base):
         if size not in chunks:
             def swap_list(list_base):
-                for i in range(size / 2):
+                for i in range(old_div(size, 2)):
                     base = list_base + 2 * i
                     x, y = cond_swap(load_secret_mem(base),
                                      load_secret_mem(base + 1))
@@ -485,8 +494,8 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
     def run_round(size):
         # minimize number of chunk sizes
         n_chunks = int(math.ceil(1.0 * size / max_chunk_size))
-        lower_size = size / n_chunks / 2 * 2
-        n_lower_size = n_chunks - (size - n_chunks * lower_size) / 2
+        lower_size = old_div(size, n_chunks / 2 * 2)
+        n_lower_size = n_chunks - old_div((size - n_chunks * lower_size), 2)
         # print len(to_swap) == lower_size * n_lower_size + \
         #     (lower_size + 2) * (n_chunks - n_lower_size), \
         #     len(to_swap), n_chunks, lower_size, n_lower_size
@@ -562,10 +571,10 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
             k *= 2
             size = 0
             instructions.program.curr_tape.merge_opens = False
-            for i in range(n / l):
-                for j in range(l / k):
+            for i in range(old_div(n, l)):
+                for j in range(old_div(l, k)):
                     base = i * l + j
-                    step = l / k
+                    step = old_div(l, k)
                     size += run_setup(k, a_base + base, step, tmp_base + size)
             run_threads_in_rounds(pre_threads)
             run_round(size)
@@ -610,7 +619,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
     def run_chunk(size, base):
         if size not in chunks:
             def swap_list(list_base):
-                for i in range(size / 2):
+                for i in range(old_div(size, 2)):
                     base = list_base + 2 * i
                     x, y = cond_swap(load_secret_mem(base),
                                      load_secret_mem(base + 1))
@@ -623,8 +632,8 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
     def run_round(size):
         # minimize number of chunk sizes
         n_chunks = int(math.ceil(1.0 * size / max_chunk_size))
-        lower_size = size / n_chunks / 2 * 2
-        n_lower_size = n_chunks - (size - n_chunks * lower_size) / 2
+        lower_size = old_div(size, n_chunks / 2 * 2)
+        n_lower_size = n_chunks - old_div((size - n_chunks * lower_size), 2)
         # print len(to_swap) == lower_size * n_lower_size + \
         #     (lower_size + 2) * (n_chunks - n_lower_size), \
         #     len(to_swap), n_chunks, lower_size, n_lower_size
@@ -652,7 +661,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
             def outer(i):
                 def inner(j):
                     base = j
-                    step = l / k
+                    step = old_div(l, k)
                     if k == 2:
                         tmp_addr = regint.load_mem(tmp_i)
                         load_and_store(base, tmp_addr)
@@ -664,19 +673,19 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
                             load_and_store(m, tmp_addr)
                             store_in_mem(tmp_addr + 1, tmp_i)
                         range_loop(inner2, base + step, base + (k - 1) * step, step)
-                range_loop(inner, a_base + i * l, a_base + i * l + l / k)
+                range_loop(inner, a_base + i * l, a_base + i * l + old_div(l, k))
             instructions.program.curr_tape.merge_opens = False
             to_tmp = True
             store_in_mem(tmp_base, tmp_i)
-            range_loop(outer, n / l)
+            range_loop(outer, old_div(n, l))
             if k == 2:
                 run_round(n)
             else:
-                run_round(n / k * (k - 2))
+                run_round(old_div(n, k * (k - 2)))
             instructions.program.curr_tape.merge_opens = False
             to_tmp = False
             store_in_mem(tmp_base, tmp_i)
-            range_loop(outer, n / l)
+            range_loop(outer, old_div(n, l))
 
     if isinstance(a, list):
         instructions.program.restart_main_thread()
@@ -694,15 +703,15 @@ def loopy_odd_even_merge_sort(a, sorted_length=1, n_parallel=32):
         k = 1
         while k < l:
             k *= 2
-            n_outer = len(a) / l
-            n_inner = l / k
-            n_innermost = 1 if k == 2 else k / 2 - 1
-            @for_range_parallel(n_parallel / n_innermost / n_inner, n_outer)
+            n_outer = old_div(len(a), l)
+            n_inner = old_div(l, k)
+            n_innermost = 1 if k == 2 else old_div(k, 2) - 1
+            @for_range_parallel(old_div(n_parallel, n_innermost / n_inner), n_outer)
             def loop(i):
-                @for_range_parallel(n_parallel / n_innermost, n_inner)
+                @for_range_parallel(old_div(n_parallel, n_innermost), n_inner)
                 def inner(j):
                     base = i*l + j
-                    step = l/k
+                    step = old_div(l,k)
                     if k == 2:
                         a[base], a[base+step] = cond_swap(a[base], a[base+step])
                     else:
@@ -765,7 +774,7 @@ def range_loop(loop_body, start, stop=None, step=None):
         # known loop count
         if condition(start):
             get_tape().req_node.children[-1].aggregator = \
-                lambda x: ((stop - start) / step) * x[0]
+                lambda x: (old_div((stop - start), step)) * x[0]
 
 def for_range(start, stop=None, step=None):
     def decorator(loop_body):
@@ -791,10 +800,10 @@ def map_reduce_single(n_parallel, n_loops, initializer, reducer, mem_state=None)
         use_array = True
     def decorator(loop_body):
         if isinstance(n_loops, int):
-            loop_rounds = n_loops / n_parallel \
+            loop_rounds = old_div(n_loops, n_parallel) \
                 if n_parallel < n_loops else 0
         else:
-            loop_rounds = n_loops / n_parallel
+            loop_rounds = old_div(n_loops, n_parallel)
         def write_state_to_memory(r):
             if use_array:
                 mem_state.assign(r)
@@ -846,7 +855,7 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
         else:
             return dec
     def decorator(loop_body):
-        thread_rounds = n_loops / n_threads
+        thread_rounds = old_div(n_loops, n_threads)
         remainder = n_loops % n_threads
         for t in thread_mem_req:
             if t != regint:
@@ -971,7 +980,7 @@ def do_while(loop_fn):
     return loop_fn
 
 def if_then(condition):
-    class State: pass
+    class State(object): pass
     state = State()
     if callable(condition):
         condition = condition()
@@ -1134,7 +1143,7 @@ def test(value, lower=None, upper=None, prec=None):
             lineno *= 1000
         store_in_mem(value, lineno + 1000)
         reg_type = 'c'
-    print "Test at", lineno
+    print("Test at", lineno)
     if lineno + 2000 > get_program().allocated_mem[reg_type]:
         get_program().allocated_mem[reg_type] = 2 * (lineno + 1000)
 
@@ -1143,11 +1152,11 @@ def test1(value, lower=None, upper=None):
         value = reveal(value)
     lineno = inspect.currentframe().f_back.f_lineno
     stmc(value, lineno + 1000)
-    print "Test at", lineno
+    print("Test at", lineno)
 
 def test_mem(value, address, lower=None, upper=None):
     lineno = inspect.currentframe().f_back.f_lineno
-    print "Test at", lineno
+    print("Test at", lineno)
 
 def no_result_testing():
     pass
@@ -1222,7 +1231,7 @@ def cint_cint_division(a, b, k, f):
     # theta can be replaced with something smaller
     # for safety we assume that is the same theta from previous GS method
 
-    theta = int(ceil(log(k/3.5) / log(2)))
+    theta = int(ceil(old_div(log(k/3.5), log(2))))
     two = cint(2) * two_power(f)
 
     sign_b = cint(1) - 2 * cint(b < 0)
@@ -1250,7 +1259,7 @@ def sint_cint_division(a, b, k, f, kappa):
     """
         type(a) = sint, type(b) = cint
     """
-    theta = int(ceil(log(k/3.5) / log(2)))
+    theta = int(ceil(old_div(log(k/3.5), log(2))))
     two = cint(2) * two_power(f)
     sign_b = cint(1) - 2 * cint(b < 0)
     sign_a = sint(1) - 2 * sint(a < 0)
@@ -1279,7 +1288,7 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False):
     """
         Goldschmidt method as presented in Catrina10,
     """
-    theta = int(ceil(log(k/3.5) / log(2)))
+    theta = int(ceil(old_div(log(k/3.5), log(2))))
     alpha = two_power(2*f)
     w = AppRcr(b, k, f, kappa, simplex_flag)
     x = alpha - b * w
@@ -1380,7 +1389,7 @@ def int2FL_plain(a, gamma, l, kappa):
     blen = 0
     for a_i in range(len(a_bits) - 1, -1, -1):  # enumerate(a_bits):
 
-        b = (a_bits[a_i]) * (b == 0) * ((b_c) / 2) + b
+        b = (a_bits[a_i]) * (b == 0) * (old_div((b_c), 2)) + b
         blen = (a_bits[a_i]) * (blen == 0) * ((a_i + 1)) + blen
         b_c = b_c * 2
 
@@ -1396,7 +1405,7 @@ def int2FL_plain(a, gamma, l, kappa):
     if_then(a_abs > 0)
 
     if (lam > l):
-        v_l.write(v_l.read() / (2 ** (gamma - l - 1)))
+        v_l.write(old_div(v_l.read(), (2 ** (gamma - l - 1))))
     else:
         v_l.write(v_l.read() * (2 ** l - lam))
 

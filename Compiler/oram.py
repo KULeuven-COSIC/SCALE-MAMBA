@@ -1,19 +1,29 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import next
+from builtins import map
+from builtins import str
+from builtins import zip
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import random
 import math
 import collections
 import itertools
 import operator
 import sys
+from functools import reduce
 
 if 'Emulation' in sys.path:
-    print 'emulation mode'
+    print('emulation mode')
     from Emulation.library import *
     from Emulation.types import *
     from Emulation.types import _secret
     from Emulation.program import Program
     from Emulation import floatingpoint,comparison,permutation
 else:
-    print 'compilation mode'
+    print('compilation mode')
     from Compiler.types import *
     from Compiler.types import _secret
     from Compiler.library import *
@@ -68,7 +78,7 @@ class intBlock(Block):
         self.lower, self.shift = \
             floatingpoint.Trunc(self.value, self.n_bits, self.start, \
                                     Program.prog.security, True)
-        trunc = (self.value - self.lower) / self.shift
+        trunc = old_div((self.value - self.lower), self.shift)
         self.slice = trunc.mod2m(length, self.n_bits, False)
         self.upper = (trunc - self.slice) * self.shift
     def get_slice(self):
@@ -104,7 +114,7 @@ class gf2nBlock(Block):
             prod_bits = [start * bit for bit in value_bits]
             anti_bits = [v - p for v,p in zip(value_bits,prod_bits)]
             self.lower = sum(bit << i for i,bit in enumerate(prod_bits[:length]))
-            self.bits = map(operator.add, anti_bits[:length], prod_bits[length:]) + \
+            self.bits = list(map(operator.add, anti_bits[:length], prod_bits[length:])) + \
                 anti_bits[length:]
             self.adjust = if_else(start, 1 << length, cgf2n(1))
         elif entries_per_block < 4:
@@ -114,7 +124,7 @@ class gf2nBlock(Block):
             choice_bits = demux(start_bits)
             inv_bits = [1 - bit for bit in floatingpoint.PreOR(choice_bits, None)]
             mask_bits = sum(([x] * length for x in inv_bits), [])
-            lower_bits = map(operator.mul, value_bits, mask_bits)
+            lower_bits = list(map(operator.mul, value_bits, mask_bits))
             self.lower = sum(bit << i for i,bit in enumerate(lower_bits))
             self.bits = [sum(map(operator.mul, choice_bits, value_bits[i::length])) \
                                  for i in range(length)]
@@ -133,10 +143,10 @@ class gf2nBlock(Block):
             pre_bits = floatingpoint.PreOpL(lambda x,y,z=None: x + y, bits)
             inv_bits = [1 - bit for bit in pre_bits]
             mask_bits = sum(([x] * length for x in inv_bits), [])
-            lower_bits = map(operator.mul, value_bits, mask_bits)
+            lower_bits = list(map(operator.mul, value_bits, mask_bits))
             masked = self.value - sum(bit << i for i,bit in enumerate(lower_bits))
             self.lower = sum(bit << i for i,bit in enumerate(lower_bits))
-            self.bits = (masked / adjust).bit_decompose(used_bits)
+            self.bits = (old_div(masked, adjust)).bit_decompose(used_bits)
             self.adjust = adjust
         Program.prog.curr_tape.\
             start_new_basicblock(name='gf2n-block-init-end-%d' % entries_per_block)
@@ -186,12 +196,12 @@ def demux_list(x):
         return [1]
     elif n == 1:
         return [1 - x[0], x[0]]
-    a = demux_list(x[:n/2])
-    b = demux_list(x[n/2:])
+    a = demux_list(x[:old_div(n,2)])
+    b = demux_list(x[old_div(n,2):])
     n_a = len(a)
     a *= len(b)
     b = reduce(operator.add, ([i] * n_a for i in b))
-    res = map(operator.mul, a, b)
+    res = list(map(operator.mul, a, b))
     return res
 
 def demux_array(x):
@@ -201,12 +211,12 @@ def demux_array(x):
         res[0] = 1 - x[0]
         res[1] = x[0]
     else:
-        a = Array(2**(n/2), type(x[0]))
-        a.assign(demux(x[:n/2]))
-        b = Array(2**(n-n/2), type(x[0]))
-        b.assign(demux(x[n/2:]))
+        a = Array(2**(old_div(n,2)), type(x[0]))
+        a.assign(demux(x[:old_div(n,2)]))
+        b = Array(2**(n-old_div(n,2)), type(x[0]))
+        b.assign(demux(x[old_div(n,2):]))
         @for_range_multithread(get_n_threads(len(res)), \
-                                   max(1, n_parallel / len(b)), len(a))
+                                   max(1, old_div(n_parallel, len(b))), len(a))
         def f(i):
             @for_range_parallel(n_parallel, len(b))
             def f(j):
@@ -242,7 +252,7 @@ class Value(object):
         return Value(other * self.value, other * self.empty)
     __rmul__ = __mul__
     def equal(self, other, length=None):
-        if isinstance(other, (int, long)) and isinstance(self.value, (int, long)):
+        if isinstance(other, (int, int)) and isinstance(self.value, (int, int)):
             return (1 - self.empty) * (other == self.value)
         return (1 - self.empty) * self.value.equal(other, length)
     def reveal(self):
@@ -260,9 +270,9 @@ class Value(object):
         try:
             value = self.empty
             while True:
-                if value in (1, 1L):
+                if value in (1, 1):
                     return '<>'
-                if value in (0, 0L):
+                if value in (0, 0):
                     return '<%s>' % str(self.value)
                 value = value.value
         except:
@@ -297,8 +307,8 @@ class Entry(object):
         self.created_non_empty = False
         if x is None:
             v = iter(v)
-            self.is_empty = v.next()
-            self.v = v.next()
+            self.is_empty = next(v)
+            self.v = next(v)
             self.x = ValueTuple(v)
         else:
             if empty is None:
@@ -332,7 +342,7 @@ class Entry(object):
         try:
             return Entry(i + j for i,j in zip(self, other))
         except:
-            print self, other
+            print(self, other)
             raise
     def __sub__(self, other):
         return Entry(i - j for i,j in zip(self, other))
@@ -342,7 +352,7 @@ class Entry(object):
         try:
             return Entry(other * i for i in self)
         except:
-            print self, other
+            print(self, other)
             raise
     __rmul__ = __mul__
     def reveal(self):
@@ -372,8 +382,8 @@ class RefRAM(object):
                       for t,array in zip(self.entry_type,oram.ram.l)]
         self.index = index
     def init_mem(self, empty_entry):
-        print 'init ram'
-        for a,value in zip(self.l, empty_entry.values()):
+        print('init ram')
+        for a,value in zip(self.l, list(empty_entry.values())):
             a.assign_all(value)
     def get_empty_bits(self):
         return self.l[0]
@@ -391,14 +401,14 @@ class RefRAM(object):
         return [Value(self.l[2+index][i], self.l[0][i]) for i in range(self.size)]
     def __getitem__(self, index):
         if print_access:
-            print 'get', id(self), index
+            print('get', id(self), index)
         return Entry(a[index] for a in self.l)
     def __setitem__(self, index, value):
         if print_access:
-            print 'set', id(self), index
+            print('set', id(self), index)
         if not isinstance(value, Entry):
             raise Exception('entries only please: %s' % str(value))
-        for i,(a,v) in enumerate(zip(self.l, value.values())):
+        for i,(a,v) in enumerate(zip(self.l, list(value.values()))):
             a[index] = v
     def __len__(self):
         return self.size
@@ -508,7 +518,7 @@ class RefTrivialORAM(object):
         self.value_type, self.value_length = oram.internal_value_type()
         self.size = oram.bucket_size
     def init_mem(self):
-        print 'init trivial oram'
+        print('init trivial oram')
         self.ram.init_mem(self.empty_entry())
     def search(self, read_index):
         if use_binary_search and self.value_type == sgf2n:
@@ -538,7 +548,7 @@ class RefTrivialORAM(object):
         self.last_index = read_index
         found, empty = self.search(read_index)
         entries = [entry for entry in self.ram]
-        prod_entries = map(operator.mul, found, entries)
+        prod_entries = list(map(operator.mul, found, entries))
         read_value = sum((entry.x.skip(skip) for entry in prod_entries), \
                              empty * empty_entry.x.skip(skip))
         for i,(entry, prod_entry) in enumerate(zip(entries, prod_entries)):
@@ -550,7 +560,7 @@ class RefTrivialORAM(object):
     def read_and_remove_by_public(self, index):
         empty_entry = self.empty_entry(False)
         entries = [entry for entry in self.ram]
-        prod_entries = map(operator.mul, index, entries)
+        prod_entries = list(map(operator.mul, index, entries))
         read_entry = reduce(operator.add, prod_entries)
         for i,(entry, prod_entry) in enumerate(zip(entries, prod_entries)):
             self.ram[i] = entry - prod_entry + index[i] * empty_entry
@@ -558,7 +568,7 @@ class RefTrivialORAM(object):
     @method_block
     def _read(self, index):
         found, empty = self.search(index)
-        read_value = sum(map(operator.mul, found, self.ram.get_values()), \
+        read_value = sum(list(map(operator.mul, found, self.ram.get_values())), \
                              empty * self.empty_entry(False).x)
         return read_value, empty
     @method_block
@@ -567,8 +577,8 @@ class RefTrivialORAM(object):
         found, not_found = self.search(index)
         add_here = self.find_first_empty()
         entries = [entry for entry in self.ram]
-        prod_values = map(operator.mul, found, \
-                              (entry.x for entry in entries))
+        prod_values = list(map(operator.mul, found, \
+                              (entry.x for entry in entries)))
         read_value = sum(prod_values, not_found * empty_entry.x)
         new_value = ValueTuple(new_value) \
             if isinstance(new_value, (tuple, list)) \
@@ -683,15 +693,15 @@ class RefTrivialORAM(object):
             for k in range(2**(j)):
                 t = k + 2**(j) - 1
                 if k % 2 == 0:
-                    M += bit_prods[(t-1)/2] * mult_tree[t]
+                    M += bit_prods[old_div((t-1),2)] * mult_tree[t]
 
             b = 1 - M.equal(0, 40, expand)
 
             for k in range(2**j):
                 t = k + 2**j - 1
                 if k % 2 == 0:
-                    v = bit_prods[(t-1)/2] * b
-                    bit_prods[t] = bit_prods[(t-1)/2] - v
+                    v = bit_prods[old_div((t-1),2)] * b
+                    bit_prods[t] = bit_prods[old_div((t-1),2)] - v
                 else:
                     bit_prods[t] = v
         return bit_prods[n-1:n-1+self.size], 1 - bit_prods[0]
@@ -718,7 +728,7 @@ class RefTrivialORAM(object):
                 print_ln('Bucket overflow')
                 crash()
         if debug and not sum(add_here) and not new_entry.empty():
-            print self.empty_entry()
+            print(self.empty_entry())
             raise Exception('no space for %s in %s' % (str(new_entry), str(self)))
         self.check(new_entry=new_entry, op='add')
     def pop(self):
@@ -730,7 +740,7 @@ class RefTrivialORAM(object):
         pop_here = [prefix_empty[i+1] - prefix_empty[i] \
                         for i in range(len(self.ram))]
         entries = [entry for entry in self.ram]
-        prod_entries = map(operator.mul, pop_here, self.ram)
+        prod_entries = list(map(operator.mul, pop_here, self.ram))
         result = (1 - sum(pop_here)) * empty_entry
         result = sum(prod_entries, result)
         for i,(entry, prod_entry) in enumerate(zip(entries, prod_entries)):
@@ -945,7 +955,7 @@ class LocalIndexStructure(List):
             @for_range(init_rounds if init_rounds > 0 else size)
             def f(i):
                 self.l[0][i] = random_block(entry_size, value_type)
-        print 'index size:', size
+        print('index size:', size)
     def update(self, index, value):
         read_value = self[index]
         #print 'read', index, read_value
@@ -970,17 +980,17 @@ class TreeORAM(AbstractORAM):
     """ Tree ORAM. """
     def __init__(self, size, value_type=sint, value_length=1, entry_size=None, \
                      bucket_oram=TrivialORAM, init_rounds=-1):
-        print 'create oram of size', size
+        print('create oram of size', size)
         self.bucket_oram = bucket_oram
         # heuristic bucket size
         delta = 3
-        k = (math.log(size * size * log2(size) * 100, 2) + 21) / (1 + delta)
+        k = old_div((math.log(size * size * log2(size) * 100, 2) + 21), (1 + delta))
         # size + 1 for bucket overflow check
         self.bucket_size = min(int(math.ceil((1 + delta) * k)), size + 1)
-        self.D = log2(max(size / k, 2))
-        print 'bucket size:', self.bucket_size
-        print 'depth:', self.D
-        print 'complexity:', self.bucket_size * (self.D + 1)
+        self.D = log2(max(old_div(size, k), 2))
+        print('bucket size:', self.bucket_size)
+        print('depth:', self.D)
+        print('complexity:', self.bucket_size * (self.D + 1))
         self.value_type = value_type
         if entry_size is not None:
             self.value_length = len(tuplify(entry_size))
@@ -1233,8 +1243,8 @@ class TreeORAM(AbstractORAM):
             # split into 2 if bucket size can't fit into one field elem
             if self.bucket_size + Program.prog.security > 128:
                 parity = (empty_positions[i]+1) % 2
-                half = (empty_positions[i]+1 - parity) / 2
-                half_max = self.bucket_size / 2
+                half = old_div((empty_positions[i]+1 - parity), 2)
+                half_max = old_div(self.bucket_size, 2)
                 
                 bits = floatingpoint.B2U(half, half_max, Program.prog.security)[0]
                 bits2 = floatingpoint.B2U(half+parity, half_max, Program.prog.security)[0]
@@ -1336,12 +1346,12 @@ def get_parallel(index_size, value_type, value_length):
     value_size = get_value_size(value_type)
     if value_type == sint:
         value_size *= 2
-    res = max(1, min(50 * 32 / (value_length * value_size), \
-                         800 * 32 / (value_length * index_size)))
+    res = max(1, min(old_div(50 * 32, (value_length * value_size)), \
+                         old_div(800 * 32, (value_length * index_size))))
     if comparison.const_rounds:
-        res = max(1, res / 2)
+        res = max(1, old_div(res, 2))
     if 'Emulation' not in sys.path:
-        print 'Reading %d buckets in parallel' % res
+        print('Reading %d buckets in parallel' % res)
     return res
 
 class PackedIndexStructure(object):
@@ -1376,24 +1386,24 @@ class PackedIndexStructure(object):
                 self.elements_per_entry = len(self.split_sizes)
                 self.log_elements_per_block = log2(self.elements_per_entry)
                 self.log_entries_per_element = -self.log_elements_per_block
-                print 'split sizes:', self.split_sizes
+                print('split sizes:', self.split_sizes)
             self.log_entries_per_block = \
                 self.log_elements_per_block + self.log_entries_per_element
             self.elements_per_block = 2**self.log_elements_per_block
             self.entries_per_element = 2**self.log_entries_per_element
             self.entries_per_block = 2**self.log_entries_per_block
             self.used_bits = self.entries_per_element * sum(self.entry_size)
-            real_size = -(-size / self.entries_per_block)
-        print 'packed size:', real_size
-        print 'index size:', size
-        print 'entry size:', self.entry_size
-        print 'log(entries per element):', self.log_entries_per_element
-        print 'entries per element:', self.entries_per_element
-        print 'log(entries per block):', self.log_entries_per_block
-        print 'entries per block:', self.entries_per_block
-        print 'log(elements per block):', self.log_elements_per_block
-        print 'elements per block:', self.elements_per_block
-        print 'used bits:', self.used_bits
+            real_size = -(old_div(-size, self.entries_per_block))
+        print('packed size:', real_size)
+        print('index size:', size)
+        print('entry size:', self.entry_size)
+        print('log(entries per element):', self.log_entries_per_element)
+        print('entries per element:', self.entries_per_element)
+        print('log(entries per block):', self.log_entries_per_block)
+        print('entries per block:', self.entries_per_block)
+        print('log(elements per block):', self.log_elements_per_block)
+        print('elements per block:', self.elements_per_block)
+        print('used bits:', self.used_bits)
         if real_size > 1:
             # no need to init underlying ORAM, will be initialized implicitely
             self.l = self.storage(real_size, value_type, self.elements_per_block, \
@@ -1404,10 +1414,10 @@ class PackedIndexStructure(object):
             self.small = True
         if init_rounds:
             if init_rounds > 0:
-                real_init_rounds = init_rounds * real_size / size
+                real_init_rounds = old_div(init_rounds * real_size, size)
             else:
                 real_init_rounds = real_size
-            print 'packed init rounds:', real_init_rounds
+            print('packed init rounds:', real_init_rounds)
             @for_range(real_init_rounds)
             def f(i):
                 if random_init:
@@ -1417,7 +1427,7 @@ class PackedIndexStructure(object):
                     self.l[i] = [0] * self.elements_per_block
                 time()
                 print_ln('packed ORAM init %s/%s', i, real_init_rounds)
-        print 'index initialized, size', size
+        print('index initialized, size', size)
     def translate_index(self, index):
         """ Bit slicing *index* according parameters. Output is tuple
         (storage address, index with storage cell, index within
@@ -1426,11 +1436,11 @@ class PackedIndexStructure(object):
             rem = mod2m(index, self.log_entries_per_block, log2(self.size), False)
             c = mod2m(rem, self.log_entries_per_element, \
                           self.log_entries_per_block, False)
-            b = (rem - c) / self.entries_per_element
+            b = old_div((rem - c), self.entries_per_element)
             if self.small:
                 return 0, b, c
             else:
-                return (index - rem) / self.entries_per_block, b, c
+                return old_div((index - rem), self.entries_per_block), b, c
         else:
             index_bits = bit_decompose(index, log2(self.size))
             l1 = self.log_entries_per_element
@@ -1451,16 +1461,16 @@ class PackedIndexStructure(object):
             self.block = block
             self.index_vector = \
                 demux(bit_decompose(self.b, self.pack.log_elements_per_block))
-            self.vector = map(operator.mul, self.index_vector, block)
+            self.vector = list(map(operator.mul, self.index_vector, block))
             self.element = get_block(sum(self.vector), self.c, \
                                          self.pack.entry_size, \
                                          self.pack.entries_per_element)
             return tuple(self.element.get_slice())
         def write(self, value):
             self.element.set_slice(value)
-            anti_vector = map(operator.sub, self.block, self.vector)
+            anti_vector = list(map(operator.sub, self.block, self.vector))
             updated_vector = [self.element.value * i for i in self.index_vector]
-            updated_block = map(operator.add, anti_vector, updated_vector)
+            updated_block = list(map(operator.add, anti_vector, updated_vector))
             return updated_block
     class MultiSlicer(object):
         def __init__(self, pack, index):
@@ -1518,7 +1528,7 @@ class PackedIndexStructure(object):
     def batch_init(self, values):
         """ Initialize m values with indices 0, ..., m-1 """
         m = len(values)
-        n_entries = max(1, m/self.entries_per_block)
+        n_entries = max(1, old_div(m,self.entries_per_block))
         new_values = [0] * n_entries
 
         for i in range(n_entries):
@@ -1628,7 +1638,7 @@ class OptimalPackedORAMWithEmpty(PackedORAMWithEmpty):
 
 def test_oram(oram_type, N, value_type=sint, iterations=100):
     oram = oram_type(N, value_type=value_type, entry_size=32, init_rounds=0)
-    print 'initialized'
+    print('initialized')
     print_ln('initialized')
     stop_timer()
     # synchronize
@@ -1656,7 +1666,7 @@ def test_oram(oram_type, N, value_type=sint, iterations=100):
 def test_oram_access(oram_type, N, value_type=sint, index_size=None, iterations=100):
     oram = oram_type(N, value_type=value_type, entry_size=32, \
                          init_rounds=0)
-    print 'initialized'
+    print('initialized')
     print_reg_char4(cint(0), 'init')
     stop_timer()
     # synchronize
@@ -1669,11 +1679,11 @@ def test_oram_access(oram_type, N, value_type=sint, index_size=None, iterations=
     def f(i):
         oram.access(value_type(i % N), value_type(0), value_type(True))
         oram.access(value_type(i % N), value_type(i % N), value_type(True))
-        print 'first write'
+        print('first write')
         time()
         x = oram.access(value_type(i % N), value_type(0), value_type(False))
         x[0][0].reveal().print_reg('writ')
-        print 'first read'
+        print('first read')
     # @for_range(iterations)
     # def f(i):
     #     x = oram.access(value_type(i % N), value_type(0), value_type(False), \
@@ -1685,7 +1695,7 @@ def test_oram_access(oram_type, N, value_type=sint, index_size=None, iterations=
 def test_batch_init(oram_type, N):
     value_type = sint
     oram = oram_type(N, value_type)
-    print 'initialized'
+    print('initialized')
     print_reg_char4(cint(0), 'init')
     oram.batch_init([value_type(i) for i in range(N)])
     print_reg_char4(cint(0), 'done')

@@ -1,8 +1,13 @@
+from __future__ import print_function
+from __future__ import division
 ##
 # @file
 # floating point operations
 # File documentation
 #
+from builtins import zip
+from builtins import range
+from past.utils import old_div
 from math import log, floor, ceil
 from Compiler.instructions import *
 import types
@@ -21,7 +26,7 @@ def two_power(n):
     else:
         max = types.cint(1) << 31
         res = 2**(n%31)
-        for i in range(n / 31):
+        for i in range(old_div(n, 31)):
             res *= max
         return res
 
@@ -30,7 +35,7 @@ def shift_two(n, pos):
         return n >> pos
     else:
         res = (n >> (pos%63))
-        for i in range(pos / 63):
+        for i in range(old_div(pos, 63)):
             res >>= 63
         return res
 
@@ -166,7 +171,7 @@ def PreORC(a, kappa=None, m=None, raw=False):
     if k == 1:
         return [a[0]]
     m = m or k
-    max_k = int(log(program.Program.prog.P) / log(2)) - kappa
+    max_k = int(old_div(log(program.Program.prog.P), log(2))) - kappa
     if k <= max_k:
         p = [None] * m
         if m == k:
@@ -194,7 +199,7 @@ def PreOpL(op, items):
     kmax = 2**logk
     output = list(items)
     for i in range(logk):
-        for j in range(kmax/(2**(i+1))):
+        for j in range(old_div(kmax,(2**(i+1)))):
             y = two_power(i) + j*two_power(i+1) - 1
             for z in range(1, 2**i+1):
                 if y+z < k:
@@ -221,8 +226,8 @@ def KOpL(op, a):
     if k == 1:
         return a[0]
     else:
-        t1 = KOpL(op, a[:k/2])
-        t2 = KOpL(op, a[k/2:])
+        t1 = KOpL(op, a[:old_div(k,2)])
+        t2 = KOpL(op, a[old_div(k,2):])
         return op(t1, t2)
 
 def KORL(a, kappa):
@@ -231,8 +236,8 @@ def KORL(a, kappa):
     if k == 1:
         return a[0]
     else:
-        t1 = KORL(a[:k/2], kappa)
-        t2 = KORL(a[k/2:], kappa)
+        t1 = KORL(a[:old_div(k,2)], kappa)
+        t2 = KORL(a[old_div(k,2):], kappa)
         return t1 + t2 - t1*t2
 
 def KORC(a, kappa):
@@ -272,7 +277,7 @@ def BitAdd(a, b, bits_to_compute=None):
         bits s[0], ... , s[k] """
     k = len(a)
     if not bits_to_compute:
-        bits_to_compute = range(k)
+        bits_to_compute = list(range(k))
     d = [None] * k
     for i in range(1,k):
         #assert(a[i].value == 0 or a[i].value == 1)
@@ -286,25 +291,25 @@ def BitAdd(a, b, bits_to_compute=None):
     
     # (for testing)
     def print_state():
-        print 'a: ',
+        print('a: ', end=' ')
         for i in range(k):
-            print '%d ' % a[i].value,
-        print '\nb: ',
+            print('%d ' % a[i].value, end=' ')
+        print('\nb: ', end=' ')
         for i in range(k):
-            print '%d ' % b[i].value,
-        print '\nd: ',
+            print('%d ' % b[i].value, end=' ')
+        print('\nd: ', end=' ')
         for i in range(k):
-            print '%d ' % d[i][0].value,
-        print '\n   ',
+            print('%d ' % d[i][0].value, end=' ')
+        print('\n   ', end=' ')
         for i in range(k):
-            print '%d ' % d[i][1].value,
-        print '\n\npg:',
+            print('%d ' % d[i][1].value, end=' ')
+        print('\n\npg:', end=' ')
         for i in range(k):
-            print '%d ' % pg[i][0].value,
-        print '\n    ',
+            print('%d ' % pg[i][0].value, end=' ')
+        print('\n    ', end=' ')
         for i in range(k):
-            print '%d ' % pg[i][1].value,
-        print ''
+            print('%d ' % pg[i][1].value, end=' ')
+        print('')
     
     for bit in c:
         pass#assert(bit.value == 0 or bit.value == 1)
@@ -319,7 +324,7 @@ def BitAdd(a, b, bits_to_compute=None):
         try:
             pass#assert(s[i].value == 0 or s[i].value == 1)
         except AssertionError:
-            print '#assertion failed in BitAdd for s[%d]' % i
+            print('#assertion failed in BitAdd for s[%d]' % i)
             print_state()
     s[k] = c[k-1]
     #print_state()
@@ -340,9 +345,9 @@ def BitDec(a, k, m, kappa, bits_to_compute=None):
     try:
         pass#assert(c.value == (2**(k + kappa) + 2**k + (a.value%2**k) - rval) % comparison.program.P)
     except AssertionError:
-        print 'BitDec assertion failed'
-        print 'a =', a.value
-        print 'a mod 2^%d =' % k, (a.value % 2**k)
+        print('BitDec assertion failed')
+        print('a =', a.value)
+        print('a mod 2^%d =' % k, (a.value % 2**k))
     return BitAdd(list(bits(c,m)), r, bits_to_compute)[:-1]
 
 
@@ -420,7 +425,7 @@ def Trunc(a, l, m, kappa, compute_modulo=False):
 def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
     t = comparison.TruncRoundNearest(a, length, length - target_length, kappa)
     overflow = t.greater_equal(two_power(target_length), target_length + 1, kappa)
-    s = (1 - overflow) * t + overflow * t / 2
+    s = (1 - overflow) * t + old_div(overflow * t, 2)
     return s, overflow
 
 def Int2FL(a, gamma, l, kappa):
@@ -476,7 +481,7 @@ def convert_float(v, vlen, plen):
             v /= 2
         z = 0
         if p < -2 ** (plen - 1):
-            print 'Warning: %e truncated to zero' % vv
+            print('Warning: %e truncated to zero' % vv)
             v, p, z = 0, 0, 1
         if p >= 2 ** (plen - 1):  # use it for the comparison
             raise CompilerError('Cannot convert %s to float ' \
@@ -527,13 +532,13 @@ def TruncPr(a, k, m, kappa=None):
     c = (b + r).reveal()
     c_prime = c % two_to_m
     a_prime = c_prime - r_prime
-    d = (a - a_prime) / two_to_m
+    d = old_div((a - a_prime), two_to_m)
     return d
 
 def SDiv(a, b, l, kappa):
-    theta = int(ceil(log(l / 3.5) / log(2)))
+    theta = int(ceil(old_div(log(l / 3.5), log(2))))
     alpha = two_power(2*l)
-    beta = 1 / types.cint(two_power(l))
+    beta = old_div(1, types.cint(two_power(l)))
     w = types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
@@ -554,7 +559,7 @@ def SDiv(a, b, l, kappa):
     return y
 
 def SDiv_mono(a, b, l, kappa):
-    theta = int(ceil(log(l / 3.5) / log(2)))
+    theta = int(ceil(old_div(log(l / 3.5), log(2))))
     alpha = two_power(2*l)
     w = types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
