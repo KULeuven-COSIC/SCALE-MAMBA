@@ -1,9 +1,12 @@
+from __future__ import division
 ##
 # @file
 # Arithmetic Module for Complex Math Operations
 #
 # Implements trigonometric and logarithmic functions.
 
+from builtins import range
+from past.utils import old_div
 import math
 from Compiler import floatingpoint
 from Compiler import types
@@ -238,7 +241,7 @@ def tan(x):
     local_sin = ssin(w, b1)
     local_cos = scos(w, b2)
     # obtains the local tan
-    local_tan = local_sin/local_cos
+    local_tan = old_div(local_sin,local_cos)
     return local_tan
 
 
@@ -259,7 +262,7 @@ def exp2_fx(a):
     # evaluates fractional part of a in p_1045
     e = p_eval(p_1045, c)
     g = d * e
-    return (1 - s) * g + s * ((types.sfix(1)) / g)
+    return (1 - s) * g + s * (old_div((types.sfix(1)), g))
 
 
 ##
@@ -286,7 +289,7 @@ def log2_fx(x):
     P = p_eval(p_2524, v)
     Q = p_eval(q_2524, v)
     # the log is returned by adding the result of the division plus p.
-    a = P / Q + load_sint(d.vlen + d.p, type(x))
+    a = old_div(P, Q) + load_sint(d.vlen + d.p, type(x))
     return a  # *(1-(f.z))*(1-f.s)*(1-f.error)
 
 
@@ -418,7 +421,7 @@ def norm_simplified_SQ(b, k):
             m_odd = m_odd + z[i]
 
     # construct w,
-    k_over_2 = k / 2 + 1
+    k_over_2 = old_div(k, 2) + 1
     w_array = [0] * (k_over_2)
     w_array[0] = z[0]
     for i in range(1, k_over_2):
@@ -452,11 +455,11 @@ def sqrt_simplified_fx(x):
     m_odd =  (1 - 2 * m_odd) * ( x.f % 2) + m_odd
     w = (w * 2 - w) * (1-m_odd) * (x.f % 2) + w
     # map number to use sfix format and instantiate the number
-    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) / 2))
+    w = types.sfix(w * 2 ** (old_div((x.f - (x.f % 2)), 2)))
     # obtains correct 2 ** (m/2)
     w = (w * (types.cfix(2 ** (1/2.0))) - w) * m_odd + w
     # produce x/ 2^(m/2)
-    y_0 = types.cfix(1.0) / w
+    y_0 = old_div(types.cfix(1.0), w)
 
     # from this point on it sufices to work sfix-wise
     g_0 = (y_0 * x)
@@ -513,7 +516,7 @@ def norm_SQ(b, k):
 
     # construct w, changes from what is on the paper
     # and the documentation
-    k_over_2= k/2+1#int(math.ceil((k/2.0)))+1
+    k_over_2= old_div(k,2)+1#int(math.ceil((k/2.0)))+1
     w_array = [0]*(k_over_2 )
     w_array[0] = z[0]
     for i in range(1, k_over_2):
@@ -647,14 +650,14 @@ def atan(x):
     x_abs  = (s * (-2) + 1) * x
     # angle isolation
     b = x_abs > 1
-    v = (types.cfix(1.0) / x_abs)
+    v = (old_div(types.cfix(1.0), x_abs))
     v = (1 - b) * (x_abs - v) + v
     v_2 =v*v
     P = p_eval(p_5102, v_2)
     Q = p_eval(q_5102, v_2)
 
     # padding
-    y = v * (P / Q)
+    y = v * (old_div(P, Q))
     y_pi_over_two =  pi_over_2 - y
 
     # sign correction
@@ -675,7 +678,7 @@ def asin(x):
     x_2 = x*x
     # trignometric identities
     sqrt_l = sqrt(1- (x_2))
-    x_sqrt_l =x / sqrt_l
+    x_sqrt_l =old_div(x, sqrt_l)
     return atan(x_sqrt_l)
 
 

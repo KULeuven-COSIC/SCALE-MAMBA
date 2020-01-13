@@ -2,7 +2,7 @@ for k in range(10):
     for t in cfix, sfix:
         a = t.Array(10)
 
-        print len(a)
+        print(len(a))
 
         for i,j in enumerate(a):
             a[i] = j + i

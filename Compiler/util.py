@@ -1,5 +1,15 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 import math
 import operator
+from functools import reduce
+import sys
+
+if sys.version[0] == "3":
+    # If we're in python3, integers have unlimited size
+    long = int
 
 def format_trace(trace, prefix='  '):
     if trace is None:
@@ -77,7 +87,7 @@ def if_else(cond, a, b):
                 return b
         return cond.if_else(a, b)
     except:
-        print cond, a, b
+        print(cond, a, b)
         raise
 
 def cond_swap(cond, a, b):
@@ -97,8 +107,8 @@ def tree_reduce(function, sequence):
     if n == 1:
         return sequence[0]
     else:
-        reduced = [function(sequence[2*i], sequence[2*i+1]) for i in range(n/2)]
-        return tree_reduce(function, reduced + sequence[n/2*2:])
+        reduced = [function(sequence[2*i], sequence[2*i+1]) for i in range(old_div(n,2))]
+        return tree_reduce(function, reduced + sequence[old_div(n,2*2):])
 
 def or_op(a, b):
     return a + b - a * b

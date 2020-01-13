@@ -1,4 +1,12 @@
+from __future__ import print_function
+from __future__ import division
 
+from builtins import map
+from builtins import next
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
 from Compiler.path_oram import *
 from Compiler.util import bit_compose
 from Compiler import floatingpoint
@@ -39,7 +47,7 @@ def find_deeper(a, b, path, start, length, compute_level=True):
 def find_deepest(paths, search_path, start, length, compute_level=True):
     if len(paths) == 1:
         return None, paths[0], 1
-    l = len(paths) / 2
+    l = old_div(len(paths), 2)
     _, a, a_index = find_deepest(paths[:l], search_path, start, length, False)
     _, b, b_index = find_deepest(paths[l:], search_path, start, length, False)
     level, winner = find_deeper(a, b, search_path, start, length, compute_level)
@@ -58,7 +66,7 @@ def greater_unary(a, b):
     if len(a) == 1:
         return a[0], b[0]
     else:
-        l = len(a) / 2
+        l = old_div(len(a), 2)
         return gu_step(greater_unary(a[l:], b[l:]), greater_unary(a[:l], b[:l]))
 
 def comp_step(high, low):
@@ -76,7 +84,7 @@ def comp_binary(a, b):
     if len(a) == 1:
         return a[0], b[0]
     else:
-        l = len(a) / 2
+        l = old_div(len(a), 2)
         return comp_step(comp_binary(a[l:], b[l:]), comp_binary(a[:l], b[:l]))
 
 def unary_to_binary(l):
@@ -90,8 +98,8 @@ class CircuitORAM(PathORAM):
         self.D = log2(size)
         self.logD = log2(self.D)
         self.L = self.D + 1
-        print 'create oram of size %d with depth %d and %d buckets' \
-            % (size, self.D, self.n_buckets())
+        print('create oram of size %d with depth %d and %d buckets' \
+            % (size, self.D, self.n_buckets()))
         self.value_type = value_type
         if entry_size is not None:
             self.value_length = len(tuplify(entry_size))

@@ -1,3 +1,4 @@
+from builtins import object
 import itertools
 
 class chain(object):

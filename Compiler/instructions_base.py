@@ -1,11 +1,21 @@
+from __future__ import print_function
+from builtins import str
+from builtins import zip
+from builtins import object
 import itertools
 from random import randint
 import time
 import inspect
 import functools
+import sys
 from Compiler.exceptions import *
 from Compiler.config import *
 from Compiler import util
+
+
+if sys.version[0] == "3":
+  # If we're in python3, integers have unlimited size
+  long = int
 
 
 ###
@@ -448,7 +458,7 @@ class Instruction(object):
         
         Instruction.count += 1
         if Instruction.count % 100000 == 0:
-            print "Compiled %d lines at" % self.__class__.count, time.asctime()
+            print("Compiled %d lines at" % self.__class__.count, time.asctime())
 
     def get_code(self):
         return self.code
@@ -469,7 +479,7 @@ class Instruction(object):
     
     def check_args(self):
         """ Check the args match up with that specified in arg_format """
-        for n,(arg,f) in enumerate(itertools.izip_longest(self.args, self.arg_format)):
+        for n,(arg,f) in enumerate(itertools.zip_longest(self.args, self.arg_format)):
             if arg is None:
                 if not isinstance(self.arg_format, (list, tuple)):
                     break # end of optional arguments
@@ -633,7 +643,7 @@ class JumpInstruction(Instruction):
 
     def get_relative_jump(self):
         if self.jump_arg == -1:
-	  return -1
+          return -1
         return self.args[self.jump_arg]
 
 

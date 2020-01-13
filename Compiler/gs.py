@@ -1,3 +1,8 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import sys
 import math
 
@@ -29,9 +34,9 @@ class OMatrixRow(object):
     def read(self, offset):
         return self.oram.read(self.get_index(offset))
 
-class OMatrix:
+class OMatrix(object):
     def __init__(self, N, M=None, oram_type=OptimalORAM, int_type=types.sint):
-        print 'matrix', oram_type
+        print('matrix', oram_type)
         self.N = N
         self.M = M or N
         self.oram = oram_type(N * self.M, entry_size=log2(N), init_rounds=0, \
@@ -75,9 +80,9 @@ class OReverseMatrix(OMatrix):
     def __setitem__(self, index, value):
         self.oram[index] = value
 
-class OStack:
+class OStack(object):
     def __init__(self, N, oram_type=OptimalORAM, int_type=types.sint):
-        print 'stack', oram_type
+        print('stack', oram_type)
         self.oram = oram_type(N, entry_size=log2(N), init_rounds=0, \
                                   value_type=int_type.basic_type)
         self.size = types.MemValue(int_type(0))
@@ -89,14 +94,14 @@ class OStack:
         self.size.isub(1)
         return self.oram[self.size]
 
-class Matchmaker:
+class Matchmaker(object):
     def init_hard(self, n_loops=None):
         if n_loops is None or n_loops > self.N * self.M:
             inner_loops = self.M
             outer_loops = self.N
         else:
             inner_loops = min(n_loops, self.M)
-            outer_loops = n_loops / inner_loops
+            outer_loops = old_div(n_loops, inner_loops)
         self.m_prefs = OMatrix(self.N, self.M, oram_type=self.oram_type, \
                                    int_type=self.int_type)
         @for_range(outer_loops)
@@ -201,7 +206,7 @@ class Matchmaker:
             init_rounds = self.N
         else:
             loop = for_range(n_loops)
-            init_rounds = n_loops / self.M
+            init_rounds = old_div(n_loops, self.M)
         self.wives = \
             self.oram_type(self.N, entry_size=log2(self.N), \
                                init_rounds=0, value_type=self.basic_type)
@@ -251,4 +256,4 @@ class Matchmaker:
         self.reverse = reverse
         self.int_type = int_type
         self.basic_type = int_type.basic_type
-        print 'match', self.oram_type
+        print('match', self.oram_type)

@@ -1,3 +1,8 @@
+from __future__ import division
+from builtins import next
+from builtins import zip
+from builtins import range
+from past.utils import old_div
 from random import randint
 import math
 
@@ -69,7 +74,7 @@ def odd_even_merge(a, comp):
         odd_even_merge(even, comp)
         odd_even_merge(odd, comp)
         a[0] = even[0]
-        for i in range(1, len(a) / 2):
+        for i in range(1, old_div(len(a), 2)):
             a[2*i-1], a[2*i] = cond_swap(odd[i-1], even[i], comp)
         a[-1] = odd[-1]
 
@@ -77,8 +82,8 @@ def odd_even_merge_sort(a, comp=bitwise_comparator):
     if len(a) == 1:
         return
     elif len(a) % 2 == 0:
-        lower = a[:len(a)/2]
-        upper = a[len(a)/2:]
+        lower = a[:old_div(len(a),2)]
+        upper = a[old_div(len(a),2):]
         odd_even_merge_sort(lower, comp)
         odd_even_merge_sort(upper, comp)
         a[:] = lower + upper
@@ -134,7 +139,7 @@ def random_perm(n):
 
     WARNING: randomness fixed at compile-time, this is NOT secure
     """
-    a = range(n)
+    a = list(range(n))
     for i in range(n-1, 0, -1):
         j = randint(0, i)
         t = a[i]
@@ -152,10 +157,10 @@ def configure_waksman(perm):
     n = len(perm)
     if n == 2:
         return [(perm[0], perm[0])]
-    I = [None] * (n/2)
-    O = [None] * (n/2)
-    p0 = [None] * (n/2)
-    p1 = [None] * (n/2)
+    I = [None] * (old_div(n,2))
+    O = [None] * (old_div(n,2))
+    p0 = [None] * (old_div(n,2))
+    p1 = [None] * (old_div(n,2))
     inv_perm = [0] * n
 
     for i, p in enumerate(perm):
@@ -167,7 +172,7 @@ def configure_waksman(perm):
         except ValueError:
             break
         #print 'j =', j
-        O[j/2] = 0
+        O[old_div(j,2)] = 0
         via = 0
         j0 = j
         while True:
@@ -175,10 +180,10 @@ def configure_waksman(perm):
 
             i = inv_perm[j]
             #print '    p0[%d] = %d' % (inv_perm[j]/2, j/2)
-            p0[i/2] = j/2
+            p0[old_div(i,2)] = old_div(j,2)
 
-            I[i/2] = i % 2
-            O[j/2] = j % 2
+            I[old_div(i,2)] = i % 2
+            O[old_div(j,2)] = j % 2
             #print '    O[%d] = %d' % (j/2, j % 2)
             if i % 2 == 1:
                 i -= 1
@@ -195,7 +200,7 @@ def configure_waksman(perm):
                 j += 1
             #j, via = set_swapper(O, i, via, perm)
             #print '    p1[%d] = %d' % (i/2, perm[i]/2)
-            p1[i/2] = perm[i]/2
+            p1[old_div(i,2)] = old_div(perm[i],2)
 
             #print '    i = %d, j =  %d' %(i,j)
             if j == j0:
@@ -203,8 +208,8 @@ def configure_waksman(perm):
         if None not in p0 and None not in p1:
             break
 
-    assert sorted(p0) == range(n/2)
-    assert sorted(p1) == range(n/2)
+    assert sorted(p0) == list(range(old_div(n,2)))
+    assert sorted(p1) == list(range(old_div(n,2)))
     p0_config = configure_waksman(p0)
     p1_config = configure_waksman(p1)
     return [I + O] + [a+b for a,b in zip(p0_config, p1_config)]
@@ -216,22 +221,22 @@ def waksman(a, config, depth=0, start=0, reverse=False):
         a[0], a[1] = cond_swap_bit(a[0], a[1], config[depth][start])
         return
 
-    a0 = [0] * (n/2)
-    a1 = [0] * (n/2)
-    for i in range(n/2):
+    a0 = [0] * (old_div(n,2))
+    a1 = [0] * (old_div(n,2))
+    for i in range(old_div(n,2)):
         if reverse:
-            a0[i], a1[i] = cond_swap_bit(a[2*i], a[2*i+1], config[depth][i + n/2 + start])
+            a0[i], a1[i] = cond_swap_bit(a[2*i], a[2*i+1], config[depth][i + old_div(n,2) + start])
         else:
             a0[i], a1[i] = cond_swap_bit(a[2*i], a[2*i+1], config[depth][i + start])
 
     waksman(a0, config, depth+1, start, reverse)
-    waksman(a1, config, depth+1, start + n/2, reverse)
+    waksman(a1, config, depth+1, start + old_div(n,2), reverse)
 
-    for i in range(n/2):
+    for i in range(old_div(n,2)):
         if reverse:
             a[2*i], a[2*i+1] = cond_swap_bit(a0[i], a1[i], config[depth][i + start])
         else:
-            a[2*i], a[2*i+1] = cond_swap_bit(a0[i], a1[i], config[depth][i + n/2 + start])
+            a[2*i], a[2*i+1] = cond_swap_bit(a0[i], a1[i], config[depth][i + old_div(n,2) + start])
 
 
 WAKSMAN_FUNCTIONS = {}
@@ -263,10 +268,10 @@ def iter_waksman(a, config, reverse=False):
             
             sizeval = size
             #for k in range(n/2):
-            @for_range_parallel(200, n/2)
+            @for_range_parallel(200, old_div(n,2))
             def f(k):
                 j = cint(k) % sizeval
-                i = (cint(k) - j)/sizeval
+                i = old_div((cint(k) - j),sizeval)
                 base = 2*i*sizeval
 
                 in1, in2 = (base+j+j*inwards), (base+j+j*inwards+1*inwards+sizeval*outwards)
@@ -295,7 +300,7 @@ def iter_waksman(a, config, reverse=False):
     # going into middle of network
     @for_range(logn)
     def f(i):
-        size.write(n/(2*nblocks))
+        size.write(old_div(n,(2*nblocks)))
         conf_address = MemValue(config.address + depth.read()*n)
         do_round(size, conf_address, a.address, a2.address, cint(1))
 
@@ -305,20 +310,20 @@ def iter_waksman(a, config, reverse=False):
         nblocks.write(nblocks*2)
         depth.write(depth+1)
 
-    nblocks.write(nblocks/4)
+    nblocks.write(old_div(nblocks,4))
     depth.write(depth-2)
 
     # and back out
     @for_range(logn-1)
     def f(i):
-        size.write(n/(2*nblocks))
+        size.write(old_div(n,(2*nblocks)))
         conf_address = MemValue(config.address + depth.read()*n)
         do_round(size, conf_address, a.address, a2.address, cint(0))
 
         for i in range(n):
             a[i] = a2[i]
 
-        nblocks.write(nblocks/2)
+        nblocks.write(old_div(nblocks,2))
         depth.write(depth-1)
 
     ## going into middle of network
@@ -373,7 +378,7 @@ def config_shuffle(n, value_type):
     if n & (n-1) != 0:
         # pad permutation to power of 2
         m = 2**int(math.ceil(math.log(n, 2)))
-        perm += range(n, m)
+        perm += list(range(n, m))
     config_bits = configure_waksman(perm)
     # 2-D array
     config = Array(len(config_bits) * len(perm), value_type.reg_type)
