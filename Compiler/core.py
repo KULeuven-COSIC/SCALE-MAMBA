@@ -9,6 +9,12 @@ from collections import defaultdict
 import sys
 from functools import reduce
 
+
+if sys.version[0] == "3":
+    # If we're in python3, integers have unlimited size
+    long = int
+
+
 class Vector(object):
     def __init__(self,value=0,size=0):
         self.v = [value] * size
