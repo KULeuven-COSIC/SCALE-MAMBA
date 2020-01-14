@@ -243,7 +243,7 @@ The opcodes are copied here from instruction_base.py to here for ease of use in 
 ##@instruction.py
 
 import itertools
-import tools
+from Compiler import tools
 from random import randint
 from Compiler.config import *
 from Compiler.exceptions import *
@@ -263,8 +263,10 @@ class ldi(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['LDI']
-    arg_format = ['cw', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDI']
+        self.arg_format = ['cw', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -274,8 +276,10 @@ class ldsi(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['LDSI']
-    arg_format = ['sw', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDSI']
+        self.arg_format = ['sw', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 ## ##########################NEW OPCODES##########################
@@ -289,8 +293,10 @@ class ldsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['LDSINT']
-    arg_format = ['srw', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDSINT']
+        self.arg_format = ['srw', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -300,8 +306,10 @@ class movsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['MOVSINT']
-    arg_format = ['srw', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MOVSINT']
+        self.arg_format = ['srw', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -311,8 +319,10 @@ class opensint(base.Instruction):
         This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['OPENSINT']
-    arg_format = ['rw', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['OPENSINT']
+        self.arg_format = ['rw', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -322,8 +332,10 @@ class opensbit(base.Instruction):
         This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['OPENSBIT']
-    arg_format = ['rw', 'sb']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['OPENSBIT']
+        self.arg_format = ['rw', 'sb']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #arithmetic opcodes
@@ -334,8 +346,10 @@ class addsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class addsintc(base.Instruction):
@@ -344,8 +358,10 @@ class addsintc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDSINTC']
-    arg_format = ['srw', 'sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDSINTC']
+        self.arg_format = ['srw', 'sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -355,8 +371,10 @@ class mulsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MULSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MULSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -366,8 +384,10 @@ class mulsintc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MULSINTC']
-    arg_format = ['srw', 'sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MULSINTC']
+        self.arg_format = ['srw', 'sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class mul2sint(base.Instruction):
@@ -378,8 +398,10 @@ class mul2sint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MUL2SINT']
-    arg_format = ['srw', 'srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MUL2SINT']
+        self.arg_format = ['srw', 'srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class GC(base.VarArgsInstruction):
     r""" GC i0, i1, i2, [srint_outputs], [srint_inputs]
@@ -387,8 +409,8 @@ class GC(base.VarArgsInstruction):
          produces i1 srints as output, and takes i2 srints
          as input
     """
-    code = base.opcodes['GC']
     def __init__(self, *args):
+        self.code = base.opcodes['GC']
         self.arg_format = ['int'] + ['int'] + ['int'] \
                                   + ['srw'] * args[1] \
                                   + ['sr'] * args[2]
@@ -400,8 +422,8 @@ class LF_CINT(base.VarArgsInstruction):
          produces i1 cints as output, and takes i2 rints,
          i3 srints, i4 cints and i5 sints as input.
     """
-    code = base.opcodes['LF_CINT']
     def __init__(self, *args):
+        self.code = base.opcodes['LF_CINT']
         self.arg_format = ['int'] + ['int'] \
                         + ['int'] + ['int'] + ['int'] + ['int'] \
                                   + ['cw'] * args[1] \
@@ -418,8 +440,8 @@ class LF_SINT(base.VarArgsInstruction):
          produces i1 sints as output, and takes i2 rints,
          i3 srints, i4 cints and i5 sints as input.
     """
-    code = base.opcodes['LF_SINT']
     def __init__(self, *args):
+        self.code = base.opcodes['LF_SINT']
         self.arg_format = ['int'] + ['int'] \
                         + ['int'] + ['int'] + ['int'] + ['int'] \
                                   + ['sw'] * args[1] \
@@ -435,8 +457,8 @@ class LF_REGINT(base.VarArgsInstruction):
          produces i1 regints as output, and takes i2 rints,
          i3 srints, i4 cints and i5 sints as input.
     """
-    code = base.opcodes['LF_REGINT']
     def __init__(self, *args):
+        self.code = base.opcodes['LF_REGINT']
         self.arg_format = ['int'] + ['int'] \
                         + ['int'] + ['int'] + ['int'] + ['int'] \
                                   + ['rw'] * args[1] \
@@ -452,8 +474,8 @@ class LF_SREGINT(base.VarArgsInstruction):
          produces i1 sregints as output, and takes i2 rints,
          i3 srints, i4 cints and i5 sints as input.
     """
-    code = base.opcodes['LF_SREGINT']
     def __init__(self, *args):
+        self.code = base.opcodes['LF_SREGINT']
         self.arg_format = ['int'] + ['int'] \
                         + ['int'] + ['int'] + ['int'] + ['int'] \
                                   + ['srw'] * args[1] \
@@ -472,8 +494,10 @@ class subsintc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBSINTC']
-    arg_format = ['srw', 'sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBSINTC']
+        self.arg_format = ['srw', 'sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -483,8 +507,10 @@ class subsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -494,8 +520,10 @@ class subcints(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBCINTS']
-    arg_format = ['srw', 'r', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBCINTS']
+        self.arg_format = ['srw', 'r', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -505,8 +533,10 @@ class divsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['DIVSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['DIVSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class shlsint(base.Instruction):
@@ -515,8 +545,10 @@ class shlsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SHLSINT']
-    arg_format = ['srw', 'sr', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SHLSINT']
+        self.arg_format = ['srw', 'sr', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class shrsint(base.Instruction):
@@ -525,8 +557,10 @@ class shrsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SHRSINT']
-    arg_format = ['srw', 'sr', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SHRSINT']
+        self.arg_format = ['srw', 'sr', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -536,8 +570,10 @@ class neg(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['NEG']
-    arg_format = ['srw', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['NEG']
+        self.arg_format = ['srw', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 # Bitwise and Comparison opcodes
@@ -548,8 +584,10 @@ class sand(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SAND']
-    arg_format = ['srw', 'sr', 'sb']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SAND']
+        self.arg_format = ['srw', 'sr', 'sb']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class andsint(base.Instruction):
@@ -558,8 +596,10 @@ class andsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ANDSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ANDSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class andsintc(base.Instruction):
@@ -568,8 +608,10 @@ class andsintc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ANDSINTC']
-    arg_format = ['srw', 'sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ANDSINTC']
+        self.arg_format = ['srw', 'sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class orsint(base.Instruction):
@@ -578,8 +620,10 @@ class orsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ORSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ORSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class orsintc(base.Instruction):
@@ -588,8 +632,10 @@ class orsintc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ORSINTC']
-    arg_format = ['srw', 'sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ORSINTC']
+        self.arg_format = ['srw', 'sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
     
 @base.vectorize
 class xorsint(base.Instruction):
@@ -598,8 +644,10 @@ class xorsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['XORSINT']
-    arg_format = ['srw', 'sr', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['XORSINT']
+        self.arg_format = ['srw', 'sr', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class xorsintc(base.Instruction):
@@ -608,8 +656,10 @@ class xorsintc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['XORSINTC']
-    arg_format = ['srw', 'sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['XORSINTC']
+        self.arg_format = ['srw', 'sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class invsint(base.Instruction):
@@ -618,8 +668,10 @@ class invsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['INVSINT']
-    arg_format = ['srw', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['INVSINT']
+        self.arg_format = ['srw', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 
@@ -631,8 +683,10 @@ class xorsb(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sb', 'sb']
-    code = base.opcodes['XORSB']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sbw', 'sb', 'sb']
+        self.code = base.opcodes['XORSB']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -642,8 +696,10 @@ class andsb(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sb', 'sb']
-    code = base.opcodes['ANDSB']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sbw', 'sb', 'sb']
+        self.code = base.opcodes['ANDSB']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -653,8 +709,10 @@ class orsb(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sb', 'sb']
-    code = base.opcodes['ORSB']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sbw', 'sb', 'sb']
+        self.code = base.opcodes['ORSB']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -664,9 +722,10 @@ class negb(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-
-    arg_format = ['sbw', 'sb']
-    code = base.opcodes['NEGB']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sbw', 'sb']
+        self.code = base.opcodes['NEGB']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -676,8 +735,10 @@ class ltzsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sr']
-    code = base.opcodes['LTZSINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sbw', 'sr']
+        self.code = base.opcodes['LTZSINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -687,8 +748,10 @@ class eqzsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sbw', 'sr']
-    code = base.opcodes['EQZSINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sbw', 'sr']
+        self.code = base.opcodes['EQZSINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class bitsint(base.Instruction):
@@ -697,8 +760,10 @@ class bitsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['BITSINT']
-    arg_format = ['sbw', 'sr', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['BITSINT']
+        self.arg_format = ['sbw', 'sr', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class sintbit(base.Instruction):
@@ -707,8 +772,10 @@ class sintbit(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['SINTBIT']
-    arg_format = ['srw', 'sr', 'sb', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SINTBIT']
+        self.arg_format = ['srw', 'sr', 'sb', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 
@@ -720,8 +787,10 @@ class convsintsreg(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['CONVSINTSREG']
-    arg_format = ['srw', 's']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CONVSINTSREG']
+        self.arg_format = ['srw', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -731,8 +800,10 @@ class convregsreg(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['CONVREGSREG']
-    arg_format = ['srw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CONVREGSREG']
+        self.arg_format = ['srw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -742,8 +813,10 @@ class convsregsint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['CONVSREGSINT']
-    arg_format = ['sw', 'sr']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CONVSREGSINT']
+        self.arg_format = ['sw', 'sr']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 # memory instructions
@@ -755,8 +828,10 @@ class ldmsint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['LDMSINT']
-    arg_format = ['srw', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMSINT']
+        self.arg_format = ['srw', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -765,8 +840,10 @@ class ldmsinti(base.ReadMemoryInstruction):
          Assigns sregint register sr_i the value in sint memory SR[r_j], where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['LDMSINTI']
-    arg_format = ['srw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMSINTI']
+        self.arg_format = ['srw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -776,8 +853,10 @@ class stmsint(base.DirectMemoryWriteInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['STMSINT']
-    arg_format = ['sr', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMSINT']
+        self.arg_format = ['sr', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -786,8 +865,10 @@ class stmsinti(base.WriteMemoryInstruction):
          Sets sregint memory SR[r_j] to be the value in sregint register sr_i, where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['STMSINTI']
-    arg_format = ['sr', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMSINTI']
+        self.arg_format = ['sr', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 ## #########################END NEW OPCODES#########################
@@ -798,8 +879,10 @@ class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['LDMC']
-    arg_format = ['cw', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMC']
+        self.arg_format = ['cw', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -809,8 +892,10 @@ class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['LDMS']
-    arg_format = ['sw', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMS']
+        self.arg_format = ['sw', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -820,8 +905,10 @@ class stmc(base.DirectMemoryWriteInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['STMC']
-    arg_format = ['c', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMC']
+        self.arg_format = ['c', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -831,8 +918,10 @@ class stms(base.DirectMemoryWriteInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['STMS']
-    arg_format = ['s', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMS']
+        self.arg_format = ['s', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -842,8 +931,10 @@ class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['LDMINT']
-    arg_format = ['rw', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMINT']
+        self.arg_format = ['rw', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -853,8 +944,10 @@ class stmint(base.DirectMemoryWriteInstruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['STMINT']
-    arg_format = ['r', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMINT']
+        self.arg_format = ['r', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 # must have seperate instructions because address is always modp
@@ -864,8 +957,10 @@ class ldmci(base.ReadMemoryInstruction):
          Assigns cint register c_i the value in cint memory R[r_j], where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['LDMCI']
-    arg_format = ['cw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMCI']
+        self.arg_format = ['cw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -874,8 +969,10 @@ class ldmsi(base.ReadMemoryInstruction):
          Assigns sint register s_i the value in sint memory S[r_j], where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['LDMSI']
-    arg_format = ['sw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMSI']
+        self.arg_format = ['sw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -884,8 +981,10 @@ class stmci(base.WriteMemoryInstruction):
          Sets cint memory C[r_j] to be the value in cint register c_i, where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['STMCI']
-    arg_format = ['c', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMCI']
+        self.arg_format = ['c', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -894,8 +993,10 @@ class stmsi(base.WriteMemoryInstruction):
          Sets sint memory S[r_j] to be the value in sint register s_i, where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['STMSI']
-    arg_format = ['s', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMSI']
+        self.arg_format = ['s', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -904,8 +1005,10 @@ class ldminti(base.ReadMemoryInstruction):
          Assigns regint register r_i the value in memory R[r_j], where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['LDMINTI']
-    arg_format = ['rw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDMINTI']
+        self.arg_format = ['rw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -914,8 +1017,10 @@ class stminti(base.WriteMemoryInstruction):
          Sets regint memory R[r_j] to be the value in regint register r_i,  where r_j is the j-th regint register.
          This instruction is vectorizable
      """
-    code = base.opcodes['STMINTI']
-    arg_format = ['r', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STMINTI']
+        self.arg_format = ['r', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -925,8 +1030,10 @@ class movc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['MOVC']
-    arg_format = ['cw', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MOVC']
+        self.arg_format = ['cw', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -936,8 +1043,10 @@ class movs(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['MOVS']
-    arg_format = ['sw', 's']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MOVS']
+        self.arg_format = ['sw', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -947,8 +1056,10 @@ class movint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = ["code"]
-    code = base.opcodes['MOVINT']
-    arg_format = ['rw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MOVINT']
+        self.arg_format = ['rw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -957,8 +1068,10 @@ class pushint(base.StackInstruction):
          Pushes regint register r_i to the thread-local stack.
          This instruction is vectorizable
      """
-    code = base.opcodes['PUSHINT']
-    arg_format = ['r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PUSHINT']
+        self.arg_format = ['r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -967,8 +1080,10 @@ class popint(base.StackInstruction):
          Pops from the thread-local stack to regint register r_i.
          This instruction is vectorizable
      """
-    code = base.opcodes['POPINT']
-    arg_format = ['rw']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['POPINT']
+        self.arg_format = ['rw']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -981,8 +1096,10 @@ class ldtn(base.Instruction):
          Assigns regint register r_i the number of the current thread.
          This instruction is vectorizable
      """
-    code = base.opcodes['LDTN']
-    arg_format = ['rw']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDTN']
+        self.arg_format = ['rw']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -992,8 +1109,10 @@ class ldarg(base.Instruction):
          This is also used to pass variables to functions.
          This instruction is vectorizable
      """
-    code = base.opcodes['LDARG']
-    arg_format = ['rw']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDARG']
+        self.arg_format = ['rw']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1003,16 +1122,20 @@ class starg(base.Instruction):
          This is also used to pass variables to functions.
          This instruction is vectorizable
      """
-    code = base.opcodes['STARG']
-    arg_format = ['r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STARG']
+        self.arg_format = ['r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 class reqbl(base.Instruction):
     r""" REQBL n
          Signals tape has been built so that it requires prime bit length n". 
      """
-    code = base.opcodes['REQBL']
-    arg_format = ['int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['REQBL']
+        self.arg_format = ['int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 
@@ -1020,32 +1143,40 @@ class run_tape(base.Instruction):
     r""" RUN_TAPE i j n 
          In thread i start tape n with argument j. 
      """
-    code = base.opcodes['RUN_TAPE']
-    arg_format = ['int', 'int', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['RUN_TAPE']
+        self.arg_format = ['int', 'int', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 class join_tape(base.Instruction):
     r""" JOIN_TAPE i
          Wait until tape in thread i has finished. 
      """
-    code = base.opcodes['JOIN_TAPE']
-    arg_format = ['int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['JOIN_TAPE']
+        self.arg_format = ['int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 class crash(base.IOInstruction):
     r""" CRASH
          Crash the runtime by calling CRASH on the IO class.
      """
-    code = base.opcodes['CRASH']
-    arg_format = []
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CRASH']
+        self.arg_format = []
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class CALL(base.JumpInstruction):
     r""" CALL n
          Pushes the current PC onto the stack, and then performs an unconditional relative jump of n+1 instructions. 
      """
     __slots__ = []
-    code = base.opcodes['CALL']
-    arg_format = ['int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CALL']
+        self.arg_format = ['int']
+        super(self.__class__, self).__init__(*args, **kwargs)
     jump_arg = 0
 
 class RETURN(base.JumpInstruction):
@@ -1054,8 +1185,10 @@ class RETURN(base.JumpInstruction):
          to this value. Used to return from sub-routines executed
          by CALL
      """
-    code = base.opcodes['RETURN']
-    arg_format = []
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['RETURN']
+        self.arg_format = []
+        super(self.__class__, self).__init__(*args, **kwargs)
     jump_arg = -1
 
 class restart(base.IOInstruction):
@@ -1065,8 +1198,10 @@ class restart(base.IOInstruction):
          See the main documentation for how this instruction is intended to be used.
          This can only be called by thread zero, otherwise the runtime aborts.
      """
-    code = base.opcodes['RESTART']
-    arg_format = []
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['RESTART']
+        self.arg_format = []
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class clear_memory(base.WriteMemoryInstruction):
     r""" CLEAR_MEMORY
@@ -1074,8 +1209,10 @@ class clear_memory(base.WriteMemoryInstruction):
          and the memory is still being used in another. It is really for usage in
          thread zero, when all other threads are doing nothing. Say before a RESTART
      """
-    code = base.opcodes['CLEAR_MEMORY']
-    arg_format = [] 
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CLEAR_MEMORY']
+        self.arg_format = [] 
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class clear_registers(base.IOInstruction):
     r""" CLEAR_REGISTERS
@@ -1085,8 +1222,10 @@ class clear_registers(base.IOInstruction):
          some external users who are compiling their own byte-codes, so think of
          it as an experimental instruction.
      """
-    code = base.opcodes['CLEAR_REGISTERS']
-    arg_format = [] 
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CLEAR_REGISTERS']
+        self.arg_format = [] 
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -1100,8 +1239,10 @@ class addc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1111,8 +1252,10 @@ class adds(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDS']
-    arg_format = ['sw', 's', 's']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDS']
+        self.arg_format = ['sw', 's', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1122,8 +1265,10 @@ class addm(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDM']
-    arg_format = ['sw', 's', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDM']
+        self.arg_format = ['sw', 's', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1133,8 +1278,10 @@ class subc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1144,8 +1291,10 @@ class subs(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBS']
-    arg_format = ['sw', 's', 's']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBS']
+        self.arg_format = ['sw', 's', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1155,8 +1304,10 @@ class subml(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBML']
-    arg_format = ['sw', 's', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBML']
+        self.arg_format = ['sw', 's', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1166,8 +1317,10 @@ class submr(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBMR']
-    arg_format = ['sw', 'c', 's']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBMR']
+        self.arg_format = ['sw', 'c', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 # Multiplication/division
 
@@ -1178,8 +1331,10 @@ class mulc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MULC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MULC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1189,8 +1344,10 @@ class mulm(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MULM']
-    arg_format = ['sw', 's', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MULM']
+        self.arg_format = ['sw', 's', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1200,8 +1357,10 @@ class divc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['DIVC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['DIVC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1211,8 +1370,10 @@ class modc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MODC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MODC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1222,8 +1383,10 @@ class legendrec(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['LEGENDREC']
-    arg_format = ['cw', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LEGENDREC']
+        self.arg_format = ['cw', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1233,8 +1396,10 @@ class digestc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['DIGESTC']
-    arg_format = ['cw', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['DIGESTC']
+        self.arg_format = ['cw', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -1248,8 +1413,10 @@ class andc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ANDC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ANDC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1259,8 +1426,10 @@ class orc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ORC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ORC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1270,8 +1439,10 @@ class xorc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['XORC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['XORC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1281,8 +1452,10 @@ class notc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['NOTC']
-    arg_format = ['cw', 'c', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['NOTC']
+        self.arg_format = ['cw', 'c', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -1296,8 +1469,10 @@ class addci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__add__'
 
 
@@ -1308,8 +1483,10 @@ class addsi(base.Instruction):
         This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ADDSI']
-    arg_format = ['sw', 's', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ADDSI']
+        self.arg_format = ['sw', 's', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__add__'
 
 
@@ -1320,8 +1497,10 @@ class subci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__sub__'
 
 
@@ -1332,8 +1511,10 @@ class subsi(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBSI']
-    arg_format = ['sw', 's', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBSI']
+        self.arg_format = ['sw', 's', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__sub__'
 
 
@@ -1344,8 +1525,10 @@ class subcfi(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBCFI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBCFI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__rsub__'
 
 
@@ -1356,8 +1539,10 @@ class subsfi(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SUBSFI']
-    arg_format = ['sw', 's', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SUBSFI']
+        self.arg_format = ['sw', 's', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__rsub__'
 
 
@@ -1368,8 +1553,10 @@ class mulci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MULCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MULCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__mul__'
 
 
@@ -1380,8 +1567,10 @@ class mulsi(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MULSI']
-    arg_format = ['sw', 's', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MULSI']
+        self.arg_format = ['sw', 's', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__mul__'
 
 
@@ -1392,8 +1581,10 @@ class divci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['DIVCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['DIVCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1403,8 +1594,10 @@ class modci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['MODCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['MODCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__mod__'
 
 # Bitwise Operations with immediate values
@@ -1416,8 +1609,10 @@ class andci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ANDCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ANDCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__and__'
 
 
@@ -1428,8 +1623,10 @@ class xorci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['XORCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['XORCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__xor__'
 
 
@@ -1440,8 +1637,10 @@ class orci(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['ORCI']
-    arg_format = ['cw', 'c', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['ORCI']
+        self.arg_format = ['cw', 'c', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__or__'
 
 
@@ -1456,8 +1655,10 @@ class shlc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SHLC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SHLC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1467,8 +1668,10 @@ class shrc(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SHRC']
-    arg_format = ['cw', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SHRC']
+        self.arg_format = ['cw', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1478,7 +1681,9 @@ class shlci(base.ClearShiftInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SHLCI']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SHLCI']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__lshift__'
 
 
@@ -1489,7 +1694,9 @@ class shrci(base.ClearShiftInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SHRCI']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SHRCI']
+        super(self.__class__, self).__init__(*args, **kwargs)
     op = '__rshift__'
 
 
@@ -1504,9 +1711,11 @@ class triple(base.DataInstruction):
          This instruction is vectorizable
      """
     __slots__ = ['data_type']
-    code = base.opcodes['TRIPLE']
-    arg_format = ['sw', 'sw', 'sw']
-    data_type = 'triple'
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['TRIPLE']
+        self.arg_format = ['sw', 'sw', 'sw']
+        self.data_type = 'triple'
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1516,8 +1725,10 @@ class bit(base.DataInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['BIT']
-    arg_format = ['sw']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['BIT']
+        self.arg_format = ['sw']
+        super(self.__class__, self).__init__(*args, **kwargs)
     data_type = 'bit'
 
 @base.vectorize
@@ -1527,8 +1738,10 @@ class dabit(base.DataInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['DABIT']
-    arg_format = ['sw', 'sbw']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['DABIT']
+        self.arg_format = ['sw', 'sbw']
+        super(self.__class__, self).__init__(*args, **kwargs)
     data_type = 'dabit'
 
 @base.vectorize
@@ -1538,8 +1751,10 @@ class square(base.DataInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['SQUARE']
-    arg_format = ['sw', 'sw']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['SQUARE']
+        self.arg_format = ['sw', 'sw']
+        super(self.__class__, self).__init__(*args, **kwargs)
     data_type = 'square'
 
 
@@ -1553,8 +1768,10 @@ class private_input(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['PRIVATE_INPUT']
-    arg_format = ['sw', 'p','int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRIVATE_INPUT']
+        self.arg_format = ['sw', 'p','int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1565,8 +1782,10 @@ class print_mem(base.IOInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['PRINT_MEM']
-    arg_format = ['int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_MEM']
+        self.arg_format = ['int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1577,8 +1796,10 @@ class print_reg(base.IOInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['PRINT_REG']
-    arg_format = ['c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_REG']
+        self.arg_format = ['c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class print_fix(base.IOInstruction):
@@ -1588,8 +1809,10 @@ class print_fix(base.IOInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['PRINT_FIX']
-    arg_format = ['c', 'i', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_FIX']
+        self.arg_format = ['c', 'i', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class print_float(base.IOInstruction):
@@ -1599,8 +1822,10 @@ class print_float(base.IOInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['PRINT_FLOAT']
-    arg_format = ['c', 'c', 'c', 'c']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_FLOAT']
+        self.arg_format = ['c', 'c', 'c', 'c']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class print_int(base.IOInstruction):
@@ -1610,8 +1835,10 @@ class print_int(base.IOInstruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['PRINT_INT']
-    arg_format = ['r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_INT']
+        self.arg_format = ['r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 class print_char(base.IOInstruction):
@@ -1620,10 +1847,9 @@ class print_char(base.IOInstruction):
          Can only be executed in thread zero.
          This instruction is vectorizable
      """
-    code = base.opcodes['PRINT_CHAR']
-    arg_format = ['int']
-
     def __init__(self, ch):
+        self.code = base.opcodes['PRINT_CHAR']
+        self.arg_format = ['int']
         super(print_char, self).__init__(ord(ch))
 
 
@@ -1633,10 +1859,9 @@ class print_char4(base.IOInstruction):
          Can only be executed in thread zero.
          This instruction is vectorizable
      """
-    code = base.opcodes['PRINT_CHAR4']
-    arg_format = ['int']
-
     def __init__(self, val):
+        self.code = base.opcodes['PRINT_CHAR4']
+        self.arg_format = ['int']
         super(print_char4, self).__init__(self.str_to_int(val))
 
 
@@ -1647,8 +1872,10 @@ class print_char_regint(base.IOInstruction):
          Can only be executed in thread zero.
          This instruction is vectorizable
      """
-    code = base.opcodes['PRINT_CHAR_REGINT']
-    arg_format = ['r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_CHAR_REGINT']
+        self.arg_format = ['r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class print_char4_regint(base.IOInstruction):
@@ -1657,8 +1884,10 @@ class print_char4_regint(base.IOInstruction):
          Can only be executed in thread zero.
          This instruction is vectorizable
      """
-    code = base.opcodes['PRINT_CHAR4_REGINT']
-    arg_format = ['r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRINT_CHAR4_REGINT']
+        self.arg_format = ['r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class input_clear(base.IOInstruction):
@@ -1669,8 +1898,10 @@ class input_clear(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['INPUT_CLEAR']
-    arg_format = ['cw','i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['INPUT_CLEAR']
+        self.arg_format = ['cw','i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1682,8 +1913,10 @@ class input_int(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['INPUT_INT']
-    arg_format = ['rw','i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['INPUT_INT']
+        self.arg_format = ['rw','i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class open_chan(base.IOInstruction):
     r""" OPEN_CHAN i n
@@ -1694,8 +1927,10 @@ class open_chan(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['OPEN_CHAN']
-    arg_format = ['rw','i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['OPEN_CHAN']
+        self.arg_format = ['rw','i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class close_channel(base.IOInstruction):
     r""" CLOSE_CHAN n
@@ -1704,8 +1939,10 @@ class close_channel(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['CLOSE_CHAN']
-    arg_format = ['i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CLOSE_CHAN']
+        self.arg_format = ['i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 class output_shares(base.IOInstruction):
@@ -1716,8 +1953,10 @@ class output_shares(base.IOInstruction):
          Can only be executed in thread zero.
     """
     __slots__ = []
-    code = base.opcodes['OUTPUT_SHARE']
-    arg_format = tools.chain(['i'],itertools.repeat('s'))
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['OUTPUT_SHARE']
+        self.arg_format = tools.chain(['i'],itertools.repeat('s'))
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     def has_var_args(self):
         return True
@@ -1731,8 +1970,10 @@ class input_shares(base.IOInstruction):
          Can only be executed in thread zero.
     """
     __slots__ = []
-    code = base.opcodes['INPUT_SHARE']
-    arg_format = tools.chain(['i'],itertools.repeat('sw'))
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['INPUT_SHARE']
+        self.arg_format = tools.chain(['i'],itertools.repeat('sw'))
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     def has_var_args(self):
         return True
@@ -1745,8 +1986,10 @@ class output_clear(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['OUTPUT_CLEAR']
-    arg_format = ['c','i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['OUTPUT_CLEAR']
+        self.arg_format = ['c','i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 @base.vectorize
 class output_int(base.IOInstruction):
@@ -1756,8 +1999,10 @@ class output_int(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['OUTPUT_INT']
-    arg_format = ['r','i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['OUTPUT_INT']
+        self.arg_format = ['r','i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1768,8 +2013,10 @@ class private_output(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['PRIVATE_OUTPUT']
-    arg_format = ['s', 'p', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['PRIVATE_OUTPUT']
+        self.arg_format = ['s', 'p', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 # Others
 
@@ -1780,8 +2027,10 @@ class rand(base.Instruction):
          The random value is the same for all players, so in particular it is not really random.
      """
     __slots__ = []
-    code = base.opcodes['RAND']
-    arg_format = ['rw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['RAND']
+        self.arg_format = ['rw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -1795,8 +2044,10 @@ class ldint(base.Instruction):
          This instruction is vectorizable
     """
     __slots__ = []
-    code = base.opcodes['LDINT']
-    arg_format = ['rw', 'i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['LDINT']
+        self.arg_format = ['rw', 'i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1806,8 +2057,10 @@ class addint(base.Instruction):
          This instruction is vectorizable
     """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['ADDINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['ADDINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1817,8 +2070,10 @@ class subint(base.Instruction):
          This instruction is vectorizable
     """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['SUBINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['SUBINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1828,8 +2083,10 @@ class mulint(base.Instruction):
          This instruction is vectorizable
     """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['MULINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['MULINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1839,8 +2096,10 @@ class divint(base.Instruction):
          This instruction is vectorizable
     """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['DIVINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['DIVINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -1854,8 +2113,10 @@ class eqzint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['rw', 'r']
-    code = base.opcodes['EQZINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r']
+        self.code = base.opcodes['EQZINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1865,8 +2126,10 @@ class ltzint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['rw', 'r']
-    code = base.opcodes['LTZINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r']
+        self.code = base.opcodes['LTZINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1876,8 +2139,10 @@ class ltint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['LTINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['LTINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1887,8 +2152,10 @@ class gtint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['GTINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['GTINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1898,8 +2165,10 @@ class eqint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['rw', 'r', 'r']
-    code = base.opcodes['EQINT']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['rw', 'r', 'r']
+        self.code = base.opcodes['EQINT']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -1911,8 +2180,10 @@ class jmp(base.JumpInstruction):
          Unconditional relative jump of n+1 instructions. 
      """
     __slots__ = []
-    code = base.opcodes['JMP']
-    arg_format = ['int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['JMP']
+        self.arg_format = ['int']
+        super(self.__class__, self).__init__(*args, **kwargs)
     jump_arg = 0
 
 
@@ -1925,8 +2196,10 @@ class jmpnz(base.JumpInstruction):
             jmpnz(c, -1): infinite loop if c is non-zero
      """
     __slots__ = []
-    code = base.opcodes['JMPNZ']
-    arg_format = ['r', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['JMPNZ']
+        self.arg_format = ['r', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
     jump_arg = 1
 
 
@@ -1935,8 +2208,10 @@ class jmpeqz(base.JumpInstruction):
          Jump n+1 instructions if regint register r_i == 0. 
      """
     __slots__ = []
-    code = base.opcodes['JMPEQZ']
-    arg_format = ['r', 'int']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['JMPEQZ']
+        self.arg_format = ['r', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
     jump_arg = 1
 
 
@@ -1951,8 +2226,10 @@ class convint(base.Instruction):
          This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['CONVINT']
-    arg_format = ['cw', 'r']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['CONVINT']
+        self.arg_format = ['cw', 'r']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1963,11 +2240,11 @@ class convmodp(base.Instruction):
         This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['CONVMODP']
-    arg_format = ['rw', 'c', 'int']
 
     def __init__(self, *args, **kwargs):
         bitlength = kwargs.get('bitlength', program.bit_length)
+        self.code = base.opcodes['CONVMODP']
+        self.arg_format = ['rw', 'c', 'int']
         super(convmodp_class, self).__init__(*(args + (bitlength,)))
 
 
@@ -1982,8 +2259,10 @@ class startopen(base.VarArgsInstruction):
         This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['STARTOPEN']
-    arg_format = itertools.repeat('s')
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STARTOPEN']
+        self.arg_format = itertools.repeat('s')
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 @base.vectorize
@@ -1993,23 +2272,29 @@ class stopopen(base.VarArgsInstruction):
         This instruction is vectorizable
      """
     __slots__ = []
-    code = base.opcodes['STOPOPEN']
-    arg_format = itertools.repeat('cw')
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STOPOPEN']
+        self.arg_format = itertools.repeat('cw')
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 class start_clock(base.Instruction):
     r""" START_CLOCK n
          Re-initializes the specified timer n 
      """
-    code = base.opcodes['START_CLOCK']
-    arg_format = ['i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['START_CLOCK']
+        self.arg_format = ['i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 class stop_clock(base.Instruction):
     r""" STOP_CLOCK n
          Prints the time since the last initialization of timer n 
      """
-    code = base.opcodes['STOP_CLOCK']
-    arg_format = ['i']
+    def __init__(self, *args, **kwargs):
+        self.code = base.opcodes['STOP_CLOCK']
+        self.arg_format = ['i']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
 
 #
@@ -2023,7 +2308,9 @@ class asm_open(base.CISC):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['cw', 's']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['cw', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     def expand(self):
         startopen(self.args[1])
@@ -2036,7 +2323,9 @@ class muls(base.CISC):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sw', 's', 's']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sw', 's', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     def expand(self):
         s = [program.curr_block.new_reg('s') for i in range(9)]
@@ -2060,7 +2349,9 @@ class sqrs(base.CISC):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sw', 's']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sw', 's']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     def expand(self):
         s = [program.curr_block.new_reg('s') for i in range(6)]
@@ -2081,7 +2372,9 @@ class lts(base.CISC):
          This instruction is vectorizable
      """
     __slots__ = []
-    arg_format = ['sw', 's', 's', 'int', 'int']
+    def __init__(self, *args, **kwargs):
+        self.arg_format = ['sw', 's', 's', 'int', 'int']
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     def expand(self):
         a = program.curr_block.new_reg('s')
@@ -2090,4 +2383,3 @@ class lts(base.CISC):
 
 # hack for circular dependency
 from Compiler import comparison
-

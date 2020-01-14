@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import zip
+from builtins import range
+from past.utils import old_div
+from builtins import object
 from Compiler.oram import *
 
 if 'Emulation' in sys.path:
@@ -86,8 +93,8 @@ class HeapQ(object):
         self.size = MemValue(int_type(0))
         self.int_type = int_type
         self.basic_type = basic_type
-        print 'heap: %d levels, depth %d, size %d, index size %d' % \
-            (self.levels, self.depth, self.heap.oram.size, self.value_index.size)
+        print('heap: %d levels, depth %d, size %d, index size %d' % \
+            (self.levels, self.depth, self.heap.oram.size, self.value_index.size))
     def update(self, value, prio, for_real=True):
         self._update(self.basic_type.hard_conv(value), \
                          self.basic_type.hard_conv(prio), \
@@ -217,7 +224,7 @@ class HeapQ(object):
 
 def dijkstra(source, edges, e_index, oram_type, n_loops=None, int_type=sint):
     basic_type = int_type.basic_type
-    vert_loops = n_loops * e_index.size / edges.size \
+    vert_loops = old_div(n_loops * e_index.size, edges.size) \
         if n_loops else -1
     dist = oram_type(e_index.size, entry_size=(32,log2(e_index.size)), \
                          init_rounds=vert_loops, value_type=basic_type)
@@ -287,7 +294,7 @@ def test_dijkstra(G, source, oram_type=ORAM, n_loops=None, int_type=sint):
         cint(i).print_reg('edge')
         time()
         edges[i] = edges_list[i]
-    vert_loops = n_loops * e_index.size / edges.size \
+    vert_loops = old_div(n_loops * e_index.size, edges.size) \
         if n_loops else e_index.size
     for i in range(vert_loops):
         cint(i).print_reg('vert')
@@ -307,7 +314,7 @@ def test_dijkstra_on_cycle(n, oram_type=ORAM, n_loops=None, int_type=sint):
         time()
         neighbour = ((i >> 1) + 2 * (i % 2) - 1 + n) % n
         edges[i] = (neighbour, 1, i % 2)
-    vert_loops = n_loops * e_index.size / edges.size \
+    vert_loops = old_div(n_loops * e_index.size, edges.size) \
         if n_loops else e_index.size
     @for_range(vert_loops)
     def f(i):
@@ -390,14 +397,14 @@ class ExtInt(object):
 class Vector(object):
     """ Works like a vector. """
     def __add__(self, other):
-        print 'add', type(self)
+        print('add', type(self))
         res = type(self)(len(self))
         @for_range(len(self))
         def f(i):
             res[i] = self[i] + other[i]
         return res
     def __sub__(self, other):
-        print 'sub', type(other)
+        print('sub', type(other))
         res = type(other)(len(self))
         @for_range(len(self))
         def f(i):
@@ -412,7 +419,7 @@ class Vector(object):
                 res[0] += self[i] * other[i]
             return res[0]
         else:
-            print 'mul', type(self)
+            print('mul', type(self))
             res = type(self)(len(self))
             @for_range_parallel(1024, len(self))
             def f(i):
@@ -477,7 +484,7 @@ def binarymin(A):
     if len(A) == 1:
         return [1], A[0]
     else:
-        half = len(A) / 2
+        half = old_div(len(A), 2)
         A_prime = VectorArray(half)
         B = IntVectorArray(half)
         i = IntVectorArray(len(A))

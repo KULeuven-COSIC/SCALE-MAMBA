@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import zip
+from builtins import map
 from types import *
 from oram import *
 from path_oram import OptimalORAM
@@ -55,7 +58,7 @@ def run_inst(inst_index, instructions, *args):
                 for results in zip(*(op(*args) for op in instructions)))
 
 def run(code, data, operations, start=0, data_type=sint):
-    preops, postops, jumps = zip(*operations)
+    preops, postops, jumps = list(zip(*operations))
     PC = MemValue(data_type(start))
     tick = MemValue(cint(0))
     @do_while
@@ -102,7 +105,7 @@ def run_code_with_data(code, data, start=0, data_type=sint, oram_type=OptimalORA
         except ValueError:
             op = len(operations)
             if debug:
-                print op, inst[0]
+                print(op, inst[0])
             operations.append(globals()[inst[0]])
         inst[0] = 1 << op
     code.append((0, 0, 0, 0))
