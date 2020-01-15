@@ -14,9 +14,12 @@ MAX_MOD = 7
 #   BENCH_NETDATA = Enable benchmarking of network data
 #   BENCH_MEMORY  = Enable benchmarking of memory 
 
-#FLAGS = -DSH_DEBUG -DDEBUG -DMAX_MOD_SZ=$(MAX_MOD) -DDETERMINISTIC -DBENCH_NETDATA -DBENCH_MEMORY -g
-FLAGS = -DMAX_MOD_SZ=$(MAX_MOD) 
+# # example debug config
+# FLAGS = -g -DSH_DEBUG -DDEBUG -DMAX_MOD_SZ=$(MAX_MOD) -DDETERMINISTIC -DBENCH_NETDATA -DBENCH_MEMORY
+# OPT = -O0
 
+# example release config
+FLAGS = -DMAX_MOD_SZ=$(MAX_MOD) 
 OPT = -O3 
 
 LDFLAGS = 
