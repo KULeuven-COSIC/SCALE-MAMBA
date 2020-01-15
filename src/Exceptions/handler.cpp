@@ -16,6 +16,7 @@ All rights reserved
 #include <iostream>
 using namespace std;
 
+#ifdef DEBUG
 void error_handler()
 {
   void *array[50];
@@ -87,3 +88,9 @@ void error_handler()
 
   free(messages);
 }
+#else
+void error_handler()
+{
+  ;
+}
+#endif
