@@ -27,18 +27,13 @@ class Input_Output_Simple : public Input_Output_Base
   bool human; // Only affects share output
 
 public:
-  Input_Output_Simple()
-      : Input_Output_Base()
-  {
-    ;
-  }
-
-  void init(istream &ifs, ostream &ofs, bool human_type)
-  {
-    inpf= &ifs;
-    outf= &ofs;
-    human= human_type;
-  }
+  Input_Output_Simple(
+      std::istream* ifs,
+      std::ostream* ofs,
+      bool human_type) : Input_Output_Base(),
+                         inpf{ifs},
+                         outf{ofs},
+                         human{human_type} {}
 
   virtual long open_channel(unsigned int channel);
   virtual void close_channel(unsigned int channel);
