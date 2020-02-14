@@ -482,15 +482,15 @@ void init_secret_sharing()
       if (outk.fail())
         {
           throw file_error(ss.str());
-          for (unsigned int j= 0; j < SD.nmacs; j++)
-            {
-              gfp aa;
-              aa.randomize(G);
-              outk << aa << " ";
-            }
-          outk << endl;
-          outk.close();
         }
+      for (unsigned int j= 0; j < SD.nmacs; j++)
+        {
+          gfp aa;
+          aa.randomize(G);
+          outk << aa << " ";
+        }
+      outk << endl;
+      outk.close();
 
       cout << "Finished setting up secret sharing. \nThe underlying MSP is...\n"
            << SD.M << endl;
