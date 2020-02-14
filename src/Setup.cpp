@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -107,6 +107,10 @@ void init_certs()
   // SSL_CTX *ctx = InitServerCTX();
 
   ofstream output("Data/NetworkData.txt");
+  if (output.fail())
+    {
+      throw file_error("Data/NetworkData.txt");
+    }
 
   cout << "Enter the name of the root CA (e.g. RootCA)" << endl;
   string CAName;
@@ -114,6 +118,10 @@ void init_certs()
 
   string str= "Cert-Store/" + CAName + ".crt";
   ifstream cert_file(str);
+  if (cert_file.fail())
+    {
+      throw file_error(str);
+    }
   stringstream cert_buff;
   cert_buff << cert_file.rdbuf();
   cout << "Cert is\n"
@@ -157,6 +165,10 @@ void init_certs()
       output << str << " ";
       str= "Cert-Store/" + str;
       ifstream player_cert_file(str);
+      if (player_cert_file.fail())
+        {
+          throw file_error(str);
+        }
       stringstream player_cert_buff;
       player_cert_buff << player_cert_file.rdbuf();
       cout << "Cert is\n"
@@ -357,6 +369,11 @@ void init_Q2_MSP(ShareData &SD, unsigned int n)
 void init_secret_sharing()
 {
   ifstream input("Data/NetworkData.txt");
+  if (input.fail())
+    {
+      throw file_error("Data/NetworkData.txt");
+    }
+
   string str;
   input >> str;
   unsigned int n;
@@ -447,6 +464,10 @@ void init_secret_sharing()
     }
 
   ofstream out("Data/SharingData.txt");
+  if (out.fail())
+    {
+      throw file_error("Data/SharingData.txt");
+    }
   out << p << endl;
   out << SD;
   out.close();
@@ -458,24 +479,33 @@ void init_secret_sharing()
       stringstream ss;
       ss << "Data/MKey-" << i << ".key";
       ofstream outk(ss.str().c_str());
-      for (unsigned int j= 0; j < SD.nmacs; j++)
+      if (outk.fail())
         {
-          gfp aa;
-          aa.randomize(G);
-          outk << aa << " ";
+          throw file_error(ss.str());
+          for (unsigned int j= 0; j < SD.nmacs; j++)
+            {
+              gfp aa;
+              aa.randomize(G);
+              outk << aa << " ";
+            }
+          outk << endl;
+          outk.close();
         }
-      outk << endl;
-      outk.close();
-    }
 
-  cout << "Finished setting up secret sharing. \nThe underlying MSP is...\n"
-       << SD.M << endl;
+      cout << "Finished setting up secret sharing. \nThe underlying MSP is...\n"
+           << SD.M << endl;
+    }
 }
 
 void init_conversion()
 {
   bigint p;
   ifstream inpf("Data/SharingData.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Data/SharingData.txt");
+    }
+
   inpf >> p;
   inpf.close();
 
@@ -510,6 +540,10 @@ void init_conversion()
   cout << "Producing conversion circuit LSSS to GC for prime " << p << endl;
   // Now load the 512 bit adder
   inpf.open("Circuits/Bristol/LSSS_to_GC.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/LSSS_to_GC.txt");
+    }
   inpf >> C512;
   inpf.close();
 
@@ -560,6 +594,10 @@ void init_conversion()
   CSub= CC.Get_Circuit();
 
   outf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
+  if (outf.fail())
+    {
+      throw file_error("Data/ConversionCircuit-LSSS_to_GC.txt");
+    }
   outf << CSub << endl;
   outf.close();
 
@@ -568,7 +606,6 @@ void init_conversion()
 
 int main(int argc, const char *argv[])
 {
-
   int ans= -1;
   if (argc == 1)
     {

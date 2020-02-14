@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -135,7 +135,7 @@ void aBit_Thread(Player &P, unsigned int no_online_threads,
 
   // Pack the last queue first, as it is used for aANDs
   OTD.aBD.aBD_mutex.lock();
-  OTD.ready=true;
+  OTD.ready= true;
   aBF.tune(P, OTD.aBD.aBits[no_online_threads], verbose);
   if (verbose)
     {

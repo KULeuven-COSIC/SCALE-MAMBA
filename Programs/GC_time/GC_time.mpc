@@ -1,0 +1,84 @@
+AES_128=100
+AES_192=101
+AES_256=102
+SHA_3=103
+SHA_256=104
+SHA_512=105
+
+def push_data(stuff,n):
+  for i in range(n):
+    sregint.push(stuff[i])
+
+def pop_data(stuff,n):
+  for i in range(n):
+    stuff[n-i-1]=sregint.pop()
+
+
+key = [sregint(0), sregint(-1)]
+mess = [sregint(-1), sregint(1)]
+ciph = [sregint() for _ in range(2)]
+
+print_ln("AES-128")
+for k in range(20):
+  push_data(key,2)
+  push_data(mess,2)
+  # Op
+  GC(AES_128)
+  pop_data(ciph,2)
+
+
+print_ln("AES-192")
+aes_192_ciphertexts = [sregint() for i in range(2)]
+key.append(sregint(0))
+
+for k in range(20):
+  push_data(key,3)
+  push_data(mess,2)
+  # Op
+  GC(AES_192)
+  pop_data(aes_192_ciphertexts,2)
+
+
+print_ln("AES-256")
+aes_256_ciphertexts = [sregint() for i in range(2)]
+key.append(sregint(0))
+
+for k in range(20):
+  push_data(key,4)
+  push_data(mess,2)
+  # Op
+  GC(AES_256)
+  pop_data(aes_256_ciphertexts,2)
+
+print_ln("SHA-3")
+istate = [sregint(0) for i in range(25)]
+ostate_eval_sha3 = [sregint() for i in range(25)]
+
+for k in range(20):
+  push_data(istate,25)
+  GC(SHA_3)
+  pop_data(ostate_eval_sha3,25)
+
+print_ln("SHA-256")
+istate1 = [sregint(0) for i in range(8)]
+istate2 = [sregint(0) for i in range(4)]
+ostate_eval_256 = [sregint() for i in range(4)]
+
+for k in range(20):
+  push_data(istate1,8)
+  push_data(istate2,4)
+  GC(SHA_256)
+  pop_data(ostate_eval_256,4)
+
+print_ln("SHA-512")
+istate1 = [sregint(0) for i in range(16)]
+istate2 = [sregint(0) for i in range(8)]
+ostate_eval_512 = [sregint() for i in range(8)]
+
+for k in range(20):
+  push_data(istate1,16)
+  push_data(istate2,8)
+  GC(SHA_512)
+  pop_data(ostate_eval_512,8)
+
+

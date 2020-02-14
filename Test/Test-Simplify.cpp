@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -322,8 +322,20 @@ int main()
       p+= 1;
     }
   cout << "p = " << p << endl;
-  cout << "Testing adder..." << endl;
-  test_add_p(p, G);
+
+  cout << "Test adder (0=N, 1=Y) ? ";
+  int aa= -1;
+  while (aa != 0 && aa != 1)
+    {
+      cin >> aa;
+    }
+
+  if (aa == 1)
+    {
+      cout << "Testing adder..." << endl;
+      test_add_p(p, G);
+    }
+
   cout << "\n\n\nTesting LSSS_to_GC" << endl;
   test_LSSS_to_GC(p, G);
 
@@ -333,8 +345,12 @@ int main()
       p+= 1;
     }
   cout << "\n\n\np = " << p << endl;
-  cout << "Testing adder..." << endl;
-  test_add_p(p, G);
+
+  if (aa == 1)
+    {
+      cout << "Testing adder..." << endl;
+      test_add_p(p, G);
+    }
   cout << "\n\n\nTesting LSSS_to_GC" << endl;
   test_LSSS_to_GC(p, G);
 }

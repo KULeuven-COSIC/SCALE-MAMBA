@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -114,7 +114,7 @@ All rights reserved
 #define NewHopeB 1
 
 /* This gives the Hamming Weight of the secret key distribution.
- * Set this to -1 to use a Gaussian secret key distribution
+ * Set this to 0 to use a Gaussian secret key distribution
  */
 #define HwtSK 64
 
@@ -150,6 +150,6 @@ All rights reserved
  * a circuit using Search_SubCircuit. Only used to simplify the modp
  * circuit
  */
-#define iter_modp_Search_SubCircuit 250
+#define iter_modp_Search_SubCircuit 60
 
 #endif

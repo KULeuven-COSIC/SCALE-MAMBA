@@ -1,0 +1,135 @@
+ldi c4, 2 # 0
+ldsi s0, 1 # 1
+ldsi s1, 1 # 2
+ldi c5, 1 # 7
+triple s2, s3, s4 # 16
+triple s7, s5, s6 # 19
+triple s9, s8, s10 # 22
+triple s12, s11, s13 # 38
+movs s14, s0 # 3
+movs s15, s1 # 4
+modci c6, c4, 2 # 5
+divci c5, c5, 2 # 8
+subs s0, s5, s9 # 23
+subs s1, s2, s8 # 24
+subs s2, s3, s12 # 39
+subc c4, c4, c6 # 6
+mulc c4, c4, c5 # 9
+modci c7, c4, 2 # 10
+vmulci 2, c8, c6, 2 # 11
+vaddm 2, s16, s14, c6 # 13
+vmulm 2, s14, s14, c8 # 12
+vsubs 2, s18, s16, s14 # 14
+vaddsi 2, s18, s18, 1 # 15
+subs s3, s19, s11 # 40
+startopen 6, s4, s6, s0, s1, s2, s3 # 17
+ldi c4, 1 # 33
+triple s6, s5, s0 # 51
+bit s1 # 73
+bit s2 # 75
+bit s3 # 78
+bit s4 # 81
+bit s20 # 84
+bit s21 # 87
+bit s22 # 90
+bit s23 # 93
+bit s24 # 96
+bit s25 # 99
+bit s26 # 102
+bit s27 # 105
+bit s28 # 108
+bit s29 # 111
+bit s30 # 114
+bit s31 # 117
+bit s32 # 120
+bit s33 # 122
+adds s1, s1, s1 # 74
+movs s34, s33 # 123
+subcfi c5, c6, 1 # 68
+adds s1, s1, s2 # 76
+adds s1, s1, s1 # 77
+adds s1, s1, s3 # 79
+subcfi c6, c7, 1 # 70
+adds s1, s1, s1 # 80
+adds s1, s1, s4 # 82
+adds s1, s1, s1 # 83
+adds s1, s1, s20 # 85
+subs s20, s18, s5 # 53
+subsi s2, s19, 1 # 67
+adds s1, s1, s1 # 86
+mulm s2, s2, c6 # 71
+adds s1, s1, s21 # 88
+adds s1, s1, s1 # 89
+adds s1, s1, s22 # 91
+adds s1, s1, s1 # 92
+adds s1, s1, s23 # 94
+adds s1, s1, s1 # 95
+adds s1, s1, s24 # 97
+adds s1, s1, s1 # 98
+adds s1, s1, s25 # 100
+adds s1, s1, s1 # 101
+adds s1, s1, s26 # 103
+adds s1, s1, s1 # 104
+adds s1, s1, s27 # 106
+adds s1, s1, s1 # 107
+adds s1, s1, s28 # 109
+adds s1, s1, s1 # 110
+adds s1, s1, s29 # 112
+adds s1, s1, s1 # 113
+adds s1, s1, s30 # 115
+adds s1, s1, s1 # 116
+adds s1, s1, s31 # 118
+adds s1, s1, s1 # 119
+adds s1, s1, s32 # 121
+mulsi s1, s1, 2 # 124
+stopopen 6, c8, c11, c6, c7, c9, c10 # 18
+mulm s8, s8, c6 # 27
+mulm s9, s9, c7 # 28
+mulc c6, c6, c7 # 29
+divc c7, c4, c8 # 34
+mulm s11, s11, c9 # 43
+mulm s12, s12, c10 # 44
+mulc c8, c9, c10 # 45
+adds s8, s10, s8 # 30
+adds s13, s13, s11 # 46
+adds s8, s8, s9 # 31
+adds s9, s13, s12 # 47
+addm s8, s8, c6 # 32
+addm s9, s9, c8 # 48
+mulm s8, s8, c7 # 36
+subs s8, s8, s6 # 52
+startopen 3, s9, s8, s20 # 49
+divc c6, c4, c11 # 35
+mulm s8, s7, c6 # 37
+stopopen 3, c4, c8, c7 # 50
+mulm s7, s5, c8 # 56
+mulm s9, s6, c7 # 57
+mulc c6, c8, c7 # 58
+adds s20, s0, s7 # 59
+adds s0, s20, s9 # 60
+addm s9, s0, c6 # 61
+startopen 1, s9 # 62
+stopopen 1, c7 # 63
+mulc c6, c4, c7 # 64
+mulm s0, s8, c6 # 65
+subs s9, s0, s19 # 66
+mulm s20, s9, c5 # 69
+adds s0, s20, s2 # 72
+adds s18, s1, s0 # 125
+adds s2, s18, s34 # 126
+startopen 1, s2 # 127
+stopopen 1, c4 # 128
+modci c6, c4, 2 # 129
+mulci c5, c6, 2 # 130
+addm s0, s33, c6 # 132
+mulm s1, s33, c5 # 131
+subs s2, s0, s1 # 133
+vstartopen 2, 2, s14, s16 # 134
+vstopopen 2, 2, c0, c2 # 135
+stmc c0, 1005 # 136
+stmc c2, 1006 # 139
+reqbl 19 # 143
+reqbl 19 # 144
+startopen 1, s2 # 140
+stopopen 1, c4 # 141
+stmc c4, 1007 # 142

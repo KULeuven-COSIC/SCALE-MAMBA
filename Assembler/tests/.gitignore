@@ -1,0 +1,3 @@
+*.dot
+*.bc
+scasm-tests/*

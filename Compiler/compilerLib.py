@@ -45,7 +45,4 @@ def run(args, options, param=-1, merge_opens=True, \
     print 'Program requires:', repr(prog.req_num)
     print 'Memory size:', prog.allocated_mem
 
-    # finalize the memory
-    prog.finalize_memory()
-
     return prog

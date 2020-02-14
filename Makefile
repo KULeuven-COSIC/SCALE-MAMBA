@@ -21,6 +21,7 @@ clean:
 	-cd src ; make clean
 	-cd Test ; make clean
 	-cd Circuits ; make clean 
+	-rm Programs/*/*.asm
 
 pclean:
 	-cd Programs ; rm */*.bc ; rm */*.sch

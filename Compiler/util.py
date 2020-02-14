@@ -130,3 +130,4 @@ def reveal(x):
 
 def is_constant(x):
     return isinstance(x, (int, long, bool))
+

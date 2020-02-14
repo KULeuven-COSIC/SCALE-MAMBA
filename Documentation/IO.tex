@@ -125,23 +125,23 @@ See the example given in the demonstration \verb+Input_Output_Simple+ class prov
 \subsubsection{Share Output}
 In some situations the system might want to store some
 internal state, in particular the shares themselves.
-To enable this we provide the \verb+OUTPUT_SHARE+
+To enable this we provide the \verb+OUTPUT_SHARES+
 byte-code (corresponding roughly to the old 
-\verb+READFILESHARE+ byte-code). The IO class can do
+\verb+READFILESHARE+ byte-code from SPDZ). The IO class can do
 whatever it would like with this share obtained. However,
 one needs to be careful that any usage does not break the
 MPC security model.
 The member function hook to deal with this type of
 output is the function
-\verb+IO.output_share(const Share& S,unsigned int channel)+.
+\verb+IO.output_shares(const Share& S,unsigned int channel)+.
 
 \subsubsection{Share Input}
 Finally, shares can be input from an external source
 (note they need to be correct/suitably MAC'd). This
-is done via the byte-code \verb+INPUT_SHARE+ and the
+is done via the byte-code \verb+INPUT_SHARES+ and the
 member function \verb+IO.input_share(unsigned int channel)+.
 Again the same issues re careful usage of this function
-apply, as they did for the \verb+OUTPUT_SHARE+ byte-code.
+apply, as they did for the \verb+OUTPUT_SHARES+ byte-code.
 
 
 \subsection{Other IO Processing}
@@ -153,8 +153,8 @@ for this purpose;
 \verb+IO.open_channel(unsigned int n)+
 and
 \verb+IO.close_channel(unsigned int n)+.
-These correspond to the byte-codes \verb+OPEN_CHAN+ and
-\verb+CLOSE_CHAN+.
+These correspond to the byte-codes \verb+OPEN_CHANNEL+ and
+\verb+CLOSE_CHANNEL+.
 For our default IO functionality one does not need to
 explicitly call these functions before, or after,
 using a channel.
@@ -163,6 +163,8 @@ in case the default IO functionality is replaced by another
 user of your code.
 The \verb+open_channel+ command returns a \verb+regint+
 value which could be used to signal a problem opening a channel.
+This is captured in MAMBA via the \verb+open_channel_with_return+
+function.
 
 \subsubsection{Trigger}
 There is a special function \verb+IO.trigger(Schedule& schedule)+ 
@@ -217,7 +219,7 @@ and \verb+c+ of type \verb+regint+.
     input_shares(2000,*inp)
 
     # Regint input and output on channel 4
-    open_channel(4)
+    a=open_channel_with_return(4)
     e=regint.public_input(4)
     e.public_output(4)
     close_channel(4)

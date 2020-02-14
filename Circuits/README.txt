@@ -8,13 +8,17 @@ for a description of the format.
 
 -------------------------------------------------------------
 
-Instructions for compiling the .vhd files in the directory
-VHDL. These are instructions for us in Leuven, useless for
+For the *old* circuits in directory VHDL, which is basically
+only ModAdd512.vhd, which is no longer really used....
+
+
+These are instructions for us in Leuven, useless for
 anyone else. But are here, in case we forget.
 
     ssh vierre64
 
-Then cd to the VHDL directory and make sure the following file is there
+
+cd to the VHDL directory and make sure the following file is there
 
   NangateOpenCellLibrary_typical_reduced.lib
 
@@ -83,15 +87,60 @@ To tidy up the VHDL directory type
 
 -------------------------------------------------------------
 
-For each *.net file then run (e.g.)
+To compile *all* circuits in VHDL/MpcLib ...
 
-        ./convert.x adder64
+    cd VHDL/MpcLib/VHDL
+    make common
 
-This produces a *.txt file in the Bristol Fashion in subdirectory
+The circuits are then placed in VHDL/MpcLib/Verilog
+
+To compile a specific one do...
+    make synth Target=<NameOfTheDesign> N=<NumberOfBitsYouWant>
+
+To clean up
+    make clean
+
+-------------------------------------------------------------
+
+To compile the AES/SHA-3 circuits do...
+
+   cd VHDL/AES
+
+Change all occurances of aes_XXX in script.tcl to the one you want to compile
+
+Run the script.tcl
+   dc_shell
+   source script.tcl
+
+To clean up 
+   make clean
+  
+The SHA-3 directory works the same way [but obviously no need
+to edit script.tcl]
+
+-------------------------------------------------------------
+
+To compile SHA256/SHA512/LSSS_to_GC_512
+   
+    cd VHDL/SHA256/dc
+    make dc_shell
+    make clean
+
+-------------------------------------------------------------
+
+You then need to run ./convert.x on each netlist file. 
+
+As they all live in different places, you need to pull
+these from the correct place. The commands for each one
+are defined in the script
+
+        ./convert.sh
+
+Which you could just run as a single command.
+
+After running ./convert.x on the netlist file you have
+created a *.txt file in the Bristol Fashion in subdirectory
 Bristol
-
-The list of all main files (excluding test ones) to convert (and how
-to do so) are given in ./convert.sh
 
 
 -------------------------------------------------------------

@@ -1,0 +1,5 @@
+ldi c0, 3
+ldsi s0, 3
+crash
+clear_memory
+clear_registers

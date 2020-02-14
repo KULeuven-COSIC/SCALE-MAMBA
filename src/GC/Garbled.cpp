@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -8,6 +8,7 @@ All rights reserved
 #include "Garbled.h"
 #include "OT/OT_Thread_Data.h"
 #include "Tools/MMO.h"
+#include "Tools/Timer.h"
 
 extern OT_Thread_Data OTD;
 
@@ -348,6 +349,13 @@ void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
         }
     }
 
+/* Time Evaluation */
+#ifdef GC_Time
+  Timer T;
+  T.reset();
+  T.start();
+#endif
+
   // Line 4
   unsigned int i0= -1, i1= -1, out;
   vector<vector<gf2n>> ans(P.nplayers(), vector<gf2n>(P.nplayers()));
@@ -417,6 +425,14 @@ void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
           throw circuit_error();
         }
     }
+
+#ifdef GC_Time
+  T.stop();
+  if (P.whoami() == 0)
+    {
+      cout << "Time To Evaluate = " << T.elapsed() << endl;
+    }
+#endif
 
   P.Check_Broadcast(2);
 }

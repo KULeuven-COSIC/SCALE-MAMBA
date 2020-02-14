@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -37,10 +37,10 @@ enum PoKVersion { HighGear,
  *     opposed to Hwt distribution
  */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-			 unsigned int n,
+                         unsigned int n,
                          PoKVersion version,
-                         unsigned int h=HwtSK, 
-			 int NewHopeB_t=NewHopeB,
+                         unsigned int h= HwtSK,
+                         int NewHopeB_t= NewHopeB,
                          int comp_sec_t= comp_sec,
                          int DD_stat_sec_t= DD_stat_sec,
                          int ZK_sound_sec_t= ZK_sound_sec,

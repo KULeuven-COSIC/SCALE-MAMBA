@@ -1,12 +1,12 @@
 
 \mainsection{Changes}
 This section documents changes made since the ``last'' release of
-the software. 
+the software.
 
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.6} of the SCALE and MAMBA software.
+This is currently {\bf version 1.7} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -22,10 +22,89 @@ has scales, and an argot is a ``secret language''.
 \vspace{5mm}
 
 \noindent
-The software is a major modification of the earlier SPDZ software. 
+The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
 
+
+\subsection{Changes in version 1.7 from 1.6}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+  \item There is a {\bf major} change in that we now have two
+  compilation paths for MAMBA programs. You can go through the
+  old pipe-line, or the new pipeline.
+  \begin{itemize}
+     \item The old \verb+compile.py+ program has now been renamed
+           to \verb+compile-mamba.py+. This is {\em exactly}
+           the same as before. It takes a MAMBA program, produces
+           the assembly, optimizes the assembly and outputs the
+           byte-codes.
+           If you only want to use this with default optimizing
+           switches, then you can also now use the command
+           \verb+compile-old.sh Programs/Name+.
+           However, we {\em know} that some of the new functionality
+           in relation to stacks etc does not compile correctly with
+           the old compiler pipeline, so you have been warned!
+     \item A new pipeline uses the old MAMBA compiler to produce the
+           assembler, and then the assembler is passed through
+           a special scale-assembler called \verb+scasm+.
+           The \verb+scasm+ assembler has been built with a collaboration
+           with the company Cosmian.
+           This assembler is a little more robust than the previous
+           version, and has a fully documented optimization step.
+           To use this variant with default optimization switches
+           use the command \verb+compile-new.sh Programs/Name+
+     \item You can make \verb+compile.sh+, which is now the
+           default compiler name, point to either the new or old
+           compilation path. By default it points to the new
+           compilation path.
+  \end{itemize}
+  A side effect of these changes is that you now also need to
+  install Rust, as \verb+scasm+ is written in Rust.
+  Full details of the old and new compiler/assembler usage
+  are provided in Section \ref{sec:compiler}.
+  \item 
+  The new assembler can take much longer to compiler stuff, 
+  we aim to improve this in the coming months. 
+  If this is a problem for you switch to the old pipeline, or
+  turn the optimization level of the assembler down a notch
+  (see Section \ref{sec:newcompiler} on how to do this). 
+  Also if you find bugs {\em please} let us know. 
+  \item Almost all the following changes have been done in order
+  to accommodate the new assembler, in particular there has been
+  a few minor tweaks to the assembler syntax.
+  A full description of the assembler commands are now
+  given in Section \ref{subsec:instructions}. This table of operations is auto-generated
+  from the \verb+scasm+ code, and is thus guaranteed to be up to date with the implementation.
+  \item Each virtual `processor' now contains a stack for each
+  of the five register types. One can access the stack pointer,
+  and manipulate this stack as if it were memory.
+  \item The memory management, in particular management of the
+  size of memory is now taken out of the MAMBA compiler and
+  placed in the runtime. This is safer, but gives a tiny
+  performance penalty. In particular if you access (read or write)
+  any memory location which is currently `out of range' the
+  memory will be automatically resized to ensure no runtime
+  error.
+  \item The GC operation now works by pushing and popping
+  arguments and return values from the stack. See the demo
+  program as to how this is done, or the updated documentation
+  in Section \ref{sec:GC}.
+  \item The Local Function operations work in the same way, via
+  the stacks. Again see the demo program, or the updated
+  documentation in Section \ref{sec:Local}.
+  \item MAMBA functions for opening and closing channels are slightly
+  changed.
+  \item daBit generation has been improved for all access structures
+  for primes $p>2^{64}$ using an adaption of the method in \cite{SPDZKG}.
+  This gives both a significant simplification in the code and
+  a performance boost.
+  \item Added a method to convert \verb|sregint|'s to \verb|sint|'s
+  where we treat the \verb|sregint| as an {\em unsigned} 64-bit value.
+  \item Added circuits for the SHA-256 and SHA-512 compression functions.
+  \item Added more efficient circuits for basis \verb|sregint| arithmetic.
+  These operations should now be twice as fast.
+ \end{enumerate}
 
 \subsection{Changes in version 1.6 from 1.5}
 Apart from the usual minor bug fixes...
@@ -35,7 +114,7 @@ instruction. This makes things much simplier going forward we hope.
 \item Some byte-code names have been changed, and made more consistent. This
 is purely cosmetic, unless you look at the assembler output from the compiler.
 \item \verb|sfloat|, \verb|sfix| are now a little more robust. A program will
-now definitely abort if the desired security bounds are not met. 
+now definitely abort if the desired security bounds are not met.
 We also removed a limitation on the mantissa size in \verb|sfloat|.
 \item Fake offline mode is now depreciated and you {\em cannot} select it
 from the Setup menu. This is due to a bug, and the fact we never actually
@@ -45,15 +124,15 @@ Turns out the method in SPDZ-2 and in Overdrive are both insecure.
 One needs to execute a ZKPoK to prove that party $P_i$'s input is correct;
 which is basically the TopGear proof done without a summation. Then
 one operates as in SPDZ-2. This has now been alterred.
-\item Compiler now outputs assembler for all tapes which are compiled, if 
+\item Compiler now outputs assembler for all tapes which are compiled, if
 directed to.
-\item Direct access to the DABITs via a DABIT opcode.
-\item Upgrade to the DABIT production for dishonest majority.
+\item Direct access to the daBits via a DABIT opcode.
+\item Upgrade to the daBit production for dishonest majority.
 \item Change to the threading to place sacrificing into the production
 threads. This makes the configuration in \verb+config.h+ a little
 simpler to understand, and also removes a potential security hole
-we discussed in earlier documentation. 
-This means some of the data structures previously defined in 
+we discussed in earlier documentation.
+This means some of the data structures previously defined in
 the RunTime are no longer needed.
 \item The Discrete Gaussians can now be selected using different
 bounds on the NewHope loop. This bound is defined in \verb|config.h|.
@@ -62,7 +141,7 @@ to compile the system with any value. The default is now one.
 See Section \ref{sec:fhe} for details of this.
 \item We have extended the range of ring dimensions available,
 so bigger parameters can be utilized. Note, this is untested
-in terms of memory usage, so could result in huge memory 
+in terms of memory usage, so could result in huge memory
 and/or network problems.
 \item You can also, by editing \verb|config.h| use discrete Gaussian
 secret keys instead of short Hamming weight keys if you so desire.
@@ -82,14 +161,14 @@ Apart from the usual minor bug fixes...
 to utilize it from MAMBA) which sets a given bit of an \verb|sregint|
 to a specific \verb|sbit| value.
 \item Ability to define and call your own garbled circuit based operations,
-for user defined circuits. 
+for user defined circuits.
 See Section \ref{sec:GC} for more details.
 \item Ability to define and call your own complex local functions.
 See Section \ref{sec:Local} for more details.
 \item Extra thread for \verb|aAND| production to make garbled circuit
 operations a bit more smooth.
 \item Added documentation about SIMD operations.
-\item Moved some sections around in the documentation to make it 
+\item Moved some sections around in the documentation to make it
 a little more logical.
 \end{enumerate}
 
@@ -117,22 +196,22 @@ integrated. The base Random OT's can either be
 derived from the Dual Mode Encryption method of \cite{PVW08}
 or the SimpleOT method of \cite{CO15}
 The former has, however, a simple attack against it when used to
-generate random OT's. Thus we by default utilize the 
+generate random OT's. Thus we by default utilize the
 second method to perform base OTs. This can be changed in
 the file \verb+config.h+ if needs be.
-\item The base random OTs are  converted into a large number of 
-correlated COT's, for which we use \cite{AC:FKOS15}[Full Version, Figure 19] 
+\item The base random OTs are  converted into a large number of
+correlated COT's, for which we use \cite{AC:FKOS15}[Full Version, Figure 19]
 and \cite{C:KelOrsSch15}[Full Version, Figure 7].
 These correlated OTs are then converted into random sharings of authenticated
 bits (so called aShares/aBits), for this step we use \cite{AC:HazSchSor17}[Full Version, Figure 16].
-Finally these aBits are converted into aANDs using 
+Finally these aBits are converted into aANDs using
 \cite{CCS:WanRanKat17b}[Full Version, Figures 16, 8 and 18 in order].
 With the final GC protocol being implemented using \cite{AC:HazSchSor17}.
 The hash function in the protocol to generated HaANDs from \cite{CCS:WanRanKat17b}
 is implemented using the CCR-secure MMO construction from \cite{GKWY19}.
 \item We have extended the MAMBA language to include new datatypes
 \verb+sregint+ and \verb+sbit+. These are secure (signed)
-64-bit and 1-bit integer datatypes respectively. 
+64-bit and 1-bit integer datatypes respectively.
 These are operated on by using a fixed
 set of garbled circuits. As such only certain operations are supported,
 roughly equivalent to the kind of arithmetic operations you can
@@ -152,8 +231,8 @@ prime for the full-threshold case.
 \item Full threshold IO pre-processed data no longer does ZKPoKs,
 just as in the original SPDZ-2 implementation. This is secure,
 as a moments thought will reveal.
-\item The TopGear implementation has been upgraded to use the second 
-version of the protocol, also other low-level implementation optimizations 
+\item The TopGear implementation has been upgraded to use the second
+version of the protocol, also other low-level implementation optimizations
 have been performed which gives a massive boost to throughput.
 \end{enumerate}
 
@@ -191,13 +270,13 @@ number, and secure processing of this signal.
       that the FHE parameters are a bit bigger than they were before.
       Probably a good idea to re-run setup to generate new keys etc
       in the Full Threshold case.
-\item Minor change to how \verb+CRASH+ works. If the IO handler returns, 
+\item Minor change to how \verb+CRASH+ works. If the IO handler returns,
       then the \verb+RESTART+ instruction is automatically called.
 \item There is a new run time switch \verb+maxI+ for use when performing
       timings etc. This is only for use when combined with the \verb+max+
       switch below.
 \item Two new instructions \verb+CLEAR_MEMORY+ and \verb+CLEAR_REGISTERS+
-      have been added. 
+      have been added.
       These are called from MAMBA via \verb+clear_memory()+ and \verb+clear_registers()+.
       The first can only be called with compilation is done with the flag \verb+-M+, whilst
       the second {\em may} issue out of order (consider it experimental at present).
@@ -249,11 +328,11 @@ values via the IO functionality, with associated additional byte-codes
 added to enable this.
 \item The IO class now allows one to control the opening and closing of
 channels, this is aided by two new byte-codes for this purpose
-called \verb+OPEN_CHAN+ and \verb+CLOSE_CHAN+.
+called \verb+OPEN_CHANNEL+ and \verb+CLOSE_CHANNEL+.
 \item Input of clear values via the IO functionality (i.e.
 for \verb+cint+ and \verb+regint+ values) is now internally checked to ensure that
 all players enter the same clear values.
-Note, this requires modification to any user defined 
+Note, this requires modification to any user defined
 derived classes from \verb+Input_Output_Base+.
 See the chapter on IO for more details on this.
 \item The way the chosen IO functionality is bound with the main program
@@ -271,7 +350,7 @@ a number of functionality changes which we outline below.
 
 \subsubsection{Things no longer supported}
 \begin{enumerate}
-\item We do not support any $GF(2^n)$ arithmetic in the run time 
+\item We do not support any $GF(2^n)$ arithmetic in the run time
 environment. The compiler will no longer compile your programs.
 \item There are much fewer switches in the main program, as we want
 to produce a system which is easier to support and more useful in
@@ -292,7 +371,7 @@ expect in a ``real'' system.
 {\bf Both} the online and offline phases are {\bf actively} secure
 with abort.
 \item Due to this change it can be slow to start a new instance
-and run a new program. So we provide a new (experimental) operation which 
+and run a new program. So we provide a new (experimental) operation which
 ``restarts'' the run-time. This is described in Section \ref{sec:restart}.
 This operation is likely to be revamped and improved in the next
 release as we get more feedback on its usage.
@@ -314,7 +393,7 @@ with ({\em currently}) the offline phase utilizing Maurer's multiplication metho
 needed for full threshold but is needed for the other access structures
 we now support.
 \item We now have implemented more higher level mathematical functions for
-the \verb+sfix+ datatype, and corrected a number of bugs. 
+the \verb+sfix+ datatype, and corrected a number of bugs.
 A similar upgrade is expected in the next release for the \verb+sfloat+ type.
 \end{enumerate}
 
@@ -347,11 +426,9 @@ of \verb+stringstream+ and \verb+string+ instead. This makes readibility
 much easier.
 \item All opcodes in the range \verb+0xB*+ have been changed, so any byte-codes
 you have generated from outside the python system will need to be changed.
-\item We have tried to reduce dependencies between classes in the 
+\item We have tried to reduce dependencies between classes in the
 C++ code a lot more. Thus making the code easier to manage.
 \item Security-wise we use the latest FHE security estimates for the
 FHE-based part, and this can be easily updated. See Chapter \ref{sec:fhe} on FHE
 security later.
 \end{enumerate}
-
-

@@ -9,6 +9,7 @@ g = sfix(6)
 h = sfix(7.5)
 
 # Test sin
+print_ln("Testing sin (fxp)")
 test(mpc_math.test_sin_fx(a))
 test(mpc_math.test_sin_fx(b))
 test(mpc_math.test_sin_fx(c))
@@ -20,6 +21,7 @@ test(mpc_math.test_sin_fx(g))
 test(mpc_math.test_sin_fx(h))
 
 ## Test cos
+print_ln("Testing cos (fxp)")
 test(mpc_math.test_cos_fx(a))
 test(mpc_math.test_cos_fx(b))
 test(mpc_math.test_cos_fx(c))
@@ -31,6 +33,7 @@ test(mpc_math.test_cos_fx(g))
 test(mpc_math.test_cos_fx(h))
 
 # Test tan
+print_ln("Testing tan (fxp)")
 test(mpc_math.test_tan_fx(a))
 test(mpc_math.test_tan_fx(b))
 test(mpc_math.test_tan_fx(c))
@@ -52,6 +55,7 @@ g = sfloat(6)
 h = sfloat(7.5)
 
 ## Test sin
+print_ln("Testing sin (float)")
 test(mpc_math.test_sin_float(a))
 test(mpc_math.test_sin_float(b))
 test(mpc_math.test_sin_float(c))
@@ -63,6 +67,7 @@ test(mpc_math.test_sin_float(g))
 test(mpc_math.test_sin_float(h))
 
 ## Test cos
+print_ln("Testing cos (float)")
 test(mpc_math.test_cos_float(a))
 test(mpc_math.test_cos_float(b))
 test(mpc_math.test_cos_float(c))
@@ -74,6 +79,7 @@ test(mpc_math.test_cos_float(g))
 test(mpc_math.test_cos_float(h))
 
 # Test tan
+print_ln("Testing tan (float)")
 # prec = -4  means that it tolerates a 
 # 4 bits loose of precision out of 
 # the 24, currently supported by this 
@@ -93,6 +99,7 @@ test(mpc_math.test_tan_float(h), prec = -4)
 #test arc functions
 
 # Test asin
+print_ln("Testing asin (fxp)")
 a = sfix(0.1)
 b = sfix(0.3)
 c = sfix(0.5)
@@ -113,6 +120,7 @@ test(mpc_math.asin(h))
 
 
 # Test acos
+print_ln("Testing acos (fxp)")
 test(mpc_math.acos(a))
 test(mpc_math.acos(b))
 test(mpc_math.acos(c))
@@ -123,6 +131,7 @@ test(mpc_math.acos(g))
 test(mpc_math.acos(h))
 
 # Test atan
+print_ln("Testing atan (fxp)")
 test(mpc_math.atan(a))
 test(mpc_math.atan(b))
 test(mpc_math.atan(c))
@@ -142,24 +151,28 @@ sfloat.vlen = 15   # Length of mantissa in bits
 sfloat.plen = 10   # Length of exponent in bits
 sfloat.kappa = 4  # Statistical security parameter for floats
 # Test log_2
+print_ln("Testing log_2 (fxp)")
 test(mpc_math.log2_fx(a))
 test(mpc_math.log2_fx(b))
 test(mpc_math.log2_fx(c))
 test(mpc_math.log2_fx(d))
 
 # Test exp_2
+print_ln("Testing exp_2 (fxp)")
 test(mpc_math.exp2_fx(a))
 test(mpc_math.exp2_fx(b))
 test(mpc_math.exp2_fx(c))
 test(mpc_math.exp2_fx(d))
 
 # Test pow
+print_ln("Testing pow (fxp)")
 test(mpc_math.pow_fx(a,2),lower=3.5, upper=4.01)
 test(mpc_math.pow_fx(b,2),lower=8, upper=9)
 test(mpc_math.pow_fx(c,2),lower=15, upper=16.01)
 test(mpc_math.pow_fx(d,2),lower=24, upper=25)
 
 # Test log
+print_ln("Testing log (fxp)")
 test(mpc_math.log_fx(a,3))
 test(mpc_math.log_fx(b,3))
 test(mpc_math.log_fx(c,3))

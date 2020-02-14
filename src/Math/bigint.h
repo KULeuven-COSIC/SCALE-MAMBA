@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -22,6 +22,27 @@ typedef mpz_class bigint;
 /**********************************
  *       Utility Functions        *
  **********************************/
+
+inline bigint div_f(const bigint n, const bigint d)
+{
+  bigint q;
+  mpz_fdiv_q(q.get_mpz_t(), n.get_mpz_t(), d.get_mpz_t());
+  return q;
+}
+
+inline bigint div_c(const bigint n, const bigint d)
+{
+  bigint q;
+  mpz_cdiv_q(q.get_mpz_t(), n.get_mpz_t(), d.get_mpz_t());
+  return q;
+}
+
+inline bigint mod(const bigint n, const bigint d)
+{
+  bigint q;
+  mpz_mod(q.get_mpz_t(), n.get_mpz_t(), d.get_mpz_t());
+  return q;
+}
 
 inline int gcd(const int x, const int y)
 {

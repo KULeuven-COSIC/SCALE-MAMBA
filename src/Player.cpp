@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -284,6 +284,11 @@ int main(int argc, const char *argv[])
     }
   Share::init_share_data(ShD);
 
+  // Fix this here so when we instantiate the memory
+  // below in creating the machine we know what size
+  // to make the default sregint memory
+  aBit::set_nplayers(SD.n);
+
   /*************************************
    *    Load in MAC keys (if any)      *
    *************************************/
@@ -313,6 +318,10 @@ int main(int argc, const char *argv[])
       stringstream ss;
       ss << "Data/FHE-Key-" << my_number << ".key";
       inp.open(ss.str().c_str());
+      if (inp.fail())
+        {
+          throw file_error(ss.str());
+        }
       bigint p0, p1, pr;
       unsigned int hwt, N;
       inp >> N >> p0 >> p1 >> pr >> hwt;

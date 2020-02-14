@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -34,8 +34,14 @@ struct TempVars
 
 class Processor
 {
-  // Integer stack (used for loops to store the running variable)
-  stack<long> stacki;
+  // Various stacks
+  //   The integer stack is also used for call/return positions
+  //   within this tape.
+  vector<gfp> stack_Cp;
+  vector<Share> stack_Sp;
+  vector<long> stack_int;
+  vector<aBitVector> stack_srint;
+  vector<aBit> stack_sbit;
 
   // Optional argument to the tape
   int arg;
@@ -78,7 +84,7 @@ class Processor
    * within instructions
    */
   // In the case when the OT thread is active this holds the daBitGenerator for this thread
-  AbstractDABitGenerator* daBitGen;
+  AbstractDABitGenerator *daBitGen;
   // This holds the computed daBits
   daBitVector daBitV;
 
@@ -90,10 +96,17 @@ class Processor
   Processor_IO iop;
 
   // retrieve dabit generator to avoid dealing with pointers
-  AbstractDABitGenerator& get_generator()
+  AbstractDABitGenerator &get_generator()
   {
     return *daBitGen;
   }
+
+  // This is a special version for when log_2(p)<sreg_bitl
+  void convert_sint_to_sregint_small(int i0, int i1, Player &P);
+
+  // Subroutine used by the two variants of this
+  //   Uses daBits
+  void convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &P);
 
 public:
   friend class Instruction;
@@ -109,14 +122,174 @@ public:
   }
 
   // Stack operations
-  void pushi(long x)
+  void push_int(long x)
   {
-    stacki.push(x);
+    stack_int.push_back(x);
   }
-  void popi(long &x)
+  void pop_int(long &x)
   {
-    x= stacki.top();
-    stacki.pop();
+    if (stack_int.size() < 1)
+      {
+        throw stack_error();
+      }
+    x= stack_int.back();
+    stack_int.pop_back();
+  }
+  void peek_int(long &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_int.size())
+      {
+        throw stack_error();
+      }
+    x= stack_int[y];
+  }
+  void poke_int(long x, long y)
+  {
+    if (x < 0 || x >= (long) stack_int.size())
+      {
+        throw stack_error();
+      }
+    stack_int[x]= y;
+  }
+  void getsp_int(long &x) const
+  {
+    x= (long) stack_int.size() - 1;
+  }
+
+  void push_srint(const aBitVector &x)
+  {
+    stack_srint.push_back(x);
+  }
+  void pop_srint(aBitVector &x)
+  {
+    if (stack_srint.size() < 1)
+      {
+        throw stack_error();
+      }
+    x= stack_srint.back();
+    stack_srint.pop_back();
+  }
+  void peek_srint(aBitVector &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_srint.size())
+      {
+        throw stack_error();
+      }
+    x= stack_srint[y];
+  }
+  void poke_srint(long x, const aBitVector &y)
+  {
+    if (x < 0 || x >= (long) stack_srint.size())
+      {
+        throw stack_error();
+      }
+    stack_srint[x]= y;
+  }
+  void getsp_srint(long &x) const
+  {
+    x= (long) stack_srint.size() - 1;
+  }
+
+  void push_Cp(const gfp &x)
+  {
+    stack_Cp.push_back(x);
+  }
+  void pop_Cp(gfp &x)
+  {
+    if (stack_Cp.size() < 1)
+      {
+        throw stack_error();
+      }
+    x= stack_Cp.back();
+    stack_Cp.pop_back();
+  }
+  void peek_Cp(gfp &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_Cp.size())
+      {
+        throw stack_error();
+      }
+    x= stack_Cp[y];
+  }
+  void poke_Cp(long x, const gfp &y)
+  {
+    if (x < 0 || x >= (long) stack_Cp.size())
+      {
+        throw stack_error();
+      }
+    stack_Cp[x]= y;
+  }
+  void getsp_Cp(long &x) const
+  {
+    x= (long) stack_Cp.size() - 1;
+  }
+
+  void push_Sp(const Share &x)
+  {
+    stack_Sp.push_back(x);
+  }
+  void pop_Sp(Share &x)
+  {
+    if (stack_Sp.size() < 1)
+      {
+        throw stack_error();
+      }
+    x= stack_Sp.back();
+    stack_Sp.pop_back();
+  }
+  void peek_Sp(Share &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_Sp.size())
+      {
+        throw stack_error();
+      }
+    x= stack_Sp[y];
+  }
+  void poke_Sp(long x, const Share &y)
+  {
+    if (x < 0 || x >= (long) stack_Sp.size())
+      {
+        throw stack_error();
+      }
+    stack_Sp[x]= y;
+  }
+  void getsp_Sp(long &x) const
+  {
+    x= (long) stack_Sp.size() - 1;
+  }
+
+  void push_sbit(const aBit &x)
+  {
+    stack_sbit.push_back(x);
+  }
+  void pop_sbit(aBit &x)
+  {
+    if (stack_sbit.size() < 1)
+      {
+        throw stack_error();
+      }
+    x= stack_sbit.back();
+    stack_sbit.pop_back();
+  }
+  void peek_sbit(aBit &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_sbit.size())
+      {
+        throw stack_error();
+      }
+    x= stack_sbit[y];
+  }
+  void poke_sbit(long x, const aBit &y)
+  {
+    if (x < 0 || x >= (long) stack_sbit.size())
+      {
+        throw stack_error();
+      }
+    stack_sbit[x]= y;
+  }
+  void getsp_sbit(long &x) const
+  {
+    x= (long) stack_sbit.size() - 1;
   }
 
   // Argument operations
@@ -246,7 +419,7 @@ public:
 
   void write_daBit(int i1, int j1)
   {
-    daBitV.get_daBit(temp.Sansp, temp.aB, daBitGen);
+    daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
     rwp[i1 + reg_maxp]= 1;
     rwsb[j1]= 1;
     Sp.at(i1)= temp.Sansp;
@@ -319,9 +492,9 @@ public:
   }
   void write_daBit(int i1, int j1)
   {
-     daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
-     write_Sp(i1, temp.Sansp);
-     write_sbit(j1, temp.aB);
+    daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
+    write_Sp(i1, temp.Sansp);
+    write_sbit(j1, temp.aB);
   }
 
 #endif
@@ -367,19 +540,17 @@ public:
   //   Uses the daBits
   void convert_sint_to_sregint(int i0, int i1, Player &P);
 
-  // This is a special version for when log_2(p)<sreg_bitl
-  void convert_sint_to_sregint_small(int i0, int i1, Player &P);
-
   // Converts a sregint register i0 to a srint register i1
   //   Uses the daBits
   void convert_sregint_to_sint(int i0, int i1, Player &P);
 
-  // Apply one of the indirect GC's
-  void apply_GC(const vector<int> &arguments, Player &P);
+  // Converts a sregint register i0 to a srint register i1
+  // But converts as an unsigned sregint
+  //   Uses the daBits
+  void convert_suregint_to_sint(int i0, int i1, Player &P);
 
-  // Apply one of the local functions
-  void apply_local_function(RegType RT, SecrecyType ST,
-                            const vector<int> &arguments);
+  // Apply one of the indirect GC's
+  void apply_GC(unsigned int n, Player &P);
 };
 
 #endif

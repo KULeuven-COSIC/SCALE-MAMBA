@@ -3,19 +3,11 @@ n_threads = 8
 
 n = 8192 * (2**12)
 
-def generate_bits_single(n):
-    for i in range(n / n_parallel):
-        bp = sint(size=n_parallel)
-        b2 = sbit(size=n_parallel)
-        vdabit(n_parallel, *(bp, b2))
-
 def generate_bits_multithread(n):
     def f():
         @for_range(n / n_parallel / n_threads)
         def g(_):
-            bp = sint(size=n_parallel)
-            b2 = sbit(size=n_parallel)
-            vdabit(n_parallel, *(bp, b2))
+            bp, b2 = get_random_dabit(size=n_parallel)
 
     t = MPCThread(f, 'f')
 

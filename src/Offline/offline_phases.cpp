@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -144,6 +144,7 @@ void mult_phase(int num_online, Player &P, int fake_sacrifice,
             }
 
           offline_phase_triples(P, prss, przs, prep, a, b, c, pk, sk, PTD, fake_sacrifice, OP, industry);
+          OP.RunOpenCheck(P, "", 0);
           if (verbose > 1)
             {
               printf("Out of triples: thread = %d\n", num_online);
@@ -207,6 +208,7 @@ void square_phase(int num_online, Player &P, int fake_sacrifice,
             }
 
           offline_phase_squares(P, prss, przs, prep, a, b, pk, sk, PTD, fake_sacrifice, OP, industry);
+          OP.RunOpenCheck(P, "", 0);
           if (verbose > 1)
             {
               printf("Out of squares: thread = %d\n", num_online);
@@ -268,6 +270,7 @@ void bit_phase(int num_online, Player &P, int fake_sacrifice,
             }
 
           offline_phase_bits(P, prss, przs, prep, b, pk, sk, PTD, fake_sacrifice, OP, industry);
+          OP.RunOpenCheck(P, "", 0);
 
           if (verbose > 1)
             {
@@ -371,7 +374,6 @@ bool propose_what_to_do(int num_online, Player &P, int &finish,
   return exit;
 }
 
-
 /* Thread locks removed when only reading */
 void inputs_phase(int num_online, Player &P, int fake_sacrifice,
                   offline_control_data &OCD, const FHE_PK &pk,
@@ -474,7 +476,7 @@ void inputs_phase(int num_online, Player &P, int fake_sacrifice,
         { /* Check whether we should kill the offline phase as we have now enough data */
           exit= true;
 
-	  // OCD.mul_mutex[num_online].lock();
+          // OCD.mul_mutex[num_online].lock();
           if (OCD.totm[num_online] < OCD.maxm || OCD.maxm == 0)
             {
               exit= false;

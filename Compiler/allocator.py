@@ -390,7 +390,7 @@ class Merger:
 
         # compute preorder for topological sort
         if merge_stopopens and self.options.reorder_between_opens:
-            if self.options.continuous or not merge_nodes:
+            if not merge_nodes:
                 rev_depths = self.compute_max_depths(self.real_depths)
                 preorder = self.compute_continuous_preorder(merges, rev_depths)
             else:

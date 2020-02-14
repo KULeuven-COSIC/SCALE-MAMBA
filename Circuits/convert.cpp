@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -11,6 +11,7 @@ All rights reserved
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string.h>
 #include <string>
 
 using namespace std;
@@ -85,13 +86,19 @@ void parse_wires(const vector<string> &tokens,
 int main(int argc, const char *argv[])
 {
 
-  if (argc != 2)
+  if ((argc != 2 && argc != 3) || (argc == 3 && strncmp(argv[2], "x", 2) != 0))
     {
-      cout << "Call using\n\tconvert.x file\nto convert\n\tVHDL/file_netlist.vhd\nto Bristol format" << endl;
+      cout << "Call using\n\tconvert.x file\nto convert\n\tVHDL/file.net\nto Bristol format\n";
+      cout << "\nTo stop optimizations use\n\tconvert.x file x" << endl;
       exit(1);
     }
 
   string input_file_name= argv[1], output_file_name= argv[1];
+  bool optimize= true;
+  if (argc == 3)
+    {
+      optimize= false;
+    }
   input_file_name= "VHDL/" + input_file_name + ".net";
   output_file_name= "Bristol/" + output_file_name + ".txt";
 
@@ -156,7 +163,7 @@ int main(int argc, const char *argv[])
       getline(inpf, line);
       tokenize(tokens, line);
     }
-  while (tokens[0] != "XOR2_X1" && tokens[0] != "INV_X1" && tokens[0] != "NOR2_X1" && tokens[0] != "AND2_X1" && tokens[0] != "assign");
+  while (tokens[0] != "XOR2_X1" && tokens[0] != "INV_X1" && tokens[0] != "NOR2_X1" && tokens[0] != "AND2_X1" && tokens[0] != "XOR2" && tokens[0] != "INV" && tokens[0] != "NOR2" && tokens[0] != "AND2" && tokens[0] != "assign");
 
   // Now add the contant wires
   stringstream w0, w1;
@@ -177,16 +184,18 @@ int main(int argc, const char *argv[])
       tokenize(tokens, line);
     }
   while (tokens[0] != "endmodule");
+  cout << "Read in gates" << endl;
 
   // Count the number of NOR gates
   unsigned int nor_cnt= 0;
   for (unsigned int i= 0; i < gates.size(); i++)
     {
-      if (gates[i][0] == "NOR2_X1")
+      if (gates[i][0] == "NOR2_X1" || gates[i][0] == "NOR2")
         {
           nor_cnt++;
         }
     }
+  cout << "Counted NOR gates : " << nor_cnt << endl;
 
   // Add in dummy wires for the NOR gates
   for (unsigned int i= 0; i < nor_cnt; i++)
@@ -205,11 +214,17 @@ int main(int argc, const char *argv[])
     }
 
   // Now rewrite each gate
+  cout << "Rewriting gates..." << endl;
   vector<string> ngates;
   unsigned int cnt= 0;
   for (unsigned int i= 0; i < gates.size(); i++)
     {
-      if (gates[i][0] == "INV_X1")
+      if (i % 10000 == 0)
+        {
+          cout << "\t" << i << " out of " << gates.size() << endl;
+        }
+
+      if (gates[i][0] == "INV_X1" || gates[i][0] == "INV")
         {
           stringstream ss;
           ss << "1 1 ";
@@ -218,7 +233,7 @@ int main(int argc, const char *argv[])
           ss << "INV";
           ngates.push_back(ss.str());
         }
-      else if (gates[i][0] == "XOR2_X1")
+      else if (gates[i][0] == "XOR2_X1" || gates[i][0] == "XOR2")
         {
           stringstream ss;
           ss << "2 1 ";
@@ -228,7 +243,7 @@ int main(int argc, const char *argv[])
           ss << "XOR";
           ngates.push_back(ss.str());
         }
-      else if (gates[i][0] == "AND2_X1")
+      else if (gates[i][0] == "AND2_X1" || gates[i][0] == "AND2")
         {
           stringstream ss;
           ss << "2 1 ";
@@ -238,7 +253,7 @@ int main(int argc, const char *argv[])
           ss << "AND";
           ngates.push_back(ss.str());
         }
-      else if (gates[i][0] == "NOR2_X1")
+      else if (gates[i][0] == "NOR2_X1" || gates[i][0] == "NOR2")
         {
           stringstream sv1, sv2;
           sv1 << "dummya" << cnt;
@@ -281,8 +296,9 @@ int main(int argc, const char *argv[])
           exit(1);
         }
     }
+  cout << "Processed gates" << endl;
 
-  // Now add in the contant wire assignments
+  // Now add in the constant wire assignments
   //   If we do not need these then simplify should get rid of them
   stringstream s0, s1;
   s0 << "1 1 0 " << relabel("1'b0", wirenames) << " EQ";
@@ -317,11 +333,13 @@ int main(int argc, const char *argv[])
   is >> C;
   C.sort();
 
-  // Only do basic simplify, as we assume VHDL compiler is good
-  cout << "Converted circuit. I am now seeing if we can simplify..." << endl;
-  SimplifyCircuit SC(C);
-  SC.Simplify();
-  C= SC.Get_Circuit();
+  if (optimize)
+    { // Only do basic simplify, as we assume VHDL compiler is good
+      cout << "Converted circuit. I am now seeing if we can simplify..." << endl;
+      SimplifyCircuit SC(C);
+      SC.Simplify();
+      C= SC.Get_Circuit();
+    }
 
   ofstream outf(output_file_name.c_str());
   outf << C << endl;

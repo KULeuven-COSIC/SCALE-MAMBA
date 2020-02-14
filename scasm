@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -ex
+
+cargo run --manifest-path Assembler/Cargo.toml --release --bin scale_repo_helper --quiet -- $@

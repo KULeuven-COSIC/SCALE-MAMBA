@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -46,10 +46,14 @@ Rq_Element FHE_PK::sample_secret_key(PRNG &G)
 {
   Rq_Element sk= FHE_SK(*this).s();
   // Generate the secret key
-  if ((*params).get_hwt()>0)
-    { sk.from_vec((*params).sample_Hwt(G)); }
+  if ((*params).get_hwt() > 0)
+    {
+      sk.from_vec((*params).sample_Hwt(G));
+    }
   else
-    { sk.from(GaussianGenerator(G));        }
+    {
+      sk.from(GaussianGenerator(G));
+    }
 
   return sk;
 }

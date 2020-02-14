@@ -30,58 +30,37 @@ we implement some basic linear algebra routines.
 Look at those files whilst reading this explanation.
 
 \subsection{Defining Local Functions in C++}
-Every local function is one which involves no operations
+Every local function is one which involves no interaction
 between the parties.
 It can thus be {\em any} function on clear data, and
 only a {\em linear} function on private data.
 A local function is defined using the C++ signature
 \begin{lstlisting}
-    void apply_Function(int instr,
-                        vector<long> &Cr_out, vector<aBitVector> &Sr_out,
-                        vector<gfp> &Cp_out, vector<Share> &Sp_out,
-                        const vector<long> &Cr_inp, const vector<aBitVector> &Sr_inp,
-                        const vector<gfp> &Cp_inp, const vector<Share> &Sp_inp);
+    void apply_Function(int instr);
 \end{lstlisting}
-We now explain the arguments in turn:
-\begin{itemize}
-\item
-The variable \verb|instr| is the instruction number; which is akin to the
+Where the variable \verb|instr| is the instruction number; which is akin to the
 earlier circuit number for garbled circuits.
 We reserve all numbers less than 65536 for use by the developers, leaving
 you to define numbers greater than 65536.
 Once again, if you have a good function which might be useful to others
 please let us know.
-\item
-Next come the output vectors, one for each possible output type.
-Note that each local function {\em should} check that only one of these 
-vectors has non-zero size on entry to the routine. The vector with non-zero size must
-correspond to the byte-code type which we explain below.
-Note, this last bit is not checked, and if you get the wrong byte
-code with the wrong output sizes you can expect the system to crash!
-\item Finally come the four input vectors.
-\end{itemize}
+
 The local function is registered with an instruction number in the
 system by adding the function pointer to the \verb|functions| map
 in the file \verb|src/Local/Local_Functions.cpp|.
 Must like user defined Garbled Circuits were added into the
 system earlier.
 
+Each local function obtains it arguments by popping any required
+data off the stacks, the functions outputs are then placed on the
+stacks in a similar manner.
+See the \verb|BLAS.cpp| example linear algebra routines for
+some examples.
+
 \subsection{Defining Local Functions in the MAMBA/byte-code Language} 
-On the byte-code side of system we have four instructions
-\verb|LF_CINT|, \verb|LF_SINT|, \verb|LF_REGINT| and \verb|LF_SREGINT|.
-The second part of this instruction contains the return type
-of the method (and this must corresponds to the output vector
-of the C++ function which has non-zero size.
-The arguments to the instruction are as follows:
-\begin{itemize}
-\item Total number of arguments.
-\item The local function number being called.
-\item The size of the output vector.
-\item The four sizes of the input vectors.
-\item The list of output registers.
-\item The list of input registers in the order as in the
-above C++ function signature.
-\end{itemize}
+On the byte-code side of system we have one instruction
+\verb|LF| which takes a single argument, namely the
+number of the local function being called.
 
 \subsection{BLAS Examples}
 In our Basic Linear Algebra System (BLAS) we provide currently four
@@ -96,12 +75,11 @@ Instruction Number & Function \\
 3 & Row Reduction of a n-by-m cint matrix A \\
 \end{tabular}
 \end{center}
-In these examples the dimensions are passed via the
-\verb|Cr_inp| variables, with the actual matrices
-then passed in the \verb|Cp_inp| and \verb|Sp_inp|
-variables.
-The matrices are packed into the vectors using a standard
-row-wise configuration.
+In these examples the dimensions are passed via 
+pushing to the \verb|regint| stack, with data
+being passed by pushing to the \verb|cint| (resp.
+\verb|sint|) stack.
+The matrices are packed using a standard row-wise configuration.
 In the following code example (given in \verb|Programs/Local_test/|)
 we illustrate this with the matrices
 \[
@@ -115,6 +93,43 @@ we illustrate this with the matrices
   \end{array} \right).
 \]
 \begin{lstlisting}
+def push_Cint_matrix(A,n,m):
+  regint.push(regint(n))
+  regint.push(regint(m))
+  for i in range(n):
+    for j in range(m):
+       cint.push(A[i][j])
+
+def push_Sint_matrix(A,n,m):
+  regint.push(regint(n))
+  regint.push(regint(m))
+  for i in range(n):
+    for j in range(m):
+       sint.push(A[i][j])
+
+def pop_Cint_matrix(A,n,m):
+  mm=regint.pop()
+  nn=regint.pop()
+  if_then(nn!=n or m!=mm)
+  print_ln("Something wrong")
+  print_ln("%s %s",nn,mm)
+  end_if()
+  for i in range(n-1,-1,-1):
+    for j in range(m-1,-1,-1):
+       A[i][j]=cint.pop()
+
+def pop_Sint_matrix(A,n,m):
+  mm=regint.pop()
+  nn=regint.pop()
+  if_then(nn!=n or m!=mm)
+  print_ln("Something wrong")
+  print_ln("%s %s",nn,mm)
+  end_if()
+  for i in range(n-1,-1,-1):
+    for j in range(m-1,-1,-1):
+       A[i][j]=sint.pop()
+
+
 n=2
 l=3
 m=2
@@ -125,59 +140,70 @@ m=2
 # which should give us
 #  C = [58,64; 139, 154]
 
+Cp_A=cint.Matrix(n,l)
+Cp_B=cint.Matrix(l,m)
+Cp_out=cint.Matrix(n,m)
+CpGE_out=cint.Matrix(n,l)
+Sp_A=sint.Matrix(n,l)
+Sp_B=sint.Matrix(l,m)
+Sp_out=sint.Matrix(n,m)
 
-Cr_inp=[regint(n), regint(l), regint(m)]
-Cp_A=[cint(i+1) for i in range(n*l)]
-Sp_A=[sint(i+1) for i in range(n*l)]
-Cp_B=[cint(i+7) for i in range(l*m)]
-Sp_B=[sint(i+7) for i in range(l*m)]
+cnt=1
+for i in range(n):
+  for j in range(l):
+     Cp_A[i][j]=cint(cnt)
+     Sp_A[i][j]=sint(cnt)
+     cnt=cnt+1
 
-Cp_out=[cint() for _ in range(n*m)]
+for i in range(l):
+  for j in range(m):
+     Cp_B[i][j]=cint(cnt)
+     Sp_B[i][j]=sint(cnt)
+     cnt=cnt+1
 
-LF_CINT(0,n*m,3,0,n*l+l*m,0,*(Cp_out+Cr_inp+Cp_A+Cp_B))
+push_Cint_matrix(Cp_A,n,l)
+push_Cint_matrix(Cp_B,l,m)
+LF(0)
+pop_Cint_matrix(Cp_out,n,m)
 
 print_ln("Final CC Product is...")
-for i in range(2):
-  for j in range(2):
-    print_str('%s ', Cp_out[i*2+j])
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Cp_out[i][j])
   print_ln('')
 
-Sp1_out=[sint() for i in range(n*m)]
-Sp2_out=[sint() for i in range(n*m)]
-
-LF_SINT(1,n*m,3,0,l*m,n*l,*(Sp1_out+Cr_inp+Cp_B+Sp_A))
+push_Sint_matrix(Sp_A,n,l)
+push_Cint_matrix(Cp_B,l,m)
+LF(1)
+pop_Sint_matrix(Sp_out,n,m)
 
 print_ln("Final SC Product is...")
-for i in range(2):
-  for j in range(2):
-    print_str('%s ', Sp1_out[i*2+j].reveal())
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Sp_out[i][j].reveal())
   print_ln('')
 
-LF_SINT(2,n*m,3,0,n*l,l*m,*(Sp2_out+Cr_inp+Cp_A+Sp_B))
+push_Cint_matrix(Cp_A,n,l)
+push_Sint_matrix(Sp_B,l,m)
+LF(2)
+pop_Sint_matrix(Sp_out,n,m)
 
 print_ln("Final CS Product is...")
-for i in range(2):
-  for j in range(2):
-    print_str('%s ', Sp2_out[i*2+j].reveal())
+for i in range(n):
+  for j in range(m):
+    print_str('%s ', Sp_out[i][j].reveal())
   print_ln('')
 
-GEr_inp=[regint(n), regint(l)]
-GE_out=[cint() for _ in range(n*l)]
-LF_CINT(3,n*l,2,0,n*l,0,*(GE_out+GEr_inp+Cp_A))
+
+push_Cint_matrix(Cp_A,n,l)
+LF(3)
+pop_Cint_matrix(CpGE_out,n,l)
 
 print_ln("Final Gauss Elim on A is...")
-for i in range(2):
-  for j in range(3):
-    print_str('%s ', GE_out[i*l+j])
+for i in range(n):
+  for j in range(l):
+    print_str('%s ', CpGE_out[i][j])
   print_ln('')
-\end{lstlisting}
-When compiling this code the four different local function calls
-get translated into the following byte-codes
-\begin{lstlisting}
-LF_CINT 25,0,4,3,0,12,0,c9,c8,c7,c6,r1,r0,r2,c12,c16,c19,c11,c15,c14,c18,c21,c13,c17,c20,c10 
-LF_SINT 25,1,4,3,0,6,6,s2,s5,s7,s1,r1,r0,r2,c18,c21,c13,c17,c20,c10,s0,s4,s14,s15,s3,s6 
-LF_SINT 25,2,4,3,0,6,6,s4,s6,s0,s3,r1,r0,r2,c12,c16,c19,c11,c15,c14,s9,s11,s13,s8,s10,s12 
-LF_CINT 20,3,6,2,0,6,0,c5,c4,c3,c2,c1,c0,r4,r3,c12,c16,c19,c11,c15,c14 
 \end{lstlisting}
 
 

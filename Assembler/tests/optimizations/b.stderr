@@ -1,0 +1,12 @@
+warning: Write to register is never read
+ --> tests/optimizations/b.asm:2:0
+  |
+2 | ldsi s0, 3
+  | ---------- register 0 written to but will never be read from again
+  |
+warning: Write to register is never read
+ --> tests/optimizations/b.asm:1:0
+  |
+1 | ldi c0, 3
+  | --------- register 0 written to but will never be read from again
+  |

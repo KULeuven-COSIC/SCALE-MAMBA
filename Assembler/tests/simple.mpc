@@ -1,0 +1,22 @@
+n = 10
+
+A = Array(n, sint)
+B = Array(n, sint)
+
+# assign some dummy values
+for i in range(n):
+    A[i] = sint(2 * i)
+    B[i] = sint(3 * i)
+
+# assign the arrays to secret registers of size n
+vector_a = sint.load_mem(A.address, size=n)
+vector_b = sint.load_mem(B.address, size=n)
+
+# a single instruction to multiply n elements
+c = vector_a * vector_b
+
+C = Array(n, sint)
+c.store_in_mem(C.address)
+
+for i in range(n):
+    print_ln('C[%s] = %s', i, C[i].reveal())

@@ -2,11 +2,6 @@
 ##############################
 logs/*
 
-# Ignore files without extension
-*
-!*/
-!*.*
-
 # Personal CONFIG file #
 ##############################
 CONFIG.mine

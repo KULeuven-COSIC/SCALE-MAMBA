@@ -1,4 +1,4 @@
-from Compiler.types import cint,sint,cfix,sfix,sfloat,cfloat,MPCThread,Array,MemValue,_number,_mem,_register,regint,Matrix,_types
+from Compiler.types import cint,sint,cfix,sfix,sfloat,cfloat,sbit,MPCThread,Array,MemValue,_number,_mem,_register,regint,Matrix,_types
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify
 from Compiler import instructions,instructions_base,comparison,program
@@ -190,6 +190,12 @@ def compare_secret(a, b, length, sec=40):
 
 def get_random_triple(size=None):
     return sint.get_random_triple(size=size)
+
+def get_random_dabit(size=None):
+    bp = sint(size=size)
+    b2 = sbit(size=size)
+    vdabit(size, *(bp, b2))
+    return bp, b2
 
 def get_random_bit(size=None):
     return sint.get_random_bit(size=size)
@@ -1345,11 +1351,11 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     return part_reciprocal, signed_acc
 
 
-def open_channel(channel=0):
+def open_channel_with_return(channel=0):
    r"""Open channel and return any possible error message
    """
    res = regint()
-   open_chan(res,channel)
+   open_channel(res,channel)
    return res
 
 

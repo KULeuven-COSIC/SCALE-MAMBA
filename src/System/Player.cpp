@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -115,7 +115,7 @@ void ShowCerts(SSL *ssl, const string CommonName, int verbose)
     printf("No certificates.\n");
 }
 
-void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD)
+void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD, const string &rootDirectory)
 {
   // Initialize the SSL library
   OPENSSL_init_ssl(
@@ -123,7 +123,9 @@ void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD)
   ctx= InitCTX();
 
   // Load in my certificates
-  string str_crt= "Cert-Store/" + SD.PlayerCRT[me];
+  string str_crt= rootDirectory + "Cert-Store/" + SD.PlayerCRT[me];
+  std::cout << "sm::" << me << ":: loading certificate from " + str_crt
+            << std::endl;
   string str_key= str_crt.substr(0, str_crt.length() - 3) + "key";
   LoadCertificates(ctx, str_crt.c_str(), str_key.c_str());
 
@@ -132,7 +134,7 @@ void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD)
                      NULL);
 
   // Load in root CA
-  string str= "Cert-Store/" + SD.RootCRT;
+  string str= rootDirectory + "Cert-Store/" + SD.RootCRT;
   SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(str.c_str()));
   SSL_CTX_load_verify_locations(ctx, str.c_str(), NULL);
 }

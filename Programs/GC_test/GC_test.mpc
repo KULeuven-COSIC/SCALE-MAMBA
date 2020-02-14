@@ -3,13 +3,26 @@ AES_192=101
 AES_256=102
 SHA_3=103
 
-key = [sregint(0) for _ in range(2)]
-mess = [sregint(-1) for _ in range(2)]
+def push_data(stuff,n):
+  for i in range(n):
+    sregint.push(stuff[i])
+
+def pop_data(stuff,n):
+  for i in range(n):
+    stuff[n-i-1]=sregint.pop()
+
+  
+
+key = [sregint(0), sregint(-1)]
+mess = [sregint(-1), sregint(1)]
 ciph = [sregint() for _ in range(2)]
 
 print_ln("AES-128")
-# Op, # Output, # Input
-GC(AES_128, 2, 4, *(ciph + key + mess))
+push_data(key,2)
+push_data(mess,2)
+# Op
+GC(AES_128)
+pop_data(ciph,2)
 
 m = [None] * 2
 k = [None] * 4
@@ -32,12 +45,19 @@ print_ln("Ciphertext")
 c[1].public_output()     
 c[0].public_output()
 
+print_ln("Should be")
+print_ln("0x406bab6335ce415f");
+print_ln("0x4f943dc8966682aa");
+
 
 print_ln("AES-192")
 aes_192_ciphertexts = [sregint() for i in range(2)]
-# Op, # Output, # Input
 key.append(sregint(0))
-GC(AES_192, 2, 5, *(aes_192_ciphertexts + key + mess))
+push_data(key,3)
+push_data(mess,2)
+# Op
+GC(AES_192)
+pop_data(aes_192_ciphertexts,2)
 
 k[2]=key[2].reveal()
 
@@ -57,14 +77,19 @@ print_ln("Ciphertext")
 c[1].public_output()     
 c[0].public_output()
 
+print_ln("Should be")
+print_ln("0x5431a62c98d9bd2c")
+print_ln("0xb3bb68de3b46c05c")
+
 
 print_ln("AES-256")
-# Op, # Output, # Input
-
 aes_256_ciphertexts = [sregint() for i in range(2)]
 key.append(sregint(0))
-print(len(key))
-GC(AES_256, 2, 6, *(aes_256_ciphertexts + key + mess))
+push_data(key,4)
+push_data(mess,2)
+# Op
+GC(AES_256)
+pop_data(aes_256_ciphertexts,2)
 
 k[3]=key[3].reveal()
 
@@ -85,20 +110,43 @@ print_ln("Ciphertext")
 c[1].public_output()     
 c[0].public_output()
 
+print_ln("Should be")
+print_ln("0x67f2f9adfcff97cd")
+print_ln("0x5e07c0d5edba1e69")
+
 
 print_ln("SHA-3")
 istate = [sregint(0) for i in range(25)]
 ostate_eval1 = [sregint() for i in range(25)]
+ostate_eval2 = [sregint() for i in range(25)]
 
-GC(SHA_3, 25, 25, *(ostate_eval1 + istate))
+push_data(istate,25)
+GC(SHA_3)
+pop_data(ostate_eval1,25)
 
 print_ln("First invocation of SHA-1")
 for i in range(24, 0, -1):
 	ostate_eval1[i].reveal().public_output()
+print_ln("\nShould be")
+print_ln("0xe7dde140798f25f1")
+print_ln("0x8a47c033f9ccd584")
+print_ln("0xeea95aa61e2698d5")
+print_ln(" .... ")
 
-ostate_eval2 = [sregint() for i in range(25)]
-GC(SHA_3, 25, 25, *(ostate_eval2 + ostate_eval1))
+push_data(ostate_eval1,25)
+GC(SHA_3)
+pop_data(ostate_eval2,25)
 
-print_ln("Second invocation of SHA-1")
+print_ln("Second invocation of SHA-3")
 for i in range(24, 0, -1):
 	ostate_eval2[i].reveal().public_output()
+
+print_ln("\nShould be")
+print_ln("0x3ccb6ef94d955c2d")
+print_ln("0x6db55770d02c336a")
+print_ln("0x6c6bd770128d3d09")
+print_ln(" .... ")
+
+
+
+

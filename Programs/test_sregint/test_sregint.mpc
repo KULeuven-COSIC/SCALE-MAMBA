@@ -25,6 +25,16 @@ convert2=sregint(-sia)
 test(convert1,sia)
 test(convert2,-sia)
 
+#test CONVSUREGSINT
+big_a=2**64-a
+saa=sregint(big_a)
+siaa=sint(big_a)
+
+
+te=sint.convert_unsigned_to_sint(saa)
+test(siaa, te)
+te=sint.convert_unsigned_to_sint(sa)
+test(sia, te)
 
 #test ADDSINT, ADDSINTC
 test(ca + cb)

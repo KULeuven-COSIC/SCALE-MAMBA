@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -18,7 +18,8 @@ void ShareData::assign(const ShareData &SD)
 
   if (type == Full)
     {
-      ;
+      RCt= SD.RCt;
+      ReconS= SD.ReconS;
     }
   else
     {
@@ -50,6 +51,19 @@ void ShareData::Initialize_Full_Threshold(unsigned int nn)
   Otype= SPDZ;
   M.Initialize_Full_Threshold(nn);
   nmacs= macs_stat_sec / numBits(gfp::pr()) + 1;
+
+  unsigned int n= M.nplayers();
+  RCt.resize(n, vector<vector<int>>(n));
+  ReconS.resize(n, vector<gfp>(n));
+  for (unsigned int i= 0; i < n; i++)
+    {
+      for (unsigned int j= 0; j < n; j++)
+        {
+          RCt[i][j].resize(1);
+          RCt[i][j][0]= 1;
+          ReconS[i][j].assign_one();
+        }
+    }
 }
 
 /* This finds ReconS, ReconSS, Parity and OpenC given RCt
@@ -724,6 +738,7 @@ ostream &operator<<(ostream &s, const ShareData &SD)
           s << endl;
         }
     }
+
   return s;
 }
 
@@ -810,6 +825,21 @@ istream &operator>>(istream &s, ShareData &SD)
           for (int i= 0; i < l; i++)
             {
               s >> SD.maurer_chans[i];
+            }
+        }
+    }
+  else
+    {
+      unsigned int n= SD.M.nplayers();
+      SD.RCt.resize(n, vector<vector<int>>(n));
+      SD.ReconS.resize(n, vector<gfp>(n));
+      for (unsigned int i= 0; i < n; i++)
+        {
+          for (unsigned int j= 0; j < n; j++)
+            {
+              SD.RCt[i][j].resize(1);
+              SD.RCt[i][j][0]= 1;
+              SD.ReconS[i][j].assign_one();
             }
         }
     }

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -190,16 +190,16 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   global_time.stop();
   cout << "Total Time (with thread locking) = " << global_time.elapsed() << " seconds" << endl;
 
-  long long total_triples = 0, total_squares = 0, total_bits = 0;
-  for (size_t i = 0; i < no_online_threads; i++) {
-    total_triples += OCD.totm[i];
-    total_squares += OCD.tots[i];
-    total_bits += OCD.totb[i];
-  }
+  long long total_triples= 0, total_squares= 0, total_bits= 0;
+  for (size_t i= 0; i < no_online_threads; i++)
+    {
+      total_triples+= OCD.totm[i];
+      total_squares+= OCD.tots[i];
+      total_bits+= OCD.totb[i];
+    }
   cout << "Produced a total of " << total_triples << " triples" << endl;
   cout << "Produced a total of " << total_squares << " squares" << endl;
   cout << "Produced a total of " << total_bits << " bits" << endl;
-
 }
 
 #ifdef BENCH_MEMORY

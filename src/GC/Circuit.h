@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -30,10 +30,6 @@ All rights reserved
  *     and so on.
  *   - With the last (o_0+...+o_{n-1}) wires corresponding to the outputs of
  *     the function, where n=no_1+...+no_nov
- *   - Then n numbers defining the values i_0,...,i_{n-1} of wires in the
- *     inputs to the function for each input value.
- *   - Then n numbers defining the values o_0,...,o_{n-1} of wires in the
- *     outputs to the function for each output value.
  *   - The gates are ordered topologically, so we can evaluate them in sequence.
  *   - Each gate is defined by 
  *      -    Number input wires   (1 or 2)

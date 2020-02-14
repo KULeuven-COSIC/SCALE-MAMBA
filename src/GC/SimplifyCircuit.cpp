@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -40,6 +40,17 @@ void SimplifyCircuit::remove_redundant_wires(bool verbose)
   for (unsigned int i= 0; i < C.num_outputs(); i++)
     {
       for (unsigned int j= 0; j < C.num_oWires(i); j++)
+        {
+          gate_count[cnt]= 0xFFFFFFFF;
+          cnt++;
+        }
+    }
+
+  /* Same for the input wires */
+  cnt= 0;
+  for (unsigned int i= 0; i < C.num_inputs(); i++)
+    {
+      for (unsigned int j= 0; j < C.num_iWires(i); j++)
         {
           gate_count[cnt]= 0xFFFFFFFF;
           cnt++;
@@ -176,11 +187,12 @@ void SimplifyCircuit::Remove_EQW()
       keepG[i]= true;
       unsigned int out= C.Gate_Wire_Out(i);
       if (C.get_GateType(i) == EQW)
-        {
+        { // cout << "\t\t" << i << " ";
           neqw++;
           /* If input and output are equal, then do nothing*/
           if (C.GateI[i][0] < input_boundary && out >= out_boundary)
             { /* Do nothing */
+              // cout << "A" << endl;
             }
           /* If output wire not an output for the circuit replace
              * it with the input wire
@@ -189,12 +201,21 @@ void SimplifyCircuit::Remove_EQW()
             {
               keepG[i]= false;
               matchW[out]= C.GateI[i][0];
+              //cout << "B" << endl;
+            }
+          /* If this input been used before, i.e. it is already an output
+           * then keep this EQW gate between outputs
+           */
+          else if (matchW[C.GateI[i][0]] >= out_boundary)
+            { /* Do nothing */
+              //cout << "D" << endl;
             }
           /* Else make the input wire equal to the output wire */
           else
             {
               keepG[i]= false;
               matchW[C.GateI[i][0]]= out;
+              //cout << "C" << endl;
             }
         }
     }
@@ -740,6 +761,7 @@ void SimplifyCircuit::Simplify()
       changed= remove_duplicate_gates();
     }
   while (changed);
+
   Remove_EQW();
 
   remove_redundant_wires();

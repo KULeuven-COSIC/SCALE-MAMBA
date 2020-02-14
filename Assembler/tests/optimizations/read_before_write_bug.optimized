@@ -1,0 +1,23 @@
+ldi c2, 2 # 0
+ldsi s0, 1 # 1
+ldsi s1, 1 # 2
+ldi c3, 1 # 7
+movs s2, s0 # 3
+movs s3, s1 # 4
+modci c4, c2, 2 # 5
+divci c3, c3, 2 # 8
+subc c2, c2, c4 # 6
+mulc c2, c2, c3 # 9
+modci c5, c2, 2 # 10
+vaddm 2, s0, s2, c4 # 13
+startopen 1, s1 # 15
+vmulci 2, c6, c4, 2 # 11
+vmulm 2, s2, s2, c6 # 12
+vsubs 2, s0, s0, s2 # 14
+stopopen 1, c2 # 16
+stmc c2, 1005 # 17
+reqbl 19 # 21
+reqbl 19 # 22
+vstartopen 2, 1, s0 # 18
+vstopopen 2, 1, c0 # 19
+stmc c0, 1006 # 20

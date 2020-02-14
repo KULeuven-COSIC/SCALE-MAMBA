@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -18,6 +18,11 @@ void Machine::SetUp_Memory(unsigned int whoami, const string &memtype)
   Ms.set_default(Share(whoami));
   Mr.set_default(Integer(0));
   Msr.set_default(aBitVector(0));
+
+  Mc.minimum_size(8192, "init", verbose);
+  Ms.minimum_size(8192, "init", verbose);
+  Mr.minimum_size(8192, "init", verbose);
+  Msr.minimum_size(8192, "init", verbose);
 
   // Initialize the global memory
   if (memtype.compare("old") == 0)
@@ -44,16 +49,20 @@ void Machine::Dump_Memory(unsigned int whoami)
   // Reduce memory size to speed up
   int max_size= 1 << 20;
   if (Mc.size() > max_size)
-    Mc.resize(max_size);
+    Mc.reduce_size(max_size);
   if (Ms.size() > max_size)
-    Ms.resize(max_size);
+    Ms.reduce_size(max_size);
   if (Mr.size() > max_size)
-    Mr.resize(max_size);
+    Mr.reduce_size(max_size);
 
   // Write out the memory to use next time
   char filename[2048];
   sprintf(filename, "Data/Memory-P%d", whoami);
   ofstream outf(filename, ios::out | ios::binary);
+  if (outf.fail())
+    {
+      throw file_error(filename);
+    }
   // We do it in this order as this is needed by Script/test_result.py
   // and we do not want that Script to worry about sizes of Shares
   outf << Mc << Mr << Ms;
@@ -69,10 +78,6 @@ void Machine::Load_Schedule_Into_Memory()
   for (unsigned int i= 0; i < nprogs; i++)
     {
       progs[i].parse(schedule.progs[i]);
-      Mc.minimum_size(progs[i].direct_mem(MODP)[CLEAR], schedule.tnames[i]);
-      Ms.minimum_size(progs[i].direct_mem(MODP)[SECRET], schedule.tnames[i]);
-      Mr.minimum_size(progs[i].direct_mem(INT)[CLEAR], schedule.tnames[i]);
-      Msr.minimum_size(progs[i].direct_mem(INT)[SECRET], schedule.tnames[i]);
     }
 }
 

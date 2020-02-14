@@ -1,24 +1,22 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "Processor.h"
 #include "GC/Garbled.h"
-#include "Local/Local_Functions.h"
 #include "Offline/DABitMachine.h"
 
 extern MaliciousDABitMachine daBitMachine;
 extern Base_Circuits Global_Circuit_Store;
-extern Local_Functions Global_LF;
 
 Processor::Processor(int thread_num, unsigned int nplayers,
                      Player &P) : online_thread_num(thread_num), iop(nplayers)
 {
 
-  daBitGen = daBitMachine.new_generator(P, thread_num);
+  daBitGen= daBitMachine.new_generator(P, thread_num);
   rounds= 0;
   sent= 0;
 }
@@ -26,11 +24,11 @@ Processor::Processor(int thread_num, unsigned int nplayers,
 Processor::~Processor()
 {
   fprintf(stderr, "Sent %d elements in %d rounds\n", sent, rounds);
-#ifdef VERBOSE 
+#ifdef VERBOSE
   cout << "dabitgen statistics:" << endl;
   cout << "Produced " << daBitGen->total << " dabits" << endl;
-  for (auto &timer: daBitGen->timers)
-      cout << timer.first << " took time " << timer.second.elapsed() / 1e6 << endl;
+  for (auto &timer : daBitGen->timers)
+    cout << timer.first << " took time " << timer.second.elapsed() / 1e6 << endl;
 #endif
 }
 
@@ -212,7 +210,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   vector<Share> bpr(size);
   vector<aBit> b2r(size);
   // Get a set of size daBits, until the value is less than p
-  auto& daBitGen = get_generator();
+  auto &daBitGen= get_generator();
   while (!done)
     { // Get daBits
       daBitV.get_daBits(bpr, b2r, daBitGen);
@@ -302,7 +300,7 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
 
   // Get a daBit
   vector<Share> bpr(size1);
-  auto& daBitGen = get_generator();
+  auto &daBitGen= get_generator();
   daBitV.get_daBits(bpr, input[1], daBitGen);
 
   // Now form r
@@ -348,12 +346,11 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
   write_srint(i1, output[0]);
 }
 
-void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
+void Processor::convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &P)
 {
   /* Get sreg_bitl daBits */
   vector<aBit> a2r(sreg_bitl);
-  vector<Share> apr(sreg_bitl);
-  auto& daBitGen = get_generator();
+  auto &daBitGen= get_generator();
   daBitV.get_daBits(apr, a2r, daBitGen);
 
   /* Add onto the input register */
@@ -379,6 +376,13 @@ void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
           apr[i].add(one);
         }
     }
+}
+
+void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
+{
+  vector<Share> apr(sreg_bitl);
+
+  convert_sregint_to_sint_sub(i0, apr, P);
 
   /* Now form  ans = -2^{sreg_bitl-1} * apr[sreg_bitl-1]
    *                 + sum_{i=0}^sreg_bitl-2 2^i*apr[i]
@@ -398,165 +402,91 @@ void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
   write_Sp(i1, ans);
 }
 
-void Processor::apply_GC(const vector<int> &arguments, Player &P)
+void Processor::convert_suregint_to_sint(int i0, int i1, Player &P)
+{
+  vector<Share> apr(sreg_bitl);
+
+  convert_sregint_to_sint_sub(i0, apr, P);
+
+  /* Now form  ans = sum_{i=0}^sreg_bitl-1 2^i*apr[i]
+   */
+  bigint te= 2;
+  Share tes, ans= apr[0];
+  for (unsigned int i= 1; i < sreg_bitl; i++)
+    {
+      tes.mul(apr[i], te);
+      ans.add(tes);
+      te<<= 1;
+    }
+
+  // Write back into the processor
+  write_Sp(i1, ans);
+}
+
+/* Arguments are obtained from the srint stack, and then outputs
+ * are pushed back onto the srint stack
+ */
+void Processor::apply_GC(unsigned int circuit_number, Player &P)
 {
   // Check circuit is loaded
-  Global_Circuit_Store.check(arguments[0]);
+  Global_Circuit_Store.check(circuit_number);
 
   // Set up arrays for the IO from the GC and load in the inputs
-  unsigned int numI= Global_Circuit_Store.Circuits[arguments[0]].num_inputs();
-  unsigned int numO= Global_Circuit_Store.Circuits[arguments[0]].num_outputs();
+  unsigned int numI= Global_Circuit_Store.Circuits[circuit_number].num_inputs();
+  unsigned int numO= Global_Circuit_Store.Circuits[circuit_number].num_outputs();
   vector<vector<aBit>> input(numI);
   vector<vector<aBit>> output(numO);
+  aBitVector temp;
 
-  unsigned int numi= 0, numo= 0;
-  unsigned int regi= 0, regib= 0;
-  for (unsigned int i= 0; i < numI; i++)
+  int regib;
+  bool empty= true;
+  // The first argument is at the bottom of the stack, the
+  // last is on the top. So need to take this into account
+  for (int i= numI - 1; i >= 0; i--)
     {
-      numi+= Global_Circuit_Store.Circuits[arguments[0]].num_iWires(i);
-      input[i].resize(Global_Circuit_Store.Circuits[arguments[0]].num_iWires(i));
-      for (unsigned int j= 0; j < input[i].size(); j++)
+      input[i].resize(Global_Circuit_Store.Circuits[circuit_number].num_iWires(i));
+      for (int j= input[i].size() - 1; j >= 0; j--)
         {
-          if (2 + regi > arguments.size())
+          if (empty)
             {
-              throw GC_Error("Number of inputs does not match up");
+              pop_srint(temp);
+              empty= false;
+              regib= sreg_bitl - 1;
             }
-          input[i][j]= read_srint(arguments[3 + arguments[1] + regi]).get_bit(regib);
-          regib++;
-          if (regib == sreg_bitl)
+          input[i][j]= temp.get_bit(regib);
+          regib--;
+          if (regib < 0)
             {
-              regib= 0;
-              regi++;
+              empty= true;
             }
         }
-    }
-  if ((numi - sreg_bitl * arguments[2]) != 0)
-    {
-      throw GC_Error("Number of inputs does not match up");
     }
 
   for (unsigned int i= 0; i < numO; i++)
     {
-      numo+= Global_Circuit_Store.Circuits[arguments[0]].num_oWires(i);
-      output[i].resize(Global_Circuit_Store.Circuits[arguments[0]].num_oWires(i));
-    }
-  if ((numo - sreg_bitl * arguments[1]) != 0)
-    {
-      throw GC_Error("Number of outputs does not match up");
+      output[i].resize(Global_Circuit_Store.Circuits[circuit_number].num_oWires(i));
     }
 
   // Evaluate the garbled circuit
   Base_Garbled_Circuit GC;
-  GC.Garble(Global_Circuit_Store.Circuits[arguments[0]], P, online_thread_num);
-  GC.Evaluate(output, input, Global_Circuit_Store.Circuits[arguments[0]], P);
+  GC.Garble(Global_Circuit_Store.Circuits[circuit_number], P, online_thread_num);
+  GC.Evaluate(output, input, Global_Circuit_Store.Circuits[circuit_number], P);
 
   // Now process the outputs
-  regi= 0;
   regib= 0;
-  for (unsigned int i= 0; i < numO; i++)
+  temp.assign_zero();
+  for (int i= numO - 1; i >= 0; i--)
     {
       for (unsigned int j= 0; j < output[i].size(); j++)
         {
-          get_srint_ref(arguments[3 + regi]).set_bit(regib, output[i][j]);
+          temp.set_bit(regib, output[i][j]);
           regib++;
           if (regib == sreg_bitl)
             {
               regib= 0;
-              regi++;
+              push_srint(temp);
+              temp.assign_zero();
             }
         }
-    }
-}
-
-void Processor::apply_local_function(RegType RT, SecrecyType ST,
-                                     const vector<int> &arguments)
-{
-  // First get the arrays of input arguments
-  vector<long> Cr_inp;
-  vector<aBitVector> Sr_inp;
-  vector<gfp> Cp_inp;
-  vector<Share> Sp_inp;
-
-  int instr= arguments[0];
-  Cr_inp.resize(arguments[2]);
-  Sr_inp.resize(arguments[3]);
-  Cp_inp.resize(arguments[4]);
-  Sp_inp.resize(arguments[5]);
-
-  unsigned int cnt= 6 + arguments[1];
-  for (int i= 0; i < arguments[2]; i++)
-    {
-      Cr_inp[i]= read_Ri(arguments[cnt]);
-      cnt++;
-    }
-  for (int i= 0; i < arguments[3]; i++)
-    {
-      Sr_inp[i]= read_srint(arguments[cnt]);
-      cnt++;
-    }
-  for (int i= 0; i < arguments[4]; i++)
-    {
-      Cp_inp[i]= read_Cp(arguments[cnt]);
-      cnt++;
-    }
-  for (int i= 0; i < arguments[5]; i++)
-    {
-      Sp_inp[i]= read_Sp(arguments[cnt]);
-      cnt++;
-    }
-
-  // Now the arrays of output arguments
-  vector<long> Cr_out;
-  vector<aBitVector> Sr_out;
-  vector<gfp> Cp_out;
-  vector<Share> Sp_out;
-
-  if (RT == INT && ST == CLEAR)
-    {
-      Cr_out.resize(arguments[1]);
-    }
-  else if (RT == INT && ST == SECRET)
-    {
-      Sr_out.resize(arguments[1]);
-    }
-  else if (RT == MODP && ST == CLEAR)
-    {
-      Cp_out.resize(arguments[1]);
-    }
-  else if (RT == MODP && ST == SECRET)
-    {
-      Sp_out.resize(arguments[1], Share(Sp[0].get_player()));
-    }
-  else
-    {
-      throw bad_value();
-    }
-
-  // Now call the function
-  Global_LF.apply_Function(instr,
-                           Cr_out, Sr_out, Cp_out, Sp_out,
-                           Cr_inp, Sr_inp, Cp_inp, Sp_inp);
-
-  // Now process the outputs
-  cnt= 6;
-  for (unsigned int i= 0; i < Cr_out.size(); i++)
-    {
-      write_Ri(arguments[cnt], Cr_out[i]);
-      cnt++;
-    }
-  for (unsigned int i= 0; i < Sr_out.size(); i++)
-    {
-      write_srint(arguments[cnt], Sr_out[i]);
-      cnt++;
-    }
-  for (unsigned int i= 0; i < Cp_out.size(); i++)
-    {
-      write_Cp(arguments[cnt], Cp_out[i]);
-      cnt++;
-    }
-  for (unsigned int i= 0; i < Sp_out.size(); i++)
-    {
-      write_Sp(arguments[cnt], Sp_out[i]);
-      cnt++;
     }
 }

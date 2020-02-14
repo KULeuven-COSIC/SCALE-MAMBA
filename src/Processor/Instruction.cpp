@@ -1,16 +1,18 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "Processor/Instruction.h"
 #include "Exceptions/Exceptions.h"
+#include "Local/Local_Functions.h"
 #include "Offline/offline_data.h"
 #include "Processor/Processor.h"
 #include "Tools/Crypto.h"
 #include "Tools/parse.h"
+extern Local_Functions Global_LF;
 
 #include <algorithm>
 #include <map>
@@ -148,6 +150,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case CONVSINTSREG:
       case CONVREGSREG:
       case CONVSREGSINT:
+      case CONVSUREGSINT:
       case OPENSINT:
       case OPENSBIT:
       case LDMSINTI:
@@ -156,6 +159,16 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case INVSINT:
       case EQZSINT:
       case LTZSINT:
+      case PEEKINT:
+      case PEEKSINT:
+      case PEEKC:
+      case PEEKS:
+      case PEEKSBIT:
+      case POKEINT:
+      case POKESINT:
+      case POKEC:
+      case POKES:
+      case POKESBIT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         break;
@@ -166,7 +179,20 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case LDARG:
       case STARG:
       case PUSHINT:
+      case PUSHSINT:
+      case PUSHC:
+      case PUSHS:
+      case PUSHSBIT:
       case POPINT:
+      case POPSINT:
+      case POPC:
+      case POPS:
+      case POPSBIT:
+      case GETSPINT:
+      case GETSPSINT:
+      case GETSPC:
+      case GETSPS:
+      case GETSPSBIT:
       case PRINT_CHAR_REGINT:
       case PRINT_CHAR4_REGINT:
       case PRINT_INT:
@@ -219,7 +245,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
       case INPUT_INT:
-      case OPEN_CHAN:
+      case OPEN_CHANNEL:
       case OUTPUT_INT:
       case LDMSINT:
       case STMSINT:
@@ -247,9 +273,11 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case CALL:
       case START_CLOCK:
       case STOP_CLOCK:
-      case CLOSE_CHAN:
+      case CLOSE_CHANNEL:
       case PRINT_MEM:
       case JOIN_TAPE:
+      case GC:
+      case LF:
         n= get_int(s);
         break;
       // instructions with no operand
@@ -264,20 +292,15 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case MUL2SINT:
         get_vector(4, start, s);
         break;
-      // open instructions + read/write + GC instructions with variable length args
+      // open instructions instructions with variable length args
       case STARTOPEN:
       case STOPOPEN:
-      case GC:
-      case LF_CINT:
-      case LF_SINT:
-      case LF_REGINT:
-      case LF_SREGINT:
         num_var_args= get_int(s);
         get_vector(num_var_args, start, s);
         break;
       // As above, but with a trailing int argument
-      case OUTPUT_SHARE:
-      case INPUT_SHARE:
+      case OUTPUT_SHARES:
+      case INPUT_SHARES:
         // subtract player/channel number from the number of arguments
         num_var_args= get_int(s) - 1;
         p= get_int(s);
@@ -307,6 +330,16 @@ RegType BaseInstruction::get_reg_type() const
       case LDMINTI:
       case MOVINT:
       case POPINT:
+      case PEEKSINT:
+      case PUSHINT:
+      case PUSHSINT:
+      case POKEINT:
+      case POKESINT:
+      case GETSPINT:
+      case GETSPSINT:
+      case GETSPS:
+      case GETSPC:
+      case GETSPSBIT:
       case LDTN:
       case LDARG:
       case INPUT_INT:
@@ -354,9 +387,6 @@ RegType BaseInstruction::get_reg_type() const
       case XORSINTC:
       case INVSINT:
       case MUL2SINT:
-      case GC:
-      case LF_REGINT:
-      case LF_SREGINT:
         return INT;
       case XORSB:
       case ANDSB:
@@ -365,8 +395,11 @@ RegType BaseInstruction::get_reg_type() const
       case LTZSINT:
       case EQZSINT:
       case BITSINT:
+      case POPSBIT:
+      case PUSHSBIT:
+      case PEEKSBIT:
+      case POKESBIT:
         return SBIT;
-      case PUSHINT:
       case STARG:
       case REQBL:
       case RUN_TAPE:
@@ -383,9 +416,9 @@ RegType BaseInstruction::get_reg_type() const
       case PRINT_FLOAT:
       case PRINT_FIX:
       case PRINT_INT:
-      case OPEN_CHAN:
-      case CLOSE_CHAN:
-      case OUTPUT_SHARE:
+      case OPEN_CHANNEL:
+      case CLOSE_CHANNEL:
+      case OUTPUT_SHARES:
       case OUTPUT_INT:
       case PRIVATE_OUTPUT:
       case JMP:
@@ -396,6 +429,8 @@ RegType BaseInstruction::get_reg_type() const
       case STOP_CLOCK:
       case CALL:
       case RETURN:
+      case GC:
+      case LF:
         return NONE;
       case DABIT:
         return DUAL;
@@ -440,44 +475,6 @@ int BaseInstruction::get_max_reg(RegType reg_type) const
         return *max_element(r, r + 3) + size;
     }
   return 0;
-}
-
-int Instruction::get_mem(RegType reg_type, SecrecyType sec_type) const
-{
-  if (get_reg_type() == reg_type and is_direct_memory_access(sec_type))
-    return n + size;
-  else
-    return 0;
-}
-
-bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
-{
-  if (sec_type == SECRET)
-    {
-      switch (opcode)
-        {
-          case LDMS:
-          case STMS:
-          case LDMSINT:
-          case STMSINT:
-            return true;
-          default:
-            return false;
-        }
-    }
-  else
-    {
-      switch (opcode)
-        {
-          case LDMC:
-          case STMC:
-          case LDMINT:
-          case STMINT:
-            return true;
-          default:
-            return false;
-        }
-    }
 }
 
 ostream &operator<<(ostream &s, const Instruction &instr)
@@ -542,8 +539,77 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case PUSHINT:
         s << "PUSHINT";
         break;
+      case PUSHSINT:
+        s << "PUSHSINT";
+        break;
+      case PUSHS:
+        s << "PUSHS";
+        break;
+      case PUSHC:
+        s << "PUSHC";
+        break;
+      case PUSHSBIT:
+        s << "PUSHSBIT";
+        break;
       case POPINT:
         s << "POPINT";
+        break;
+      case POPSINT:
+        s << "POPSINT";
+        break;
+      case POPS:
+        s << "POPS";
+        break;
+      case POPC:
+        s << "POPC";
+        break;
+      case POPSBIT:
+        s << "POPSBIT";
+        break;
+      case PEEKINT:
+        s << "PEEKINT";
+        break;
+      case PEEKSINT:
+        s << "PEEKSINT";
+        break;
+      case PEEKS:
+        s << "PEEKS";
+        break;
+      case PEEKC:
+        s << "PEEKC";
+        break;
+      case PEEKSBIT:
+        s << "PEEKSBIT";
+        break;
+      case POKEINT:
+        s << "POKEINT";
+        break;
+      case POKESINT:
+        s << "POKESINT";
+        break;
+      case POKES:
+        s << "POKES";
+        break;
+      case POKEC:
+        s << "POKEC";
+        break;
+      case POKESBIT:
+        s << "POKESBIT";
+        break;
+      case GETSPINT:
+        s << "GETSPINT";
+        break;
+      case GETSPSINT:
+        s << "GETSPSINT";
+        break;
+      case GETSPS:
+        s << "GETSPS";
+        break;
+      case GETSPC:
+        s << "GETSPC";
+        break;
+      case GETSPSBIT:
+        s << "GETSPSBIT";
         break;
       case MOVINT:
         s << "MOVINT";
@@ -659,11 +725,11 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case INPUT_CLEAR:
         s << "INPUT_CLEAR";
         break;
-      case OUTPUT_SHARE:
-        s << "OUTPUT_SHARE";
+      case OUTPUT_SHARES:
+        s << "OUTPUT_SHARES";
         break;
-      case INPUT_SHARE:
-        s << "INPUT_SHARE";
+      case INPUT_SHARES:
+        s << "INPUT_SHARES";
         break;
       case PRIVATE_INPUT:
         s << "PRIVATE_INPUT";
@@ -677,11 +743,11 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case INPUT_INT:
         s << "INPUT_INT";
         break;
-      case OPEN_CHAN:
-        s << "OPEN_CHAN";
+      case OPEN_CHANNEL:
+        s << "OPEN_CHANNEL";
         break;
-      case CLOSE_CHAN:
-        s << "CLOSE_CHAN";
+      case CLOSE_CHANNEL:
+        s << "CLOSE_CHANNEL";
         break;
       case STARTOPEN:
         s << "STARTOPEN";
@@ -902,6 +968,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case CONVSREGSINT:
         s << "CONVSREGSINT";
         break;
+      case CONVSUREGSINT:
+        s << "CONVSUREGSINT";
+        break;
       case OPENSINT:
         s << "OPENSINT";
         break;
@@ -935,17 +1004,8 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case GC:
         s << "GC";
         break;
-      case LF_CINT:
-        s << "LF_CINT";
-        break;
-      case LF_SINT:
-        s << "LF_SINT";
-        break;
-      case LF_REGINT:
-        s << "LF_REGINT";
-        break;
-      case LF_SREGINT:
-        s << "LF_SREGINT";
+      case LF:
+        s << "LF";
         break;
       default:
         s << instr.opcode;
@@ -1044,6 +1104,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       // instructions with 1 sbit and 1 sregint operands
       case LTZSINT:
       case EQZSINT:
+      case PEEKSBIT:
         s << "sb_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
         break;
@@ -1076,18 +1137,21 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDMCI:
       case CONVINT:
       case STMCI:
+      case PEEKC:
         s << "c_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
       // instructions with 1 sint + 1 rint register operand
       case LDMSI:
       case STMSI:
+      case PEEKS:
         s << "s_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
       // instructions with 1 sregint + 1 rint register operand
       case LDMSINTI:
       case CONVREGSREG:
+      case PEEKSINT:
         s << "sr_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1098,7 +1162,8 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       // instructions with 1 sint + 1 sregint register operand
       case CONVSREGSINT:
-	s << "s_" << instr.r[0] << " ";
+      case CONVSUREGSINT:
+        s << "s_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
         break;
       case DABIT:
@@ -1107,11 +1172,23 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       // instructions with 1 rint + 1 sregint register operand
       case OPENSINT:
+      case POKESINT:
         s << "r_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
         break;
+      // instructions with 1 rint + 1 cint register operand
+      case POKEC:
+        s << "r_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 rint + 1 sint register operand
+      case POKES:
+        s << "r_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        break;
       // instructions with 1 rint + 1 sbit register operand
       case OPENSBIT:
+      case POKESBIT:
         s << "r_" << instr.r[0] << " ";
         s << "sb_" << instr.r[1] << " ";
         break;
@@ -1136,10 +1213,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case STMSINTI:
       case LTZINT:
       case EQZINT:
+      case PEEKINT:
+      case POKEINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
-      // instructions with 2 sregint operands
+      // instructions with 2 srint operands
       case NEG:
       case MOVSINT:
       case INVSINT:
@@ -1153,11 +1232,25 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       // instructions with 1 cint register operands
       case PRINT_REG:
+      case POPC:
+      case PUSHC:
         s << "c_" << instr.r[0] << " ";
         break;
       // instructions with 1 sint register operands
       case BIT:
+      case POPS:
+      case PUSHS:
         s << "s_" << instr.r[0] << " ";
+        break;
+      // instructions with 1 sbit register operands
+      case POPSBIT:
+      case PUSHSBIT:
+        s << "sb_" << instr.r[0] << " ";
+        break;
+      // instructions with 1 srint register operands
+      case POPSINT:
+      case PUSHSINT:
+        s << "sr_" << instr.r[0] << " ";
         break;
       // instructions with 1 rint register operands
       case PRINT_INT:
@@ -1168,6 +1261,11 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case STARG:
       case LDTN:
       case LDARG:
+      case GETSPINT:
+      case GETSPSINT:
+      case GETSPS:
+      case GETSPC:
+      case GETSPSBIT:
         s << "r_" << instr.r[0] << " ";
         break;
       // instructions with 2 cint + 1 integer operand
@@ -1196,7 +1294,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "s_" << instr.r[1] << " ";
         s << instr.n << " ";
         break;
-      // instructions with 2 sregint + 1 integer operand
+      // instructions with 2 srint + 1 integer operand
       case SHLSINT:
       case SHRSINT:
         s << "sr_" << instr.r[0] << " ";
@@ -1216,7 +1314,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case JMPNZ:
       case JMPEQZ:
       case INPUT_INT:
-      case OPEN_CHAN:
+      case OPEN_CHANNEL:
       case OUTPUT_INT:
         s << "r_" << instr.r[0] << " ";
         s << instr.n << " ";
@@ -1237,7 +1335,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "c_" << instr.r[0] << " ";
         s << instr.n << " ";
         break;
-      // instructions with 1 sregint + 1 integer operand
+      // instructions with 1 srint + 1 integer operand
       case LDSINT:
       case LDMSINT:
       case STMSINT:
@@ -1264,10 +1362,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case JMP:
       case START_CLOCK:
       case STOP_CLOCK:
-      case CLOSE_CHAN:
+      case CLOSE_CHANNEL:
       case PRINT_MEM:
       case JOIN_TAPE:
       case CALL:
+      case GC:
+      case LF:
         s << instr.n << " ";
         break;
       // instructions with no operand
@@ -1303,55 +1403,8 @@ ostream &operator<<(ostream &s, const Instruction &instr)
             s << "s_" << instr.start[i] << " ";
           }
         break;
-      case GC:
-        s << instr.start[0] << " " << instr.start[1] << " " << instr.start[2] << " ";
-        for (unsigned int i= 3; i < instr.start.size(); i++)
-          {
-            s << "sr_" << instr.start[i] << " ";
-          }
-        break;
-      case LF_SINT:
-        for (unsigned int i= 0; i < 6; i++)
-          {
-            s << instr.start[i] << " ";
-          }
-        for (int i= 6; i < 6 + instr.start[1]; i++)
-          {
-            s << "s_" << instr.start[i] << " ";
-          }
-        break;
-      case LF_CINT:
-        for (unsigned int i= 0; i < 6; i++)
-          {
-            s << instr.start[i] << " ";
-          }
-        for (int i= 6; i < 6 + instr.start[1]; i++)
-          {
-            s << "c_" << instr.start[i] << " ";
-          }
-        break;
-      case LF_REGINT:
-        for (unsigned int i= 0; i < 6; i++)
-          {
-            s << instr.start[i] << " ";
-          }
-        for (int i= 6; i < 6 + instr.start[1]; i++)
-          {
-            s << "r_" << instr.start[i] << " ";
-          }
-        break;
-      case LF_SREGINT:
-        for (unsigned int i= 0; i < 6; i++)
-          {
-            s << instr.start[i] << " ";
-          }
-        for (int i= 6; i < 6 + instr.start[1]; i++)
-          {
-            s << "sr_" << instr.start[i] << " ";
-          }
-        break;
-      case OUTPUT_SHARE:
-      case INPUT_SHARE:
+      case OUTPUT_SHARES:
+      case INPUT_SHARES:
         s << instr.p << " ";
         for (unsigned int i= 0; i < instr.start.size(); i++)
           {
@@ -1362,33 +1415,6 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         throw Invalid_Instruction("Cannot parse operarands in verbose mode");
     }
 
-  // Finish the data for the LF_* instructions
-  switch (instr.opcode)
-    {
-      case LF_SINT:
-      case LF_CINT:
-      case LF_REGINT:
-      case LF_SREGINT:
-        int i;
-        for (i= 6 + instr.start[1]; i < 6 + instr.start[1] + instr.start[2]; i++)
-          {
-            s << "r_" << instr.start[i] << " ";
-          }
-        for (; i < 6 + instr.start[1] + instr.start[2] + instr.start[3]; i++)
-          {
-            s << "sr_" << instr.start[i] << " ";
-          }
-        for (; i < 6 + instr.start[1] + instr.start[2] + instr.start[3] + instr.start[4]; i++)
-          {
-            s << "c_" << instr.start[i] << " ";
-          }
-        for (; i < 6 + instr.start[1] + instr.start[2] + instr.start[3] + instr.start[4] + instr.start[5]; i++)
-          {
-            s << "s_" << instr.start[i] << " ";
-          }
-      default:
-        break;
-    }
   return s;
 }
 
@@ -1493,47 +1519,47 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             }
             break;
           case LDMC:
-            Proc.write_Cp(r[0], machine.Mc.read(n));
+            Proc.write_Cp(r[0], machine.Mc.read(n, machine.verbose));
             n++;
             break;
           case LDMS:
-            Proc.write_Sp(r[0], machine.Ms.read(n));
+            Proc.write_Sp(r[0], machine.Ms.read(n, machine.verbose));
             n++;
             break;
           case LDMINT:
-            Proc.write_Ri(r[0], machine.Mr.read(n).get());
+            Proc.write_Ri(r[0], machine.Mr.read(n, machine.verbose).get());
             n++;
             break;
           case LDMCI:
-            Proc.write_Cp(r[0], machine.Mc.read(Proc.read_Ri(r[1])));
+            Proc.write_Cp(r[0], machine.Mc.read(Proc.read_Ri(r[1]), machine.verbose));
             break;
           case LDMSI:
-            Proc.write_Sp(r[0], machine.Ms.read(Proc.read_Ri(r[1])));
+            Proc.write_Sp(r[0], machine.Ms.read(Proc.read_Ri(r[1]), machine.verbose));
             break;
           case LDMINTI:
-            Proc.write_Ri(r[0], machine.Mr.read(Proc.read_Ri(r[1])).get());
+            Proc.write_Ri(r[0], machine.Mr.read(Proc.read_Ri(r[1]), machine.verbose).get());
             break;
           case STMC:
-            machine.Mc.write(n, Proc.read_Cp(r[0]), Proc.get_PC());
+            machine.Mc.write(n, Proc.read_Cp(r[0]), machine.verbose, Proc.get_PC());
             n++;
             break;
           case STMS:
-            machine.Ms.write(n, Proc.read_Sp(r[0]), Proc.get_PC());
+            machine.Ms.write(n, Proc.read_Sp(r[0]), machine.verbose, Proc.get_PC());
             n++;
             break;
           case STMINT:
-            machine.Mr.write(n, Integer(Proc.read_Ri(r[0])), Proc.get_PC());
+            machine.Mr.write(n, Integer(Proc.read_Ri(r[0])), machine.verbose, Proc.get_PC());
             n++;
             break;
           case STMCI:
-            machine.Mc.write(Proc.read_Ri(r[1]), Proc.read_Cp(r[0]), Proc.get_PC());
+            machine.Mc.write(Proc.read_Ri(r[1]), Proc.read_Cp(r[0]), machine.verbose, Proc.get_PC());
             break;
           case STMSI:
-            machine.Ms.write(Proc.read_Ri(r[1]), Proc.read_Sp(r[0]), Proc.get_PC());
+            machine.Ms.write(Proc.read_Ri(r[1]), Proc.read_Sp(r[0]), machine.verbose, Proc.get_PC());
             break;
           case STMINTI:
             machine.Mr.write(Proc.read_Ri(r[1]), Integer(Proc.read_Ri(r[0])),
-                             Proc.get_PC());
+                             machine.verbose, Proc.get_PC());
             break;
           case MOVC:
             Proc.write_Cp(r[0], Proc.read_Cp(r[1]));
@@ -1545,10 +1571,79 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             Proc.write_Ri(r[0], Proc.read_Ri(r[1]));
             break;
           case PUSHINT:
-            Proc.pushi(Proc.read_Ri(r[0]));
+            Proc.push_int(Proc.read_Ri(r[0]));
+            break;
+          case PUSHSINT:
+            Proc.push_srint(Proc.read_srint(r[0]));
+            break;
+          case PUSHC:
+            Proc.push_Cp(Proc.read_Cp(r[0]));
+            break;
+          case PUSHS:
+            Proc.push_Sp(Proc.read_Sp(r[0]));
+            break;
+          case PUSHSBIT:
+            Proc.push_sbit(Proc.read_sbit(r[0]));
             break;
           case POPINT:
-            Proc.popi(Proc.get_Ri_ref(r[0]));
+            Proc.pop_int(Proc.get_Ri_ref(r[0]));
+            break;
+          case POPSINT:
+            Proc.pop_srint(Proc.get_srint_ref(r[0]));
+            break;
+          case POPC:
+            Proc.pop_Cp(Proc.get_Cp_ref(r[0]));
+            break;
+          case POPS:
+            Proc.pop_Sp(Proc.get_Sp_ref(r[0]));
+            break;
+          case POPSBIT:
+            Proc.pop_sbit(Proc.get_sbit_ref(r[0]));
+            break;
+          case PEEKINT:
+            Proc.peek_int(Proc.get_Ri_ref(r[0]), Proc.read_Ri(r[1]));
+            break;
+          case PEEKSINT:
+            Proc.peek_srint(Proc.get_srint_ref(r[0]), Proc.read_Ri(r[1]));
+            break;
+          case PEEKC:
+            Proc.peek_Cp(Proc.get_Cp_ref(r[0]), Proc.read_Ri(r[1]));
+            break;
+          case PEEKS:
+            Proc.peek_Sp(Proc.get_Sp_ref(r[0]), Proc.read_Ri(r[1]));
+            break;
+          case PEEKSBIT:
+            Proc.peek_sbit(Proc.get_sbit_ref(r[0]), Proc.read_Ri(r[1]));
+            break;
+          case POKEINT:
+            Proc.poke_int(Proc.read_Ri(r[0]), Proc.read_Ri(r[1]));
+            break;
+          case POKESINT:
+            Proc.poke_srint(Proc.read_Ri(r[0]), Proc.read_srint(r[1]));
+            break;
+          case POKEC:
+            Proc.poke_Cp(Proc.read_Ri(r[0]), Proc.read_Cp(r[1]));
+            break;
+          case POKES:
+            Proc.poke_Sp(Proc.read_Ri(r[0]), Proc.read_Sp(r[1]));
+            break;
+          case POKESBIT:
+            Proc.poke_sbit(Proc.read_Ri(r[0]), Proc.read_sbit(r[1]));
+            break;
+          case GETSPINT:
+            Proc.getsp_int(Proc.get_Ri_ref(r[0]));
+            break;
+          case GETSPSINT:
+            Proc.getsp_srint(Proc.get_Ri_ref(r[0]));
+            break;
+          case GETSPC:
+            Proc.getsp_Cp(Proc.get_Ri_ref(r[0]));
+            break;
+          case GETSPS:
+            Proc.getsp_Sp(Proc.get_Ri_ref(r[0]));
+            break;
+          case GETSPSBIT:
+            Proc.getsp_sbit(Proc.get_Ri_ref(r[0]));
             break;
           case LDTN:
             Proc.write_Ri(r[0], Proc.get_thread_num());
@@ -1878,12 +1973,12 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               }
             break;
           case CALL:
-            Proc.pushi(Proc.get_PC());
+            Proc.push_int(Proc.get_PC());
             Proc.relative_jump((signed int) n);
             break;
           case RETURN:
             long ret_pos;
-            Proc.popi(ret_pos);
+            Proc.pop_int(ret_pos);
             Proc.jump(ret_pos);
             break;
           case EQZINT:
@@ -1942,7 +2037,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             if (P.whoami() == 0)
               {
                 stringstream ss;
-                ss << "Mem[" << n << "] = " << machine.Mc.read(n) << endl;
+                ss << "Mem[" << n << "] = " << machine.Mc.read(n, machine.verbose) << endl;
                 machine.get_IO().debug_output(ss);
               }
             break;
@@ -2075,7 +2170,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case CLEAR_REGISTERS:
             Proc.clear_registers();
             break;
-          case OUTPUT_SHARE:
+          case OUTPUT_SHARES:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
@@ -2085,7 +2180,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 machine.get_IO().output_share(Proc.get_Sp_ref(start[i]), p);
               }
             break;
-          case INPUT_SHARE:
+          case INPUT_SHARES:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
@@ -2123,14 +2218,14 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               }
             machine.get_IO().public_output_int(Proc.read_Ri(r[0]), n);
             break;
-          case OPEN_CHAN:
+          case OPEN_CHANNEL:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
               }
             Proc.get_Ri_ref(r[0])= machine.get_IO().open_channel(n);
             break;
-          case CLOSE_CHAN:
+          case CLOSE_CHANNEL:
             if (Proc.get_thread_num() != 0)
               {
                 throw IO_thread();
@@ -2153,18 +2248,18 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           /* Now we add in the new instructions for sregint and sbit operations */
           case LDMSINT:
-            Proc.write_srint(r[0], machine.Msr.read(n));
+            Proc.write_srint(r[0], machine.Msr.read(n, machine.verbose));
             n++;
             break;
           case LDMSINTI:
-            Proc.write_srint(r[0], machine.Msr.read(Proc.read_Ri(r[1])));
+            Proc.write_srint(r[0], machine.Msr.read(Proc.read_Ri(r[1]), machine.verbose));
             break;
           case STMSINT:
-            machine.Msr.write(n, Proc.read_srint(r[0]), Proc.get_PC());
+            machine.Msr.write(n, Proc.read_srint(r[0]), machine.verbose, Proc.get_PC());
             n++;
             break;
           case STMSINTI:
-            machine.Msr.write(Proc.read_Ri(r[1]), Proc.read_srint(r[0]), Proc.get_PC());
+            machine.Msr.write(Proc.read_Ri(r[1]), Proc.read_srint(r[0]), machine.verbose, Proc.get_PC());
             break;
           case MOVSINT:
             Proc.write_srint(r[0], Proc.read_srint(r[1]));
@@ -2267,6 +2362,9 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           case CONVSREGSINT:
             Proc.convert_sregint_to_sint(r[1], r[0], P);
             break;
+          case CONVSUREGSINT:
+            Proc.convert_suregint_to_sint(r[1], r[0], P);
+            break;
           case CONVREGSREG:
             Proc.write_srint(r[0], Proc.read_Ri(r[1]));
             break;
@@ -2279,19 +2377,10 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             Proc.write_Ri(r[0], t);
             break;
           case GC:
-            Proc.apply_GC(start, P);
+            Proc.apply_GC(n, P);
             break;
-          case LF_SINT:
-            Proc.apply_local_function(MODP, SECRET, start);
-            break;
-          case LF_CINT:
-            Proc.apply_local_function(MODP, CLEAR, start);
-            break;
-          case LF_SREGINT:
-            Proc.apply_local_function(INT, SECRET, start);
-            break;
-          case LF_REGINT:
-            Proc.apply_local_function(INT, CLEAR, start);
+          case LF:
+            Global_LF.apply_Function(n, Proc);
             break;
           default:
             printf("Invalid opcode=%d. Since it is not implemented\n", opcode);

@@ -255,9 +255,6 @@ class _clear(_register):
     @vectorize
     def print_reg(self, comment=''):
         print_reg(self)
-        print_char4("  # ")
-        print_char4(comment)
-	print_char("\n")
 
     @set_instruction_type
     @vectorize
@@ -374,6 +371,33 @@ class cint(_clear, _int):
 
     def __init__(self, val=None, size=None):
         super(cint, self).__init__('c', val=val, size=size)
+
+    @vectorized_classmethod
+    def push(cls, val):
+        pushc(val)
+
+    @vectorized_classmethod
+    def pop(cls):
+        res = cls()
+        popc(res)
+        return res
+
+    @vectorized_classmethod
+    def peek(cls, address):
+        res = cls()
+        peekc(res, address)
+        return res
+
+    @vectorized_classmethod
+    def poke(cls, address, val):
+        pokec(address, val)
+
+    @classmethod
+    def getsp(cls):
+        res = regint()
+        getspc(res)
+        return res
+
 
     @classmethod
     def public_input(cls, channel=0):
@@ -565,10 +589,31 @@ class regint(_register, _int):
         output_int(self, channel);
 
     @vectorized_classmethod
+    def push(cls, val):
+        pushint(val)
+
+    @vectorized_classmethod
     def pop(cls):
         res = cls()
         popint(res)
         return res
+
+    @vectorized_classmethod
+    def peek(cls, address):
+        res = cls()
+        peekint(res, address)
+        return res
+
+    @vectorized_classmethod
+    def poke(cls, address, val):
+        pokeint(address, val)
+
+    @classmethod
+    def getsp(cls):
+        res = regint()
+        getspint(res)
+        return res
+
 
     @vectorized_classmethod
     def get_random(cls, bit_length):
@@ -926,7 +971,6 @@ class _secretInt(_secretMod2):
     def load_secret(self, val):
         convsintsreg(self, val)
 
-
     # legacy from _secret
     # it reveals input
     @set_instruction_type
@@ -1061,6 +1105,12 @@ class _secretModp(_sec):
     def load_secret(self, val):
         convsregsint(self, val)
 
+    @vectorized_classmethod
+    def convert_unsigned_to_sint(cls, val):
+        res = cls()
+        convsuregsint(res, val)
+        return res
+
     def add(self, other):
         return self.secret_op(other, adds, addm, addsi)
 
@@ -1128,6 +1178,32 @@ class sbit(_secretMod2):
         return NotImplemented  # cls._load_mem(addres  s, ldsint, ldsint)
 
     # TODO: when opcodes for inter-types these calls should be made by secret_op
+
+    @vectorized_classmethod
+    def push(cls, val):
+        pushsbit(val)
+
+    @vectorized_classmethod
+    def pop(cls):
+        res = cls()
+        popsbit(res)
+        return res
+
+    @vectorized_classmethod
+    def peek(cls, address):
+        res = cls()
+        peeksbit(res, address)
+        return res
+
+    @vectorized_classmethod
+    def poke(cls, address, val):
+        pokesbit(address, val)
+
+    @classmethod
+    def getsp(cls):
+        res = regint()
+        getspsbit(res)
+        return res
 
     def __xor__(self, other):
         res = sbit()
@@ -1205,6 +1281,33 @@ class sregint(_secretInt):
         if isinstance(other, sregint):
             mul2sint(msw, lsw, self, other)
         return msw, lsw
+
+    @vectorized_classmethod
+    def push(cls, val):
+        pushsint(val)
+
+    @vectorized_classmethod
+    def pop(cls):
+        res = cls()
+        popsint(res)
+        return res
+
+    @vectorized_classmethod
+    def peek(cls, address):
+        res = cls()
+        peeksint(res, address)
+        return res
+
+    @vectorized_classmethod
+    def poke(cls, address, val):
+        pokesint(address, val)
+
+    @classmethod
+    def getsp(cls):
+        res = regint()
+        getspsint(res)
+        return res
+
 
     def eqz(self):
         res = sbit()
@@ -1342,6 +1445,33 @@ class sint(_secretModp, _int):
         res = cls()
         private_input(res, player, channel)
         return res
+
+    @vectorized_classmethod
+    def push(cls, val):
+        pushs(val)
+
+    @vectorized_classmethod
+    def pop(cls):
+        res = cls()
+        pops(res)
+        return res
+
+    @vectorized_classmethod
+    def peek(cls, address):
+        res = cls()
+        peeks(res, address)
+        return res
+
+    @vectorized_classmethod
+    def poke(cls, address, val):
+        pokes(address, val)
+
+    @classmethod
+    def getsp(cls):
+        res = regint()
+        getsps(res)
+        return res
+
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -2043,7 +2173,7 @@ cfix.set_precision(fixed_lower, fixed_upper)
 
 
 ##
-# clear floating point class based on mod p sint.
+# secure floating point class based on mod p sint.
 class sfloat(_number):
     """ Shared floating point data type, representing (1 - 2s)*(1 - z)*v*2^p.
         v: significand
@@ -2066,8 +2196,9 @@ class sfloat(_number):
               x.load_mem(address)
         """
         res = []
-        for i in range(5):
+        for i in range(4):
             res.append(sint.load_mem(address + i * get_global_vector_size()))
+        res.append(0) # throw away errors when going through memory
         return sfloat(*res)
 
     @classmethod

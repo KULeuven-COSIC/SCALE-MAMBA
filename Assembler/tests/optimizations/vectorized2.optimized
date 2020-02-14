@@ -1,0 +1,8 @@
+ldi c0, 2 # 1
+ldi c1, 2 # 2
+ldsi s0, 2 # 3
+ldsi s1, 2 # 4
+vmulci 2, c0, c0, 2 # 422
+vmulm 2, s0, s0, c0 # 423
+stms s0, 42
+stms s1, 99

@@ -257,6 +257,10 @@ class Program(object):
         
         sch_file.write('0\n')
         sch_file.write(' '.join(sys.argv) + '\n')
+   
+        if self.options.asmoutfile or self.options.produce_asm:
+           return
+        
         for tape in self.tapes:
             tape.write_bytes()
     
@@ -279,9 +283,12 @@ class Program(object):
     def finalize_tape(self, tape):
         if not tape.purged:
             tape.optimize(self.options)
-            tape.write_bytes()
             if self.options.asmoutfile:
                 tape.write_str(self.options.asmoutfile + '-' + tape.name+'.asm')
+            elif self.options.produce_asm:
+                tape.write_str(self.args[0]+'/'+tape.name+'.asm')
+            else:
+                tape.write_bytes()
             tape.purge()
     
     
@@ -344,20 +351,6 @@ class Program(object):
             raise CompilerError('Cannot free memory within function block')
         size = self.allocated_mem_blocks.pop((addr,mem_type))
         self.free_mem_blocks[size,mem_type].add(addr)
-
-    def finalize_memory(self):
-        import library
-        self.curr_tape.start_new_basicblock(None, 'memory-usage')
-        # reset register counter to 0
-        self.curr_tape.init_registers()
-        library.jmp(0);  # Create a new basic block for the set memory instructions
-        for mem_type,size in self.allocated_mem.items():
-            if size:
-                print "Memory of type '%s' of size %d" % (mem_type, size)
-                if mem_type in self.types:
-                    self.types[mem_type].load_mem(size - 1, mem_type)
-                else:
-                    library.load_mem(size - 1, mem_type)
 
     def public_input(self, x):
         self.public_input_file.write('%s\n' % str(x))

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -22,9 +22,6 @@ class Program
   // Maximal register used
   int max_reg[MAX_REG_TYPE];
 
-  // Memory size used directly
-  int max_mem[MAX_REG_TYPE][MAX_SECRECY_TYPE];
-
   void compute_constants();
 
 public:
@@ -39,11 +36,6 @@ public:
   int num_reg(RegType reg_type) const
   {
     return max_reg[reg_type];
-  }
-
-  const int *direct_mem(RegType reg_type) const
-  {
-    return max_mem[reg_type];
   }
 
   friend ostream &operator<<(ostream &s, const Program &P);

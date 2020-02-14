@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = git@gitlab.cosmian.com:core/scasm.git
+	branch = master
+	commit = 2809f39e54badcac060a23b5e42b9d92bce83021
+	parent = 562fe5ec43b9b140585fad15dd17f78080b977e6
+	method = merge
+	cmdver = 0.4.0

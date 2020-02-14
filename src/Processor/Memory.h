@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -11,6 +11,7 @@ All rights reserved
 /* Class to hold global memory of our system */
 
 #include <iostream>
+#include <mutex>
 #include <set>
 #include <vector>
 using namespace std;
@@ -23,9 +24,13 @@ ostream &operator<<(ostream &s, const Memory<T> &M);
 template<class T>
 istream &operator>>(istream &s, Memory<T> &M);
 
+class Machine;
+
 template<class T>
 class Memory
 {
+  mutex memory_mutex;
+
   vector<T> M;
   T def_value; // A default value of type T for copying
 
@@ -34,46 +39,46 @@ public:
   {
     def_value= d;
   }
-  void resize(int sz)
-  {
-    M.resize(sz, def_value);
-  }
 
   int size()
   {
     return M.size();
   }
 
-  const T &read(int i) const
+  int reduce_size(unsigned int sz)
   {
+    if (sz < M.size())
+      {
+        M.resize(sz);
+      }
+  }
+
+  const T &read(int i, int verbose)
+  {
+    if (i >= M.size())
+      {
+        minimum_size(2 * i, "access_r", verbose);
+      }
     return M[i];
   }
 
-  void write(unsigned int i, const T &x, int PC= -1)
+  void write(unsigned int i, const T &x, int verbose, int PC= -1)
   {
+    if (i >= M.size())
+      {
+        minimum_size(2 * i, "access_w", verbose);
+      }
     M[i]= x;
-    (void) PC;
+    (void) PC; // To avoid a compiler warning. We pass in PC for gdb debugging purposes
   }
 
   /* Clears the memory */
   void clear_memory();
 
-  void minimum_size(int sz, string threadname);
+  void minimum_size(unsigned int sz, string threadname, int verbose);
 
   friend ostream &operator<<<>(ostream &s, const Memory<T> &M);
   friend istream &operator>><>(istream &s, Memory<T> &M);
 };
-
-/* This function loads a global memory from disk and
- * produces the memory
- *
- * The global unshared memory is of the form
- *     sz     <- Size
- *    n val   <- values
- *    n val   <- values
- *    -1 -1   <- End of values
- */
-template<class T>
-void Load_Memory(Memory<T> &M, ifstream &inpf);
 
 #endif

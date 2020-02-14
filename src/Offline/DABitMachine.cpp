@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -16,30 +16,27 @@ All rights reserved
 #include "config.h"
 
 DABitMachineBase::DABitMachineBase() : nBitsPerLoop(kdaBitsPerLoop), sec(daBits_stat_sec), cnc_param(0),
-	bucket_size(0)
+                                       bucket_size(0)
 {
 }
 
-MaliciousDABitMachine::MaliciousDABitMachine(): n_parties(0), OCD(0)
+MaliciousDABitMachine::MaliciousDABitMachine() : n_parties(0), OCD(0)
 {
 }
 
-void MaliciousDABitMachine::Initialize(uint nparties, offline_control_data& _OCD)
+void MaliciousDABitMachine::Initialize(uint nparties, offline_control_data &_OCD)
 {
-  this->OCD = &_OCD;
-  // add pre computed cnc parameters using input/triple factor 15.0
-  // 40 bit stat sec, 8192 dabits per loop; C = 2, B = 3
-  pre_cnc_params[make_pair(40, 8192)]= make_pair(2, 3);
-
-  // 64 bit stat sec, 8192 dabits per loop; C = 5, B = 4
-  pre_cnc_params[make_pair(64, 8192)]= make_pair(5, 4);
-
-  // 80 bit stat sec, 8192 dabits per loop; C = 5, B = 5
-  pre_cnc_params[make_pair(80, 8192)]= make_pair(5, 5);
+  this->OCD= &_OCD;
 
   n_parties= nparties;
-  // Now we need to find parameters
-  find_cnc_params();
+
+  //We need to compute gamma and Delta
+  //Since p_{min} = 2, we have gamma = sec + 1
+  gamma= sec + 1;
+
+  //Delta = ceil(p/nbParties)
+  bigint n_parties_bigint= n_parties;
+  Delta= div_c(gfp::pr(), n_parties_bigint);
 }
 
 void MaliciousDABitMachine::find_cnc_params()
@@ -96,8 +93,8 @@ void MaliciousDABitMachine::find_cnc_params()
 
 AbstractDABitGenerator *MaliciousDABitMachine::new_generator(Player &P, int thread_num)
 {
-  if (numBits(gfp::pr()) >= 64 and Share::SD.type == Full)
-	  return new LargePrimeDABitGenerator(*this, P, thread_num);
+  if (numBits(gfp::pr()) >= 64)
+    return new LargePrimeDABitGenerator(*this, P, thread_num);
   else
-	  return new SmallPrimeDABitGenerator(*this, P, thread_num);
+    return new SmallPrimeDABitGenerator(*this, P, thread_num);
 }

@@ -1,15 +1,15 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include <unistd.h>
 
+#include "OT/OT_Thread_Data.h"
 #include "Online.h"
 #include "Processor/Processor.h"
-#include "OT/OT_Thread_Data.h"
 
 extern OT_Thread_Data OTD;
 
@@ -47,9 +47,9 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
       OCD.bit_mutex[online_num].unlock();
 
       OTD.aBD.aBD_mutex.lock();
-      if (OTD.ready==false)
-	{
-	  wait=true;
+      if (OTD.ready == false)
+        {
+          wait= true;
         }
       OTD.aBD.aBD_mutex.unlock();
 

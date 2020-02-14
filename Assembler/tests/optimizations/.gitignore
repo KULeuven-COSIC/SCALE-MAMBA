@@ -1,0 +1,2 @@
+*.bc
+# Do not ignore `.optimized` and `.stderr`, we use them to track changes in our diagnostics and optimizations

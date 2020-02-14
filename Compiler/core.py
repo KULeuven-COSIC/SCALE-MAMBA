@@ -115,17 +115,32 @@ class _register(long):
     __radd__ = __add__
     __rmul__ = __mul__
 
-
+    
 class _sbit(_register):
     __and__ =  lambda self,other,x=None,y=None: sbit(bool(self) & other) if (isinstance(other, _sbit)) else sregint(bool(self) * other)
     __or__ = lambda self, other, x=None, y=None: sbit(bool(self) | other)
     __xor__ = lambda self, other, x=None, y=None: sbit(bool(self) ^ other)
     __neg__ = lambda self, x=None: sbit(1 - bool(self))
     reveal = lambda self: regint(self)
+
+    # stack simulation
+    content = []    
+    getsp = classmethod(lambda cls: len(_sbit.content))
+    push = classmethod(lambda cls,x: _sbit.content.append(x))
+    pop = classmethod(lambda cls: _sbit.content.pop() if len(_sbit.content) > 0 else None)
+    peek = classmethod(lambda cls,x: _sbit.content[x] if x < len(_sbit.content) else None)
+    poke = classmethod(lambda cls,x,y: _sbit.content.insert(x,y) if x < len(_sbit.content) else None)
+
 sbit = lambda x=0,size=None: (x if isinstance(x, Vector) else _sbit(x)) if size is None else Vector(_sbit(x),size)
 sbit.basic_type = _sbit
 sbit.type = _sbit
 
+# stack simulation
+sbit.getsp = _sbit.getsp
+sbit.push = _sbit.push
+sbit.pop = _sbit.pop
+sbit.peek = _sbit.peek
+sbit.poke = _sbit.poke
 
 class _sregint(_register):
     __and__ =  lambda self,other,x=None,y=None: sregint(long(self) * other) if (isinstance(other, _sbit)) else sregint(long(self) & other)
@@ -153,12 +168,25 @@ class _sregint(_register):
     __ror__ = __or__
     __rxor__ = __xor__
 
-
+    # stack simulation
+    content = []    
+    getsp = classmethod(lambda cls: len(_sregint.content))
+    push = classmethod(lambda cls,x: _sregint.content.append(x))
+    pop = classmethod(lambda cls: _sregint.content.pop() if len(_sregint.content) > 0 else None)
+    peek = classmethod(lambda cls,x: _sregint.content[x] if x < len(_sregint.content) else None)
+    poke = classmethod(lambda cls,x,y: _sregint.content.insert(x,y) if x < len(_sregint.content) else None)
 
 sregint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sregint(x)) if size is None else Vector(_sregint(x),size)
 sregint.load_mem = _sregint.load_mem
 sregint.basic_type = _sregint
 sregint.type = _sregint
+
+# stack simulation
+sregint.getsp =_sregint.getsp
+sregint.push =_sregint.push
+sregint.pop =_sregint.pop
+sregint.peek =_sregint.peek
+sregint.poke =_sregint.poke
 
 class _sint(_register):
     less_than = lambda self,other,x=None,y=None: sint(long(self) < other)
@@ -180,6 +208,15 @@ class _sint(_register):
     __eq__ = equal
     __ne__ = not_equal
     __neg__ = lambda self: sint(-long(self))
+    convert_unsigned_to_sint = classmethod(lambda cls,x: _sint(x))
+
+    # stack simulation
+    content = []    
+    getsp = classmethod(lambda cls: len(_sint.content))
+    push = classmethod(lambda cls,x: _sint.content.append(x))
+    pop = classmethod(lambda cls: _sint.content.pop() if len(_sint.content) > 0 else None)
+    peek = classmethod(lambda cls,x: _sint.content[x] if x < len(_sint.content) else None)
+    poke = classmethod(lambda cls,x,y: _sint.content.insert(x,y) if x < len(_sint.content) else None)
 
 sint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sint(x)) if size is None else Vector(_sint(x),size)
 sint.load_mem = _sint.load_mem
@@ -191,12 +228,37 @@ sint.basic_type = _sint
 sint.type = _sint
 reveal = lambda x: x
 
+# stack simulation
+sint.getsp =_sint.getsp
+sint.push =_sint.push
+sint.pop =_sint.pop
+sint.peek =_sint.peek
+sint.poke =_sint.poke
+
+# additional methods
+sint.convert_unsigned_to_sint = _sint.convert_unsigned_to_sint
+
 class _cint(_register):
     print_reg = lambda x,y=None: None
+
+    #stack simulation
+    content = []    
+    getsp = classmethod(lambda cls: len(_cint.content))
+    push = classmethod(lambda cls,x: _cint.content.append(x))
+    pop = classmethod(lambda cls: _cint.content.pop() if len(_cint.content) > 0 else None)
+    peek = classmethod(lambda cls,x: _cint.content[x] if x < len(_cint.content) else None)
+    poke = classmethod(lambda cls,x,y: _cint.content.insert(x,y) if x < len(_cint.content) else None)
 
 cint = lambda x=0,size=None: (x if isinstance(x, Vector) else _cint(x)) if size is None else Vector(_cint(x),size)
 cint.load_mem = cint
 cint.get_random = cint
+
+# stack simulation
+cint.getsp =_cint.getsp
+cint.push =_cint.push
+cint.pop =_cint.pop
+cint.peek =_cint.peek
+cint.poke =_cint.poke
 
 class A:
     def malloc(self, size, reg_type):
@@ -392,6 +454,8 @@ loopy_chunkier_odd_even_merge_sort = lambda x,**kwargs: x.sort()
 odd_even_merge_sort = sort
 loopy_odd_even_merge_sort = sort
 cond_swap = lambda x,y: (x,y) if x < y else (y,x)
+get_random_dabit = lambda size=None: (1,1) if size is None else (Vector(1, size), Vector(1, size))
+
 program = A()
 program.restart_main_thread = lambda: None
 program.curr_tape = A()
@@ -529,8 +593,17 @@ time = lambda: None
 start_timer = lambda *args: None
 stop_timer = lambda *args: None
 
+
 class regint(_register):
-    pass
+   # stack simulation
+   content = []    
+   getsp = classmethod(lambda cls: len(regint.content))
+   push = classmethod(lambda cls,x: regint.content.append(x))
+   pop = classmethod(lambda cls: regint.content.pop() if len(regint.content) > 0 else None)
+   peek = classmethod(lambda cls,x: regint.content[x] if x < len(regint.content) else None)
+   poke = classmethod(lambda cls,x,y: regint.content.insert(x,y) if x < len(regint.content) else None)
+
+
 
 print_ln = lambda *args: None
 

@@ -1,0 +1,46 @@
+# (C) 2017 University of Bristol. See License.txt
+# (C) 2018 KU Leuven. See License.txt
+ 
+def test(actual, expected):
+    actual = actual.reveal()
+    print_ln('expected %s, got %s', expected, actual)
+
+# cint: clear integers modulo p
+# sint: secret integers modulo p
+
+a = sint(1)
+b = cint(2)
+
+test(a + b, 3)
+test(a + a, 2)
+test(a * b, 2)
+test(a * a, 1)
+test(a - b, -1)
+test(a < b, 1)
+test(a <= b, 1)
+test(a >= b, 0)
+test(a > b, 0)
+test(a == b, 0)
+test(a != b, 1)
+
+clear_a = a.reveal()
+
+# arrays and loops
+
+a = Array(100, sint)
+
+@for_range(100)
+def f(i):
+    a[i] = sint(i)**2
+
+test(a[99], 99**2)
+
+# conditional
+
+if_then(cint(0))
+a[0] = 123
+else_then()
+a[0] = 789
+end_if()
+
+test(a[0], 789)

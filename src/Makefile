@@ -3,7 +3,7 @@ include ../CONFIG.mine
 
 CC = g++
 
-CFLAGS = -Wall -std=c++11 -pedantic -Wextra -g -pthread -I$(ROOT)/src -maes -mpclmul -msse4.1 -mavx -march=core2 $(FLAGS) $(OPT) -I$(OSSL)/include
+CFLAGS = -Wall -std=c++11 -pedantic -Wextra -pthread -I$(ROOT)/src -maes -mpclmul -msse4.1 -mavx -march=core2 $(FLAGS) $(OPT) -I$(OSSL)/include
 CPPFLAGS = $(CFLAGS) 
 LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir -lcryptopp $(LDFLAGS)
 
@@ -25,10 +25,6 @@ EXCEPTIONS = $(patsubst %.cpp,%.o,$(wildcard Exceptions/*.cpp))
 
 LIB = libMPC.a
 
-OBJ = Setup.o Player.o 
-
-SRC = Setup.cpp Player.cpp 
-
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $< 
 
@@ -38,11 +34,11 @@ $(OBJ): $(SRC)
 $(LIB): $(SYSTEM) $(MATH) $(TOOLS) $(LSSS) $(OFFLINE) $(ONLINE) $(OT) $(PROCESSOR) $(IO) $(FHE) $(GC) $(LOCAL_FUNC) $(EXCEPTIONS)
 	$(AR) -crs libMPC.a $^
 
-Setup.x: $(OBJ) $(LIB)
+Setup.x: Setup.o $(LIB)
 	$(CC) $(CFLAGS) -o Setup.x Setup.o $(LIB) $(LDLIBS)
 	- mv Setup.x ../
 
-Player.x: $(OBJ) $(LIB)
+Player.x: Player.o $(LIB)
 	$(CC) $(CFLAGS) -o Player.x Player.o $(LIB) $(LDLIBS)
 	- mv Player.x ../
 

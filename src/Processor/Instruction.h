@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -49,8 +49,6 @@ enum {
   STMINT= 0xCB,
   LDMINTI= 0xCC,
   STMINTI= 0xCD,
-  PUSHINT= 0xCE,
-  POPINT= 0xCF,
 
   // Machine
   LDTN= 0x10,
@@ -96,14 +94,14 @@ enum {
   // IO
   OUTPUT_CLEAR= 0x40,
   INPUT_CLEAR= 0x41,
-  OUTPUT_SHARE= 0x42,
-  INPUT_SHARE= 0x43,
+  OUTPUT_SHARES= 0x42,
+  INPUT_SHARES= 0x43,
   PRIVATE_INPUT= 0x44,
   PRIVATE_OUTPUT= 0x46,
   OUTPUT_INT= 0x48,
   INPUT_INT= 0x49,
-  OPEN_CHAN= 0x4A,
-  CLOSE_CHAN= 0x4B,
+  OPEN_CHANNEL= 0x4A,
+  CLOSE_CHANNEL= 0x4B,
 
   // Open
   STARTOPEN= 0xA0,
@@ -179,6 +177,7 @@ enum {
   CONVSINTSREG= 0xC2,
   CONVREGSREG= 0xC3,
   CONVSREGSINT= 0xC4,
+  CONVSUREGSINT= 0xC5,
 
   // Debug Printing
   PRINT_MEM= 0xB0,
@@ -211,17 +210,43 @@ enum {
   GC= 0xDB,
   BITSINT= 0xDC,
   SINTBIT= 0xDD,
+  LF= 0xDE,
 
   // Others
   RAND= 0xE0,
   START_CLOCK= 0xE1,
   STOP_CLOCK= 0xE2,
 
-  // Local functions
-  LF_CINT= 0xEA,
-  LF_SINT= 0xEB,
-  LF_REGINT= 0xEC,
-  LF_SREGINT= 0xED
+  // Stack operations
+  PUSHINT= 0x100,
+  POPINT= 0x101,
+  PEEKINT= 0x102,
+  POKEINT= 0x103,
+  GETSPINT= 0x104,
+
+  PUSHSINT= 0x105,
+  POPSINT= 0x106,
+  PEEKSINT= 0x107,
+  POKESINT= 0x108,
+  GETSPSINT= 0x109,
+
+  PUSHSBIT= 0x10A,
+  POPSBIT= 0x10B,
+  PEEKSBIT= 0x10C,
+  POKESBIT= 0x10D,
+  GETSPSBIT= 0x10E,
+
+  PUSHC= 0x110,
+  POPC= 0x111,
+  PEEKC= 0x112,
+  POKEC= 0x113,
+  GETSPC= 0x114,
+
+  PUSHS= 0x115,
+  POPS= 0x116,
+  PEEKS= 0x117,
+  POKES= 0x118,
+  GETSPS= 0x119,
 
 };
 
@@ -260,8 +285,6 @@ public:
 
   virtual RegType get_reg_type() const;
 
-  bool is_direct_memory_access(SecrecyType sec_type) const;
-
   // Returns the maximal register used
   int get_max_reg(RegType reg_type) const;
 };
@@ -274,9 +297,6 @@ class Instruction : public BaseInstruction
 public:
   // Reads a single instruction from the istream
   void parse(istream &s);
-
-  // Returns the memory size used if applicable and known
-  int get_mem(RegType reg_type, SecrecyType sec_type) const;
 
   friend ostream &operator<<(ostream &s, const Instruction &instr);
 

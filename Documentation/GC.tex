@@ -64,7 +64,8 @@ cool (well we think it is cool) functionality into the
 system.
 We have added a number of such circuits already into the
 system, which include AES operations (for AES-128, AES-192
-and AES-256) plus a circuit for the Keccak-f function\footnote{If
+and AES-256), the SHA-256 and SHA-512 compression functions,
+plus a circuit for the Keccak-f function\footnote{If
 you have a cool circuit which you think others might find
 cool to use in SCALE-MAMBA, just send it to us and we
 might include it in a future release with a circuit
@@ -87,22 +88,21 @@ where to get it from.
 
 \subsection{Byte Code Operation}
 The garbled circuit is executed by the \verb|GC| byte-code.
-This takes as input three integers; the first specifies
-the circuit number to execute, the second defines
-the number of \verb|sregint| registers which
-give the output, whilst the third defines the number of
-\verb|sregint| registers which give the input.
+This takes as input a single integer which defines the
+circuit to be evaluated.
+The arguments to the garbled circuit, as \verb|sregint| values,
+are then popped off the \verb|sregint|-stack and then passed
+into the garbled circuit engine.
+On return the resulting result values are then pushed
+onto the \verb|sregint|-stack.
 Since a \verb|sregint| register is 64-bits long, this
 explains why the circuits take inputs/outputs a multiple
 of 64-bits.
-After these three integers the instruction takes the list
-of output registers, followed by the input registers.
 
 When this instruction is executed, if the circuit has
 not yet been loaded it is loaded into memory. Then the
 Garbled Circuit engine is called with the given input
-registers to produce the output, which is places in the
-given output registers.
+values to produce the output.
 Note, that the first time a GC operation is met, the
 runtime might give a small delay as the various pre-processing
 queues need to fill up.
@@ -118,28 +118,32 @@ to contact us, so you will know which one it is.
 
 \subsection{Using Circuits From MAMBA}
 MAMBA calling of the circuits follows much like the
-\verb|GC| byte-code. The key is that you need to
-pass in an array of \verb|sregint| registers, and that
-the output registers need to have been created before
-the function is called.
+\verb|GC| byte-code.
 In the context of executing AES-128 operation with
-the all zero key and the all one message, this becomes
-the code
+the key \verb+0x00000000FFFFFFFF+ and the message
+\verb+0xFFFFFFFF00000001+, this becomes the code
 \begin{lstlisting}
 AES_128=100
 
+def push_data(stuff,n):
+  for i in range(n):
+    sregint.push(stuff[i])
+
+def pop_data(stuff,n):
+  for i in range(n):
+    stuff[n-i-1]=sregint.pop()
+
 # Set key
-key = [sregint(0) for _ in range(2)]
-
-# Set message
-mess = [sregint(-1) for _ in range(2)]
-
-# Create space for the ciphertext
+key = [sregint(0), sregint(-1)]
+mess = [sregint(-1), sregint(1)]
 ciph = [sregint() for _ in range(2)]
 
 print_ln("AES-128")
-# Op, # Output, # Input
-GC(AES_128, 2, 4, *(ciph + key + mess))
+push_data(key,2)
+push_data(mess,2)
+# Op
+GC(AES_128)
+pop_data(ciph,2)
 
 # Now open the values to check all is OK
 m = [None] * 2
@@ -162,20 +166,17 @@ print_ln("Ciphertext")
 c[1].public_output()     
 c[0].public_output()
 \end{lstlisting}
+
 Note, that the AES-128 operation takes four
 input registers (two for the key and two for
 the message), and produces two output registers
 as output.
 Also note bit ordering of the inputs and outputs.
-The correct output of AES-128 for all zero key
-and all one message is
+The correct output of AES-128 for the above
+example is
 \begin{center}
-  \verb|3F5B8CC9EA855A0AFA7347D23E8D664E|
+  \verb|406bab6335ce415f4f943dc8966682aa|
 \end{center}
-with the top 64-bits \verb|3F5B8CC9EA855A0A|
-being returns in \verb|c[1]| and the bottom
-64-bits \verb|FA7347D23E8D664E| being returned
-in \verb|c[0]|.
 
 
 \subsection{Current System Defined Circuits}
@@ -188,6 +189,8 @@ Number & Function \\
 101 & AES-192 \\
 102 & AES-256 \\
 103 & Keccak-f \\
+104 & SHA-256 \\
+105 & SHA-512 \\
 \end{tabular}
 \end{center}
 

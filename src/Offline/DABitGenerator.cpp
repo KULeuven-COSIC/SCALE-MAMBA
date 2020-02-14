@@ -1,12 +1,13 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "DABitGenerator.h"
 #include "DABitMachine.h"
+#include "OT/BitVector.h"
 #include "OT/OT_Thread_Data.h"
 #include "Processor/Processor_IO.h"
 #include "Tools/util_containers.h"
@@ -508,8 +509,8 @@ void LargePrimeDABitGenerator::check_public_lsbs(vector<Share> modp_bits, vector
   // add in a random mask [2*r] of sec + log_nbits bitlength
   auto it_prep_bit= prep_bits.begin();
   vector<gfp> power_of_two(sec + log_nBits + 1, 1);
-  for (int i = 1; i <= sec + log_nBits; i++)
-    power_of_two[i] = power_of_two[i - 1] * 2;
+  for (int i= 1; i <= sec + log_nBits; i++)
+    power_of_two[i]= power_of_two[i - 1] * 2;
 
   for (int i= 0; i < sec; i++)
     {
@@ -543,67 +544,389 @@ void LargePrimeDABitGenerator::check_public_lsbs(vector<Share> modp_bits, vector
     }
   OP.RunOpenCheck(P, "", 2);
 }
+
+//Use the new technique described in 2019/1300-Fig.6
 void LargePrimeDABitGenerator::run(daBitVector &dabs)
 {
-  size_t num_dabits= machine.nBitsPerLoop + machine.sec;
-  // Now retrieve random GF(p) bits
-  // Wait until enough in the queue
+  //We assume that p is large enough (more than 54 bits long
+  //for nBitsPerLoop = 2**13 and sec = 40)
+  size_t num_dabits= machine.nBitsPerLoop + (machine.gamma * machine.sec);
+
+  //Now retrieve random GF(p) bits
+  //Wait until enough in the queue
   timers["Waiting for random bits in GF(p)"].start();
   Wait_For_Preproc(DATA_BIT, num_dabits, thread_num, OCD, P.whoami());
   timers["Waiting for random bits in GF(p)"].stop();
 
-  int extra_gfp_xors= int(P.nplayers() + 1) / 2 - 1;
-  int m= num_dabits * (extra_gfp_xors + 1);
-
   vector<Share> random_bits_modp;
-  // Lock to retrieve GF(p) random bits
+  //Lock to retrieve GF(p) random bits
   OCD.bit_mutex[thread_num].lock();
-  take_first_to_vector(random_bits_modp, SacrificeD[thread_num].BD.bb, m);
+  take_first_to_vector(random_bits_modp, SacrificeD[thread_num].BD.bb, num_dabits);
   OCD.bit_mutex[thread_num].unlock();
 
-  // if n-party case then simplify to 2-party case
-  vector<gfp> half_shares;
-  if (P.nplayers() > 2)
+  //Find out if I will take part in the tweaking step
+  unsigned int local_nb_shares= Share::SD.M.shares_per_player(P.whoami());
+  vector<bool> amPart(local_nb_shares);
+  vector<bool> shouldRcv(P.nplayers());
+  vector<int> myRelativeNumber(local_nb_shares);
+
+  for (unsigned int k= 0; k < local_nb_shares; k++)
     {
-      this->split_shares(half_shares, random_bits_modp);
-      vector<vector<Share>> row_arranged;
-      this->prepare_for_xor(row_arranged, random_bits_modp);
-      this->xor_machine.party_log_xor(random_bits_modp, row_arranged, this->OP);
+      if (Share::SD.RCt[P.whoami()][0][k] == 1)
+        amPart[k]= true;
+      else
+        amPart[k]= false;
     }
-  else
+
+  int counter= 0;
+  for (unsigned int i= 0; i < P.nplayers(); i++)
     {
-      for (auto &rbit : random_bits_modp)
-        half_shares.push_back(rbit.get_share(0));
+      for (unsigned int k= 0; k < Share::SD.M.shares_per_player(i); k++)
+        {
+          if (Share::SD.RCt[i][0][k] == 1)
+            {
+              if (i == P.whoami() and amPart[k])
+                myRelativeNumber[k]= counter;
+              counter++;
+            }
+        }
     }
 
-  vector<bool> mod2_half_shares(half_shares.size());
-  for (size_t i= 0; i < mod2_half_shares.size(); i++)
-    mod2_half_shares[i]= (half_shares[i] & 1).is_one();
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      shouldRcv[j]= false;
+      for (unsigned int k= 0; k < Share::SD.M.shares_per_player(j); k++)
+        {
+          if (Share::SD.RCt[j][0][k] == 1)
+            shouldRcv[j]= true;
+        }
+    }
 
-  // Input shares to GC
-  vector<aBit> mod2_shares(num_dabits);
-  this->input_GF2_bits(mod2_shares, mod2_half_shares);
+  //Compute h_{i,j} = floor(b_{i,j}/Delta) locally
 
-  // Offset bit shares by 1
-  // Only tested for N <= 3 parties
-  aBit x;
-  if ((P.nplayers() / 2) % 2)
-    x.assign_one();
-  else
-    x.assign_zero();
-  for (size_t i= 0; i < mod2_shares.size(); i++)
-    mod2_shares[i]+= x;
+  vector<bigint> new_bits_input(num_dabits);
+  vector<bigint> local_h(num_dabits);
+  bool haveSomethingToSend= false;
+  for (unsigned int i= 0; i < num_dabits; i++)
+    {
+      new_bits_input[i]= 0; //.assign_zero();
+      for (unsigned int k= 0; k < local_nb_shares; k++)
+        {
+          if (amPart[k])
+            {
+              bigint tmp_bigint;
+              to_bigint(tmp_bigint, Share::SD.ReconS[0][myRelativeNumber[k]] * random_bits_modp[i].get_shares()[k], true);
+              new_bits_input[i]+= tmp_bigint;
+              haveSomethingToSend= true;
+            }
+        }
+      new_bits_input[i]= mod(new_bits_input[i], gfp::pr());
+      local_h[i]= div_f(new_bits_input[i], machine.Delta);
+    }
 
-  // Now do sec checks and compare public LSBs
-  this->check_public_lsbs(random_bits_modp, mod2_shares);
+  //Send local_h to P0
+  if (P.whoami() != 0 and haveSomethingToSend)
+    {
+      ostringstream os;
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          gfp tmp_gfp;
+          to_gfp(tmp_gfp, local_h[i]);
+          tmp_gfp.output(os, false);
+        }
+      P.send_to_player(0, os.str());
+    }
+  if (P.whoami() == 0)
+    {
+      //As P0, receive all local_h from others
+      for (unsigned int j= 1; j < P.nplayers(); j++)
+        {
+          if (shouldRcv[j])
+            {
+              string ss;
+              P.receive_from_player(j, ss);
+              istringstream is(ss);
+              for (unsigned int i= 0; i < num_dabits; i++)
+                {
+                  gfp tmp_gfp;
+                  tmp_gfp.input(is, false);
+                  bigint tmp_bigint;
+                  to_bigint(tmp_bigint, tmp_gfp, true);
+                  local_h[i]= local_h[i] + tmp_bigint;
+                }
+            }
+        }
+      //Compute k = ceil((delta * \sum h)/p)
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          local_h[i]= local_h[i] * machine.Delta;
+          local_h[i]= div_c(local_h[i], gfp::pr());
+        }
 
-  // Final bit output, discard first sec bits which were used for checks
+      //Compute b-k*p to re-input in GF(p) and GF(2)
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          new_bits_input[i]= new_bits_input[i] - (local_h[i] * gfp::pr());
+        }
+    }
+
+  //All parties re-input their new_bits_input in both GF(p) and GF(2)
+  //Retrieve random masks from GF(p) world
+  //Wait until enough in the queue
+  vector<gfp> opened_masks_p;
+  vector<vector<Share>> vec_random_masks_p(P.nplayers());
+
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      if (shouldRcv[j])
+        {
+          timers["Waiting for bits in GF(p)"].start();
+          Wait_For_Preproc(DATA_INPUT_MASK, num_dabits, thread_num, OCD, j);
+          timers["Waiting for bits in GF(p)"].stop();
+
+          // Lock to retrieve gf(p) masks
+          OCD.OCD_mutex[thread_num].lock();
+          take_first_to_vector(vec_random_masks_p[j], SacrificeD[thread_num].ID.ios[j], num_dabits);
+          if (j == P.whoami())
+            {
+              take_first_to_vector(opened_masks_p, SacrificeD[thread_num].ID.opened_ios, num_dabits);
+            }
+          OCD.OCD_mutex[thread_num].unlock();
+        }
+    }
+
+  //All parties locally use their opened local masks to input the sharing of their share of the bits
+  //P0 locally substracted k*p before doing so
+  //if (amPart)
+  if (haveSomethingToSend)
+    {
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          if (P.whoami() != 0)
+            {
+              opened_masks_p[i].negate();
+              for (unsigned int k= 0; k < local_nb_shares; k++)
+                {
+                  if (amPart[k])
+                    opened_masks_p[i].add(Share::SD.ReconS[0][myRelativeNumber[k]] * random_bits_modp[i].get_shares()[k]);
+                }
+            }
+          else
+            {
+              gfp tmp_gfp;
+              to_gfp(tmp_gfp, new_bits_input[i]);
+              opened_masks_p[i].negate();
+              opened_masks_p[i].add(tmp_gfp);
+            }
+        }
+    }
+
+  vector<string> bcast_string(P.nplayers());
+  ostringstream os;
+  if (haveSomethingToSend)
+    {
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          opened_masks_p[i].output(os, false);
+        }
+    }
+  bcast_string[P.whoami()]= os.str();
+  P.Broadcast_Receive(bcast_string);
+
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      if (shouldRcv[j])
+        {
+          istringstream is(bcast_string[j]);
+          for (unsigned int i= 0; i < num_dabits; i++)
+            {
+              gfp tmp_gfp;
+              tmp_gfp.input(is, false);
+              vec_random_masks_p[j][i].add(vec_random_masks_p[j][i], tmp_gfp, P.get_mac_keys());
+            }
+        }
+      bcast_string[j].clear();
+    }
+
+  //Parties locally add the resharing of each share to end up with a new resharing of the same bit
+  vector<Share> final_sharing_p(num_dabits);
+  for (unsigned int i= 0; i < num_dabits; i++)
+    {
+      final_sharing_p[i]= vec_random_masks_p[0][i];
+      for (unsigned int j= 1; j < P.nplayers(); j++)
+        {
+          if (shouldRcv[j])
+            {
+              final_sharing_p[i]+= vec_random_masks_p[j][i];
+            }
+        }
+    }
+
+  //Do the same for GF(2)
+  vector<int> opened_masks_2;
+  vector<vector<aBit>> vec_random_masks_2(P.nplayers());
+
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      if (shouldRcv[j])
+        {
+          timers["get aShares"].start();
+          list<aBit> random_masks_2= OTD.aBD.get_aShares(thread_num, num_dabits);
+          timers["get aShares"].stop();
+          // Now open masks in F_2 to current player
+          take_first_to_vector(vec_random_masks_2[j], random_masks_2, num_dabits);
+          Open_aBits_To(opened_masks_2, j, vec_random_masks_2[j], P);
+        }
+    }
+
+  //All parties locally use their opened local masks to input the sharing of their share of the bits
+  //P0 locally substracted k*p before doing so
+  //if (amPart)
+  if (haveSomethingToSend)
+    {
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+
+          int input_mod_2;
+          int invert_lsb_input= isOdd(new_bits_input[i]);
+          if (invert_lsb_input == 0)
+            {
+              input_mod_2= 0;
+            }
+          else
+            {
+              input_mod_2= 1;
+            }
+
+          opened_masks_2[i]^= input_mod_2;
+        }
+    }
+
+  //vector<string> bcast_string(P.nplayers());
+  //ostringstream os;
+  os.str("");
+  os.clear();
+  //if (amPart)
+  if (haveSomethingToSend)
+    {
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          os << (char) opened_masks_2[i];
+        }
+    }
+  bcast_string[P.whoami()]= os.str();
+  P.Broadcast_Receive(bcast_string);
+
+  for (unsigned int j= 0; j < P.nplayers(); j++)
+    {
+      if (shouldRcv[j])
+        {
+          istringstream is(bcast_string[j]);
+          for (unsigned int i= 0; i < num_dabits; i++)
+            {
+              char open_bit;
+              is >> open_bit;
+              vec_random_masks_2[j][i].add(open_bit);
+            }
+        }
+    }
+
+  //Parties locally add the resharing of each share to end up with a new resharing of the same bit
+  vector<aBit> final_sharing_2(num_dabits);
+  for (unsigned int i= 0; i < num_dabits; i++)
+    {
+      final_sharing_2[i]= vec_random_masks_2[0][i];
+      for (unsigned int j= 1; j < P.nplayers(); j++)
+        {
+          if (shouldRcv[j])
+            {
+              final_sharing_2[i].add(vec_random_masks_2[j][i]);
+            }
+        }
+    }
+
+  //Check against malicious
+  vector<Share> S_p(machine.gamma);
+  vector<aBit> S_2(machine.gamma);
+  for (unsigned int k= 0; k < machine.gamma; k++)
+    {
+      //Generate num_dabits random coefficients
+      vector<BitVector> r(num_dabits);
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          r[i].resize(machine.sec);
+          r[i].randomize(FRand);
+        }
+
+      vector<ostringstream> os(num_dabits);
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          for (unsigned int l= 0; l < r[0].size_bytes(); l++)
+            {
+              os[i] << int((r[i].get_ptr())[l]);
+            }
+          os[i] << endl;
+        }
+
+      //Take the linear combination in GF(p)
+      vector<gfp> r_p(num_dabits);
+
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          istringstream is(os[i].str());
+          r_p[i].input(is, true);
+        }
+      S_p[k]= final_sharing_p[0];
+      S_p[k]*= r_p[0];
+      for (unsigned int i= 1; i < num_dabits; i++)
+        {
+          S_p[k]+= (final_sharing_p[i] * r_p[i]);
+        }
+
+      //Take the linear combinator in GF(2)
+      vector<gf2n> r_2(num_dabits);
+      gf2n gf2n_one;
+      gf2n_one.assign_one();
+      for (unsigned int i= 0; i < num_dabits; i++)
+        {
+          istringstream is(os[i].str());
+          r_2[i].input(is, true);
+          r_2[i]= r_2[i] & gf2n_one;
+        }
+      S_2[k].mult_by(r_2[0], final_sharing_2[0]);
+      for (unsigned int i= 1; i < num_dabits; i++)
+        {
+          aBit tmp_res;
+          tmp_res.mult_by(r_2[i], final_sharing_2[i]);
+          S_2[k].add(tmp_res);
+        }
+    }
+
+  //Open the linear combinations
+  vector<int> result_2;
+  vector<gfp> result_p;
+  OP.Open_To_All_Begin(result_p, S_p, P, 2);
+  OP.Open_To_All_End(result_p, S_p, P, 2);
+  Open_aBits(result_2, S_2, P);
+  //Check equality
+
+  for (unsigned int k= 0; k < machine.gamma; k++)
+    {
+      gfp one_gfp;
+      one_gfp.assign_one();
+      bool x= (result_p[k] & one_gfp).is_one();
+      bool y= result_2[k];
+      if (x != y)
+        throw Sacrifice_Check_Error("newDabit correctness error");
+    }
+
+  //Final bit output, discard first gamma*sec bits
   dabs.b2.resize(machine.nBitsPerLoop);
   dabs.bp.resize(machine.nBitsPerLoop);
-  for (int i= 0; i < machine.nBitsPerLoop; ++i)
+  for (int i= 0; i < machine.nBitsPerLoop; i++)
     {
-      dabs.bp[i]= random_bits_modp[machine.sec + i];
-      dabs.b2[i]= mod2_shares[machine.sec + i];
+      dabs.bp[i]= final_sharing_p[machine.gamma * machine.sec + i];
+      dabs.b2[i]= final_sharing_2[machine.gamma * machine.sec + i];
     }
   dabs.used= 0;
   total+= machine.nBitsPerLoop;

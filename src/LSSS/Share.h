@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -154,9 +154,9 @@ public:
   }
   Share operator<<(int i) const
   {
-	  Share res;
-	  res.mul(*this, gfp(1) << i);
-	  return res;
+    Share res;
+    res.mul(*this, gfp(1) << i);
+    return res;
   }
   Share &operator+=(const Share &x)
   {
@@ -170,7 +170,7 @@ public:
   }
   Share &operator<<=(int i)
   {
-	  return *this = *this<<i;
+    return *this= *this << i;
   }
 
   // Input and output from a stream

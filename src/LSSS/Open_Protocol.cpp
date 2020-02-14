@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -28,6 +28,18 @@ Open_Protocol::Open_Protocol()
       counter[i]= 0;
       // Counts the balance of all opens in each connection
       open_cnt[i]= 0;
+    }
+}
+
+Open_Protocol::~Open_Protocol()
+{
+  for (int i= 0; i < 3; i++)
+    {
+      if (open_cnt[i] > 0)
+        {
+          cerr << "Problem cleaning up Open_Protocol object. Data is still hanging around" << endl;
+          abort();
+        }
     }
 }
 

@@ -23,8 +23,6 @@
   STMINT= 0xCB,
   LDMINTI= 0xCC,
   STMINTI= 0xCD,
-  PUSHINT= 0xCE,
-  POPINT= 0xCF,
 
   # Machine
   LDTN= 0x10,
@@ -70,14 +68,14 @@
   # IO
   OUTPUT_CLEAR= 0x40,
   INPUT_CLEAR= 0x41,
-  OUTPUT_SHARE= 0x42,
-  INPUT_SHARE= 0x43,
+  OUTPUT_SHARES= 0x42,
+  INPUT_SHARES= 0x43,
   PRIVATE_INPUT= 0x44,
   PRIVATE_OUTPUT= 0x46,
   OUTPUT_INT= 0x48,
   INPUT_INT= 0x49,
-  OPEN_CHAN= 0x4A,
-  CLOSE_CHAN= 0x4B,
+  OPEN_CHANNEL= 0x4A,
+  CLOSE_CHANNEL= 0x4B,
 
   # Open
   STARTOPEN= 0xA0,
@@ -153,6 +151,7 @@
   CONVSINTSREG= 0xC2,
   CONVREGSREG= 0xC3,
   CONVSREGSINT= 0xC4,
+  CONVSUREGSINT= 0xC5,
 
   # Debug Printing
   PRINT_MEM= 0xB0,
@@ -181,21 +180,48 @@
   # 64x64 -> 128 multiplier
   MUL2SINT = 0xDA,
 
-  # GC (and allied) commands
+  # GC/Local Function (and allied) commands
   GC = 0xDB,
   BITSINT = 0xDC,
   SINTBIT = 0xDD,
+  LF      = 0xDE,
 
   # Others
   RAND= 0xE0,
   START_CLOCK= 0xE1,
   STOP_CLOCK= 0xE2,
 
-  # Local functions
-  LF_CINT= 0xEA,
-  LF_SINT= 0xEB,
-  LF_REGINT= 0xEC,
-  LF_SREGINT= 0xED
+  # Stack operations
+  PUSHINT= 0x100,
+  POPINT= 0x101,
+  PEEKINT= 0x102,
+  POKEINT= 0x103,
+  GETSPINT= 0x104,
+
+  PUSHSINT= 0x105,
+  POPSINT= 0x106,
+  PEEKSINT= 0x107,
+  POKESINT= 0x108,
+  GETSPSINT= 0x109,
+
+  PUSHSBIT= 0x10A,
+  POPSBIT= 0x10B,
+  PEEKSBIT= 0x10C,
+  POKESBIT= 0x10D,
+  GETSPSBIT= 0x10E,
+
+  PUSHC= 0x110,
+  POPC= 0x111,
+  PEEKC= 0x112,
+  POKEC= 0x113,
+  GETSPC= 0x114,
+
+  PUSHS= 0x115,
+  POPS= 0x116,
+  PEEKS= 0x117,
+  POKES= 0x118,
+  GETSPS= 0x119,
+
 
 Many instructions can be vectorized, this is done by taking the opcode
 being a 32 bit value. The last nine bits being the base opcode and previous
@@ -227,7 +253,7 @@ Global memory comes in three variants, which is not thread locked
 
 Registers come in the same types, but are thread local
 
-All base classes, utility functions etc. should go in instructions_base.py instead. 
+All base classes, utility functions etc. should go in instructions_base.py instead.
 
 This is for two reasons:
 1) Easier generation of documentation
@@ -381,88 +407,25 @@ class mul2sint(base.Instruction):
     code = base.opcodes['MUL2SINT']
     arg_format = ['srw', 'srw', 'sr', 'sr']
 
-class GC(base.VarArgsInstruction):
-    r""" GC i0, i1, i2, [srint_outputs], [srint_inputs]
-         This calls the Garbled Circuit with index i0, which
-         produces i1 srints as output, and takes i2 srints
-         as input
+class GC(base.StackInstruction):
+    r""" GC n
+         This calls the Garbled Circuit with index n.
+         The inputs are pulled from the srint stack, and the
+         outputs are pushed back to the srint stack.
     """
+    __slots__ = []
     code = base.opcodes['GC']
-    def __init__(self, *args):
-        self.arg_format = ['int'] + ['int'] + ['int'] \
-                                  + ['srw'] * args[1] \
-                                  + ['sr'] * args[2]
-        super(GC, self).__init__(*args)
+    arg_format = ['i']
 
-class LF_CINT(base.VarArgsInstruction):
-    r""" LF_CINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
-         This calls the Local Function with index i0, which
-         produces i1 cints as output, and takes i2 rints,
-         i3 srints, i4 cints and i5 sints as input.
+class LF(base.StackInstruction):
+    r""" LF n
+         This calls the Local Function with index n.
+         The inputs are pulled from various stacks as needed, and the
+         outputs are pushed back to the same stacks.
     """
-    code = base.opcodes['LF_CINT']
-    def __init__(self, *args):
-        self.arg_format = ['int'] + ['int'] \
-                        + ['int'] + ['int'] + ['int'] + ['int'] \
-                                  + ['cw'] * args[1] \
-                                  + ['r'] * args[2] \
-                                  + ['sr'] * args[3] \
-                                  + ['c'] * args[4] \
-                                  + ['s'] * args[5]
-        super(LF_CINT, self).__init__(*args)
-
-
-class LF_SINT(base.VarArgsInstruction):
-    r""" LF_SINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
-         This calls the Local Function with index i0, which
-         produces i1 sints as output, and takes i2 rints,
-         i3 srints, i4 cints and i5 sints as input.
-    """
-    code = base.opcodes['LF_SINT']
-    def __init__(self, *args):
-        self.arg_format = ['int'] + ['int'] \
-                        + ['int'] + ['int'] + ['int'] + ['int'] \
-                                  + ['sw'] * args[1] \
-                                  + ['r'] * args[2] \
-                                  + ['sr'] * args[3] \
-                                  + ['c'] * args[4] \
-                                  + ['s'] * args[5]
-        super(LF_SINT, self).__init__(*args)
-
-class LF_REGINT(base.VarArgsInstruction):
-    r""" LF_REGINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
-         This calls the Local Function with index i0, which
-         produces i1 regints as output, and takes i2 rints,
-         i3 srints, i4 cints and i5 sints as input.
-    """
-    code = base.opcodes['LF_REGINT']
-    def __init__(self, *args):
-        self.arg_format = ['int'] + ['int'] \
-                        + ['int'] + ['int'] + ['int'] + ['int'] \
-                                  + ['rw'] * args[1] \
-                                  + ['r'] * args[2] \
-                                  + ['sr'] * args[3] \
-                                  + ['c'] * args[4] \
-                                  + ['s'] * args[5]
-        super(LF_REGINT, self).__init__(*args)
-
-class LF_SREGINT(base.VarArgsInstruction):
-    r""" LF_SREGINT i0, i1, i2, i3, i4, i5 [outputs], [inputs]
-         This calls the Local Function with index i0, which
-         produces i1 sregints as output, and takes i2 rints,
-         i3 srints, i4 cints and i5 sints as input.
-    """
-    code = base.opcodes['LF_SREGINT']
-    def __init__(self, *args):
-        self.arg_format = ['int'] + ['int'] \
-                        + ['int'] + ['int'] + ['int'] + ['int'] \
-                                  + ['srw'] * args[1] \
-                                  + ['r'] * args[2] \
-                                  + ['sr'] * args[3] \
-                                  + ['c'] * args[4] \
-                                  + ['s'] * args[5]
-        super(LF_SREGINT, self).__init__(*args)
-
+    __slots__ = []
+    code = base.opcodes['LF']
+    arg_format = ['i']
 
 
 @base.vectorize
@@ -590,7 +553,7 @@ class orsintc(base.Instruction):
     __slots__ = []
     code = base.opcodes['ORSINTC']
     arg_format = ['srw', 'sr', 'r']
-    
+
 @base.vectorize
 class xorsint(base.Instruction):
     r""" XORSINT i j k
@@ -613,7 +576,7 @@ class xorsintc(base.Instruction):
 
 @base.vectorize
 class invsint(base.Instruction):
-    r""" INVSINT i j 
+    r""" INVSINT i j
          Bitwise inversion of the register
          This instruction is vectorizable
      """
@@ -682,7 +645,7 @@ class ltzsint(base.Instruction):
 
 @base.vectorize
 class eqzsint(base.Instruction):
-    r""" EQZSINT i j 
+    r""" EQZSINT i j
          Secret equality test to zero of secret register sb_i = ~sr_j == 0.
          This instruction is vectorizable
      """
@@ -738,12 +701,23 @@ class convregsreg(base.Instruction):
 @base.vectorize
 class convsregsint(base.Instruction):
     """ CONVSREGSINT i j
-         Convert from  sregint sr_j to sint register s_i.
+         Convert from signed sregint sr_j to sint register s_i.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['CONVSREGSINT']
     arg_format = ['sw', 'sr']
+
+@base.vectorize
+class convsuregsint(base.Instruction):
+    """ CONVSUREGSINT i j
+         Convert from unsigned sregint sr_j to sint register s_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['CONVSUREGSINT']
+    arg_format = ['sw', 'sr']
+
 
 
 # memory instructions
@@ -860,7 +834,7 @@ class stmint(base.DirectMemoryWriteInstruction):
 # must have seperate instructions because address is always modp
 @base.vectorize
 class ldmci(base.ReadMemoryInstruction):
-    r""" LDMCI i j 
+    r""" LDMCI i j
          Assigns cint register c_i the value in cint memory R[r_j], where r_j is the j-th regint register.
          This instruction is vectorizable
      """
@@ -880,7 +854,7 @@ class ldmsi(base.ReadMemoryInstruction):
 
 @base.vectorize
 class stmci(base.WriteMemoryInstruction):
-    r""" STMCI i j 
+    r""" STMCI i j
          Sets cint memory C[r_j] to be the value in cint register c_i, where r_j is the j-th regint register.
          This instruction is vectorizable
      """
@@ -890,7 +864,7 @@ class stmci(base.WriteMemoryInstruction):
 
 @base.vectorize
 class stmsi(base.WriteMemoryInstruction):
-    r""" STMSI i j 
+    r""" STMSI i j
          Sets sint memory S[r_j] to be the value in sint register s_i, where r_j is the j-th regint register.
          This instruction is vectorizable
      """
@@ -900,7 +874,7 @@ class stmsi(base.WriteMemoryInstruction):
 
 @base.vectorize
 class ldminti(base.ReadMemoryInstruction):
-    r""" LDMINTI i j 
+    r""" LDMINTI i j
          Assigns regint register r_i the value in memory R[r_j], where r_j is the j-th regint register.
          This instruction is vectorizable
      """
@@ -942,7 +916,7 @@ class movs(base.Instruction):
 
 @base.vectorize
 class movint(base.Instruction):
-    r""" MOVINT i j 
+    r""" MOVINT i j
          Assigns regint register r_i the value in the regint register r_j.
          This instruction is vectorizable
      """
@@ -950,25 +924,6 @@ class movint(base.Instruction):
     code = base.opcodes['MOVINT']
     arg_format = ['rw', 'r']
 
-
-@base.vectorize
-class pushint(base.StackInstruction):
-    r""" PUSHINT i
-         Pushes regint register r_i to the thread-local stack.
-         This instruction is vectorizable
-     """
-    code = base.opcodes['PUSHINT']
-    arg_format = ['r']
-
-
-@base.vectorize
-class popint(base.StackInstruction):
-    r""" POPINT i
-         Pops from the thread-local stack to regint register r_i.
-         This instruction is vectorizable
-     """
-    code = base.opcodes['POPINT']
-    arg_format = ['rw']
 
 
 #
@@ -1009,7 +964,7 @@ class starg(base.Instruction):
 
 class reqbl(base.Instruction):
     r""" REQBL n
-         Signals tape has been built so that it requires prime bit length n". 
+         Signals tape has been built so that it requires prime bit length n".
      """
     code = base.opcodes['REQBL']
     arg_format = ['int']
@@ -1017,8 +972,8 @@ class reqbl(base.Instruction):
 
 
 class run_tape(base.Instruction):
-    r""" RUN_TAPE i j n 
-         In thread i start tape n with argument j. 
+    r""" RUN_TAPE i j n
+         In thread i start tape n with argument j.
      """
     code = base.opcodes['RUN_TAPE']
     arg_format = ['int', 'int', 'int']
@@ -1026,7 +981,7 @@ class run_tape(base.Instruction):
 
 class join_tape(base.Instruction):
     r""" JOIN_TAPE i
-         Wait until tape in thread i has finished. 
+         Wait until tape in thread i has finished.
      """
     code = base.opcodes['JOIN_TAPE']
     arg_format = ['int']
@@ -1041,7 +996,7 @@ class crash(base.IOInstruction):
 
 class CALL(base.JumpInstruction):
     r""" CALL n
-         Pushes the current PC onto the stack, and then performs an unconditional relative jump of n+1 instructions. 
+         Pushes the current PC onto the stack, and then performs an unconditional relative jump of n+1 instructions.
      """
     __slots__ = []
     code = base.opcodes['CALL']
@@ -1060,8 +1015,8 @@ class RETURN(base.JumpInstruction):
 
 class restart(base.IOInstruction):
     r""" RESTART
-         Restart the runtime by reloading the schedule file. 
-         Note, the schedule file may have changed since it has last been loaded. 
+         Restart the runtime by reloading the schedule file.
+         Note, the schedule file may have changed since it has last been loaded.
          See the main documentation for how this instruction is intended to be used.
          This can only be called by thread zero, otherwise the runtime aborts.
      """
@@ -1075,7 +1030,7 @@ class clear_memory(base.WriteMemoryInstruction):
          thread zero, when all other threads are doing nothing. Say before a RESTART
      """
     code = base.opcodes['CLEAR_MEMORY']
-    arg_format = [] 
+    arg_format = []
 
 class clear_registers(base.IOInstruction):
     r""" CLEAR_REGISTERS
@@ -1086,7 +1041,7 @@ class clear_registers(base.IOInstruction):
          it as an experimental instruction.
      """
     code = base.opcodes['CLEAR_REGISTERS']
-    arg_format = [] 
+    arg_format = []
 
 
 #
@@ -1435,7 +1390,7 @@ class xorci(base.Instruction):
 
 @base.vectorize
 class orci(base.Instruction):
-    r""" ORCI i j n 
+    r""" ORCI i j n
          Equivalent of ORC with an immediate value c_i = c_j or n
          This instruction is vectorizable
      """
@@ -1473,7 +1428,7 @@ class shrc(base.Instruction):
 
 @base.vectorize
 class shlci(base.ClearShiftInstruction):
-    r""" SHLCI i j n 
+    r""" SHLCI i j n
          Clear bitwise shift left of cint register by immediate value c_i = c_j << n
          This instruction is vectorizable
      """
@@ -1484,7 +1439,7 @@ class shlci(base.ClearShiftInstruction):
 
 @base.vectorize
 class shrci(base.ClearShiftInstruction):
-    r""" SHRCI i j n 
+    r""" SHRCI i j n
          Clear bitwise shift right of cint register by immediate value c_i = c_j >> n
          This instruction is vectorizable
      """
@@ -1548,7 +1503,7 @@ class square(base.DataInstruction):
 #
 
 class private_input(base.IOInstruction):
-    r""" PRIVATE_INPUT i p m  
+    r""" PRIVATE_INPUT i p m
          Private input from player p on channel m assign result to sint s_i
          Can only be executed in thread zero.
      """
@@ -1605,7 +1560,7 @@ class print_float(base.IOInstruction):
 @base.vectorize
 class print_int(base.IOInstruction):
     r""" PRINT_INT i
-         Prints the value of register r_i to debug IO channel. 
+         Prints the value of register r_i to debug IO channel.
          Can only be executed in thread zero.
          This instruction is vectorizable
      """
@@ -1685,8 +1640,8 @@ class input_int(base.IOInstruction):
     code = base.opcodes['INPUT_INT']
     arg_format = ['rw','i']
 
-class open_chan(base.IOInstruction):
-    r""" OPEN_CHAN i n
+class open_channel(base.IOInstruction):
+    r""" OPEN_CHANNEL i n
          Opens channel number n for reading/writing on the IO class.
          Channels are assumed to be bi-directional, i.e. can read and write.
          This is provided as some IO classes may require this to be called explicitly, the default one does not need this.
@@ -1694,44 +1649,43 @@ class open_chan(base.IOInstruction):
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['OPEN_CHAN']
+    code = base.opcodes['OPEN_CHANNEL']
     arg_format = ['rw','i']
 
 class close_channel(base.IOInstruction):
-    r""" CLOSE_CHAN n
+    r""" CLOSE_CHANNEL n
          Closes channel number n for reading/writing on the IO class.
          This is provided as some IO classes may require this to be called explicitly, the default one does not need this.
          Can only be executed in thread zero.
      """
     __slots__ = []
-    code = base.opcodes['CLOSE_CHAN']
+    code = base.opcodes['CLOSE_CHANNEL']
     arg_format = ['i']
 
 
 class output_shares(base.IOInstruction):
-    r""" OUTPUT_SHARE (n+1) ch i1 i2 ... in
-         Write shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using 
+    r""" OUTPUT_SHARES (n+1) ch i1 i2 ... in
+         Write shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using
                inp = [sint(1), sint(2), sint(3), sint(4)]
                output_shares(ch, *inp)
          Can only be executed in thread zero.
     """
     __slots__ = []
-    code = base.opcodes['OUTPUT_SHARE']
+    code = base.opcodes['OUTPUT_SHARES']
     arg_format = tools.chain(['i'],itertools.repeat('s'))
 
     def has_var_args(self):
         return True
 
-
 class input_shares(base.IOInstruction):
-    r""" INPUT_SHARE (n+1) ch i1 i2 ... in
+    r""" INPUT_SHARES (n+1) ch i1 i2 ... in
          Read shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using
             inp = [sint(1), sint(2), sint(3), sint(4)]
             input_shares(ch,*inp)
          Can only be executed in thread zero.
     """
     __slots__ = []
-    code = base.opcodes['INPUT_SHARE']
+    code = base.opcodes['INPUT_SHARES']
     arg_format = tools.chain(['i'],itertools.repeat('sw'))
 
     def has_var_args(self):
@@ -1750,7 +1704,7 @@ class output_clear(base.IOInstruction):
 
 @base.vectorize
 class output_int(base.IOInstruction):
-    r""" OUTPUT_INT i n 
+    r""" OUTPUT_INT i n
          Public output of regint register r_i to IO class on channel n.
          This instruction is vectorizable
          Can only be executed in thread zero.
@@ -1908,7 +1862,7 @@ class eqint(base.Instruction):
 
 class jmp(base.JumpInstruction):
     r""" JMP n
-         Unconditional relative jump of n+1 instructions. 
+         Unconditional relative jump of n+1 instructions.
      """
     __slots__ = []
     code = base.opcodes['JMP']
@@ -1932,7 +1886,7 @@ class jmpnz(base.JumpInstruction):
 
 class jmpeqz(base.JumpInstruction):
     r""" JMPEQZ i n
-         Jump n+1 instructions if regint register r_i == 0. 
+         Jump n+1 instructions if regint register r_i == 0.
      """
     __slots__ = []
     code = base.opcodes['JMPEQZ']
@@ -1999,17 +1953,250 @@ class stopopen(base.VarArgsInstruction):
 
 class start_clock(base.Instruction):
     r""" START_CLOCK n
-         Re-initializes the specified timer n 
+         Re-initializes the specified timer n
      """
     code = base.opcodes['START_CLOCK']
     arg_format = ['i']
 
 class stop_clock(base.Instruction):
     r""" STOP_CLOCK n
-         Prints the time since the last initialization of timer n 
+         Prints the time since the last initialization of timer n
      """
     code = base.opcodes['STOP_CLOCK']
     arg_format = ['i']
+
+
+#
+# Stack Instructions
+#
+
+@base.vectorize
+class pushint(base.StackInstruction):
+    r""" PUSHINT i
+         Pushes regint register r_i to the thread-local regint stack.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PUSHINT']
+    arg_format = ['r']
+
+@base.vectorize
+class popint(base.StackInstruction):
+    r""" POPINT i
+         Pops from the thread-local regint stack to regint register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POPINT']
+    arg_format = ['rw']
+
+@base.vectorize
+class peekint(base.StackInstruction):
+    r""" PEEKINT i j
+         Peeks at position pointed to by register r_j from the thread-local
+         regint stack and assigns to regint register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PEEKINT']
+    arg_format = ['rw', 'r']
+
+@base.vectorize
+class pokeint(base.StackInstruction):
+    r""" POKEINT i j
+         Replaces the data item pointed to by register r_i on the thread-local regint
+         local stack with the contents of register r_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POKEINT']
+    arg_format = ['r', 'r']
+
+class getspint(base.StackInstruction):
+    r""" GETSPINT i
+         Assigns the current stack pointer on the regint stack to register r_i
+     """
+    code = base.opcodes['GETSPINT']
+    arg_format = ['rw']
+
+
+@base.vectorize
+class pushsint(base.StackInstruction):
+    r""" PUSHSINT i
+         Pushes sregint register sr_i to the thread-local sregint stack.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PUSHSINT']
+    arg_format = ['sr']
+
+@base.vectorize
+class popsint(base.StackInstruction):
+    r""" POPSINT i
+         Pops from the thread-local sregint stack to sregint register sr_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POPSINT']
+    arg_format = ['srw']
+
+@base.vectorize
+class peeksint(base.StackInstruction):
+    r""" PEEKSINT i j
+         Peeks at position pointed to by register r_j from the thread-local
+         sregint stack and assigns to sregint register sr_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PEEKSINT']
+    arg_format = ['srw', 'r']
+
+@base.vectorize
+class pokesint(base.StackInstruction):
+    r""" POKESINT i j
+         Replaces the data item pointed to by register r_i on the threa-local  sregint
+         local stack with the contents of register sr_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POKESINT']
+    arg_format = ['r', 'sr']
+
+class getspsint(base.StackInstruction):
+    r""" GETSPSINT i
+         Assigns the current stack pointer on the sregint stack to register r_i
+     """
+    code = base.opcodes['GETSPSINT']
+    arg_format = ['rw']
+
+@base.vectorize
+class pushs(base.StackInstruction):
+    r""" PUSHS i
+         Pushes sint register s_i to the thread-local sint stack.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PUSHS']
+    arg_format = ['s']
+
+@base.vectorize
+class pops(base.StackInstruction):
+    r""" POPS i
+         Pops from the thread-local sint stack to sint register s_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POPS']
+    arg_format = ['sw']
+
+@base.vectorize
+class peeks(base.StackInstruction):
+    r""" PEEKS i j
+         Peeks at position pointed to by register r_j from the thread-local
+         sint stack and assigns to sint register s_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PEEKS']
+    arg_format = ['sw', 'r']
+
+@base.vectorize
+class pokes(base.StackInstruction):
+    r""" POKES i j
+         Replaces the data item pointed to by register r_i on the threa-local  sint
+         local stack with the contents of register s_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POKES']
+    arg_format = ['r', 's']
+
+class getsps(base.StackInstruction):
+    r""" GETSPS i
+         Assigns the current stack pointer on the sint stack to register r_i
+     """
+    code = base.opcodes['GETSPS']
+    arg_format = ['rw']
+
+
+@base.vectorize
+class pushc(base.StackInstruction):
+    r""" PUSHC i
+         Pushes cint register c_i to the thread-local cint stack.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PUSHC']
+    arg_format = ['c']
+
+@base.vectorize
+class popc(base.StackInstruction):
+    r""" POPC i
+         Pops from the thread-local cint stack to cint register c_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POPC']
+    arg_format = ['cw']
+
+@base.vectorize
+class peekc(base.StackInstruction):
+    r""" PEEKC i j
+         Peeks at position pointed to by register r_j from the thread-local
+         cint stack and assigns to cint register c_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PEEKC']
+    arg_format = ['cw', 'r']
+
+@base.vectorize
+class pokec(base.StackInstruction):
+    r""" POKEC i j
+         Replaces the data item pointed to by register r_i on the threa-local  cint
+         local stack with the contents of register c_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POKEC']
+    arg_format = ['r', 'c']
+
+class getspc(base.StackInstruction):
+    r""" GETSPC i
+         Assigns the current stack pointer on the cint stack to register r_i
+     """
+    code = base.opcodes['GETSPC']
+    arg_format = ['rw']
+
+
+@base.vectorize
+class pushsbit(base.StackInstruction):
+    r""" PUSHSBIT i
+         Pushes sbit register sb_i to the thread-local sbit stack.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PUSHSBIT']
+    arg_format = ['sb']
+
+@base.vectorize
+class popsbit(base.StackInstruction):
+    r""" POPSBIT i
+         Pops from the thread-local sbit stack to sbit register sb_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POPSBIT']
+    arg_format = ['sbw']
+
+@base.vectorize
+class peeksbit(base.StackInstruction):
+    r""" PEEKSBIT i j
+         Peeks at position pointed to by register r_j from the thread-local
+         sbit stack and assigns to sbit register sb_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['PEEKSBIT']
+    arg_format = ['sbw', 'r']
+
+@base.vectorize
+class pokesbit(base.StackInstruction):
+    r""" POKESBIT i j
+         Replaces the data item pointed to by register r_i on the threa-local  sbit
+         local stack with the contents of register sb_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['POKESBIT']
+    arg_format = ['r', 'sb']
+
+class getspsbit(base.StackInstruction):
+    r""" GETSPSBIT i
+         Assigns the current stack pointer on the sbit stack to register r_i
+     """
+    code = base.opcodes['GETSPSBIT']
+    arg_format = ['rw']
 
 
 #
@@ -2090,4 +2277,3 @@ class lts(base.CISC):
 
 # hack for circular dependency
 from Compiler import comparison
-

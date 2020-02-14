@@ -18,7 +18,7 @@ different behaviours between how the online and offline
 phases are integrated together, which can allow for
 some form of timing approximation.
 The main reason for this change is to ensure that the
-system is ``almost'' secure out of the box, even if
+system is ``almost'' secure out of the box, even if it
 means it is less good for obtaining super-duper numbers
 for research papers.
 
@@ -41,7 +41,7 @@ offline phase is expensive (e.g. for Full Threshold secret sharing)
 we provide a mechanism to enable the SCALE system to run
 as a seperate process (generating offline data), and then
 a MAMBA program can be compiled in a just-in-time manner
-and can then be dispated to the SCALE system for
+and can then be dispatched to the SCALE system for
 execution. Our methodology for this is not perfect, but has
 been driven by a real use case of the system.
 See Section \ref{sec:restart} for more details.

@@ -17,11 +17,13 @@ print_ln("Converting: sregint to sint");
 sia=sint(sa)
 ia=sia.reveal()
 print_reg(ia)
+print_ln("")
 
 print_ln("Converting: -sregint to sint");
 sib=sint(-sa)
 ib=sib.reveal()
 print_reg(ib)
+print_ln("")
 
 print_ln("Converting: sint to sregint");
 sc=sregint(ssa)
@@ -600,12 +602,12 @@ st=sc-se
 ss=sd-sf
 
 ct=st.reveal()
-print("\nct=")
+print_ln("\nct=")
 print_int(ct)
 print_ln("")
 
 cs=ss.reveal()
-print("\ncs=")
+print_ln("\ncs=")
 print_int(cs)
 print_ln("")
 

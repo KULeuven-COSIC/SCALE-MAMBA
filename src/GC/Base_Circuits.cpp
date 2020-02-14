@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -22,36 +22,64 @@ void Base_Circuits::initialize(const bigint &p)
   ifstream inpf;
 
   inpf.open("Circuits/Bristol/adder64.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/adder64.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(0, C));
 
   inpf.open("Circuits/Bristol/sub64.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/sub64.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(1, C));
 
   inpf.open("Circuits/Bristol/mult2_64.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/mult2_64.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(2, C));
 
   inpf.open("Circuits/Bristol/mult64.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/mult64.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(3, C));
 
   inpf.open("Circuits/Bristol/divide64.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/divide64.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(4, C));
 
   inpf.open("Circuits/Bristol/neg64.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/neg64.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(5, C));
 
   inpf.open("Circuits/Bristol/zero_equal.txt");
+  if (inpf.fail())
+    {
+      throw file_error("Circuits/Bristol/zero_equal.txt");
+    }
   inpf >> C;
   inpf.close();
   Circuits.insert(make_pair(6, C));
@@ -80,6 +108,10 @@ void Base_Circuits::initialize(const bigint &p)
       ((lg2p > sreg_bitl + conv_stat_sec) || (y1 > conv_stat_sec) || (y2 > conv_stat_sec)))
     {
       inpf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
+      if (inpf.fail())
+        {
+          throw file_error("Data/ConversionCircuit-LSSS_to_GC.txt");
+        }
       inpf >> C;
       inpf.close();
       Circuits.insert(make_pair(7, C));
@@ -102,6 +134,10 @@ void Base_Circuits::initialize(const bigint &p)
   location.insert(make_pair(102, "Circuits/Bristol/aes_256.txt"));
   loaded.insert(make_pair(103, false));
   location.insert(make_pair(103, "Circuits/Bristol/Keccak_f.txt"));
+  loaded.insert(make_pair(104, false));
+  location.insert(make_pair(104, "Circuits/Bristol/sha256.txt"));
+  loaded.insert(make_pair(105, false));
+  location.insert(make_pair(105, "Circuits/Bristol/sha512.txt"));
 
   /* Now any user defined ones */
 
@@ -122,6 +158,10 @@ void Base_Circuits::check(int num)
 
       Circuit C;
       ifstream inpf(location[num]);
+      if (inpf.fail())
+        {
+          throw file_error(location[num]);
+        }
       inpf >> C;
       inpf.close();
       Circuits.insert(make_pair(num, C));

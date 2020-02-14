@@ -1,0 +1,6 @@
+popint r0 # 324
+popint r1 # 325
+ldint r2, 2 # 326
+jmpeqz r2, 1 # 330
+print_int r1 # 338
+print_int r0 # 338

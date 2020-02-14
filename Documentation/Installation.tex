@@ -1,24 +1,40 @@
 \mainsection{Installation and Setup}
 
 \subsection{Installation}
-You will require the following previously loaded programs and 
+You will require the following previously loaded programs and
 libraries:
 \begin{itemize}
-\item GCC/G++: Tested with version 8.2.0 
+\item GCC/G++: Tested with version 8.2.0
 \item MPIR library, compiled with C++ support (use flag --enable-cxx when running configure) : Tested with version 3.0.0
 \item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
 \item CPU supporting AES-NI and PCLMUL
 \item OpenSSL: Tested with version 1.1.0.b
 \item Crypto++: Tested with version 7.0
+\item yasm
+\item m4
 \item CMake, only if you want to use it instead of make: Version 3.1 to 3.14 is required
+\item A Rust compiler of at least version 1.39.0 (4560ea788 2019-11-04)
 \end{itemize}
 Developers will also require
 \begin{itemize}
 \item clang-format as to apply the standard C++ format to files. Tested with clang-format version 6.0.0.
 \end{itemize}
 
-\subsubsection{Installing MPIR and OpenSSL}
-This bit, on explaining how to install  MPIR and OpenSSL inside \verb+$HOME/local+, 
+\subsubsection{Installing Rustc}
+
+Go to \url{https//rustup.rs} to find the best installation command for your platform.
+For linux this may be...
+\begin{verbatim}
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+\end{verbatim}
+For our Ubuntu systems we had to use the binary installer marked
+\verb+x86_64-unknown-linux-gnu+ from the page
+\url{https://forge.rust-lang.org/infra/other-installation-methods.html}
+as there was some incompatibility between \verb+curl+ and our
+\verb+openssl+ installation.
+
+\subsubsection{Installing MPIR, OpenSSL and Crypto++}
+This bit, on explaining how to install  MPIR, OpenSSL and Crypto++ inside \verb+$HOME/local+,
 is inspired from \href{https://rdragos.github.io/2019/01/07/scale/}{this} blogpost.
 The target directory here can be changed to whatever you wish.
 If you follow this section we assume that you have \textbf{cloned}
@@ -42,8 +58,14 @@ the main repository in your \verb+$HOME+ directory.
     cd openssl-1.1.0j
     ./config --prefix="${mylocal}/openssl"
     make && make install
+
+    # install crypto++
+    curl -O https://www.cryptopp.com/cryptopp820.zip
+    unzip cryptopp820.zip -d cryptopp820
+    cd cryptopp820
+    make && make install PREFIX=${mylocal}/cryptopp
 \end{verbatim}
-Now export MPIR and OpenSSL paths by copying the following
+Now export MPIR, OpenSSL and Crypto++ paths by copying the following
 lines at the end of your \verb+$HOME/.bashrc+ configuration file.
 \begin{verbatim}
     # this goes at the end of your $HOME/.bashrc file
@@ -62,14 +84,19 @@ lines at the end of your \verb+$HOME/.bashrc+ configuration file.
     export CPLUS_INCLUDE_PATH="${mylocal}/mpir/include/:${CPLUS_INCLUDE_PATH}"
     export LIBRARY_PATH="${mylocal}/mpir/lib/:${LIBRARY_PATH}"
     export LD_LIBRARY_PATH="${mylocal}/mpir/lib/:${LD_LIBRARY_PATH}"
+
+    # export Crypto++ paths
+    export CPLUS_INCLUDE_PATH="${mylocal}/cryptopp/include/:${CPLUS_INCLUDE_PATH}"
+    export LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="${mylocal}/cryptopp/lib/:${LD_LIBRARY_PATH}"
 \end{verbatim}
 
 \subsubsection{Change CONFIG.mine}
 We now need to copy the file \verb+CONFIG+ in the main directory to the file
 \verb+CONFIG.mine+.
 Then we need to edit \verb+CONFIG.mine+, so as to place the correct
-location of this ROOT directory correctly, 
-as well as indicating where the OpenSSL library should be picked up 
+location of this ROOT directory correctly,
+as well as indicating where the OpenSSL library should be picked up
 from (this is likely to be different from the
 system installed one which GCC would automatically pick up).
 This is done by executing the following commands
@@ -84,7 +111,7 @@ such as various debug and optimisation options.
 We would recommend commenting out all DEBUG options from FLAGS
 and keeping \verb+OPT = -O3+.
 \begin{itemize}
-\item The \verb+DEBUG+ flag is a flag which turns on checking for 
+\item The \verb+DEBUG+ flag is a flag which turns on checking for
 reading before writing on registers, thus it is mainly a flag
 for development testing of issues related to the compiler.
 \item The \verb+DETERMINISTIC+ flag turns off the use of true randomness.
@@ -96,6 +123,10 @@ needs to be set large enough to deal with the sizes of the FHE
 keys. Otherwise this can be set to just above the word size of your
 secret-sharing modulus to obtain better performance.
 As default we have set it for use with full threshold.
+
+\subsubsection{Change compile.sh}
+You may want to edit \verb+compile.sh+ to change from
+the default new compilation pipeline to the old one.
 
 \subsubsection{Change config.h}
 If wanted you can also now configure various bits of the system
@@ -112,7 +143,7 @@ of $40$ you need to add the following commands to your MAMBA programs.
 \begin{verbatim}
     program.security = 100
     sfix.kappa = 60
-    sfloat.kappa=30
+    sfloat.kappa = 30
 \end{verbatim}
 However, in the case of the last two you {\em may} also need to change the
 precision or prime size you are using. See the documentation for
@@ -161,8 +192,8 @@ For more information on CMake, we recommend this excellent wiki\footnote{\url{ht
 
 \subsection{Creating and Installing Certificates}
 For a proper configuration you need to worry about the rest
-of this section. 
-However, for a quick idiotic test installation jump down to the ``Idiot 
+of this section.
+However, for a quick idiotic test installation jump down to the ``Idiot
 Installation'' of Section \ref{sec:idiot}.
 
 All channels will be TLS encrypted. For SPDZ this is not needed, but for
@@ -226,7 +257,7 @@ for player one, in a four player installation, will look like
 
 
 \subsection{Running Setup}
-The program \verb+Setup.x+ is used to run a one-time setup 
+The program \verb+Setup.x+ is used to run a one-time setup
 for the networking and/or secret-sharing system being used
 and/or set up the GC to LSSS conversion circuit.
 You must do networking before secret-sharing (unless you keep
@@ -277,7 +308,7 @@ Input provided by the user generates the file
 
 \subsubsection{Data for secret sharing:}
 You first define whether you are going to be using full threshold (as in
-traditional SPDZ), Shamir (with $t<n/2$), a Q2-Replicated scheme, or 
+traditional SPDZ), Shamir (with $t<n/2$), a Q2-Replicated scheme, or
 a Q2-MSP.
 
 \paragraph{Full Threshold:}
@@ -294,13 +325,13 @@ for FHE parameters which are compatible, if it finds none (which is highly
 likely unless you are very careful in your selection) it aborts.
 \end{itemize}
 After this stage the MAC keys and FHE secret keys are setup and written into the
-files 
+files
 \begin{center}
-\verb+MKey-*.key+ and \verb+FHE-Key-*.key+ 
+\verb+MKey-*.key+ and \verb+FHE-Key-*.key+
 \end{center}
-in the \verb+Data+ directory. 
+in the \verb+Data+ directory.
 This is clearly an insecure way of parties picking their MAC keys. But this is only a
-research system. 
+research system.
 At this stage we also generate a set of keys
 for distributed decryption of a level-one FHE scheme if needed.
 \iffalse XXXX
@@ -311,7 +342,7 @@ but using fake offline is only for test purposes in any case.
 \paragraph{Shamir Secret Sharing:}
 Shamir secret sharing we assume is self-explanatory.
 For the Shamir setting we use an online phase using the reduced communication
-protocols of \cite{KRSW}; 
+protocols of \cite{KRSW};
 the offline phase ({\em currently}) only supports {\em Maurer}'s multiplication method
 \cite{Maurer}.
 This will be changed in future releases to also support the new offline method from
@@ -320,24 +351,24 @@ This will be changed in future releases to also support the new offline method f
 
 \paragraph{Replicated Secret Sharing:}
 For Replicated sharing you should enter a complete monotone Q2 access structure.
-There are three options to do this, 
+There are three options to do this,
 \begin{enumerate}
 \item As a set of maximally unqualified sets;
-\item As a set of unqualified qualified sets;
+\item As a set of minimally qualified sets;
 \item As a simple threshold system.
 \end{enumerate}
-If the first (resp. second) option is selected, then any set that is neither 
+If the first (resp. second) option is selected, then any set that is neither
 a superset nor a subset of a set provided as input will be assumed qualified (resp. unqualified).
-The last option is really for testing, as most 
+The last option is really for testing, as most
 threshold systems implemented using Replicated secret-sharing will be
-less efficient than using Shamir.  
+less efficient than using Shamir.
 Specifying either the first or second option and providing input
 results in the program computing all of the qualified and unqualified
-sets in the system.  
+sets in the system.
 
 For Replicated secret-sharing you
 can also decide what type of offline phase you want: one based on
-{\em Maurer}'s multiplication method \cite{Maurer}, 
+{\em Maurer}'s multiplication method \cite{Maurer},
 or one based on our {\em Reduced} communication protocols \cite{KRSW}.
 
 ~~
@@ -383,7 +414,7 @@ Each party is in a different pair of sets.  We can represent it via:
 \paragraph{Q2-MSP Programs:}
 A final way of entering a Q2 access structure is via a MSP, or equivalently,
 via the matrix which defines an underlying Q2 LSSS.
-For $n$ parties we define the number of shares each party has to be 
+For $n$ parties we define the number of shares each party has to be
 $n_i$, and the dimension of the MSP to be $k$. The MSP is then given
 by a $(\sum n_i) \times k$ matrix $G$.
 The first $n_1$ rows of $G$ are associated with player one, the
@@ -405,7 +436,7 @@ will automatically extend this for you into an equivalent multiplicative MSP
 using the method of \cite{CDM00}.
 
 As in the Shamir setting we use an online phase using the reduced communication
-protocols of \cite{KRSW}; 
+protocols of \cite{KRSW};
 the offline phase ({\em currently}) only supports {\em Maurer}'s multiplication method
 \cite{Maurer}.
 This will be changed in future releases to also support the new offline method from
@@ -414,9 +445,9 @@ This will be changed in future releases to also support the new offline method f
 In the file \verb+Auto-Test-Data/README.txt+ we provide some examples
 of MSPs. If we take the MSP for Shamir (say) over three parties with threshold
 one we obtain the matrix
-\[ 
+\[
    G = \left( \begin{array}{cc}
-      1 & 2 \\ 1 & 3 \\ 1 & 4 
+      1 & 2 \\ 1 & 3 \\ 1 & 4
        \end{array} \right).
 \]
 This is slightly different from the usual Shamir generating matrix
@@ -434,20 +465,19 @@ bit circuit for this specific prime chosen, and then tries
 to simplify the resulting circuit. This simplification is rather
 naive, and can take a long time, but usually results in a circuit ten percent
 less in size than the original (in terms of the all important AND gates).
-One can modify how long is spent in the simplification by 
+One can modify how long is spent in the simplification by
 changing a variable in \verb+config.h+.
 
 \subsection{Idiot's Installation}
 \label{sec:idiot}
 To install an installation of the three party Shamir based
 variant, with default certificates and all parties running
-on local host. 
+on local host.
 Execute the following commands
 \begin{verbatim}
      cp Auto-Test-Data/Cert-Store/* Cert-Store/
      cp Auto-Test-Data/1/* Data/
 \end{verbatim}
-You can play with writing your own MAMBA programs and 
+You can play with writing your own MAMBA programs and
 running them on the same local host (via IP address
 127.0.0.1).
-

@@ -10,8 +10,8 @@ b=sint.get_private_input_from(1)
 c=a+b
 print_ln("The SUM is being sent to player one")
 c.reveal_to(1)
-print_reg(reveal(a))
-print_reg(reveal(b))
-print_reg(reveal(c))
+print_ln(' a=%s',reveal(a))
+print_ln(' a=%s',reveal(b))
+print_ln(' a=%s',reveal(c))
 
 restart()

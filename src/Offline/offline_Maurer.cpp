@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -10,8 +10,10 @@ All rights reserved
 
 void clear_vector_sstream(vector<stringstream> &ss)
 {
-  for (unsigned int i=0; i<ss.size(); i++)
-    { ss[i]=stringstream(); }
+  for (unsigned int i= 0; i < ss.size(); i++)
+    {
+      ss[i]= stringstream();
+    }
 }
 
 void mult_inner_subroutine_one(const Share &aa, const Share &bb,
@@ -56,7 +58,7 @@ void offline_Maurer_triples(Player &P, PRSS &prss, list<Share> &a,
 {
   Share aa, bb;
   vector<vector<Share>> cc(amortize, vector<Share>(P.nplayers()));
-  vector<stringstream> ss(P.nplayers()); 
+  vector<stringstream> ss(P.nplayers());
   for (int i= 0; i < sz_offline_batch / amortize; i++)
     {
       clear_vector_sstream(ss);
@@ -95,7 +97,7 @@ void offline_Maurer_squares(Player &P, PRSS &prss,
   Share aa;
   vector<vector<Share>> bb(amortize, vector<Share>(P.nplayers()));
   vector<string> sstr(P.nplayers());
-  vector<stringstream> ss(P.nplayers()); 
+  vector<stringstream> ss(P.nplayers());
   while (a.size() < sz_offline_batch * rep)
     {
       clear_vector_sstream(ss);

@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -151,10 +151,10 @@ void test_divide64(PRNG &G)
       if (z != zz)
         {
           cout << "Error test_divide64:  " << i << endl;
-          cout << "\t x  = " << x << endl;
-          cout << "\t y  = " << y << endl;
-          cout << "\t z  = " << z << endl;
-          cout << "\t zz = " << zz << endl;
+          cout << "\t x  = " << x << " " << (signed long) x << endl;
+          cout << "\t y  = " << y << " " << (signed long) y << endl;
+          cout << "\t z  = " << z << " " << (signed long) z << endl;
+          cout << "\t zz = " << zz << " " << (signed long) zz << endl;
         }
     }
 }

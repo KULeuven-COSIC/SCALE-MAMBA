@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -14,14 +14,19 @@ All rights reserved
 #include <fstream>
 
 template<class T>
-void Memory<T>::minimum_size(int sz, string threadname)
+void Memory<T>::minimum_size(unsigned int sz, string threadname, int verbose)
 {
-  if (sz > size())
+  memory_mutex.lock();
+  if (sz > M.size())
     {
-      fprintf(stderr, "%s needs more %s memory, resizing to %d\n",
-              threadname.c_str(), T::type_string().c_str(), sz);
-      resize(sz);
+      if (verbose > 0)
+        {
+          fprintf(stderr, "%s needs more %s memory, resizing to %d\n",
+                  threadname.c_str(), T::type_string().c_str(), sz);
+        }
+      M.resize(sz, def_value);
     }
+  memory_mutex.unlock();
 }
 
 template<class T>
@@ -57,7 +62,7 @@ istream &operator>>(istream &s, Memory<T> &M)
   int len;
 
   s >> len;
-  M.resize(len);
+  M.M.resize(len, M.def_value);
   s.seekg(1, istream::cur);
 
   for (unsigned int i= 0; i < M.M.size(); i++)
@@ -77,28 +82,6 @@ void Memory<T>::clear_memory()
     }
 }
 
-template<class T>
-void Load_Memory(Memory<T> &M, ifstream &inpf)
-{
-  int a;
-  T val;
-
-  inpf >> a;
-  M.resize(a);
-
-  fprintf(stderr, "Reading Memory\n");
-
-  // Read clear memory
-  inpf >> a;
-  val.input(inpf, true);
-  while (a != -1)
-    {
-      M.write(a, val);
-      inpf >> a;
-      val.input(inpf, true);
-    }
-}
-
 template class Memory<gfp>;
 template class Memory<Share>;
 template class Memory<Integer>;
@@ -111,8 +94,3 @@ template istream &operator>>(istream &s, Memory<Integer> &M);
 template ostream &operator<<(ostream &s, const Memory<gfp> &M);
 template ostream &operator<<(ostream &s, const Memory<Share> &M);
 template ostream &operator<<(ostream &s, const Memory<Integer> &M);
-
-template void Load_Memory(Memory<gfp> &M, ifstream &inpf);
-template void Load_Memory(Memory<Share> &M, ifstream &inpf);
-template void Load_Memory(Memory<Integer> &M, ifstream &inpf);
-template void Load_Memory(Memory<aBitVector> &M, ifstream &inpf);

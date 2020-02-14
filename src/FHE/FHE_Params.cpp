@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2019, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -19,7 +19,6 @@ All rights reserved
 #define num_params 7
 int FHE_Sec_Params[num_params][4]= {
     {1024, 40, 25, 12}, {2048, 82, 52, 26}, {4096, 167, 106, 56}, {8192, 340, 215, 115}, {16384, 686, 436, 235}, {32768, 1392, 879, 473}, {65536, 2830, 1778, 953}};
-
 
 void produce_epsilon_constants(double C[3])
 {
@@ -64,10 +63,10 @@ bigint make_prime(int lg2, int N, const bigint &q= 0,
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers */
 void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int lg2p,
-			 unsigned int n,
+                         unsigned int n,
                          PoKVersion version,
-                         unsigned int h, 
-			 int NewHopeB_t,
+                         unsigned int h,
+                         int NewHopeB_t,
                          int comp_sec_t,
                          int DD_stat_sec_t,
                          int ZK_sound_sec_t,
@@ -76,7 +75,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
   double pp= exp2((double) lg2p), ss= exp2((double) DD_stat_sec_t);
   double Sslack= exp2((double) ZK_slack_sec_t);
   double lgp0, lgp1, lgq;
-  double sigma=sqrt(NewHopeB_t/2.0);
+  double sigma= sqrt(NewHopeB_t / 2.0);
 
   double C[3];
   produce_epsilon_constants(C);
@@ -108,9 +107,11 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
     {
       N= FHE_Sec_Params[i][0];
       double phim= N;
-      double varsk=sigma*sqrt(phim);
-      if (h>0)
-	{ varsk=sqrt((double) h); }
+      double varsk= sigma * sqrt(phim);
+      if (h > 0)
+        {
+          varsk= sqrt((double) h);
+        }
 
       // New
       double B_Clean=
@@ -127,7 +128,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
           B_Clean*= phim * Sslack * 4.0 * n * pp;
         }
 
-      double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim / 12)*varsk);
+      double B_Scale= pp * (C[1] * sqrt(phim / 12) + C[2] * sqrt(phim / 12) * varsk);
       double B_KS= pp * C[2] * sigma * phim / sqrt(12);
       for (lgq= 10; lgq < FHE_Sec_Params[i][index] && !done; lgq+= 10)
         {
@@ -207,7 +208,7 @@ vector<bigint> FHE_Params::sample_Hwt(PRNG &G) const
       ans[i]= 0;
     }
   uint8_t ch= 0;
-  int cnt=0, j=0;
+  int cnt= 0, j= 0;
   while (cnt < hwt)
     {
       unsigned int i= G.get_uint() % n;
