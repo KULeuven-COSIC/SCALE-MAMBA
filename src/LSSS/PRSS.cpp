@@ -181,6 +181,7 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
       Shares_Of_One.resize(0);
       batch_pos= 0;
       batch.resize(1024, Share(whoami));
+      batch_production(P);
       return;
     }
 
