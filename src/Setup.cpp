@@ -482,6 +482,9 @@ void init_secret_sharing()
       if (outk.fail())
         {
           throw file_error(ss.str());
+        }
+      else
+        {
           for (unsigned int j= 0; j < SD.nmacs; j++)
             {
               gfp aa;
