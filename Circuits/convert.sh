@@ -77,3 +77,12 @@ sed -i ':begin;$!N;s/)\n      /)/;tbegin;P;D' VHDL/LSSS_to_GC.net
 sed -i ':begin;$!N;s/(\n      /(/;tbegin;P;D' VHDL/LSSS_to_GC.net
 sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/LSSS_to_GC.net
 ./convert.x LSSS_to_GC
+
+./process.x add
+./process.x mul
+./process.x div
+./process.x sqrt
+./process.x f2i
+./process.x i2f
+./process.x eq
+

@@ -78,11 +78,19 @@ public:
 
   // Previous code created a new player, according to thread_num
   // Now we just copy by reference, might want to change this in the future.
-  AbstractDABitGenerator(int thread_num, Player &P) : thread_num(thread_num), P(P), total(0) {}
+  AbstractDABitGenerator(int thread_num, Player &P)
+      : thread_num(thread_num), P(P), total(0)
+  {
+  }
 
-  virtual ~AbstractDABitGenerator() {}
+  virtual ~AbstractDABitGenerator()
+  {
+  }
   virtual void run(daBitVector &dabs)= 0;
-  int get_thread_num() const { return thread_num; }
+  int get_thread_num() const
+  {
+    return thread_num;
+  }
 };
 
 // this is classic cut-and-choose from https://eprint.iacr.org/2019/207

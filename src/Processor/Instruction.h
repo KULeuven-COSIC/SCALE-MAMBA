@@ -147,6 +147,7 @@ enum {
   ANDSB= 0x7A,
   ORSB= 0x7B,
   NEGB= 0x7C,
+  LDSBIT= 0x7D,
 
   // Bitwise shifts
   SHLC= 0x80,
@@ -189,6 +190,7 @@ enum {
   PRINT_FLOAT= 0xB7,
   PRINT_FIX= 0xB8,
   PRINT_INT= 0xB9,
+  PRINT_IEEE_FLOAT= 0xBA,
 
   // Comparison of sregints
   EQZSINT= 0xD0,
@@ -223,31 +225,26 @@ enum {
   PEEKINT= 0x102,
   POKEINT= 0x103,
   GETSPINT= 0x104,
-
   PUSHSINT= 0x105,
   POPSINT= 0x106,
   PEEKSINT= 0x107,
   POKESINT= 0x108,
   GETSPSINT= 0x109,
-
   PUSHSBIT= 0x10A,
   POPSBIT= 0x10B,
   PEEKSBIT= 0x10C,
   POKESBIT= 0x10D,
   GETSPSBIT= 0x10E,
-
   PUSHC= 0x110,
   POPC= 0x111,
   PEEKC= 0x112,
   POKEC= 0x113,
   GETSPC= 0x114,
-
   PUSHS= 0x115,
   POPS= 0x116,
   PEEKS= 0x117,
   POKES= 0x118,
   GETSPS= 0x119,
-
 };
 
 // Register types

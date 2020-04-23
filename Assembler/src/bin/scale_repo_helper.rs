@@ -3,7 +3,7 @@
 #![deny(rust_2018_idioms)]
 
 use std::path::PathBuf;
-use std::process::Stdio;
+use std::io::Write;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -53,12 +53,13 @@ fn main(args: Args) -> std::io::Result<()> {
                 cmd.arg(&file);
                 cmd.arg(file.with_extension("bc"));
                 cmd.args(&args.rest);
-                if !args.verbose {
-                    cmd.stdout(Stdio::null());
-                    cmd.stderr(Stdio::null());
-                }
-                if !cmd.status()?.success() {
+                let output = cmd.output()?;
+                if !output.status.success() {
                     println!("Failed to compile {}", file.display());
+                    std::io::stdout().write_all(&output.stdout)?;
+                    std::io::stdout().flush()?;
+                    std::io::stderr().write_all(&output.stderr)?;
+                    std::io::stderr().flush()?;
                     std::process::exit(1);
                 }
                 if args.show_optimization {
@@ -71,14 +72,16 @@ fn main(args: Args) -> std::io::Result<()> {
                         .command();
                     cmd.arg(file.with_extension("bc"));
                     cmd.arg(file.with_extension("asm-opt"));
+                    cmd.arg("--output-format=assembly");
                     // Just convert between bc and asm file
                     cmd.arg("--optimization-level=0");
-                    if !args.verbose {
-                        cmd.stdout(Stdio::null());
-                        cmd.stderr(Stdio::null());
-                    }
-                    if !cmd.status()?.success() {
+                    let output = cmd.output()?;
+                    if !output.status.success() {
                         println!("Failed to compile {}", file.display());
+                        std::io::stdout().write_all(&output.stdout)?;
+                        std::io::stdout().flush()?;
+                        std::io::stderr().write_all(&output.stderr)?;
+                        std::io::stderr().flush()?;
                         std::process::exit(1);
                     }
                 }

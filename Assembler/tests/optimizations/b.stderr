@@ -1,11 +1,11 @@
 warning: Write to register is never read
- --> tests/optimizations/b.asm:2:0
+ --> tests/optimizations/b.asm:2:1
   |
 2 | ldsi s0, 3
   | ---------- register 0 written to but will never be read from again
   |
 warning: Write to register is never read
- --> tests/optimizations/b.asm:1:0
+ --> tests/optimizations/b.asm:1:1
   |
 1 | ldi c0, 3
   | --------- register 0 written to but will never be read from again

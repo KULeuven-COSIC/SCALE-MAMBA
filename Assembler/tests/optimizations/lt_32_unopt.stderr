@@ -1,5 +1,5 @@
 warning: Write to register is never read
-    --> tests/optimizations/lt_32_unopt.asm:1162:0
+    --> tests/optimizations/lt_32_unopt.asm:1162:1
      |
 1162 | subsfi s2, s4, 0 # 1160
      | ----------------------- register 2 written to but will never be read from again

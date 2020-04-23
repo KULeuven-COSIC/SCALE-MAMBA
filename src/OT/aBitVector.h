@@ -83,7 +83,10 @@ public:
   void assign_zero();
   void assign_one();
 
-  vector<aBit> internal_rep() const { return x; }
+  vector<aBit> internal_rep() const
+  {
+    return x;
+  }
 
   unsigned long long Open(Player &P) const;
 

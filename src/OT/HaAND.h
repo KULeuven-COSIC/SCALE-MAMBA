@@ -33,7 +33,10 @@ public:
   /* This is protocol 16 of ePrint 2017/189 executed 131072 times */
   void make_more(Player &P, int num_online);
 
-  unsigned int get_number() const { return x.size(); }
+  unsigned int get_number() const
+  {
+    return x.size();
+  }
 };
 
 #endif

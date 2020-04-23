@@ -139,6 +139,21 @@ void Base_Circuits::initialize(const bigint &p)
   loaded.insert(make_pair(105, false));
   location.insert(make_pair(105, "Circuits/Bristol/sha512.txt"));
 
+  loaded.insert(make_pair(120, false));
+  location.insert(make_pair(120, "Circuits/Bristol/FP-add.txt"));
+  loaded.insert(make_pair(121, false));
+  location.insert(make_pair(121, "Circuits/Bristol/FP-mul.txt"));
+  loaded.insert(make_pair(122, false));
+  location.insert(make_pair(122, "Circuits/Bristol/FP-div.txt"));
+  loaded.insert(make_pair(123, false));
+  location.insert(make_pair(123, "Circuits/Bristol/FP-eq.txt"));
+  loaded.insert(make_pair(124, false));
+  location.insert(make_pair(124, "Circuits/Bristol/FP-f2i.txt"));
+  loaded.insert(make_pair(125, false));
+  location.insert(make_pair(125, "Circuits/Bristol/FP-i2f.txt"));
+  loaded.insert(make_pair(126, false));
+  location.insert(make_pair(126, "Circuits/Bristol/FP-sqrt.txt"));
+
   /* Now any user defined ones */
 
   /* PUT YOUR ONES HERE 

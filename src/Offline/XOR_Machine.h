@@ -45,7 +45,10 @@ class XOR_Machine
 public:
   XOR_Machine(Player &P, offline_control_data &OCD, int thread);
 
-  int get_thread() const { return thread; }
+  int get_thread() const
+  {
+    return thread;
+  }
 
   void combine(vector<Share> &combinedp, vector<aBit> &combined2,
                const vector<Share> &Shp, const vector<aBit> Sh2,

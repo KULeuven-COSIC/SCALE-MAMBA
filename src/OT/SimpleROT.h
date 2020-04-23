@@ -46,8 +46,14 @@ class SimpleOT_Sender
 public:
   void init(string &output, CryptoPP::RandomPool &RNG);
 
-  bool is_complete() const { return complete; }
-  void reset() { complete= false; }
+  bool is_complete() const
+  {
+    return complete;
+  }
+  void reset()
+  {
+    complete= false;
+  }
 
   void message(const string &input);
 
@@ -71,14 +77,20 @@ class SimpleOT_Receiver
 public:
   void init(const string &input, int choicebit);
 
-  bool is_complete() const { return complete; }
+  bool is_complete() const
+  {
+    return complete;
+  }
 
   void message(string &output, CryptoPP::RandomPool &RNG);
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int row, BitMatrix &M);
 
-  int get_bit() const { return b; }
+  int get_bit() const
+  {
+    return b;
+  }
 };
 
 #endif

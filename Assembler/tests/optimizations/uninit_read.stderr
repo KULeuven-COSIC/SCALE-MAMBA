@@ -1,11 +1,11 @@
 error: read from uninitialized register
- --> tests/optimizations/uninit_read.asm:1:0
+ --> tests/optimizations/uninit_read.asm:1:1
   |
 1 | addci c0, c1, 2
   | ^^^^^^^^^^^^^^^ register 1 was never written to
   |
 warning: Write to register is never read
- --> tests/optimizations/uninit_read.asm:1:0
+ --> tests/optimizations/uninit_read.asm:1:1
   |
 1 | addci c0, c1, 2
   | --------------- register 0 written to but will never be read from again

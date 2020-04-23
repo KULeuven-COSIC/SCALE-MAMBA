@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.7} of the SCALE and MAMBA software.
+This is currently {\bf version 1.8} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -26,6 +26,21 @@ The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
 
+\subsection{Changes in version 1.8 from 1.7}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item Added a constructor for \verb|sbit| objects.
+\item The ability to execute IEEE compliant floating point arithmetic
+      using the Garbled Circuit engine has been added. 
+      See Section \ref{sec:ieee}.
+\item Loads of bug fixes for SIMD operation on vectors have
+      been implemented. Plus a speed up for the SIMD input and
+      output of private gfp values.
+\item Added a flag \verb|-dOT| to turn off the OT threads to \verb|Player.x|.
+      This can increase speed, reduce memory, but means all the GC
+      based operations will no longer work.
+\item Fixed some bugs in the low level documentation.
+\end{enumerate}
 
 \subsection{Changes in version 1.7 from 1.6}
 Apart from the usual minor bug fixes...
@@ -73,8 +88,9 @@ Apart from the usual minor bug fixes...
   \item Almost all the following changes have been done in order
   to accommodate the new assembler, in particular there has been
   a few minor tweaks to the assembler syntax.
-  A full description of the assembler commands are now
-  given in Section \ref{subsec:instructions}. This table of operations is auto-generated
+  A full description of the byte-codes are now
+  given in Section \ref{subsec:instructions}. This table of 
+  byte-codes is auto-generated
   from the \verb+scasm+ code, and is thus guaranteed to be up to date with the implementation.
   \item Each virtual `processor' now contains a stack for each
   of the five register types. One can access the stack pointer,
@@ -102,7 +118,7 @@ Apart from the usual minor bug fixes...
   \item Added a method to convert \verb|sregint|'s to \verb|sint|'s
   where we treat the \verb|sregint| as an {\em unsigned} 64-bit value.
   \item Added circuits for the SHA-256 and SHA-512 compression functions.
-  \item Added more efficient circuits for basis \verb|sregint| arithmetic.
+  \item Added more efficient circuits for basic \verb|sregint| arithmetic.
   These operations should now be twice as fast.
  \end{enumerate}
 

@@ -24,28 +24,70 @@ class int128
 public:
   __m128i a;
 
-  int128() : a(_mm_setzero_si128()) {}
-  int128(const int128 &a) : a(a.a) {}
-  int128(const __m128i &a) : a(a) {}
-  int128(const word &a) : a(_mm_cvtsi64_si128(a)) {}
-  int128(const word &upper, const word &lower) : a(_mm_set_epi64x(upper, lower)) {}
+  int128()
+      : a(_mm_setzero_si128())
+  {
+  }
+  int128(const int128 &a)
+      : a(a.a)
+  {
+  }
+  int128(const __m128i &a)
+      : a(a)
+  {
+  }
+  int128(const word &a)
+      : a(_mm_cvtsi64_si128(a))
+  {
+  }
+  int128(const word &upper, const word &lower)
+      : a(_mm_set_epi64x(upper, lower))
+  {
+  }
 
-  word get_lower() { return (word) _mm_cvtsi128_si64(a); }
+  word get_lower()
+  {
+    return (word) _mm_cvtsi128_si64(a);
+  }
 
-  bool operator==(const int128 &other) const { return _mm_test_all_zeros(a ^ other.a, a ^ other.a); }
-  bool operator!=(const int128 &other) const { return !(*this == other); }
+  bool operator==(const int128 &other) const
+  {
+    return _mm_test_all_zeros(a ^ other.a, a ^ other.a);
+  }
+  bool operator!=(const int128 &other) const
+  {
+    return !(*this == other);
+  }
 
   int128 operator<<(const int &other) const;
   int128 operator>>(const int &other) const;
 
-  int128 operator^(const int128 &other) const { return a ^ other.a; }
-  int128 operator|(const int128 &other) const { return a | other.a; }
-  int128 operator&(const int128 &other) const { return a & other.a; }
+  int128 operator^(const int128 &other) const
+  {
+    return a ^ other.a;
+  }
+  int128 operator|(const int128 &other) const
+  {
+    return a | other.a;
+  }
+  int128 operator&(const int128 &other) const
+  {
+    return a & other.a;
+  }
 
-  int128 operator~() const { return ~a; }
+  int128 operator~() const
+  {
+    return ~a;
+  }
 
-  int128 &operator<<=(const int &other) { return *this= *this << other; }
-  int128 &operator>>=(const int &other) { return *this= *this >> other; }
+  int128 &operator<<=(const int &other)
+  {
+    return *this= *this << other;
+  }
+  int128 &operator>>=(const int &other)
+  {
+    return *this= *this >> other;
+  }
 
   int128 &operator^=(const int128 &other)
   {
@@ -100,9 +142,18 @@ public:
   }
 
   static void init_field(int nn);
-  static int degree() { return n; }
-  static int default_degree() { return 128; }
-  static int get_nterms() { return nterms; }
+  static int degree()
+  {
+    return n;
+  }
+  static int default_degree()
+  {
+    return 128;
+  }
+  static int get_nterms()
+  {
+    return nterms;
+  }
   static int get_t(int i)
   {
     if (i == 0)
@@ -120,20 +171,53 @@ public:
     return -1;
   }
 
-  static int size() { return sizeof(a); }
-  static int t() { return 0; }
+  static int size()
+  {
+    return sizeof(a);
+  }
+  static int t()
+  {
+    return 0;
+  }
 
-  static int default_length() { return 128; }
+  static int default_length()
+  {
+    return 128;
+  }
 
-  int128 get() const { return a; }
-  __m128i to_m128i() const { return a.a; }
-  word get_word() const { return _mm_cvtsi128_si64(a.a); }
+  int128 get() const
+  {
+    return a;
+  }
+  __m128i to_m128i() const
+  {
+    return a.a;
+  }
+  word get_word() const
+  {
+    return _mm_cvtsi128_si64(a.a);
+  }
 
-  void assign_zero() { a= _mm_setzero_si128(); }
-  void assign_one() { a= int128(0, 1); }
-  void assign_x() { a= int128(0, 2); }
-  void assign(int128 aa) { a= aa & mask; }
-  void assign(int aa) { a= int128(static_cast<unsigned int>(aa)) & mask; }
+  void assign_zero()
+  {
+    a= _mm_setzero_si128();
+  }
+  void assign_one()
+  {
+    a= int128(0, 1);
+  }
+  void assign_x()
+  {
+    a= int128(0, 2);
+  }
+  void assign(int128 aa)
+  {
+    a= aa & mask;
+  }
+  void assign(int aa)
+  {
+    a= int128(static_cast<unsigned int>(aa)) & mask;
+  }
 
   void load_from_buffer(const uint8_t *buffer)
   {
@@ -161,15 +245,39 @@ public:
       }
   }
 
-  gf2n() { assign_zero(); }
-  gf2n(const int128 &g) { assign(g); }
-  gf2n(int g) { assign(g); }
+  gf2n()
+  {
+    assign_zero();
+  }
+  gf2n(const int128 &g)
+  {
+    assign(g);
+  }
+  gf2n(int g)
+  {
+    assign(g);
+  }
 
-  int is_zero() const { return a == int128(0); }
-  int is_one() const { return a == int128(1); }
-  int equal(const gf2n &y) const { return (a == y.a); }
-  bool operator==(const gf2n &y) const { return a == y.a; }
-  bool operator!=(const gf2n &y) const { return a != y.a; }
+  int is_zero() const
+  {
+    return a == int128(0);
+  }
+  int is_one() const
+  {
+    return a == int128(1);
+  }
+  int equal(const gf2n &y) const
+  {
+    return (a == y.a);
+  }
+  bool operator==(const gf2n &y) const
+  {
+    return a == y.a;
+  }
+  bool operator!=(const gf2n &y) const
+  {
+    return a != y.a;
+  }
 
   // x+y
   void add(const gf2n &x, const gf2n &y)
@@ -199,9 +307,15 @@ public:
   }
   // = x * y
   gf2n &mul(const gf2n &x, const gf2n &y);
-  void mul(const gf2n &x) { mul(*this, x); }
+  void mul(const gf2n &x)
+  {
+    mul(*this, x);
+  }
   // x * y when one of x,y is a bit
-  void mul_by_bit(const gf2n &x, const gf2n &y) { a= x.a.a * y.a.a; }
+  void mul_by_bit(const gf2n &x, const gf2n &y)
+  {
+    a= x.a.a * y.a.a;
+  }
 
   gf2n operator+(const gf2n &x)
   {
@@ -245,16 +359,37 @@ public:
     *this= aa;
     invert();
   }
-  void negate() { return; }
+  void negate()
+  {
+    return;
+  }
   void power(long i);
 
   /* Bitwise Ops */
-  void AND(const gf2n &x, const gf2n &y) { a= x.a & y.a; }
-  void XOR(const gf2n &x, const gf2n &y) { a= x.a ^ y.a; }
-  void OR(const gf2n &x, const gf2n &y) { a= x.a | y.a; }
-  void NOT(const gf2n &x) { a= (~x.a) & mask; }
-  void SHL(const gf2n &x, int n) { a= (x.a << n) & mask; }
-  void SHR(const gf2n &x, int n) { a= x.a >> n; }
+  void AND(const gf2n &x, const gf2n &y)
+  {
+    a= x.a & y.a;
+  }
+  void XOR(const gf2n &x, const gf2n &y)
+  {
+    a= x.a ^ y.a;
+  }
+  void OR(const gf2n &x, const gf2n &y)
+  {
+    a= x.a | y.a;
+  }
+  void NOT(const gf2n &x)
+  {
+    a= (~x.a) & mask;
+  }
+  void SHL(const gf2n &x, int n)
+  {
+    a= (x.a << n) & mask;
+  }
+  void SHR(const gf2n &x, int n)
+  {
+    a= x.a >> n;
+  }
 
   gf2n operator&(const gf2n &x)
   {

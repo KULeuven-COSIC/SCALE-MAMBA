@@ -1,8 +1,13 @@
-\mainsection{User Defined Circuits for Garbling}
+\mainsection{System and User Defined Circuits for Garbling}
 \label{sec:GC}
 SCALE-MAMBA allows one to call user defined circuits, both
 from the byte-code and the MAMBA language.
 In this section we explain how this is done.
+We also explain the circuits we provide: These currently
+are for some symmetric cryptographic operations such as
+AES, SHA-2 and SHA-3, as well as IEEE floating point
+arithmetic.
+
 
 \subsection{Defining Circuits}
 The first task is to define the actual circuit.
@@ -65,7 +70,8 @@ system.
 We have added a number of such circuits already into the
 system, which include AES operations (for AES-128, AES-192
 and AES-256), the SHA-256 and SHA-512 compression functions,
-plus a circuit for the Keccak-f function\footnote{If
+a circuit for the Keccak-f function, plus circuits for
+IEEE floating point arithmetic\footnote{If
 you have a cool circuit which you think others might find
 cool to use in SCALE-MAMBA, just send it to us and we
 might include it in a future release with a circuit
@@ -191,6 +197,156 @@ Number & Function \\
 103 & Keccak-f \\
 104 & SHA-256 \\
 105 & SHA-512 \\
+\hline
+120 & IEEE floating point (double) addition \\
+121 & IEEE floating point (double) multiplication \\
+122 & IEEE floating point (double) division \\
+123 & IEEE floating point (double) equality \\
+124 & IEEE floating point double  to sregint \\
+125 & IEEE floating point sregint to double \\
+126 & IEEE floating point (double) sqrt \\
+\hline
 \end{tabular}
 \end{center}
+
+\subsection{IEEE Floating Point Arithmetic}
+\label{sec:ieee}
+As a recap an IEEE double is held in 64-bits as one sign bit,
+11 bits to represent the signed exponent, and then 52
+bits to represent the normalised mantissa. By normalization
+one means that there is a hidden 53 bit which is always set
+to one, namely the most significant bit of the number.
+Thus we obtain 53 bits of binary precision.
+So for example the decimal number $3.125$ gets represented as
+the 64-bit number
+\begin{lstlisting}
+   0 10000000000 1001000000000000000000000000000000000000000000000000
+\end{lstlisting}
+In MAMBA we would hold this as the 64-bit integer $4614219293217783808$; notice
+the bit order!
+To convert a floating point value to this representation, and then print
+the value to the standard output device, we have the following
+commands
+\begin{lstlisting}
+  r0=convert_to_float("3.125")
+  print_ieee_float(r0)
+\end{lstlisting}
+where here \verb|r0| will be a \verb|regint| type.
+Note, that if you perform arithmetic on the associated \verb|regint|
+you will not get the equivalent of double arithmetic.
+There is currently no way to perform arithmetic on `clear'
+floating point values.
+
+However, we can perform arithmetic on `secret' floating point values
+using the Garbled Circuit engine\footnote{Note one thing we have not
+yet worked out is how for users to `enter' a secret floating point
+value, i.e. do the conversion hidden behind the conversion
+operation above.
+One presumes an application could do this themselves as it is not
+that hard programmatically.}.
+We first need to convert the \verb|regint| to an \verb|sregint|, which
+is done using the standard type conversion operation.
+Then to perform arithmetic we use the stack and the garbled circuits
+defined above.
+
+Clearly, as the Garbled Circuit engine is stack based one can
+be more efficient by transforming any expression to Reverse
+Polish notation and then executing the expression as this.
+The following code example, from the example program
+\verb|Programs/GC_Float|, illustrates how to use the operations.
+\begin{lstlisting}
+FP_add=120
+FP_mul=121
+FP_div=122
+FP_eq=123
+FP_f2i=124
+FP_i2f=125
+FP_sqrt=126
+
+r0=convert_to_float("3.125")
+r1=convert_to_float("1.25")
+r2=convert_to_float("-6.535353")
+r3=convert_to_float("199.3231")
+
+s0=sregint(r0)
+s1=sregint(r1)
+s2=sregint(r2)
+s3=sregint(r3)
+
+# First compute 
+#   s4 = (s0+s1)*(s2+s3)
+#
+# To do this we convert to reverse polish notation 
+#
+#   s0 s1 + s2 s3 + *
+#
+# Then we compute this by executing this as a stack programm...
+#
+
+sregint.push(s0)
+sregint.push(s1)
+GC(FP_add)
+sregint.push(s2)
+sregint.push(s3)
+GC(FP_add)
+GC(FP_mul)
+
+# Now test the result
+s4=sregint.pop()
+r4=s4.reveal()
+print_ieee_float(r4)
+print_ln("\nThe last number should be 843.446393125\n")
+
+# Now we are going to create -3.125 from 3.125
+#   From this it is easy to do subtraction
+s5=s0 ^ 0x8000000000000000;
+r5=s5.reveal()
+print_ieee_float(r5)
+print_ln("\nThe last number should be -3.125\n")
+
+# Now we divide s1 by s2
+sregint.push(s1)
+sregint.push(s2)
+GC(FP_div)
+s6=sregint.pop()
+r6=s6.reveal()
+print_ieee_float(r6)
+print_ln("\nThe last number should be 1.25/-6.535353 = -0.191267403612322\n")
+
+# Now sqrt of 3.125
+sregint.push(s0)
+GC(FP_sqrt)
+s7=sregint.pop()
+r7=s7.reveal()
+print_ieee_float(r7)
+print_ln("\nThe last number should be sqrt(3.125) = 1.76776695\n")
+
+# Now sqrt of -3.125
+sregint.push(s5)
+GC(FP_sqrt)
+s8=sregint.pop()
+r8=s8.reveal()
+print_ieee_float(r8)
+print_ln("\nThe last number should be sqrt(-3.125) = NaN\n")
+
+# Now conversion between integers and floats
+# Take a big integer and convert it to a float
+sa=sregint(9223372036430532566)
+sregint.push(sa)
+GC(FP_i2f)
+sf=sregint.pop()
+sregint.push(sf)
+GC(FP_f2i)
+sb=sregint.pop()
+
+a=sa.reveal()
+b=sb.reveal()
+f=sf.reveal()
+print_ln("Conversions...")
+print_int(a);        print_ln("")
+print_ieee_float(f); print_ln("")
+print_int(b);        print_ln("")
+\end{lstlisting}
+Note how negation can be obtained by a bit flip in the sign position.
+
 

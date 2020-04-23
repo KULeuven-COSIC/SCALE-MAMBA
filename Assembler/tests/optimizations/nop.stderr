@@ -1,10 +1,10 @@
 error: read from uninitialized register
- --> tests/optimizations/nop.asm:2:0
+ --> tests/optimizations/nop.asm:2:1
   |
 2 | stms s0, 8201 # 4
   | ^^^^^^^^^^^^^^^^^ register 0 was never written to
   |
- ::: tests/optimizations/nop.asm:4:0
+ ::: tests/optimizations/nop.asm:4:1
   |
 4 | stms s0, 8210 # 6
   | ^^^^^^^^^^^^^^^^^ register 0 was never written to

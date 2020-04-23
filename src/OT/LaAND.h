@@ -31,7 +31,10 @@ public:
   /* This is Figure 8 of ePrint 2017/189 executed number times */
   void make_more(Player &P, int num_online);
 
-  unsigned int get_number() const { return triples.size(); }
+  unsigned int get_number() const
+  {
+    return triples.size();
+  }
 };
 
 /* This is a routine for DEBUG purposes only */

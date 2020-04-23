@@ -121,6 +121,8 @@ Thus if you use {\bf -max} and are in this situation then signal
 using this flag an upper bound on the number of amount IO data you
 will be consuming. We would recommend that you multiply the max amount
 per player by the number of players here.
+\item {\bf -dOT}: Disable the OT threads. This can increase speed, reduce memory, 
+	but means all the GC based operations will no longer work.
 \item {\bf -f 2}: The number of FHE factories to run in parallel.
 This only applies (obviously) to the Full Threshold situation.
 How this affects your installation depends on the number of cores

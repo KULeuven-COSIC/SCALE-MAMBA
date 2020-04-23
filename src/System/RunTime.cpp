@@ -102,7 +102,9 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
                SSL_CTX *ctx, const vector<unsigned int> &portnum,
                const SystemData &SD,
                Machine &machine, offline_control_data &OCD,
-               unsigned int number_FHE_threads, int verbose)
+               unsigned int number_FHE_threads,
+               bool OT_disable,
+               int verbose)
 {
   machine.Load_Schedule_Into_Memory();
   machine.SetUp_Threads(no_online_threads);
@@ -110,7 +112,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   Global_Circuit_Store.initialize(gfp::pr());
 
   OCD.resize(no_online_threads, SD.n, my_number);
-  OTD.init(no_online_threads);
+  OTD.init(no_online_threads, OT_disable);
 
   SacrificeD.resize(no_online_threads);
   for (unsigned int i= 0; i < no_online_threads; i++)
@@ -122,7 +124,10 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
   // Add in the FHE threads
   unsigned int tnthreads= nthreads + number_FHE_threads;
   // Add in the OT threads
-  tnthreads+= 2;
+  if (!OTD.disabled)
+    {
+      tnthreads+= 2;
+    }
   daBitMachine.Initialize(SD.n, OCD);
 
   /* Initialize the networking TCP sockets */

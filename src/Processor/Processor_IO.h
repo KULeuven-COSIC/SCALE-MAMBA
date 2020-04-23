@@ -10,11 +10,7 @@ All rights reserved
 
 #include "Online/Machine.h"
 
-/* Class for handling private input and output from parties
- *   You cannot execute two consequtive start's for the
- *   *same* player without a corresponding stop (of the same length)
- *   But you can do concurrent starts for different players
- */
+/* Class for handling private input and output from parties */
 
 class Processor;
 
@@ -23,7 +19,7 @@ using namespace std;
 
 class Processor_IO
 {
-  vector<Share> rshares;
+  vector<vector<Share>> rshares;
 
 public:
   Processor_IO(unsigned int nplayers)
@@ -34,12 +30,14 @@ public:
 
   // Get a private input values from a player on a given channel
   void private_input(unsigned int player, int target, unsigned int channel,
-                     Processor &Proc, Player &P, Machine &machine, offline_control_data &OCD);
+                     Processor &Proc, Player &P, Machine &machine, offline_control_data &OCD,
+                     unsigned int vectorize= 1);
 
   // Output a private value to a player on a channel
   void private_output(unsigned int player, int source, unsigned int channel,
                       Processor &Proc, Player &P, Machine &machine,
-                      offline_control_data &OCD);
+                      offline_control_data &OCD,
+                      unsigned int vectorize= 1);
 };
 
 #endif

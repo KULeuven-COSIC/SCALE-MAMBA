@@ -4,6 +4,7 @@ use crate::span::{Span, Spanned};
 use crate::Compiler;
 
 use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation};
+use annotate_snippets::display_list::FormatOptions;
 
 pub struct InvalidVectorSize<'a> {
     pub n: Spanned<'a, i32>,
@@ -25,6 +26,10 @@ impl<'a> Error<'a> for InvalidVectorSize<'a> {
             }),
             footer: vec![],
             slices: self.slices(cx, "for vector length here", AnnotationType::Error),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -62,6 +67,10 @@ impl<'a, T: std::fmt::Display, E: std::fmt::Display> Error<'a> for ExpectedGot<'
             }),
             footer: vec![],
             slices: self.slices(cx, "for operand here", AnnotationType::Error),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -83,6 +92,10 @@ impl<'a> Error<'a> for ExpectedOperand<'a> {
             }),
             footer: vec![],
             slices: self.slices(cx, "in argument list here", AnnotationType::Error),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -105,6 +118,10 @@ impl<'a> Error<'a> for ArgNotFound<'a> {
             }),
             footer: vec![],
             slices: self.slices(cx, "", AnnotationType::Error),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -144,6 +161,10 @@ impl<'a> Error<'a> for JumpOutOfBounds<'a> {
                     }
                 })
                 .collect(),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -169,6 +190,10 @@ impl<'a> Error<'a> for UnknownInstruction<'a> {
             }),
             footer: vec![],
             slices: self.slices(cx, "", AnnotationType::Error),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -191,6 +216,10 @@ impl<'a> Error<'a> for InvalidRegisterId<'a> {
             }),
             footer: vec![],
             slices: self.slices(cx, self.err.to_string(), AnnotationType::Error),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -203,7 +232,7 @@ impl<'a> Error<'a> for Io {
     fn spans(&self) -> &[Span<'a>] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print(self, _cx: &Compiler) -> Snippet {
+    fn print(self, cx: &Compiler) -> Snippet {
         Snippet {
             title: Some(Annotation {
                 label: Some(self.err.to_string()),
@@ -212,6 +241,10 @@ impl<'a> Error<'a> for Io {
             }),
             footer: vec![],
             slices: vec![],
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -238,6 +271,10 @@ impl<'a> Error<'a> for UnimplementedInstruction<'a> {
                 "cranelift backend does not yet support this instruction",
                 AnnotationType::Error,
             ),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -265,6 +302,10 @@ impl<'a> Error<'a> for UninitializedRead<'a> {
                 format!("register {} was never written to", self.reg),
                 AnnotationType::Error,
             ),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -298,6 +339,10 @@ impl<'a> Error<'a> for DeadWrite<'a> {
                 ),
                 AnnotationType::Warning,
             ),
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -311,7 +356,7 @@ impl<'a> Error<'a> for NotVectorizable {
     fn spans(&self) -> &[Span<'a>] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print(self, _: &Compiler) -> Snippet {
+    fn print(self, cx: &Compiler) -> Snippet {
         Snippet {
             title: Some(Annotation {
                 label: Some(format!(
@@ -323,6 +368,10 @@ impl<'a> Error<'a> for NotVectorizable {
             }),
             footer: vec![],
             slices: vec![],
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }
@@ -335,7 +384,7 @@ impl<'a> Error<'a> for SkippedErrors {
     fn spans(&self) -> &[Span<'a>] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print(self, _: &Compiler) -> Snippet {
+    fn print(self, cx: &Compiler) -> Snippet {
         Snippet {
             title: Some(Annotation {
                 label: Some(format!(
@@ -348,6 +397,10 @@ impl<'a> Error<'a> for SkippedErrors {
             }),
             footer: vec![],
             slices: vec![],
+            opt: FormatOptions {
+                color: cx.colors,
+                .. Default::default()
+            },
         }
     }
 }

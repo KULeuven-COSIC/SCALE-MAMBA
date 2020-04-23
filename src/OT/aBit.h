@@ -35,7 +35,10 @@ class aBit
   static gf2n Delta;
 
 public:
-  static gf2n get_Delta() { return Delta; }
+  static gf2n get_Delta()
+  {
+    return Delta;
+  }
 
   static void set_nplayers(int nn)
   {
@@ -72,19 +75,34 @@ public:
     assign_zero();
   }
 
-  gf2n get_MAC(int i) const { return M[i]; }
-  gf2n get_Key(int i) const { return K[i]; }
+  gf2n get_MAC(int i) const
+  {
+    return M[i];
+  }
+  gf2n get_Key(int i) const
+  {
+    return K[i];
+  }
 
   // These should be used with care, as could make an invalid aBit
   void set_value(int b);
-  void set_MAC(int i, const gf2n &y) { M[i]= y; }
-  void set_Key(int i, const gf2n &y) { K[i]= y; }
+  void set_MAC(int i, const gf2n &y)
+  {
+    M[i]= y;
+  }
+  void set_Key(int i, const gf2n &y)
+  {
+    K[i]= y;
+  }
 
   // The following checks we actually have 0/1 entries in x
   int get_value() const;
 
   // Return the raw x value
-  gf2n get_raw_value() const { return x; }
+  gf2n get_raw_value() const
+  {
+    return x;
+  }
 
   // Mult the aBit by a gf2n constant
   void mult_by(const gf2n &y, const aBit &z);

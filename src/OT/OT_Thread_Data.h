@@ -16,12 +16,22 @@ public:
   aBit_Data aBD;
   aAND_Data aAD;
   bool ready;
+  bool disabled;
 
-  void init(unsigned int no_online_threads)
+  void init(unsigned int no_online_threads, bool disable= false)
   {
     aBD.aBits.resize(no_online_threads + 1);
     aAD.aANDs.resize(no_online_threads);
     ready= false;
+    disabled= disable;
+  }
+
+  void check() const
+  {
+    if (disabled)
+      {
+        throw OT_disabled();
+      }
   }
 };
 

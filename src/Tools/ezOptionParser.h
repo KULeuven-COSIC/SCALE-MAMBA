@@ -2837,6 +2837,6 @@ void ezOptionParser::prettyPrint(std::string &out)
       out+= tmp;
     }
 }
-}
+} // namespace ez
 /* ################################################################### */
 #endif /* EZ_OPTION_PARSER_H */

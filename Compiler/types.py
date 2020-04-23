@@ -100,6 +100,18 @@ def vectorize_init(function):
 
     return vectorized_init
 
+# Vectorize a class method, using the first argument to define the
+# amount of vectorization
+def vectorize_arg0(function):
+    def vectorized_arg0(cls, *args, **kwargs):
+        size = args[0].size
+        set_global_vector_size(size)
+        res = function(cls, *args, **kwargs)
+        reset_global_vector_size()
+        return res
+
+    return classmethod(vectorized_arg0)
+
 
 def set_instruction_type(operation):
     def instruction_typed_operation(self, *args, **kwargs):
@@ -372,7 +384,7 @@ class cint(_clear, _int):
     def __init__(self, val=None, size=None):
         super(cint, self).__init__('c', val=val, size=size)
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def push(cls, val):
         pushc(val)
 
@@ -382,13 +394,13 @@ class cint(_clear, _int):
         popc(res)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def peek(cls, address):
         res = cls()
         peekc(res, address)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def poke(cls, address, val):
         pokec(address, val)
 
@@ -399,7 +411,7 @@ class cint(_clear, _int):
         return res
 
 
-    @classmethod
+    @vectorized_classmethod
     def public_input(cls, channel=0):
         r"""Get public input from IO channel c
                 x=cint.public_input(c)
@@ -408,6 +420,7 @@ class cint(_clear, _int):
         input_clear(res, channel)
         return res
 
+    @vectorize
     def public_output(self, channel=0):
         r"""Send public output to IO channel c
                  x.public_output(c)
@@ -524,6 +537,7 @@ class cint(_clear, _int):
         """
         return self > other
 
+    @vectorize
     def pow2(self, bit_length=None):
         r"""Returns 2^x
                   x.pow2()
@@ -536,6 +550,7 @@ class cint(_clear, _int):
         bit_length = bit_length or program.bit_length
         return floatingpoint.bits(self, bit_length)
 
+    @vectorize
     def legendre(self):
         r"""Returns the legendre symbol of x, wrt the cint prime p
                x.lengendre()
@@ -544,6 +559,7 @@ class cint(_clear, _int):
         legendrec(res, self)
         return res
 
+    @vectorize
     def digest(self):
         res = cint()
         digestc(res, self)
@@ -566,14 +582,15 @@ class regint(_register, _int):
               x.load_mem(address)
         """
         return cls._load_mem(address, ldmint, ldminti)
-
+ 
+    @vectorize
     def store_in_mem(self, address):
         r"""Stores the regint value x to the address
               x.store_in_mem(address)
         """
         self._store_in_mem(address, stmint, stminti)
 
-    @classmethod
+    @vectorized_classmethod
     def public_input(cls, channel=0):
         r"""Get public input from IO channel c
                 x=regint.public_input(c)
@@ -582,13 +599,14 @@ class regint(_register, _int):
         input_int(res, channel)
         return res
 
+    @vectorize
     def public_output(self, channel=0):
         r"""Send public output to IO channel c
                  x.public_output(c)
         """
         output_int(self, channel);
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def push(cls, val):
         pushint(val)
 
@@ -598,13 +616,13 @@ class regint(_register, _int):
         popint(res)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def peek(cls, address):
         res = cls()
         peekint(res, address)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def poke(cls, address, val):
         pokeint(address, val)
 
@@ -776,6 +794,7 @@ class regint(_register, _int):
             res += bit
         return res
 
+    @vectorize
     def reveal(self):
         return self
 
@@ -898,6 +917,7 @@ class _sec(_register):
         return NotImplemented
 
     @set_instruction_type
+    @vectorize
     def reveal_to(self, player, channel=0):
         return NotImplemented
 
@@ -923,6 +943,7 @@ class _secretMod2(_sec):
     # legacy from _secret
     # @params player: int player id
     @set_instruction_type
+    @vectorize
     def reveal_to(self, player, channel=0):
         private_output(self, player, channel)
 
@@ -1147,6 +1168,7 @@ class _secretModp(_sec):
         return res
 
     @set_instruction_type
+    @vectorize
     def reveal_to(self, player, channel=0):
         private_output(self, player, channel)
 
@@ -1177,9 +1199,12 @@ class sbit(_secretMod2):
         """
         return NotImplemented  # cls._load_mem(addres  s, ldsint, ldsint)
 
+    @vectorize
+    def load_int(self, val):
+        ldsbit(self, val)
     # TODO: when opcodes for inter-types these calls should be made by secret_op
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def push(cls, val):
         pushsbit(val)
 
@@ -1189,13 +1214,13 @@ class sbit(_secretMod2):
         popsbit(res)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def peek(cls, address):
         res = cls()
         peeksbit(res, address)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def poke(cls, address, val):
         pokesbit(address, val)
 
@@ -1264,6 +1289,7 @@ class sregint(_secretInt):
         neg(res, self)
         return res
 
+    @vectorize
     def store_in_mem(self, address):
         r"""Stores the sregint value x to the address
               x.store_in_mem(address)
@@ -1282,7 +1308,7 @@ class sregint(_secretInt):
             mul2sint(msw, lsw, self, other)
         return msw, lsw
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def push(cls, val):
         pushsint(val)
 
@@ -1292,13 +1318,13 @@ class sregint(_secretInt):
         popsint(res)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def peek(cls, address):
         res = cls()
         peeksint(res, address)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def poke(cls, address, val):
         pokesint(address, val)
 
@@ -1435,7 +1461,7 @@ class sint(_secretModp, _int):
         comparison.PRandInt(res, bits)
         return res
 
-    @classmethod
+    @vectorized_classmethod
     def get_private_input_from(cls, player, channel=0):
         r"""
           Usage
@@ -1446,7 +1472,7 @@ class sint(_secretModp, _int):
         private_input(res, player, channel)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def push(cls, val):
         pushs(val)
 
@@ -1456,13 +1482,13 @@ class sint(_secretModp, _int):
         pops(res)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def peek(cls, address):
         res = cls()
         peeks(res, address)
         return res
 
-    @vectorized_classmethod
+    @vectorize_arg0
     def poke(cls, address, val):
         pokes(address, val)
 
@@ -1644,6 +1670,8 @@ def parse_sregint(other):
 def parse_type(other):
     if isinstance(other, cfix.scalars):
         return cfix(other)
+    elif isinstance(other,_mem):
+        return other.read()
     elif isinstance(other, cint):
         tmp = cfix(0)
         tmp.load_int(other)
@@ -1674,8 +1702,10 @@ def parse_float(other):
         return cfloat(other)
     elif isinstance(other, cfloat.secrets):
         return sfloat(other)
+    elif isinstance(other, _mem):
+        return other.read()
     elif isinstance(other, (cfloat, sfloat)):
-        return other
+        return other   
     else:
         raise CompilerError('Missmatching input type')
 
@@ -1769,46 +1799,44 @@ class cfix(_number):
 
     @vectorize
     def add(self, other):
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other + self
+        elif isinstance(other, cfix):
+            return cfix(self.v + other.v)
+        elif isinstance(other, sfix):
+            return sfix(self.v + other.v)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return cfix(self.v + other.v)
-            elif isinstance(other, sfix):
-                return sfix(self.v + other.v)
-            else:
-                raise CompilerError('Invalid type %s for cfix.__add__' % type(other))
+            raise CompilerError('Invalid type %s for cfix.__add__' % type(other))
 
     @vectorize
     def mul(self, other):
+        other = parse_type(other)
         if isinstance(other, sfloat):
+            return other * self    
+        elif isinstance(other, cfix):
+            sgn = cint(1 - 2 * (self.v * other.v < 0))
+            absolute = self.v * other.v * sgn
+            val = sgn * (absolute >> self.f)
+            return cfix(val)
+        elif isinstance(other, sfix):
+            #res = sfix((self.v * other.v) >> self.f)
+            #return res
             return other * self
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                sgn = cint(1 - 2 * (self.v * other.v < 0))
-                absolute = self.v * other.v * sgn
-                val = sgn * (absolute >> self.f)
-                return cfix(val)
-            elif isinstance(other, sfix):
-                res = sfix((self.v * other.v) >> self.f)
-                return res
-            else:
-                raise CompilerError('Invalid type %s for cfix.__mul__' % type(other))
+            raise CompilerError('Invalid type %s for cfix.__mul__' % type(other))
 
     @vectorize
     def __sub__(self, other):
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return -other + self
+        elif isinstance(other, cfix):
+            return cfix(self.v - other.v)
+        elif isinstance(other, sfix):
+            return sfix(self.v - other.v)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return cfix(self.v - other.v)
-            elif isinstance(other, sfix):
-                return sfix(self.v - other.v)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__sub__' % type(other))
 
     @vectorize
     def __neg__(self):
@@ -1823,16 +1851,15 @@ class cfix(_number):
         """ parses all types to  fix registers and performs test.
         in case is performed against a sfloat use equality test from sfloat
         """
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other == self
+        if isinstance(other, cfix):
+            return self.v == other.v
+        elif isinstance(other, sfix):
+            return other.v.equal(self.v, self.k, other.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return self.v == other.v
-            elif isinstance(other, sfix):
-                return other.v.equal(self.v, self.k, other.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__eq__' % type(other))
 
     @vectorize
     def __lt__(self, other):
@@ -1840,80 +1867,74 @@ class cfix(_number):
         in case is performed against a sfloat use inequality test from sfloat
         """
 
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other > self
+        if isinstance(other, cfix):
+            return self.v < other.v
+        elif isinstance(other, sfix):
+            if (self.k != other.k or self.f != other.f):
+                raise TypeError('Incompatible fixed point types in comparison')
+            return other.v.greater_than(self.v, self.k, other.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return self.v < other.v
-            elif isinstance(other, sfix):
-                if (self.k != other.k or self.f != other.f):
-                    raise TypeError('Incompatible fixed point types in comparison')
-                return other.v.greater_than(self.v, self.k, other.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__lt__' % type(other))
 
     @vectorize
     def __le__(self, other):
         """ parses all types to  fix registers and performs test.
         in case is performed against a sfloat use inequality test from sfloat
         """
-
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other >= self
+        elif isinstance(other, cfix):
+            return self.v <= other.v
+        elif isinstance(other, sfix):
+            return other.v.greater_equal(self.v, self.k, other.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return self.v <= other.v
-            elif isinstance(other, sfix):
-                return other.v.greater_equal(self.v, self.k, other.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__le__' % type(other))
 
     @vectorize
     def __gt__(self, other):
         """ parses all types to  fix registers and performs test.
         in case is performed against a sfloat use inequality test from sfloat
         """
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other <= self
+        elif isinstance(other, cfix):
+            return self.v > other.v
+        elif isinstance(other, sfix):
+            return other.v.less_than(self.v, self.k, other.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return self.v > other.v
-            elif isinstance(other, sfix):
-                return other.v.less_than(self.v, self.k, other.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__gt__' % type(other))
 
     @vectorize
     def __ge__(self, other):
         """ parses all types to  fix registers and performs test.
         in case is performed against a sfloat use inequality test from sfloat
         """
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other < self
+        elif isinstance(other, cfix):
+            return self.v >= other.v
+        elif isinstance(other, sfix):
+            return other.v.less_equal(self.v, self.k, other.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return self.v >= other.v
-            elif isinstance(other, sfix):
-                return other.v.less_equal(self.v, self.k, other.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__ge__' % type(other))
 
     @vectorize
     def __ne__(self, other):
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other != self
+        elif isinstance(other, cfix):
+            return self.v != other.v
+        elif isinstance(other, sfix):
+            return other.v.not_equal(self.v, self.k, other.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, cfix):
-                return self.v != other.v
-            elif isinstance(other, sfix):
-                return other.v.not_equal(self.v, self.k, other.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for cfix.__ne__' % type(other))
 
     @vectorize
     def __div__(self, other):
@@ -2034,39 +2055,40 @@ class sfix(_number):
 
     @vectorize
     def add(self, other):
+
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other + self
+        elif isinstance(other, (sfix, cfix)):
+            return sfix(self.v + other.v)
+        elif isinstance(other, cfix.scalars):
+            tmp = cfix(other)
+            return self + tmp
         else:
-            other = parse_type(other)
-            if isinstance(other, (sfix, cfix)):
-                return sfix(self.v + other.v)
-            elif isinstance(other, cfix.scalars):
-                tmp = cfix(other)
-                return self + tmp
-            else:
-                raise CompilerError('Invalid type %s for sfix.__add__' % type(other))
+            raise CompilerError('Invalid type %s for sfix.__add__' % type(other))
 
     @vectorize
     def mul(self, other):
+
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other * self
+        elif isinstance(other, (sfix, cfix)):
+            val = floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
+            return sfix(val)
+        elif isinstance(other, cfix.scalars):
+            scalar_fix = cfix(other)
+            return self * scalar_fix
         else:
-            other = parse_type(other)
-            if isinstance(other, (sfix, cfix)):
-                val = floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
-                return sfix(val)
-            elif isinstance(other, cfix.scalars):
-                scalar_fix = cfix(other)
-                return self * scalar_fix
-            else:
-                raise CompilerError('Invalid type %s for sfix.__mul__' % type(other))
+            raise CompilerError('Invalid type %s for sfix.__mul__' % type(other))
 
     @vectorize
     def __sub__(self, other):
+
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return (-other) + self
         else:
-            other = parse_type(other)
             return self + (-other)
 
     @vectorize
@@ -2078,69 +2100,67 @@ class sfix(_number):
 
     @vectorize
     def __eq__(self, other):
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other == self
+        elif isinstance(other, (cfix, sfix)):
+            return self.v.equal(other.v, self.k, self.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, (cfix, sfix)):
-                return self.v.equal(other.v, self.k, self.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for sfix.__eq__' % type(other))
 
     @vectorize
     def __le__(self, other):
+
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other >= self
+        elif isinstance(other, (cfix, sfix)):
+            return self.v.less_equal(other.v, self.k, self.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, (cfix, sfix)):
-                return self.v.less_equal(other.v, self.k, self.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for sfix.__le__' % type(other))
 
     @vectorize
     def __lt__(self, other):
+        
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other < self
+        if isinstance(other, (cfix, sfix)):
+            return self.v.less_than(other.v, self.k, self.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, (cfix, sfix)):
-                return self.v.less_than(other.v, self.k, self.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for sfix.__lt__' % type(other))
 
     @vectorize
     def __ge__(self, other):
+        
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other <= self
+        elif isinstance(other, (cfix, sfix)):
+            return self.v.greater_equal(other.v, self.k, self.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, (cfix, sfix)):
-                return self.v.greater_equal(other.v, self.k, self.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for sfix.__ge__' % type(other))
 
     @vectorize
     def __gt__(self, other):
+
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other < self
+        elif isinstance(other, (cfix, sfix)):
+            return self.v.greater_than(other.v, self.k, self.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, (cfix, sfix)):
-                return self.v.greater_than(other.v, self.k, self.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for sfix.__gt__' % type(other))
 
     @vectorize
     def __ne__(self, other):
+        other = parse_type(other)
         if isinstance(other, sfloat):
             return other != self
+        elif isinstance(other, (cfix, sfix)):
+            return self.v.not_equal(other.v, self.k, self.kappa)
         else:
-            other = parse_type(other)
-            if isinstance(other, (cfix, sfix)):
-                return self.v.not_equal(other.v, self.k, self.kappa)
-            else:
-                raise NotImplementedError
+            raise CompilerError('Invalid type %s for sfix.__ne__' % type(other))
 
     @vectorize
     def __div__(self, other):
@@ -2314,6 +2334,7 @@ class sfloat(_number):
     @vectorize
     def add(self, other):
 
+        other = parse_float(other)
         if isinstance(other, (cfloat, sfloat)):
             a, c, d, e = [sint() for i in range(4)]
             t = sint()
@@ -2393,8 +2414,7 @@ class sfloat(_number):
             return sfloat(v, p, z, s, err)
         # in case is not a register
         else:
-            other_parse = parse_float(other)
-            return self + other_parse
+            return self + other
 
     ##
     # realizes the multiplication protocol for several different types.
@@ -2403,6 +2423,7 @@ class sfloat(_number):
     @vectorize
     def mul(self, other):
 
+        other = parse_float(other)
         if isinstance(other, (cfloat, sfloat)):
             # return sint(-1)
             v1 = sint()
@@ -2430,14 +2451,14 @@ class sfloat(_number):
 
         # in case is not a register
         else:
-            other_parse = parse_float(other)
-            return self * other_parse  # self.mul(scalar_float)
+            return self * other
 
     ##
     # float division (FLDiv) as described in ABZS12.
     # Additional conditions for err added in algiment with
     # the way we work with floating point numbers.
     def local_division_ABZS12(self, other):
+        other = parse_float(other)
         if isinstance(other, (cfloat, sfloat)):
             l = self.vlen
             v = floatingpoint.SDiv_ABZS12(self.v, other.v + other.z, l, self.kappa)
@@ -2455,15 +2476,15 @@ class sfloat(_number):
             err = err + other.z
             return sfloat(v, p, z, s, err)
         else:
-
-            other_parse = parse_float(other)
-            return self / other_parse
+            return self / other
 
     ##
     # realizes the division protocol for several different types.
     # @param other: value dividing self, could be any type
     # @return sloat: new sfloat instance   
     def local_division(self, other):
+
+        other = parse_float(other)
         if isinstance(other, (cfloat, sfloat)):
             v = floatingpoint.SDiv(self.v, other.v + other.z * (2 ** self.vlen - 1),
                                    self.vlen, self.kappa)
@@ -2487,9 +2508,7 @@ class sfloat(_number):
             return sfloat(v, p, z, s, err)
 
         else:
-
-            other_parse = parse_float(other)
-            return self / other_parse
+            return self / other
 
 
     def __sub__(self, other):
@@ -2513,10 +2532,10 @@ class sfloat(_number):
     # @return sint: new sint bitwise instance
     @vectorize
     def __lt__(self, other):
+        other = parse_float(other)
         if isinstance(other, (cfloat, sfloat)):
             return floatingpoint.FLLT(self, other)
         else:
-            other_parse = parse_float(other)
             return self < other_parse
 
     ##
@@ -2548,6 +2567,8 @@ class sfloat(_number):
     # @return sint: new sint bitwise instance
     @vectorize
     def __eq__(self, other):
+
+        other = parse_float(other)
         if isinstance(other, (cfloat, sfloat)):
             t = self.err
             if isinstance(other, sfloat):
@@ -2559,8 +2580,7 @@ class sfloat(_number):
                     floatingpoint.EQZ(self.p - other.p, self.plen, self.kappa) * \
                     (1 - self.s - other.s + 2 * self.s * other.s) * \
                     (1 - both_zero) + both_zero) * t
-        else:
-            other_parse = parse_float(other)
+        else:            
             return self == other_parse
 
     ##

@@ -25,7 +25,7 @@ if test "$1"; then
     shift
     run_test $test $*
 else
-    for test in test_array test_stacks test_branch test_branching test_comparison test_count test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_for_range_multithread test_function test_idle_threads test_lib test_loop test_map_reduce test_mem_order test_new_threads test_sregint test_threads test_vector test_sfix test_sqrt test_custom_array test_fix_array test_all; do
+    for test in test_array test_branch test_branching test_comparison test_count test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_for_range_multithread test_function test_idle_threads test_lib test_loop test_map_reduce test_mem_order test_new_threads test_threads test_vector test_sfix test_sqrt test_custom_array test_fix_array test_all test_sbit test_stacks test_sregint; do
 	run_test $test
     done
     run_test test_math -O1

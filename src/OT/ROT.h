@@ -49,12 +49,21 @@ class OT_Sender
 public:
   void init(CryptoPP::RandomPool &RNG);
 
-  bool is_complete() const { return complete; }
-  int get_state() const { return state; }
+  bool is_complete() const
+  {
+    return complete;
+  }
+  int get_state() const
+  {
+    return state;
+  }
 
   void message(string &output, const string &input, CryptoPP::RandomPool &RNG);
 
-  void output(ostream &o, int i) const { o << M[i].x << " " << M[i].y; }
+  void output(ostream &o, int i) const
+  {
+    o << M[i].x << " " << M[i].y;
+  }
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int i, unsigned int row, BitMatrix &M);
@@ -80,17 +89,29 @@ class OT_Receiver
 public:
   void init(CryptoPP::RandomPool &RNG, int choicebit);
 
-  bool is_complete() const { return complete; }
-  int get_state() const { return state; }
+  bool is_complete() const
+  {
+    return complete;
+  }
+  int get_state() const
+  {
+    return state;
+  }
 
   void message(string &output, const string &input);
 
-  void output(ostream &o) const { o << b << " : " << M.x << " " << M.y; }
+  void output(ostream &o) const
+  {
+    o << b << " : " << M.x << " " << M.y;
+  }
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int row, BitMatrix &M);
 
-  int get_bit() const { return b; }
+  int get_bit() const
+  {
+    return b;
+  }
 };
 
 #endif

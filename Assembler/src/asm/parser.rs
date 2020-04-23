@@ -6,6 +6,7 @@ use crate::{errors, Compiler};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::num::NonZeroU16;
+use std::iter;
 
 impl<'a> Statement<'a> {
     pub fn parse(cx: &'a Compiler, lex: &Lexical<'a>) -> Self {
@@ -43,7 +44,7 @@ impl<'a> Statement<'a> {
                 Instruction::Nop
             }
             "" => Instruction::Nop,
-            "ldsi" | "ldi" | "ldint" | "movs" | "movc" | "movint" | "movsint" | "ldsint" => {
+            "ldsi" | "ldi" | "ldint" | "movs" | "movc" | "movint" | "movsint" | "ldsint" | "ldsbit" => {
                 Instruction::Assign {
                     destination: args.index_or_err(cx, 0).require(cx),
                     value: args.index_or_err(cx, 1),
@@ -257,7 +258,7 @@ impl<'a> Statement<'a> {
                 arg: args.index_or_err(cx, 0).require(cx),
             },
             "print_reg" | "print_char_regint" | "print_char4_regint" | "print_int"
-            | "print_fix_plain" => Instruction::PrintR {
+            | "print_fix_plain" | "print_ieee_float" => Instruction::PrintR {
                 instruction,
                 arg: args.index_or_err(cx, 0).require(cx),
             },
@@ -364,6 +365,7 @@ impl<'a> Statement<'a> {
 
             "gc" => Instruction::GarbledCircuit(args.index_or_err(cx, 0).require(cx)),
             "lf" => Instruction::LocalFunction(args.index_or_err(cx, 0).require(cx)),
+            "nop" => Instruction::Nop,
             _ => {
                 cx.report(errors::UnknownInstruction {
                     span: args.span,
@@ -531,6 +533,7 @@ impl<'a> Body<'a> {
         // A map converting block ids into the original source order to make sure
         // we can roundtrip asm files. Otherwise we'd be changing block orders by
         // fairly arbitrary rules.
+        trace!(num_blocks = block_starts.len());
         let block_map: HashMap<usize, usize> = block_starts
             .iter()
             .enumerate()
@@ -553,7 +556,7 @@ impl<'a> Body<'a> {
 
         let mut blocks = Vec::new();
         let mut stmts = Vec::new();
-        for (i, lexical) in lexicals.iter().enumerate() {
+        for (i, lexical) in lexicals.iter().chain(iter::once(&Lexical::nop())).enumerate() {
             trace!("{}: {}", i, lexical);
             // finalize the current block when we encounter a new one
             if let Some((next_block_id, _)) = block_starts.remove(&i) {

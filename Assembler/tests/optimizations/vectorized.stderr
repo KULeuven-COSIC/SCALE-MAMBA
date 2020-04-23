@@ -1,23 +1,23 @@
 warning: Write to register is never read
- --> tests/optimizations/vectorized.asm:2:0
+ --> tests/optimizations/vectorized.asm:2:1
   |
 2 | addci s0, s43, 9
   | ---------------- register 0 written to but will never be read from again
   |
 warning: Write to register is never read
- --> tests/optimizations/vectorized.asm:1:0
+ --> tests/optimizations/vectorized.asm:1:1
   |
 1 | vaddm 100, s42,c42,c142
   | ----------------------- register 42 written to but will never be read from again
   |
 error: read from uninitialized register
- --> tests/optimizations/vectorized.asm:1:0
+ --> tests/optimizations/vectorized.asm:1:1
   |
 1 | vaddm 100, s42,c42,c142
   | ^^^^^^^^^^^^^^^^^^^^^^^ register 42 was never written to
   |
 error: read from uninitialized register
- --> tests/optimizations/vectorized.asm:1:0
+ --> tests/optimizations/vectorized.asm:1:1
   |
 1 | vaddm 100, s42,c42,c142
   | ^^^^^^^^^^^^^^^^^^^^^^^ register 142 was never written to

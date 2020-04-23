@@ -56,7 +56,7 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
             {
               case Triples:
                 //OCD.mul_mutex[num_online].lock();
-                if ((SacrificeD[num_online].TD.ta.size() > max_triples_sacrifice) || (OCD.totm[num_online] > OCD.maxm && OCD.maxm != 0))
+                if ((SacrificeD[num_online].TD.ta.size() > OCD.mx_triples_sacrifice) || (OCD.totm[num_online] > OCD.maxm && OCD.maxm != 0))
                   {
                     result= 2;
                     ss= "W";
@@ -65,7 +65,7 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
                 break;
               case Squares:
                 //OCD.sqr_mutex[num_online].lock();
-                if ((SacrificeD[num_online].SD.sa.size() > max_squares_sacrifice) || (OCD.tots[num_online] > OCD.maxs && OCD.maxs != 0))
+                if ((SacrificeD[num_online].SD.sa.size() > OCD.mx_squares_sacrifice) || (OCD.tots[num_online] > OCD.maxs && OCD.maxs != 0))
                   {
                     result= 2;
                     ss= "W";
@@ -74,7 +74,7 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
                 break;
               case Bits:
                 //OCD.bit_mutex[num_online].lock();
-                if ((SacrificeD[num_online].BD.bb.size() > max_bits_sacrifice) || (OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0))
+                if ((SacrificeD[num_online].BD.bb.size() > OCD.mx_bits_sacrifice) || (OCD.totb[num_online] > OCD.maxb && OCD.maxb != 0))
                   {
                     result= 2;
                     ss= "W";
@@ -312,7 +312,7 @@ bool propose_what_to_do(int num_online, Player &P, int &finish,
   //OCD.OCD_mutex[num_online].lock();
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
-      if ((OCD.maxI == 0 && SacrificeD[num_online].ID.ios[i].size() < max_IO_sacrifice) || (OCD.totI[num_online] < OCD.maxI))
+      if ((OCD.maxI == 0 && SacrificeD[num_online].ID.ios[i].size() < OCD.mx_IO_sacrifice) || (OCD.totI[num_online] < OCD.maxI))
         {
           make_inputs[i]= 1;
           minput_global= true;

@@ -24,6 +24,7 @@ void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
                const SystemData &SD,
                Machine &machine, offline_control_data &OCD,
                unsigned int number_FHE_threads,
+               bool OT_disable,
                int verbose);
 
 #endif

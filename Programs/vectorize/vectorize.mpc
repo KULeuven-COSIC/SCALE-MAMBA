@@ -1,0 +1,70 @@
+
+n = 100
+
+A = Array(n, sint)
+C = Array(n, sint)
+
+# assign some dummy values
+for i in range(n):
+    A[i] = sint(2 * i)
+
+a = sint(size=n)
+
+vldms(n, a, A.address)
+
+b=sint.get_private_input_from(0, size=n)
+
+c = a * b
+c.reveal_to(1)
+
+d = a + b
+d.reveal_to(2)
+
+e=d.reveal()
+
+f= a*e
+f.reveal_to(0)
+
+g=a+e
+g.reveal_to(0)
+
+h=a.reveal()
+
+i=e*h
+i.public_output()
+
+j=e+h
+j.public_output()
+
+sint.push(a)
+b=sint.pop(size=n)
+b.reveal_to(25)
+
+sint.push(a)
+
+sp=sint.getsp()
+S=Array(n,regint)
+for i in range(n):
+    S[i] = sp-i
+
+s=regint(size=n)
+
+vldmint(n, s, S.address)
+
+sint.poke(s,b)
+c=sint.peek(s)
+c.reveal_to(1)
+
+vstms(n, c, C.address)
+
+a=h
+b=a.legendre()
+c=b.digest()
+d=c.pow2()
+e=d<<3
+e.public_output()
+
+
+
+
+

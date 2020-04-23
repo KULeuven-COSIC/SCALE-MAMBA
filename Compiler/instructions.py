@@ -163,6 +163,7 @@
   PRINT_FLOAT= 0xB7,
   PRINT_FIX= 0xB8,
   PRINT_INT= 0xB9,
+  PRINT_IEEE_FLOAT= 0xBA,
 
   # Comparison of sregints
   EQZSINT = 0xD0,
@@ -672,6 +673,16 @@ class sintbit(base.Instruction):
     __slots__ = ["code"]
     code = base.opcodes['SINTBIT']
     arg_format = ['srw', 'sr', 'sb', 'int']
+
+@base.vectorize
+class ldsbit(base.Instruction):
+    r""" LDSBIT i n
+         Assigns sbit register sr_i a share of the value n.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['LDSBIT']
+    arg_format = ['sbw', 'i']
 
 
 
@@ -1502,6 +1513,7 @@ class square(base.DataInstruction):
 # I/O
 #
 
+@base.vectorize
 class private_input(base.IOInstruction):
     r""" PRIVATE_INPUT i p m
          Private input from player p on channel m assign result to sint s_i
@@ -1567,6 +1579,18 @@ class print_int(base.IOInstruction):
     __slots__ = []
     code = base.opcodes['PRINT_INT']
     arg_format = ['r']
+
+@base.vectorize
+class print_ieee_float(base.IOInstruction):
+    r""" PRINT_IEEE_FLOAT i
+         Prints the value of register r_i to debug IO channel as a double
+         Can only be executed in thread zero.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['PRINT_IEEE_FLOAT']
+    arg_format = ['r']
+
 
 
 class print_char(base.IOInstruction):
@@ -1663,6 +1687,7 @@ class close_channel(base.IOInstruction):
     arg_format = ['i']
 
 
+@base.vectorize
 class output_shares(base.IOInstruction):
     r""" OUTPUT_SHARES (n+1) ch i1 i2 ... in
          Write shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using
@@ -1677,6 +1702,7 @@ class output_shares(base.IOInstruction):
     def has_var_args(self):
         return True
 
+@base.vectorize
 class input_shares(base.IOInstruction):
     r""" INPUT_SHARES (n+1) ch i1 i2 ... in
          Read shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using

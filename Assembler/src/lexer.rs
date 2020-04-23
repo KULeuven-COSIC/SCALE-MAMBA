@@ -262,6 +262,14 @@ pub struct Lexical<'a> {
 }
 
 impl<'a> Lexical<'a> {
+    pub fn nop() -> Self {
+        Self {
+            instruction: "nop",
+            args: Vec::new(),
+            comment: Span::DUMMY,
+            span: Span::DUMMY,
+        }
+    }
     pub fn fetch_instr<'b>(
         &'b self,
         cx: &Compiler,

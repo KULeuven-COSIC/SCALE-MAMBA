@@ -81,6 +81,7 @@ void Base_Garbled_Circuit::Garble(const Circuit &C,
     }
 
   // Getting both lots of data at once as that avoid thread locks
+  OTD.check();
   list<aBit> in_AND_aBits= OTD.aBD.get_aShares(online_thread_no, cnt);
   list<aTriple> triples= OTD.aAD.get_aANDs(online_thread_no, nAG);
   gf2n Delta= aBit::get_Delta();

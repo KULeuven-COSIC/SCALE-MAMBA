@@ -2,7 +2,6 @@ use crate::errors::SkippedErrors;
 use crate::lexer::Lexical;
 use annotate_snippets::{
     display_list::DisplayList,
-    formatter::DisplayListFormatter,
     snippet::{AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use std::path::{Path, PathBuf};
@@ -15,7 +14,7 @@ use std::sync::{Arc, Mutex};
 
 pub struct Compiler {
     destination: Option<RefCell<Box<dyn std::io::Write>>>,
-    colors: bool,
+    pub colors: bool,
     error_count: Cell<usize>,
     pub files: elsa::FrozenMap<PathBuf, String>,
     pub binary_files: elsa::FrozenMap<PathBuf, Vec<u8>>,
@@ -113,11 +112,10 @@ impl Compiler {
             return span;
         }
         let dl = DisplayList::from(err.print(self));
-        let dlf = DisplayListFormatter::new(self.colors, false);
         writeln!(
             self.destination.as_ref().unwrap().borrow_mut(),
             "{}",
-            dlf.format(&dl)
+            dl,
         )
         .unwrap();
         span.with_error()

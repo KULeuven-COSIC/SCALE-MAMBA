@@ -342,6 +342,14 @@ class OT_error : public exception
   }
 };
 
+class OT_disabled : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "You are calling an operation which needs OT, but you disabled it";
+  }
+};
+
 class stack_error : public exception
 {
   virtual const char *what() const throw()

@@ -57,11 +57,13 @@ All rights reserved
 #include <vector>
 using namespace std;
 
-enum GateType { XOR,
-                AND,
-                INV,
-                EQ,
-                EQW };
+enum GateType {
+  XOR,
+  AND,
+  INV,
+  EQ,
+  EQW
+};
 
 unsigned int cnt_numI(const GateType &T);
 
@@ -93,16 +95,37 @@ public:
   // If test=true, just does a test
   void sort(bool flag= false);
 
-  unsigned int get_nGates() const { return GateT.size(); }
-  unsigned int get_nWires() const { return nWires; }
-  unsigned int num_AND_gates() const { return num_AND; }
+  unsigned int get_nGates() const
+  {
+    return GateT.size();
+  }
+  unsigned int get_nWires() const
+  {
+    return nWires;
+  }
+  unsigned int num_AND_gates() const
+  {
+    return num_AND;
+  }
 
-  unsigned int num_inputs() const { return numI.size(); }
-  unsigned int num_outputs() const { return numO.size(); }
+  unsigned int num_inputs() const
+  {
+    return numI.size();
+  }
+  unsigned int num_outputs() const
+  {
+    return numO.size();
+  }
 
   // Return the number of wires in input/output variable i
-  unsigned int num_iWires(unsigned int i) const { return numI[i]; }
-  unsigned int num_oWires(unsigned int i) const { return numO[i]; }
+  unsigned int num_iWires(unsigned int i) const
+  {
+    return numI[i];
+  }
+  unsigned int num_oWires(unsigned int i) const
+  {
+    return numO[i];
+  }
 
   GateType get_GateType(unsigned int i) const
   {

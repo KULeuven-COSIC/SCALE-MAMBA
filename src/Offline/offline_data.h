@@ -165,9 +165,22 @@ public:
     return totm.size();
   }
 
-  offline_control_data()
+  /* Queue max sizes (usually taken from config.h) */
+  unsigned long mx_triples_sacrifice;
+  unsigned long mx_squares_sacrifice;
+  unsigned long mx_bits_sacrifice;
+  unsigned long mx_IO_sacrifice;
+
+  offline_control_data(unsigned long max_t= max_triples_sacrifice,
+                       unsigned long max_s= max_squares_sacrifice,
+                       unsigned long max_b= max_bits_sacrifice,
+                       unsigned long max_i= max_IO_sacrifice)
   {
     OCD_mutex= NULL;
+    mx_triples_sacrifice= max_t;
+    mx_squares_sacrifice= max_s;
+    mx_bits_sacrifice= max_b;
+    mx_IO_sacrifice= max_i;
   }
   ~offline_control_data()
   {

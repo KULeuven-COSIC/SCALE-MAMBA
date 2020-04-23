@@ -131,6 +131,7 @@ opcodes = dict(
   ANDSB= 0x7A,
   ORSB= 0x7B,
   NEGB= 0x7C,
+  LDSBIT = 0x7D,
 
   # Bitwise shifts
   SHLC= 0x80,
@@ -173,6 +174,7 @@ opcodes = dict(
   PRINT_FLOAT= 0xB7,
   PRINT_FIX= 0xB8,
   PRINT_INT= 0xB9,
+  PRINT_IEEE_FLOAT= 0xBA,
 
   # Comparison of sregints
   EQZSINT = 0xD0,

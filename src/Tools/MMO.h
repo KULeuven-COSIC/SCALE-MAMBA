@@ -33,7 +33,10 @@ class MMO
                               const uint8_t *key, const int *indices);
 
 public:
-  MMO() { zeroIV(); }
+  MMO()
+  {
+    zeroIV();
+  }
   void zeroIV();
   void setIV(uint8_t key[AES_BLK_SIZE]);
 

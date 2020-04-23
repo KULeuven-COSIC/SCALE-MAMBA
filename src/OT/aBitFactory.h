@@ -57,7 +57,10 @@ public:
   void tune(Player &P, list<aBit> &aBl, int verbose);
 
   /* Should not call this until Initialize has had time to finish */
-  gf2n get_Delta() const { return Delta; }
+  gf2n get_Delta() const
+  {
+    return Delta;
+  }
 };
 
 #endif

@@ -1,5 +1,5 @@
 warning: Write to register is never read
-  --> tests/optimizations/read_before_write_bug.asm:21:0
+  --> tests/optimizations/read_before_write_bug.asm:21:1
    |
 21 | vstopopen 2, 1, c38 # 19
    | ------------------------ register 39 written to but will never be read from again

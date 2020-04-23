@@ -43,6 +43,17 @@ enum Circ_Type {
  *   101 AES-192
  *   102 AES-256
  *   103 Keccak_f
+ *   104 sha256
+ *   105 sha512
+ *
+ *   120 FP-add
+ *   121 FP-mul
+ *   122 FP-div
+ *   123 FP-eq
+ *   124 FP-f2i
+ *   125 FP-i2f
+ *   126 FP-sqrt
+ *
  */
 class Base_Circuits
 {

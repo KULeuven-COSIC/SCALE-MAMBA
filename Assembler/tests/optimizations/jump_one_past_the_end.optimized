@@ -1,0 +1,28 @@
+ldint r0, 1 # 0
+jmpeqz r0, 6 # 1
+print_char 84 # 2
+print_char 114 # 3
+print_char 117 # 4
+print_char 101 # 5
+print_char 10 # 6
+jmp 20 # 7
+print_char4 1936482630 # 8
+print_char 101 # 9
+print_char 10 # 10
+ldsi s0, 5 # 11
+ldsi s1, 10 # 12
+triple s3, s2, s4 # 13
+subs s0, s0, s3 # 14
+subs s1, s1, s2 # 15
+startopen 2, s0, s1 # 16
+stopopen 2, c0, c1 # 17
+mulm s0, s2, c0 # 18
+mulm s1, s3, c1 # 19
+mulc c0, c0, c1 # 20
+adds s2, s4, s0 # 21
+adds s0, s2, s1 # 22
+addm s1, s0, c0 # 23
+startopen 1, s1 # 24
+stopopen 1, c0 # 25
+print_reg c0 # 26
+print_char 10 # 27

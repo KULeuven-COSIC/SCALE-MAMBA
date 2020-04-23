@@ -73,7 +73,7 @@ impl std::fmt::Display for ArgTy {
             ArgTy::Register(RegisterKind::SecretBit, RegisterMode::Write) => write!(fmt, "sbw"),
             ArgTy::Register(RegisterKind::Secret, RegisterMode::Read) => write!(fmt, "s"),
             ArgTy::Register(RegisterKind::Regint, RegisterMode::Read) => write!(fmt, "r"),
-            ArgTy::Register(RegisterKind::SecretRegint, RegisterMode::Read) => write!(fmt, "s"),
+            ArgTy::Register(RegisterKind::SecretRegint, RegisterMode::Read) => write!(fmt, "sr"),
             ArgTy::Register(RegisterKind::Clear, RegisterMode::Read) => write!(fmt, "c"),
             ArgTy::Register(RegisterKind::SecretBit, RegisterMode::Read) => write!(fmt, "sb"),
         }
@@ -219,13 +219,13 @@ instructions! {
  INPUT_CLEAR & 0x41 & (dest: cw, channel: i) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci n \newline
 					    Gets clear public input ci from the IO class on channel n.
                                             Public inputs need to be the same for all players running the protocol, otherwise a crash will occur. "## & ""
-  OUTPUT_SHARES & 0x42 &  (n + 1: int, channel: ch, shares: [s; n]) & barrier thread_0_only & r##"OUTPUT\_SHARES n+1 ch si1 ... sin \newline
+  OUTPUT_SHARES & 0x42 &  (n + 1: int, channel: ch, shares: [s; n]) & vectorizable barrier thread_0_only & r##"OUTPUT\_SHARES n+1 ch si1 ... sin \newline
            Write shares sij for j=1..n to the IO class channel ch.  "## & ""
-  INPUT_SHARES & 0x43 & (n + 1: int, channel: i, shares: [sw; n]) & barrier thread_0_only & r##"INPUT\_SHARES n+1 ch si1 ... sin \newline
+  INPUT_SHARES & 0x43 & (n + 1: int, channel: i, shares: [sw; n]) & vectorizable barrier thread_0_only & r##"INPUT\_SHARES n+1 ch si1 ... sin \newline
           Read shares sij for j=1..n from the IO class channel ch.  "## & ""
-  PRIVATE_INPUT & 0x44 & (dest: sw, player: p, channel: int) & barrier thread_0_only & r##"PRIVATE\_INPUT si p m \newline
+  PRIVATE_INPUT & 0x44 & (dest: sw, player: p, channel: int) & vectorizable barrier thread_0_only & r##"PRIVATE\_INPUT si p m \newline
                                   Private input from player p on channel m assign result to secret si. "## & r##"c1"##
-  PRIVATE_OUTPUT & 0x46  & (value: s, player: p, channel: int) & barrier thread_0_only & r##"PRIVATE\_OUTPUT si p m \newline
+  PRIVATE_OUTPUT & 0x46  & (value: s, player: p, channel: int) & vectorizable barrier thread_0_only & r##"PRIVATE\_OUTPUT si p m \newline
                                   Private output to player p on channel m of secret si. "## & r##"c1"##
   OUTPUT_INT & 0x48 & (value: r, channel: i) & vectorizable barrier thread_0_only & r##" OUTPUT\_INT ri n \newline
                                             Public output of regint register ri to IO class on channel n. "## & ""
@@ -280,6 +280,8 @@ instructions! {
                                    Assigns secure register si the value in the secure register sj."## & ""
   LDSINT & 0x65 & (dest: srw, value: i) & vectorizable & r##"LDSINT si n \newline
                                     Assigns sregint register si a share of the value n."## & ""
+  LDSBIT & 0x7D & (dest: sbw, value: i) & vectorizable & r##"LDSBIT si n \newline
+                                    Assigns sbit register si a share of the value n."## & ""
   ADDSINT & 0x66 & (dest: srw, left: sr, right: sr) & vectorizable & r##"ADDSINT si sj sk \newline
                                             Adds secret regint registers si=sj+sk."## & ""
   ADDSINTC & 0x67 & (dest: srw, left: sr, right: r) & vectorizable & r##"ADDSINTC si sj rk \newline
@@ -422,6 +424,9 @@ instructions! {
                                 "## & ""
   PRINT_INT & 0xB9 & (value: r) & vectorizable barrier thread_0_only & r##"PRINT\_INT ri \newline
                                Prints the value of register ri to debug IO channel.
+                               "## & ""
+  PRINT_IEEE_FLOAT & 0xBA & (value: r) & vectorizable barrier thread_0_only & r##"PRINT\_IEEE\_FLOAT ri \newline
+                               Prints the value of register ri to debug IO channel as a double
                                "## & ""
   },
   "Comparison of sregints" {

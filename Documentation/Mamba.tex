@@ -74,8 +74,8 @@ Both correspond directly to a single clear or secret register in the virtual mac
 In these case both are integer types that lie in the range $[-2^{63}, \dots, 2^{63})$, both \verb|regint| and \verb|sregint| support inputs on such  range.
 
 We have also included an extra data type called \verb|sbit|. 
-The type cannot be instantiated via its constructor, given that it was thought to be the default return 
-type for all \verb|sregint| comparison tests. 
+This type can be instantiated via its constructor and also
+by a result of a returned value from all \verb|sregint| comparison tests. 
 It can be used to perform boolean operations on top of it, making it ideal for building complex logic predicates.
 
 Moreover, the clear type \verb|regint| was designed in such a way that it can be used for other tasks. 
@@ -627,13 +627,13 @@ fractional $\modp$ data types ($**$), when the base is secret shared.
 This overload provides a simple implementation for successive multiplications. 
 We provide more comprehensive protocols for exponentiation of fractional inputs 
 in the following sections. 
-\begin{lstlisting}
+\begin{lstlisting}[mathescape]
 a = sint(2)
 b = cint(3)
 f = sfix(1.5)
 
-c = a**b 	#returns $2**3$
-f = f**2	#returns $1.5**2$
+c = a**b 	#returns $\displaystyle 2^3$
+f = f**2	#returns $\displaystyle 1.5^2$
 \end{lstlisting}
 \textbf{NOTE}: For the reasons explained later with respect to fractional types, 
 the exponent has to be of a \textit{native Python integer} type. 
@@ -676,9 +676,9 @@ NOTE: When executing a comparison using an \verb|sregint| register, the return d
 
 \paragraph{Boolean Operators for sbit and sregint:}
 We have included 4 basic boolean operators ($\&, \wedge, |, \sim$) for \verb|sbit| types. 
-They behave in the same way native boolean type. However, it has to be taken into account 
-the fact that \verb|sbit| registers cannot be instantiated. They are the product of the 
-comparison tests performed on \verb|sregint| registers. 
+They behave in the same way native boolean type. They are the product of the 
+comparison tests performed on \verb|sregint| registers or can be instantiated
+via their contructor.
 We aim to give the user a way to build complex logic predicates for, say if-like constructions. The operators can be invoked as follows: 
 \begin{lstlisting}
 # mod2n
@@ -686,6 +686,8 @@ a = sregint(1)
 b = sregint(2)
 c = a < b # sbit    1
 d = a > b # sbit    0
+temp_bit = sbit(1)
+c = c & temp_bit
 e = c | d # or
 f = c & d # and     
 g = c ^ d # xor
@@ -950,6 +952,7 @@ print_ln("the answer is %s", r.reveal())  # the output is 0.222222
     \item[-] The default precision and mantissa size, for \verb|sfix|, are fixed assuming at least a 128 bit modulus. 
     The values $(f,k)=(20,41)$ are fixed directly on \verb|types.py| and where fixed taken size restrictions into account.
     Note that by default the internal parameter $kappa$ is fixed to $40$ bits. 
+	\item[-] You might get weird results due to precision loss  when operating with numbers close to the maximum allowable values.
 	\end{description}
 	
 \subsubsection{class cfix}
@@ -1578,7 +1581,7 @@ The \verb|ldms| byte-code is executed $n$ times in parallel by
 changing it to \verb|vldms| and then giving the number of 
 times this should be executed as the first argument.
 \begin{lstlisting}
-n = 1000
+n = 100
 
 A = Array(n, sint)
 B = Array(n, sint)
@@ -1595,7 +1598,7 @@ b = sint(size=n)
 vldms(n, a, A.address)
 vldms(n, b, B.address)
 
-c = a < b
+c = a * b
 
 vstms(n, c, C.address)
 
@@ -1604,9 +1607,9 @@ C[1].reveal().print_reg()
 C[n / 2].reveal().print_reg()
 C[n - 1].reveal().print_reg()
 \end{lstlisting}
-Suppose we replaced the \verb|c = a < b| operation by the 
-operation \verb|c = a * b|, then this single parallel multiplication would
-be compiled down to the following byte-codes...
+Notice the multiplication open is performed in parallel and executes
+100 multiplications in one go. 
+This single Mamba line is compiled down into byte codes as...
 \begin{lstlisting}
 vtriple 100, s100, s0, s200 # 0
 vsubs 100, s400, s500, s0 # 2
@@ -1620,6 +1623,75 @@ vadds 100, s100, s0, s200 # 10
 vmulc 100, c0, c100, c200 # 11
 vaddm 100, s0, s100, c0 # 12
 \end{lstlisting}
+
+Usage of the SIMD operations works in much the same as the above code snippet.
+For example if you call a class function with no argument to determine the
+vector length you need to also pass in the vector length you want, via
+\verb|size=n|. Otherwise the SIMD vector length is deduced from the class
+variable.
+For example see the following code:
+\begin{lstlisting}
+n = 100
+
+A = Array(n, sint)
+
+# assign some dummy values
+for i in range(n):
+    A[i] = sint(2 * i)
+
+a = sint(size=n)
+
+vldms(n, a, A.address)
+
+# Enter 100 private values from player 0
+b=sint.get_private_input_from(0, size=n)
+
+# Do some vector operations, including vector reveals
+c = a * b
+c.reveal_to(1)
+
+d = a + b
+d.reveal_to(2)
+
+e=d.reveal()
+
+f= a*e
+f.reveal_to(0)
+
+g=a+e
+g.reveal_to(0)
+
+h=a.reveal()
+
+i=e*h
+i.public_output()
+
+j=e+h
+j.public_output()
+
+# Now play with some vector operations on the stacks
+sint.push(a)
+b=sint.pop(size=n)
+b.reveal_to(25)
+
+sint.push(a)
+
+# We can even poke/peek vectors at a time with vectorized locations
+sp=sint.getsp()
+S=Array(n,regint)
+for i in range(n):
+    S[i] = sp-i
+s=regint(size=n)
+vldmint(n, s, S.address)
+
+sint.poke(s,b)
+c=sint.peek(s)
+c.reveal_to(1)
+
+\end{lstlisting}
+Note, not all vectorized operations have been tested for correctness, if you
+find a bug let us know and we will fix it.
+
 
 %%% Local Variables: 
 %%% mode: latex

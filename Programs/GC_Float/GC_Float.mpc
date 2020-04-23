@@ -1,0 +1,111 @@
+# Basic testing of the IEEE floating point operations
+# using the GC engine
+
+FP_add=120
+FP_mul=121
+FP_div=122
+FP_eq=123
+FP_f2i=124
+FP_i2f=125
+FP_sqrt=126
+
+r0=convert_to_float("3.125")
+print_ieee_float(r0)
+print_ln("")
+print_int(r0)
+print_ln("")
+
+r1=convert_to_float("1.25")
+print_ieee_float(r1)
+print_ln("")
+
+r2=convert_to_float("-6.535353")
+print_ieee_float(r2)
+print_ln("")
+
+r3=convert_to_float("199.3231")
+print_ieee_float(r3)
+print_ln("")
+
+s0=sregint(r0)
+s1=sregint(r1)
+s2=sregint(r2)
+s3=sregint(r3)
+
+# First compute 
+#   s4 = (s0+s1)*(s2+s3)
+#
+# To do this we convert to reverse polish notation 
+#
+#   s0 s1 + s2 s3 + *
+#
+# Then we compute this by executing this as a stack programm...
+#
+
+sregint.push(s0)
+sregint.push(s1)
+GC(FP_add)
+sregint.push(s2)
+sregint.push(s3)
+GC(FP_add)
+GC(FP_mul)
+
+# Now test the result
+s4=sregint.pop()
+r4=s4.reveal()
+print_ieee_float(r4)
+print_ln("\nThe last number should be 843.446393125\n")
+
+# Now we are going to create -3.125 from 3.125
+#   From this it is easy to do subtraction
+s5=s0 ^ 0x8000000000000000;
+r5=s5.reveal()
+print_ieee_float(r5)
+print_ln("\nThe last number should be -3.125\n")
+
+# Now we divide s1 by s2
+sregint.push(s1)
+sregint.push(s2)
+GC(FP_div)
+s6=sregint.pop()
+r6=s6.reveal()
+print_ieee_float(r6)
+print_ln("\nThe last number should be 1.25/-6.535353 = -0.191267403612322\n")
+
+# Now sqrt of 3.125
+sregint.push(s0)
+GC(FP_sqrt)
+s7=sregint.pop()
+r7=s7.reveal()
+print_ieee_float(r7)
+print_ln("\nThe last number should be sqrt(3.125) = 1.76776695\n")
+
+# Now sqrt of -3.125
+sregint.push(s5)
+GC(FP_sqrt)
+s8=sregint.pop()
+r8=s8.reveal()
+print_ieee_float(r8)
+print_ln("\nThe last number should be sqrt(-3.125) = NaN\n")
+
+# Now conversion between integers and floats
+# Take a big integer and convert it to a float
+sa=sregint(9223372036430532566)
+sregint.push(sa)
+GC(FP_i2f)
+sf=sregint.pop()
+sregint.push(sf)
+GC(FP_f2i)
+sb=sregint.pop()
+
+a=sa.reveal()
+b=sb.reveal()
+f=sf.reveal()
+print_ln("Conversions...")
+print_int(a);        print_ln("")
+print_ieee_float(f); print_ln("")
+print_int(b);        print_ln("")
+
+
+
+

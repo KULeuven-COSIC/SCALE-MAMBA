@@ -1,0 +1,64 @@
+a = sregint(5)
+b = sregint(6)
+
+r = (a < b)
+r2 = r & r & r & r & r & r
+r3 = r2 ^ r
+r4 = r3 ^ r
+r5 = r4 ^ r
+
+a = sregint(0)
+b = sregint(1)
+c = (a < b)
+test(c, 1)
+
+a = sbit(0)
+b = sbit(0)
+
+test(a ^ b, 0)
+test(a & b, 0)
+test(a | b, 0)
+test(-a, 1)
+test(-b, 1)
+test(-(a ^ b), 1)
+test(-(a & b), 1)
+test(-(a | b), 1)
+
+
+a = sbit(0)
+b = sbit(1)
+
+test(a ^ b, 1)
+test(a & b, 0)
+test(a | b, 1)
+test(-a, 1)
+test(-b, 0)
+test(-(a ^ b), 0)
+test(-(a & b), 1)
+test(-(a | b), 0)
+
+
+a = sbit(1)
+b = sbit(0)
+
+test(a ^ b, 1)
+test(a & b, 0)
+test(a | b, 1)
+test(-a, 0)
+test(-b, 1)
+test(-(a ^ b), 0)
+test(-(a & b), 1)
+test(-(a | b), 0)
+
+a = sbit(1)
+b = sbit(1)
+
+test(a ^ b, 0)
+test(a & b, 1)
+test(a | b, 1)
+test(-a, 0)
+test(-b, 0)
+test(-(a ^ b), 1)
+test(-(a & b), 0)
+test(-(a | b), 0)
+

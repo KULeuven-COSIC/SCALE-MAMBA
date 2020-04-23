@@ -15,7 +15,13 @@ output_shares(3000,*inp)
 close_channel(2000)
 close_channel(3000)
 
+print_ln("Player zero enter 3 gfp numbers, player one will then output their squares")
 open_channel_with_return(0)
+s=sint.get_private_input_from(0, size=3)
+t=s*s
+t.reveal_to(1)
+
+
 open_channel_with_return(1)
 open_channel_with_return(10)
 open_channel_with_return(20)

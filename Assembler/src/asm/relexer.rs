@@ -15,14 +15,14 @@ impl<'a> Body<'a> {
         let mut lexicals = Vec::new();
         let mut block_starts: Vec<i32> = Vec::new();
         let mut forward_jumps = BTreeMap::new();
+        debug!(num_blocks = self.blocks.len());
         for (i, block) in self.blocks.iter().enumerate() {
-            //println!("#{:?} {:?}", lexicals.len(), block.terminator.elem);
+            trace!(num_blocks = block_starts.len(), num_lexicals = lexicals.len(), ?block.terminator.elem);
             block_starts.push(lexicals.len().try_into().unwrap());
             for statement in &block.stmts {
                 lexicals.push(statement.relex(cx));
             }
             match &block.terminator.elem {
-                // FIXME: generate a jump to the end in case this is not the final block
                 Terminator::Done => assert_eq!(i, self.blocks.len() - 1),
                 Terminator::Restart { comment } => lexicals.push(Lexical {
                     instruction: "restart",
@@ -143,6 +143,7 @@ impl<'a> Statement<'a> {
                     (Register::Regint(_), Operand::Register(_)) => "movint",
                     (Register::Secret(_), Operand::Register(_)) => "movs",
                     (Register::SecretRegint(_), Operand::Register(_)) => "movsint",
+                    (Register::SecretBit(_), Operand::Value(_)) => "ldsbit",
                     (Register::SecretBit(_), _) => unimplemented!(),
                 },
                 vec![destination.clone().map(Into::into), *value],

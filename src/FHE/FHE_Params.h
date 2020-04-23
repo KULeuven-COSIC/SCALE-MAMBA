@@ -22,8 +22,10 @@ All rights reserved
 #include "Tools/random.h"
 #include "config.h"
 
-enum PoKVersion { HighGear,
-                  TopGear };
+enum PoKVersion {
+  HighGear,
+  TopGear
+};
 
 /* Generates N,p0,p1 and p given input hwt h, log2p, n=nplayers
  *   - Uses statistical/computational security parameters from config.h
@@ -69,7 +71,10 @@ public:
 
   void set(const Ring &R, const bigint &pr0, const bigint &pr1, int hwtSK, unsigned int n, bool check= true);
 
-  int get_hwt() const { return hwt; }
+  int get_hwt() const
+  {
+    return hwt;
+  }
 
   const vector<FFT_Data> &FFTD() const
   {

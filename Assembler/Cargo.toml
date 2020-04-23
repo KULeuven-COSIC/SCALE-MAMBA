@@ -9,7 +9,7 @@ license = "MIT AND Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-annotate-snippets = { git = "https://github.com/rust-lang/annotate-snippets-rs.git", features = ["ansi_term"] }
+annotate-snippets = { git = "https://github.com/rust-lang/annotate-snippets-rs.git", features = ["ansi_term"], commit = "80ea580da000c3a356bb6960cd7b41e2f073ea74" }
 pretty_assertions = "0.6.1"
 v_htmlescape = "0.4.5"
 # waitign for https://github.com/Manishearth/elsa/pull/8 to get merged

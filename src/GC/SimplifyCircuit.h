@@ -54,14 +54,20 @@ public:
     C= CC;
   }
 
-  SimplifyCircuit() { ; }
+  SimplifyCircuit()
+  {
+    ;
+  }
 
   SimplifyCircuit(const Circuit &CC)
   {
     assign(CC);
   }
 
-  Circuit Get_Circuit() const { return C; }
+  Circuit Get_Circuit() const
+  {
+    return C;
+  }
 
   // Apply the simplification rules implied by any
   //    EQ 0 x

@@ -12,6 +12,7 @@ CPPFLAGS = $(CFLAGS)
 
 all: 
 	$(CC) $(CFLAGS) -o convert.x convert.cpp $(LIB) $(LDLIBS)
+	$(CC) $(CFLAGS) -o process.x process.cpp $(LIB) $(LDLIBS)
 
 clean:
 	-rm *.x

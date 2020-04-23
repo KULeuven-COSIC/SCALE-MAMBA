@@ -44,7 +44,10 @@ public:
   FHE_Industry(unsigned int maxnumber);
   ~FHE_Industry();
 
-  bool is_ready() const { return ready; }
+  bool is_ready() const
+  {
+    return ready;
+  }
 
   const Ciphertext &ct_mac(unsigned int i) const
   {

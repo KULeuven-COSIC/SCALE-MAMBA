@@ -1,5 +1,5 @@
 warning: Write to register is never read
-  --> tests/optimizations/color.asm:11:0
+  --> tests/optimizations/color.asm:11:1
    |
 11 | ldint r6, 1 # 31
    | ---------------- register 6 written to but will never be read from again

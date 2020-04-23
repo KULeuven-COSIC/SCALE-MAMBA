@@ -184,9 +184,18 @@ public:
   // Get entry i, set it to be used (abort if already used)
   void get_entry(Plaintext &mess, Ciphertext &ctx, unsigned int i);
 
-  unsigned int size_batch() const { return U; }
-  unsigned int size_checkset() const { return V; }
-  unsigned int get_sound_sec() const { return ssec; }
+  unsigned int size_batch() const
+  {
+    return U;
+  }
+  unsigned int size_checkset() const
+  {
+    return V;
+  }
+  unsigned int get_sound_sec() const
+  {
+    return ssec;
+  }
 };
 
 #endif

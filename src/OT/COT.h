@@ -81,7 +81,10 @@ public:
   // This is a COT with player i
   void init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int> choicebits);
 
-  gf2n get_Delta() const { return Delta; }
+  gf2n get_Delta() const
+  {
+    return Delta;
+  }
 
   // This executes Fig 19 of eprint 2015/901 and then does
   // Figure 7 of 2015/546

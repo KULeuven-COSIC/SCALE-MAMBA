@@ -5,6 +5,8 @@ from Compiler import instructions,instructions_base,comparison,program
 import inspect,math
 import random
 import collections
+import struct
+import array
 
 def get_program():
     return instructions.program
@@ -95,6 +97,21 @@ def runtime_error(msg='', *args):
     print_str('User exception: ')
     print_ln(msg, *args)
     crash()
+
+def bit_reverse(i, n):
+    return int(format(i, '0%db' % n)[::-1], 2)
+
+def convert_to_float(s):
+    y=float(s)
+    y_in_bytes = struct.pack(">d", y)
+    writable_buf = array.array('c', ' '*8)
+    # Need to reverse bytes and bits in the bytes
+    for i in range(8):
+      struct.pack_into("c",writable_buf,i,y_in_bytes[7-i])
+    y_as_regint = struct.unpack("<Q", writable_buf)
+    res = regint(y_as_regint[0])
+    return res
+
 
 # mostly obsolete functions
 # use the equivalent from types.py

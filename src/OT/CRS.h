@@ -26,11 +26,20 @@ class CRS
 public:
   CRS();
 
-  CryptoPP::ECPPoint Get_G(int i) const { return G[i]; }
-  CryptoPP::ECPPoint Get_H(int i) const { return H[i]; }
+  CryptoPP::ECPPoint Get_G(int i) const
+  {
+    return G[i];
+  }
+  CryptoPP::ECPPoint Get_H(int i) const
+  {
+    return H[i];
+  }
 
   /* Curve operations. Put here to avoid overkill in friending */
-  CryptoPP::Integer FieldSize() const { return curve.FieldSize(); }
+  CryptoPP::Integer FieldSize() const
+  {
+    return curve.FieldSize();
+  }
   CryptoPP::ECPPoint Multiply(const CryptoPP::Integer &x, const CryptoPP::ECPPoint &P) const
   {
     CryptoPP::ECPPoint T= curve.Multiply(x, P);

@@ -49,7 +49,10 @@ public:
 
   bool kill; // Flag to say we should kill/not kill the aBit thread
 
-  aBit_Data() { kill= false; }
+  aBit_Data()
+  {
+    kill= false;
+  }
 };
 
 void aBit_Thread(Player &P, unsigned int no_online_threads,

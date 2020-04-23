@@ -44,7 +44,10 @@ public:
     copy(triples.begin(), triples.end(), back_inserter(aAl));
   }
 
-  unsigned int get_number() const { return triples.size(); }
+  unsigned int get_number() const
+  {
+    return triples.size();
+  }
 };
 
 /* Multiply a vector of aBits, z=x*y 

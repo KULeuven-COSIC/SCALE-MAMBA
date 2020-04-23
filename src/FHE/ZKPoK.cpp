@@ -494,7 +494,15 @@ void ZKPoK::get_entry(Plaintext &mess, Ciphertext &ctx, unsigned int i)
     {
       throw ZKPoK_Used();
     }
-  mess= m[i];
-  ctx= E[i];
+  if (version == HighGear || PoKType == Diagonal)
+    {
+      mess= m[i];
+      ctx= E[i];
+    }
+  else
+    {
+      add(mess, m[i], m[i]);
+      add(ctx, E[i], E[i]);
+    }
   used[i]= true;
 }

@@ -934,6 +934,7 @@ void LargePrimeDABitGenerator::run(daBitVector &dabs)
 
 void daBitVector::get_daBit(Share &bpr, aBit &b2r, AbstractDABitGenerator &daBitGen)
 {
+  OTD.check();
   if (used >= bp.size())
     {
       daBitGen.run(*this);
@@ -946,6 +947,7 @@ void daBitVector::get_daBit(Share &bpr, aBit &b2r, AbstractDABitGenerator &daBit
 void daBitVector::get_daBits(vector<Share> &bpr, vector<aBit> &b2r,
                              AbstractDABitGenerator &daBitGen)
 {
+  OTD.check();
   if (bpr.size() != b2r.size())
     {
       throw bad_value();

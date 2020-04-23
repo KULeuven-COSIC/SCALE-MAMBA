@@ -75,6 +75,13 @@ int main(int argc, const char *argv[])
           "-verbose", // Flag token.
           "-v"        // Flag token.
   );
+  opt.add("0", // Default.
+          0,   // Required?
+          0,   // Number of args expected.
+          0,   // Delimiter if expecting multiple args.
+          "Disable OT production. Will be faster/less memory, but some operations will not work.\n",
+          "-dOT" // Flag token.
+  );
   opt.add("empty", // Default.
           0,       // Required?
           1,       // Number of args expected.
@@ -128,6 +135,7 @@ int main(int argc, const char *argv[])
   string progname;
   string memtype;
   unsigned int portnumbase;
+  bool OT_disable= false;
 
   vector<string *> allArgs(opt.firstArgs);
   allArgs.insert(allArgs.end(), opt.lastArgs.begin(), opt.lastArgs.end());
@@ -181,9 +189,18 @@ int main(int argc, const char *argv[])
   opt.get("-min")->getInts(minimums);
   opt.get("-max")->getInts(maximums);
 
-  /*************************************
-   *  Setup offline_control_data OCD   *
-   *************************************/
+  if (opt.isSet("-dOT"))
+    {
+      OT_disable= true;
+    }
+
+  /******************************************
+   *      Setup offline_control_data OCD    *
+   *  -Note if you want to programmatically *
+   *   chnage max_triples_sacrifice etc do  *
+   *   it here in the call to the OCD       *
+   *   constructor                          *
+   ******************************************/
   offline_control_data OCD;
   OCD.minm= (unsigned int) minimums[0];
   OCD.mins= (unsigned int) minimums[1];
@@ -392,6 +409,7 @@ int main(int argc, const char *argv[])
             ctx, portnum,
             SD, machine, OCD,
             number_FHE_threads,
+            OT_disable,
             verbose);
 
   machine.Dump_Memory(my_number);

@@ -49,7 +49,10 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
       OTD.aBD.aBD_mutex.lock();
       if (OTD.ready == false)
         {
-          wait= true;
+          if (!OTD.disabled)
+            {
+              wait= true;
+            }
         }
       OTD.aBD.aBD_mutex.unlock();
 

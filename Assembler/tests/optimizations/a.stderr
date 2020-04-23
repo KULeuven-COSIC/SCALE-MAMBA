@@ -1,282 +1,282 @@
 error: unknown or unimplemented instruction: output_share
-  --> tests/optimizations/a.asm:57:0
+  --> tests/optimizations/a.asm:57:1
    |
 57 | output_share 5, 1, s1, s2, s3, s4
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 error: unknown or unimplemented instruction: input_share
-  --> tests/optimizations/a.asm:58:0
+  --> tests/optimizations/a.asm:58:1
    |
 58 | input_share 6, 2, s13, s14, s15, s16, s17
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 error: unknown or unimplemented instruction: open_chan
-  --> tests/optimizations/a.asm:63:0
+  --> tests/optimizations/a.asm:63:1
    |
 63 | open_chan r13, 10
    | ^^^^^^^^^^^^^^^^^
    |
 error: unknown or unimplemented instruction: close_chan
-  --> tests/optimizations/a.asm:64:0
+  --> tests/optimizations/a.asm:64:1
    |
 64 | close_chan 10
    | ^^^^^^^^^^^^^
    |
 error: unknown or unimplemented instruction: lf_cint
-   --> tests/optimizations/a.asm:149:0
+   --> tests/optimizations/a.asm:149:1
     |
 149 | lf_cint 21, 42, 5, 4, 3, 2, 1, c11, c12, c13, c14, c15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: lf_sint
-   --> tests/optimizations/a.asm:150:0
+   --> tests/optimizations/a.asm:150:1
     |
 150 | lf_sint 21, 42, 5, 4, 3, 2, 1, s11, s12, s13, s14, s15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: lf_regint
-   --> tests/optimizations/a.asm:151:0
+   --> tests/optimizations/a.asm:151:1
     |
 151 | lf_regint 21, 42, 5, 4, 3, 2, 1, r11, r12, r13, r14, r15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: lf_sregint
-   --> tests/optimizations/a.asm:152:0
+   --> tests/optimizations/a.asm:152:1
     |
 152 | lf_sregint 21, 42, 5, 4, 3, 2, 1, sr11, sr12, sr13, sr14, sr15, r1, r2, r3, r4, sr1, sr2, sr3, c1, c2, s1
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: memsizes
-   --> tests/optimizations/a.asm:181:0
+   --> tests/optimizations/a.asm:181:1
     |
 181 | memsizes 10000
     | ^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: memsizec
-   --> tests/optimizations/a.asm:182:0
+   --> tests/optimizations/a.asm:182:1
     |
 182 | memsizec 10000
     | ^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: memsizeint
-   --> tests/optimizations/a.asm:183:0
+   --> tests/optimizations/a.asm:183:1
     |
 183 | memsizeint 10000
     | ^^^^^^^^^^^^^^^^
     |
 error: unknown or unimplemented instruction: memsizesint
-   --> tests/optimizations/a.asm:184:0
+   --> tests/optimizations/a.asm:184:1
     |
 184 | memsizesint 10000
     | ^^^^^^^^^^^^^^^^^
     |
 error: expected !do_loop, got `not ssa form`
-  --> tests/optimizations/a.asm:20:0
+  --> tests/optimizations/a.asm:20:1
    |
 20 | ldtn r1
    | ^^^^^^^ for operand here
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:33:0
+  --> tests/optimizations/a.asm:33:1
    |
 33 | adds s6, s1, s2
    | --------------- register 6 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:34:0
+  --> tests/optimizations/a.asm:34:1
    |
 34 | addm s7, s1, c2
    | --------------- register 7 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:36:0
+  --> tests/optimizations/a.asm:36:1
    |
 36 | addsi s8, s1, 10
    | ---------------- register 8 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:39:0
+  --> tests/optimizations/a.asm:39:1
    |
 39 | subml s10, s9, c1
    | ----------------- register 10 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:40:0
+  --> tests/optimizations/a.asm:40:1
    |
 40 | submr s11, c1, s9
    | ----------------- register 11 written to but will never be read from again
    |
-  ::: tests/optimizations/a.asm:44:0
+  ::: tests/optimizations/a.asm:44:1
    |
 44 | subsfi s11, s1, 10
    | ------------------ register 11 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:42:0
+  --> tests/optimizations/a.asm:42:1
    |
 42 | subsi s12, s1, 10
    | ----------------- register 12 written to but will never be read from again
    |
-  ::: tests/optimizations/a.asm:46:0
+  ::: tests/optimizations/a.asm:46:1
    |
 46 | mulm s12, s1, c2
    | ---------------- register 12 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:48:0
+  --> tests/optimizations/a.asm:48:1
    |
 48 | mulsi s13, s1, 10
    | ----------------- register 13 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:32:0
+  --> tests/optimizations/a.asm:32:1
    |
 32 | addc c6, c1, c2
    | --------------- register 6 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:35:0
+  --> tests/optimizations/a.asm:35:1
    |
 35 | addci c8, c1, 10
    | ---------------- register 8 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:37:0
+  --> tests/optimizations/a.asm:37:1
    |
 37 | subc c9, c1, c2
    | --------------- register 9 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:41:0
+  --> tests/optimizations/a.asm:41:1
    |
 41 | subci c10, c1, 10
    | ----------------- register 10 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:43:0
+  --> tests/optimizations/a.asm:43:1
    |
 43 | subcfi c11, c1, 10
    | ------------------ register 11 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:45:0
+  --> tests/optimizations/a.asm:45:1
    |
 45 | mulc c12, c1, c2
    | ---------------- register 12 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:47:0
+  --> tests/optimizations/a.asm:47:1
    |
 47 | mulci c13, c1, 10
    | ----------------- register 13 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:49:0
+  --> tests/optimizations/a.asm:49:1
    |
 49 | divc c14, c3, c2
    | ---------------- register 14 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:50:0
+  --> tests/optimizations/a.asm:50:1
    |
 50 | divci c15, c3, 10
    | ----------------- register 15 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:51:0
+  --> tests/optimizations/a.asm:51:1
    |
 51 | modc c16, c1, c2
    | ---------------- register 16 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:52:0
+  --> tests/optimizations/a.asm:52:1
    |
 52 | modci c17, c1, 10
    | ----------------- register 17 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:53:0
+  --> tests/optimizations/a.asm:53:1
    |
 53 | legendrec c18, c1
    | ----------------- register 18 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:54:0
+  --> tests/optimizations/a.asm:54:1
    |
 54 | digestc c19, c2
    | --------------- register 19 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:56:0
+  --> tests/optimizations/a.asm:56:1
    |
 56 | input_clear c20, 1
    | ------------------ register 20 written to but will never be read from again
    |
 warning: Write to register is never read
-  --> tests/optimizations/a.asm:62:0
+  --> tests/optimizations/a.asm:62:1
    |
 62 | input_int r11, 10
    | ----------------- register 11 written to but will never be read from again
    |
 warning: Write to register is never read
-   --> tests/optimizations/a.asm:98:0
+   --> tests/optimizations/a.asm:98:1
     |
  98 | xorsb sb3, sb1, sb2
     | ------------------- register 3 written to but will never be read from again
     |
-   ::: tests/optimizations/a.asm:99:0
+   ::: tests/optimizations/a.asm:99:1
     |
  99 | andsb sb3, sb1, sb2
     | ------------------- register 3 written to but will never be read from again
     |
-   ::: tests/optimizations/a.asm:100:0
+   ::: tests/optimizations/a.asm:100:1
     |
 100 | orsb sb3, sb1, sb2
     | ------------------ register 3 written to but will never be read from again
     |
-   ::: tests/optimizations/a.asm:101:0
+   ::: tests/optimizations/a.asm:101:1
     |
 101 | negb sb3, sb1
     | ------------- register 3 written to but will never be read from again
     |
 warning: Write to register is never read
-   --> tests/optimizations/a.asm:122:0
+   --> tests/optimizations/a.asm:122:1
     |
 122 | convregsreg sr379, r0
     | --------------------- register 379 written to but will never be read from again
     |
 error: read from uninitialized register
-   --> tests/optimizations/a.asm:145:0
+   --> tests/optimizations/a.asm:145:1
     |
 145 | sintbit sr1, sr2, sb10, 10
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^ register 10 was never written to
     |
 warning: Write to register is never read
-   --> tests/optimizations/a.asm:168:0
+   --> tests/optimizations/a.asm:168:1
     |
 168 | peeks s5, r3000 # 8
     | ------------------- register 5 written to but will never be read from again
     |
 warning: Write to register is never read
-   --> tests/optimizations/a.asm:173:0
+   --> tests/optimizations/a.asm:173:1
     |
 173 | peekc c5, r3000 # 8
     | ------------------- register 5 written to but will never be read from again
     |
 error: read from uninitialized register
-   --> tests/optimizations/a.asm:176:0
+   --> tests/optimizations/a.asm:176:1
     |
 176 | pushsbit sb0 # 3
     | ^^^^^^^^^^^^^^^^ register 0 was never written to
     |
 warning: Write to register is never read
-   --> tests/optimizations/a.asm:180:0
+   --> tests/optimizations/a.asm:180:1
     |
 180 | popsbit sb4 # 10
     | ---------------- register 4 written to but will never be read from again
     |
 warning: Write to register is never read
-   --> tests/optimizations/a.asm:178:0
+   --> tests/optimizations/a.asm:178:1
     |
 178 | peeksbit sb5, r3000 # 8
     | ----------------------- register 5 written to but will never be read from again

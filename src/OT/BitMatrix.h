@@ -67,7 +67,9 @@ class BitMatrix
 public:
   vector<square128> squares;
 
-  BitMatrix() {}
+  BitMatrix()
+  {
+  }
   BitMatrix(int length);
   void resize(int length);
   int size();

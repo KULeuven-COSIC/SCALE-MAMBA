@@ -1,5 +1,5 @@
 error: a jump jumped beyond the program's boundaries
- --> tests/broken_asm/nojump.asm:2:0
+ --> tests/broken_asm/nojump.asm:2:1
   |
 2 | jmp 2
   | ^^^^^ jumped from here
