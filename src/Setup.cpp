@@ -419,6 +419,7 @@ void init_secret_sharing()
           cout << "Note if I cannot find FHE parameters suitable for this prime I will abort\n";
           cout << "This option is really for expert use only..." << endl;
           cin >> p;
+	  lg2p = numBits(p);
         }
       init_FHE(p, lg2p, n); // This internally calls gfp::init_field(p)
     }
