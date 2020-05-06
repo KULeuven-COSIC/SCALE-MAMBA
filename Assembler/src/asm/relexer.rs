@@ -444,7 +444,7 @@ impl<'a> Statement<'a> {
             args.insert(
                 0,
                 self.span.with(Operand::Value(Const::Int(
-                    self.vectorized.elem.get().into(),
+                    self.vectorized.elem.get().try_into().unwrap(),
                 ))),
             );
             (cx.strings.push_get(format!("v{}", instruction)), args)

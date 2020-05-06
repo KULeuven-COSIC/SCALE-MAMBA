@@ -4,7 +4,7 @@ use crate::asm::Body;
 use crate::lexer::Register;
 use crate::Compiler;
 use std::io::Write;
-use std::num::NonZeroU16;
+use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 
 mod nop;
@@ -87,7 +87,7 @@ pub fn run_optimizations<'a>(
 
 /// Applies the given function to the register and all its contiguous vectorized registers
 pub fn vectorize(
-    v: NonZeroU16,
+    v: NonZeroU32,
     reg: Register,
 ) -> impl Iterator<Item = Register> + Clone + ExactSizeIterator {
     (0..v.get()).map(move |i| reg.map(|j| u32::from(i) + j))

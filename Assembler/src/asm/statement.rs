@@ -4,7 +4,7 @@ use crate::compiler::Compiler;
 use crate::lexer::{MapAllValues, Register};
 use crate::span::Spanned;
 use crate::transforms::vectorize;
-use std::num::NonZeroU16;
+use std::num::NonZeroU32;
 
 // Some helper structures and traits to deduplicate the implementation of `read_registers` and `write_registers`
 struct RegisterModeRead;
@@ -24,7 +24,7 @@ impl RegisterModeTrait for RegisterModeWrite {
 
 #[derive(Clone, Debug)]
 pub struct RegisterIterator {
-    v: NonZeroU16,
+    v: NonZeroU32,
     registers: Vec<Register>,
 }
 

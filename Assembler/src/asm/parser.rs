@@ -5,7 +5,7 @@ use crate::span::{Span, Spanned};
 use crate::{errors, Compiler};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
-use std::num::NonZeroU16;
+use std::num::NonZeroU32;
 use std::iter;
 
 impl<'a> Statement<'a> {
@@ -14,7 +14,7 @@ impl<'a> Statement<'a> {
             let (vectorized, rest) = lex.args().split_first_or_err(cx);
             let vectorized = vectorized.require::<i32>(cx);
             let vectorized = match vectorized.elem.try_into() {
-                Ok(val) if val > 1 => Ok(vectorized.span.with(NonZeroU16::new(val).unwrap())),
+                Ok(val) if val > 1 => Ok(vectorized.span.with(NonZeroU32::new(val).unwrap())),
                 _ => Err(cx.report(errors::InvalidVectorSize { n: vectorized })),
             };
             (&lex.instruction[1..], vectorized, rest)
@@ -24,7 +24,7 @@ impl<'a> Statement<'a> {
         Self::parse_inner(
             cx,
             instruction,
-            vectorized.unwrap_or_else(|span| span.with(NonZeroU16::new(1).unwrap())),
+            vectorized.unwrap_or_else(|span| span.with(NonZeroU32::new(1).unwrap())),
             args,
             lex.comment,
         )
@@ -33,7 +33,7 @@ impl<'a> Statement<'a> {
     fn parse_inner(
         cx: &'a Compiler,
         instruction: &'a str,
-        vectorized: Spanned<'a, NonZeroU16>,
+        vectorized: Spanned<'a, NonZeroU32>,
         args: Spanned<'a, &[Spanned<'a, Operand>]>,
         comment: Span<'a>,
     ) -> Self {

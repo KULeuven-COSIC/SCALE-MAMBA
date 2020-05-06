@@ -37,7 +37,7 @@ pub fn augment_block<'a>(
             blck: 0,
             stmt: Statement {
                 instr: Instruction::Nop,
-                vectorized: Span::DUMMY.with(std::num::NonZeroU16::new(1).unwrap()),
+                vectorized: Span::DUMMY.with(std::num::NonZeroU32::new(1).unwrap()),
                 span: Span::DUMMY,
                 comment: Span::DUMMY,
             },
@@ -396,7 +396,7 @@ impl super::Pass for Pass {
 
             let dummy = Statement {
                 instr: Instruction::Nop,
-                vectorized: Span::DUMMY.with(std::num::NonZeroU16::new(1).unwrap()),
+                vectorized: Span::DUMMY.with(std::num::NonZeroU32::new(1).unwrap()),
                 span: Span::DUMMY,
                 comment: Span::DUMMY,
             };

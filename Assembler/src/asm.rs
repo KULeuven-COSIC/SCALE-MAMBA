@@ -7,7 +7,7 @@ mod statement;
 
 pub use instructions::*;
 
-use std::num::NonZeroU16;
+use std::num::NonZeroU32;
 
 use crate::lexer::Register;
 use crate::span::{Span, Spanned};
@@ -29,7 +29,7 @@ pub struct Statement<'a> {
     pub instr: Instruction<'a>,
     // FIXME: what's the maximum value for `vectorized`?
     // XXXXX: Answer : 2^23
-    pub vectorized: Spanned<'a, NonZeroU16>,
+    pub vectorized: Spanned<'a, NonZeroU32>,
     pub comment: Span<'a>,
     pub span: Span<'a>,
 }

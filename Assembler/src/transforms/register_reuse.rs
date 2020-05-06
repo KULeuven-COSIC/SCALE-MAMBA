@@ -11,11 +11,10 @@ use crate::errors::UninitializedRead;
 use crate::lexer::RegisterStruct;
 use crate::span::Span;
 use crate::Compiler;
-use std::num::NonZeroU16;
+use std::num::NonZeroU32;
 // Using tree sets to make the optimizations deterministic
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::convert::TryFrom;
 
 #[derive(Default)]
 pub struct Pass;
@@ -30,7 +29,7 @@ struct Lifetime {
 struct BlockInfo<'a> {
     lifetimes: RegisterStruct<BTreeMap<u32, Lifetime>>,
     /// Registers seen anywhere and whether their vector length
-    seen: RegisterStruct<BTreeMap<u32, NonZeroU16>>,
+    seen: RegisterStruct<BTreeMap<u32, NonZeroU32>>,
     // Registers read before written (may have been written in a prev block)
     uninit: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>>,
     // Registers written but never read (may get read in a different block)
@@ -56,7 +55,7 @@ impl<'a> BodyInfo<'a> {
             let span = debug_span!("block", id);
             let _enter = span.enter();
             let mut lifetimes: RegisterStruct<BTreeMap<u32, Lifetime>> = Default::default();
-            let mut seen: RegisterStruct<BTreeMap<u32, NonZeroU16>> = Default::default();
+            let mut seen: RegisterStruct<BTreeMap<u32, NonZeroU32>> = Default::default();
             let mut uninit: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>> = Default::default();
             let mut dead_write: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>> = Default::default();
             // We can't insert into `seen` directly as that would mean later uses overwrite the vectorization
@@ -128,7 +127,7 @@ impl<'a> BodyInfo<'a> {
                     JumpMode::Conditional(cnd) => {
                         // FIXME: deduplicate with read logic above
                         let reg = cnd.register.elem;
-                        mark_seen(reg, NonZeroU16::new(1).unwrap());
+                        mark_seen(reg, NonZeroU32::new(1).unwrap());
                         trace!(%reg);
                         // reading from a register makes it not dead code
                         let _ = dead_write.remove(reg);
@@ -210,7 +209,7 @@ fn clean_lifetimes(map: &mut BTreeMap<u32, Lifetime>, base_map: &BTreeMap<u32, u
     *map = all.into_iter().collect();
 }
 
-fn clean(map: &mut BTreeMap<u32, NonZeroU16>) {
+fn clean(map: &mut BTreeMap<u32, NonZeroU32>) {
     if let Some((&cur_r, &cur_v)) = map.iter().next() {
         let mut cur_r = cur_r;
         let mut cur_v = cur_v;
@@ -228,8 +227,8 @@ fn clean(map: &mut BTreeMap<u32, NonZeroU16>) {
                 let cur_end = cur_r + u32::from(cur_v.get());
                 if end > cur_end {
                     // expand register
-                    cur_v = NonZeroU16::new(
-                        u16::try_from(u32::from(cur_v.get()) + end - cur_end).unwrap(),
+                    cur_v = NonZeroU32::new(
+                        u32::from(cur_v.get()) + end - cur_end
                     )
                     .unwrap();
                 }
@@ -262,7 +261,7 @@ impl super::Pass for Pass {
         let mut cross_block: RegisterStruct<BTreeSet<u32>> = Default::default();
         let mut seen_bases: RegisterStruct<BTreeSet<u32>> = Default::default();
         let mut base_map: RegisterStruct<BTreeMap<u32, u32>> = Default::default();
-        let mut seen: RegisterStruct<BTreeMap<u32, NonZeroU16>> = Default::default();
+        let mut seen: RegisterStruct<BTreeMap<u32, NonZeroU32>> = Default::default();
         for (id, block) in blocks.iter().enumerate() {
             let span = debug_span!("block", id);
             let _enter = span.enter();
@@ -384,7 +383,7 @@ impl super::Pass for Pass {
                         free.insert(block_start_idx, u32::max_value() - block_start_idx);
 
                         // FIXME: use an allocator crate
-                        let mut allocate = |size: NonZeroU16, dealloc: Vec<(u32, NonZeroU16)>| {
+                        let mut allocate = |size: NonZeroU32, dealloc: Vec<(u32, NonZeroU32)>| {
                             trace!(?free, ?size, "allocate");
                             for (dealloc, size) in dealloc {
                                 let size = u32::from(size.get());
@@ -444,7 +443,7 @@ impl super::Pass for Pass {
                         // End location to index map so we know what index ends next.
                         // This is used to deduplicate registers, because if we can remove
                         // an entry from this list, we get the id back for reusing it.
-                        let mut ends: BTreeMap<usize, Vec<(u32, NonZeroU16)>> = BTreeMap::new();
+                        let mut ends: BTreeMap<usize, Vec<(u32, NonZeroU32)>> = BTreeMap::new();
 
                         let idx = allocate(seen[&reg], vec![]);
                         ends.insert(end, vec![(idx, seen[&reg])]);
