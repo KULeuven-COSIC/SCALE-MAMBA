@@ -18,15 +18,52 @@ All rights reserved
 #include "OT/aBit.h"
 
 template<class T>
-void take_first_to_vector(std::vector<T> &v, std::list<T> &l, size_t k)
+void Split_Lists(vector<T> &out_vector,
+                 list<T> &out_list,
+                 list<T> &input_list,
+                 unsigned int size)
 {
-  list<T> temp;
-  temp.splice(temp.begin(), l, l.begin(), next(l.begin(), k));
+  list<T> front;
+  front.splice(front.begin(), input_list, input_list.begin(), next(input_list.begin(), size));
+  out_vector.resize(size);
+  if (out_vector.size() != front.size())
+    {
+      throw invalid_length();
+    }
 
-  v.reserve(k);
-  std::copy(begin(temp), end(temp), std::back_inserter(v));
+  copy(front.begin(), front.end(), out_vector.begin());
+  out_list.splice(out_list.begin(), front);
 }
 
-template void take_first_to_vector(std::vector<gfp> &v, std::list<gfp> &l, size_t k);
-template void take_first_to_vector(std::vector<Share> &v, std::list<Share> &l, size_t k);
-template void take_first_to_vector(std::vector<aBit> &v, std::list<aBit> &l, size_t k);
+template<class T>
+void Split_Lists(vector<T> &out_vector,
+                 list<T> &input_list,
+                 unsigned int size)
+{
+  list<T> front;
+  front.splice(front.begin(), input_list, input_list.begin(), next(input_list.begin(), size));
+  out_vector.resize(size);
+  if (out_vector.size() != front.size())
+    {
+      throw invalid_length();
+    }
+  copy(front.begin(), front.end(), out_vector.begin());
+}
+
+template<class T>
+void Split_Lists(list<T> &front,
+                 list<T> &input_list,
+                 unsigned int size)
+{
+  front.clear();
+  front.splice(front.begin(), input_list, input_list.begin(), next(input_list.begin(), size));
+}
+
+template void Split_Lists(vector<Share> &, list<Share> &, list<Share> &, unsigned int);
+
+template void Split_Lists(list<Share> &, list<Share> &, unsigned int);
+template void Split_Lists(list<gfp> &, list<gfp> &, unsigned int);
+
+template void Split_Lists(vector<Share> &, list<Share> &, unsigned int);
+template void Split_Lists(vector<gfp> &, list<gfp> &, unsigned int);
+template void Split_Lists(vector<aBit> &, list<aBit> &, unsigned int);

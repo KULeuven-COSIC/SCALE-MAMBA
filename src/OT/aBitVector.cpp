@@ -179,7 +179,7 @@ void aBitVector::SHL(const aBitVector &a, unsigned int n)
       assign_zero();
       return;
     }
-  for (unsigned int i= 0; i < sreg_bitl - n; i++)
+  for (int i= sreg_bitl - n - 1; i >= 0; i--)
     {
       x[i + n]= a.x[i];
     }

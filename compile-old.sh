@@ -17,6 +17,6 @@ shift $[OPTIND-1]
 
 rm $1/*.asm
 rm $1/*.bc
-printf "Running \n\t ./compile.py -D -s %s\n\n" $1
-./compile-mamba.py -D -s $1 || exit 1
+printf "Running \n\t ./compile.py -s %s\n\n" $1
+./compile-mamba.py -s $1 || exit 1
 

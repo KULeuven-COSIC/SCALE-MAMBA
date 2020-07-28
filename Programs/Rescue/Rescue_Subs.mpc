@@ -1,0 +1,312 @@
+
+import sys
+import math
+import random
+
+# TODO: it would be nice to remove this dependency
+# but it's not hard to setup a virtualenv and install sympy
+
+from sympy.ntheory.residue_ntheory import primitive_root
+
+kPrime = program.P
+
+def _xgcd(a, b):
+    """return (g, x, y) such that a*x + b*y = g = gcd(a, b)"""
+    x0, x1, y0, y1 = 0, 1, 1, 0
+    while a != 0:
+        (q, a), b = divmod(b, a), a
+        y0, y1 = y1, y0 - q * y1
+        x0, x1 = x1, x0 - q * x1
+    return b, x0, y0
+
+def _gcd(a, b):
+    b, _, _ = _xgcd(a, b)
+    return b
+
+def _modinv(a, b):
+    """return x such that (x * a) % b == 1"""
+    g, x, _ = _xgcd(a, b)
+    if g != 1:
+        raise Exception('xgcd(a, b) != 1')
+    return x % b
+
+def _mul(a, b, n):
+    return (a*b) % n
+
+def _div(a, b, n):
+    return _mul(a, _modinv(b, n), n)
+
+def _add(a, b, n):
+    return (a+b) % n
+
+def _sub(a, b, n):
+    return (a-b) % n
+
+def echelon_form(unreduced, p):
+    M = unreduced
+    lead = 0
+    rowCount = len(M) # M.nrows()
+    columnCount = len(M[0]) # M.ncols()
+    for r in range(rowCount):
+        if lead >= columnCount:
+            raise Exception("lead >= columnCount")
+        i = r
+        while M[i][lead] == 0:
+            i += 1
+            if i == rowCount:
+                i = r
+                lead += 1
+                if columnCount == lead:
+                    raise Exception("columnCount == lead")
+        M[i], M[r] = M[r], M[i]
+        lv = M[r][lead]
+        M[r] = [_div(mrx, lv, p) for mrx in M[r]]
+        for i in range(rowCount):
+            if i != r:
+                lv = M[i][lead]
+                M[i] = [_sub(iv, _mul(lv, rv, p), p) for rv, iv in zip(M[r],M[i])]
+        lead += 1
+    return M
+
+
+def compute_mds_matrix(m, p):
+    z = primitive_root(p)
+    M = [[(z**(i*j)) % p for j in range(0, 2*m)] for i in range(0, m)]
+    M = echelon_form(M, p)
+    M = [row[m:] for row in M]
+    # for row in M:
+    #     [sys.stdout.write("{} ".format(x)) for x in row]
+    #     print ""
+    return [[cint(x) for x in row] for row in M]
+
+
+def mod_classic_matrix_vector_mul(matrix, vector):
+    product = cint.Array(len(matrix))
+    for i in range(len(product)):
+        product[i] = cint(sum(matrix[i][j] * vector[j] for j in range(len(vector))) % kPrime)
+    return product
+
+def classic_matrix_vector_mul(matrix, vector):
+    product = sint.Array(len(matrix))
+    for i in range(len(matrix)):
+        product[i] = sum(matrix[i][j] * vector[j] for j in range(len(vector)))
+    return product
+
+def classic_matrix_vector_mul_mpc(matrix, secret_vector):
+    product = secret_vector.value_type.Array(len(matrix))
+    for i in range(len(matrix)):
+        product[i] = sum(matrix[i][j] * secret_vector[j] for j in range(len(secret_vector)))
+    return product
+
+def add_vector(x, y):
+    assert len(x) == len(y)
+    z=x.value_type.Array(len(x))
+    for i in range(len(x)):
+       z[i]=x[i]+y[i]
+    return z
+
+def add_vector_mpc(sint_array, cint_array):
+    assert len(sint_array) == len(cint_array)
+    new_array = sint.Array(len(sint_array))
+    for i in range(len(sint_array)):
+        new_array[i] = sint_array[i] + cint_array[i]
+    return new_array
+
+def print_list(xs):
+    for i in range(len(xs)):
+        print_str('%s ', xs[i].reveal())
+    print_ln('')
+
+# Uses memory location 0 of sint memory
+def get_r(length):
+
+  r=sint.Array(length)
+  @for_range(length)
+  def loop_body_i(i):
+     @do_while
+     def loop_body():
+         a, b, c = sint.get_random_triple()
+         a.store_in_mem(0)
+         t=c.reveal()
+         return t==0
+
+     r[i]=sint.load_mem(0)
+
+  return r
+
+
+# Uses memory location 0 of sint memory
+def get_inv_r_alpha(r,alpha):
+
+  inv_r_alpha=sint.Array(len(r))
+  for i in range(len(r)):
+    @do_while
+    def loop_body():
+        a, b, c = sint.get_random_triple()
+        a.store_in_mem(0)
+        t=c.reveal()
+        return t==0
+
+    e=sint.load_mem(0)
+    r_alpha = r[i]**alpha
+    # Compute 1/r_alpha. Do not call compiler version as this might
+    # result in a non-zero value for e
+    inv_r_alpha[i] = e/(e*r_alpha).reveal()
+
+  return inv_r_alpha
+
+def square_and_multiply(x, n):
+    if n < 0:
+        x = 1 / x
+        n = -n
+    if n == 0:
+        return 1
+    y = 1
+    while n > 1:
+        if n % 2 == 0:
+            x = x * x
+            n = n / 2
+        else:
+            y = x * y
+            x = x * x
+            n = (n - 1) / 2
+    return x * y
+
+def inverse_alpha(state, alpha, alpha_inv):
+    result = sint.Array(len(state))
+    r=get_r(len(state))
+    inv_r_alpha=get_inv_r_alpha(r,alpha)
+    for i in range(len(state)):
+        y = (state[i]*inv_r_alpha[i]).reveal()
+        t = square_and_multiply(y, alpha_inv)
+        result[i] = t*r[i]
+    return result
+
+def forward_alpha(state, alpha):
+    result = sint.Array(len(state))
+    r=get_r(len(state))
+    inv_r_alpha=get_inv_r_alpha(r,alpha)
+    for i in range(len(state)):
+        y = (state[i]*r[i]).reveal()
+        t = square_and_multiply(y, alpha)
+        result[i] = t*inv_r_alpha[i]
+    return result
+
+def get_python_random(p):
+    prime_size = int(math.ceil(program.P.bit_length()/8))*8
+    return random.getrandbits(2*prime_size) % p
+
+class Rescue(object):
+
+    def __init__(self, rate, capacity, security_level=128, alpha=3, key=None, seed=42):
+        self.rate=rate
+        self.m=rate+capacity
+        self.mds_matrix = compute_mds_matrix(self.m, kPrime)
+        bnd = math.ceil(2*security_level/math.log(kPrime,2))
+        assert (rate>=bnd and capacity>=bnd)
+
+        self.alpha = alpha
+        while _gcd(self.alpha, kPrime-1) != 1:
+            self.alpha += 2;
+        _, self.inv_alpha, _ = _xgcd(self.alpha, kPrime-1)
+
+        l0=math.ceil(2.0*security_level/((self.m+1)*math.log(kPrime,2)-(self.m+1)*math.log(self.alpha-1,2)))
+        if (self.alpha == 3):
+            l1 = math.ceil((1.0 * security_level + 2) / (4*self.m))
+        else :
+            l1 = math.ceil((1.0 * security_level + 3) / (5.5*self.m))
+        self.rnds = 2*max(l0, l1, 5)
+
+        # TODO use something like sha3?
+        random.seed(seed)
+        self.key = cint.Array(self.m)
+        for i in range(self.m):
+          self.key[i]=0 if key is None else key[i]
+        assert len(self.key) == self.m
+        self.subkeys = self.key_schedule()
+
+    def key_schedule(self):
+        m = self.m
+
+        # These are random values COMPILED in, using the fixed seed of 42.
+        key_injection_ints = [get_python_random(kPrime) for _ in range(m)]
+
+        constants_matrix = []
+        for i in range(m):
+            constants_matrix.append([get_python_random(kPrime) for _ in range(m)])
+
+        constant_ints = [get_python_random(kPrime) for _ in range(m)]
+
+        subkeys = []
+
+        key_state = add_vector(self.key, key_injection_ints)
+        subkeys.append(key_state)
+        tmp_key_inject = cint.Array(m)
+
+        for r in range(2*self.rnds):
+            if r % 2 == 0:
+                key_state = inverse_alpha(key_state, self.alpha, self.inv_alpha)
+            else:
+                key_state = forward_alpha(key_state, self.alpha)
+
+            key_injection_ints = mod_classic_matrix_vector_mul(constants_matrix, key_injection_ints)
+            key_injection_ints = add_vector(key_injection_ints, constant_ints)
+            for i in range(m):
+                tmp_key_inject[i] = key_injection_ints[i]
+
+            key_state = classic_matrix_vector_mul(self.mds_matrix, key_state)
+            key_state = add_vector(key_state, tmp_key_inject)
+
+            subkeys.append(key_state)
+
+        return subkeys
+
+    def encrypt(self, plaintext):
+        assert len(plaintext) == self.m
+        data_state = add_vector_mpc(plaintext, self.subkeys[0])
+        for r in range(2 * self.rnds):
+            if r % 2 == 0:
+                data_state = inverse_alpha(data_state, self.alpha, self.inv_alpha)
+            else:
+                data_state = forward_alpha(data_state, self.alpha)
+            data_state = classic_matrix_vector_mul_mpc(self.mds_matrix, data_state)
+            data_state = add_vector_mpc(data_state, self.subkeys[r+1])
+
+        return data_state
+
+    def init_sponge(self, state=None):
+       # Initialize initial state
+       self.data_state = sint.Array(self.m) if state is None else state
+
+    # This assumes len(inputs) is divisible by rate.
+    # In practice this will happen due to prior padding
+    # Adds more stuff into the sponge
+    # Absorb can be called repeatedly
+    def absorb(self, inputs):
+        assert (len(inputs)%self.rate)==0
+        @for_range(0, len(inputs), self.rate)
+        def loop_body_i(i):
+            for j in range(self.rate):
+               self.data_state[j] += inputs[j+i]
+
+            tmp_data_state = self.encrypt(self.data_state)
+	    # Weirdly you need to do this loop rather than do
+            #   seld.data_state=self.encrypt(self.data_state)
+            for j in range(len(self.data_state)):
+               self.data_state[j] = tmp_data_state[j]
+
+    def squeeze(self):
+        outputs = sint.Array(self.rate)
+        for i in range(rate):
+            outputs[i] =self.data_state[i]
+        return outputs
+
+
+    # This assumes len(inputs) is divisible by rate.
+    # In practice this will happen due to prior padding
+    def sponge(self, inputs, state=None):
+        self.init_sponge(state)
+        self.absorb(inputs)
+        outputs=self.squeeze()
+        return outputs
+

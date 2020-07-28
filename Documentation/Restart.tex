@@ -88,12 +88,9 @@ contain invalid memory accesses by mistake. Thus \verb+CLEAR_MEMORY+ can be
 considered as an instruction which avoids security errors due to programmer
 mistakes.
 
-Note, that the \verb+clear_memory()+ MAMBA instruction can only be used when your
-program is compiled with \verb+-M+ as it relies on the memory operations being
-compiled in the correct order.
-Also note that if it is executed in one thread, then this means the memory
-in any other thread will now be not what is expected. So the instruction 
-should only really be executed in thread zero, once all other threads have
+Note that if \verb+clear_memory()+ MAMBA instruction is executed in one thread, 
+then this means the memory in any other thread will now be not what is expected. 
+So the instruction should only really be executed in thread zero, once all other threads have
 finished.
 A demonstration of the \verb+clear_memory()+ command called from MAMBA is
 available in the program directory \verb+/Programs/mem_clear_demo+.

@@ -54,9 +54,9 @@ pub fn augment_block<'a>(
     // Load in the registers we know should be assigned -1 now, if none
     // we assume all unmet read registers have -1 depth
     let do_loop = !init_run && !check;
-    for x in init_instr_depth {
-        register_instr_depth.insert(x.clone(), -1);
-        register_round_depth.insert(x.clone(), -1);
+    for &x in init_instr_depth {
+        register_instr_depth.insert(x, -1);
+        register_round_depth.insert(x, -1);
     }
     let mut looping = true;
     let mut loop_count = 0;

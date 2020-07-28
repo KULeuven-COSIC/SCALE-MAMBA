@@ -166,9 +166,14 @@ If these conditions are not met, then the conversion will abort at runtime.
 The value \verb|conv_stat_sec| is by default equal to 40, but this can be modified in
 \verb|config.h|.
 
-In the latter case, when $\log_2 p < 64$, we first generate $\log_2 p$ random daBits
-$r_i$ until the value $r = \sum_{i=0}^{\log_2 p} r_i \cdot 2^i$ is less than $p$.
-Thus we can treat $r$ as a uniformly random value modulo $p$.
+In the latter case, when $\log_2 p < 64$, we repeatedly generate 
+$\log_2 p$ random daBits $r_i$ until the value 
+$r = \sum_{i=0}^{\log_2 p+1} r_i \cdot 2^i$ is less than $p$.
+Using this form of rejection sample we can treat $r$ as a uniformly 
+random value modulo $p$.
+The number of iterations required will depend on the difference between
+$2^{\log_2 p}$ and $p$.
+Each iteration requires a GC-based subtraction operation.
 We then perform the operations above, opening $x-r$, and then adding back on $r$
 using a Garbled Circuit and adjusting to get the sign correct.
 
@@ -1512,6 +1517,46 @@ def f():
     ...
     return and_(lambda: x < y, lambda: a < b)
 \end{lstlisting}
+
+\subsubsection{Mamba Function and Subroutine Calls}
+If you just use python functions then these get compiled
+`in place'. However, in many situations you want to use
+function/subroutines to save code space. To do this
+you need to use the \verb+function_block+ decorator syntex.
+\begin{lstlisting}
+@function_block
+def g():
+   print_ln("")
+
+@function_block
+def f(i):
+  print_ln("The value is %s",i)
+
+@function_block
+def h(i):
+  return (sint(0), sint(1)), sint(i)
+
+@function_block
+def m(i=1):
+  return i+1
+
+g()
+f(3)
+hh=h(4)
+print_ln("The returned value is %s %s %s",hh[0][0].reveal(), hh[0][1].reveal(), hh[1].reveal())
+print_ln("m value : %s",m())
+print_ln("m value : %s",m(2))
+\end{lstlisting}
+The functions are called by pushing data onto the requesite stacks,
+executing a \verb+CALL+ bytecode, then the arguments are popped off,
+and the function is run.
+Return arguments are done using pushing, calling the \verb+RETURN+ 
+bytecode, and then popping the arguments off.
+
+If you call \verb+RETURN()+ from within a MAMBA program this will
+execute a jump to the address on the integer stack.
+If the integer stack is empty, i.e. you are not within a function
+or subroutine, then this jump is to the end of the current tape.
 
 \subsubsection{Multi-threading}
 

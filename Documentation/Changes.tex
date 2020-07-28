@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.8} of the SCALE and MAMBA software.
+This is currently {\bf version 1.9} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,27 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.9 from 1.8}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item The code for interactive BGV key generation for Full Threshold
+        setup described in \cite{SPDZKG} has been included.
+      See Chapter \ref{sec:keygen} for how this should be used.
+\item Offline for Shamir should now be around 25 percent faster.
+This improvement also affects other access structures but the effect
+is less.
+\item The \verb+-D+ compile flag is now turned off by default.
+For production code you should enable it.
+\item Some optimization to the compile pipeline has been done.
+Mainly related to turning off \verb+-M+ by default,
+and then crashing the compiler if this looks like
+it will cause a problem.
+\item Bit decomposition methods which require no statistical
+security `gap' have now been implemented.
+\item Extended Array's and Matrices for \verb+regint+ and \verb+sregint+ types.\
+\item Calling \verb+RETURN()+ from within a tape (and not withing a MAMBA function block) results in a jump to the end of the tape.
+\end{enumerate}
 
 \subsection{Changes in version 1.8 from 1.7}
 Apart from the usual minor bug fixes...
@@ -294,8 +315,7 @@ number, and secure processing of this signal.
 \item Two new instructions \verb+CLEAR_MEMORY+ and \verb+CLEAR_REGISTERS+
       have been added.
       These are called from MAMBA via \verb+clear_memory()+ and \verb+clear_registers()+.
-      The first can only be called with compilation is done with the flag \verb+-M+, whilst
-      the second {\em may} issue out of order (consider it experimental at present).
+      The second {\em may} issue out of order (consider it experimental at present).
 \item Bug fix for \verb+sfix+ version of \verb+arcsin/arccos+ functions.
 \item When running Shamir with a large number of parties we now move to using
       an interactive method to produce the PRSS as opposed to the non-interactive

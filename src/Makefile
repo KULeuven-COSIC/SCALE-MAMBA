@@ -1,4 +1,3 @@
-
 include ../CONFIG.mine
 
 CC = g++
@@ -31,7 +30,7 @@ LIB = libMPC.a
 $(OBJ): $(SRC)
 	$(CC) $(CFLAGS) -c $*.cpp
 
-$(LIB): $(SYSTEM) $(MATH) $(TOOLS) $(LSSS) $(OFFLINE) $(ONLINE) $(OT) $(PROCESSOR) $(IO) $(FHE) $(GC) $(LOCAL_FUNC) $(EXCEPTIONS)
+$(LIB): $(SYSTEM) $(MATH) $(TOOLS) $(LSSS) $(OFFLINE) $(ONLINE) $(OT) $(PROCESSOR) $(IO) $(FHE) $(GC) $(LOCAL_FUNC) $(EXCEPTIONS) 
 	$(AR) -crs libMPC.a $^
 
 Setup.x: Setup.o $(LIB)

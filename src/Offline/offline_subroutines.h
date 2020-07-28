@@ -24,8 +24,4 @@ void make_shares(vector<Share> &share, const gfp &val, PRNG &G);
  */
 gfp schur_sum_prod(const Share &aa, const Share &bb, const Player &P);
 
-/* Fake sub-routines */
-void init_fake();
-void make_fake_macs(vector<gfp> &macs, const gfp &val);
-
 #endif

@@ -17,8 +17,31 @@ All rights reserved
 
 #include <list>
 #include <vector>
+using namespace std;
 
+/* Takes num items off the front of the input list.
+ * Inserts them at front of the output list
+ * And produces a vector version of this sublist
+ */
 template<class T>
-void take_first_to_vector(std::vector<T> &v, std::list<T> &l, std::size_t k);
+void Split_Lists(vector<T> &out_vector,
+                 list<T> &out_list,
+                 list<T> &input_list,
+                 unsigned int size);
+
+/* Does the same but ignores the output list */
+template<class T>
+void Split_Lists(vector<T> &out_vector,
+                 list<T> &input_list,
+                 unsigned int size);
+
+/* Does the same but ignores the output vector and output list
+ * and just returns the front bit as a list, as well as deleting
+ * this from the input_list
+ */
+template<class T>
+void Split_Lists(list<T> &front,
+                 list<T> &input_list,
+                 unsigned int size);
 
 #endif /* SRC_TOOLS_UTIL_CONTAINERS_H_ */

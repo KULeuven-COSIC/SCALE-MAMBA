@@ -251,4 +251,5 @@ int main()
   SD.Initialize_Replicated(ASD, Maurer);
 
   cout << "----------------------------------------------\n";
+  return 0;
 }

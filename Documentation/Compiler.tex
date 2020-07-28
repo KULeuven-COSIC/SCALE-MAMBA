@@ -60,6 +60,13 @@ processing. The \verb+scasm+ program we believe to be more robust than the
 original python program. It is a little slow however, we are working on
 speeding this up.
 
+See Section \ref{sec:newcompiler} for specifically how the new
+compiler pipeline works.
+There are currently two flags you can pass to the new compiler
+\verb+-D+, which is passed to the MAMBA sub-compiler and
+\verb+-OX+ where \verb+X+ equals one of 0,1,2 or 3, which is
+a flag passed to the \verb+scasm+ assembler.
+
 \subsection{The Inner MAMBA Compiler}
 The core of both pipelines is the program \verb+compile-mamba.py+,
 which can itself be called as a standalone program.
@@ -126,10 +133,11 @@ the output should resemble the following:
 \begin{verbatim}
 Compiling program in Programs/tutorial
 tutorial
-p = 34359738421
-Prime size: 32
-Default bit length: 24
-Default statistical security parameter: 6
+p = 340282366920938463463374607431768211507
+Prime size: 128
+Default bit length: 64
+Default statistical security parameter: 40
+Under Over Flow flag:  True
 Compiling file Programs/tutorial/tutorial.mpc
 Compiling basic block tutorial-0--0
 Compiling basic block tutorial-0-begin-loop-1
@@ -138,38 +146,30 @@ Compiling basic block tutorial-0-if-block-3
 Compiling basic block tutorial-0-else-block-4
 Compiling basic block tutorial-0-end-if-5
 Processing tape tutorial-0 with 6 blocks
-Processing basic block tutorial-0--0, 0/6, 4386 instructions
-Program requires 7 rounds of communication
-Program requires 440 invocations
+Processing basic block tutorial-0--0, 0/6, 12266 instructions
+Eliminate dead code...
+Eliminated 2 dead instructions, among which 1 opens
 Processing basic block tutorial-0-begin-loop-1, 1/6, 21 instructions
-WARNING: Order of memory instructions not preserved, errors possible
-Program requires 1 rounds of communication
-Program requires 1 invocations
 Processing basic block tutorial-0-end-loop-2, 2/6, 18 instructions
-Program requires 1 rounds of communication
-Program requires 1 invocations
+Eliminated 1 dead instructions, among which 0 opens
 Processing basic block tutorial-0-if-block-3, 3/6, 2 instructions
 Processing basic block tutorial-0-else-block-4, 4/6, 2 instructions
 Processing basic block tutorial-0-end-if-5, 5/6, 14 instructions
-Program requires 1 rounds of communication
-Program requires 1 invocations
-Tape register usage: defaultdict
-(<function <lambda> at 0xf27c80>, {'c': 1278, 'ci': 10, 's': 3793})
-modp: 1278 clear, 3793 secret
-Re-allocating...
-Register(s) [ci0] never used, assigned by 'popint ci0' in <omitted>
+Not merging open instructions in tape tutorial-0
 Compile offline data requirements...
-Tape requires 211 triples in modp, 100 squares in modp, 184 bits in modp
-Tape requires prime bit length 32
-Program requires:
-{('modp', 'triple'): 211, ('modp', 'square'): 100, ('modp', 'bit'): 184}
-Cost: 0.102230483271
-Memory size: defaultdict(<function <lambda> at 0xf27b18>,
-{'c': 8192, 'ci': 8192, 's': 8292})
-Compiling basic block tutorial-0-memory-usage-6
+Tape requires 607 triples in modp, 100 squares in modp, 628 bits in modp
+Tape requires prime bit length 106
+Program requires: {('modp', 'triple'): 607, ('modp', 'square'): 100, ('modp', 'bit'): 628}
+Memory size: defaultdict(<function <lambda> at 0x7fc985e842a8>, {'sr': 8192, 'c': 8192, 'r': 8192, 's': 8292, 'sb': 8192})
 Writing to Programs/tutorial/tutorial.sch
-Writing to Programs/tutorial/tutorial-0.bc
-Writing to Programs/tutorial/tutorial-0.bc
+Writing to Programs/tutorial//tutorial-0.asm
+
+Now running
+        ./scasm Programs/tutorial/
+
++ cargo run --manifest-path Assembler/Cargo.toml --release --bin scale_repo_helper --quiet -- --verbose Programs/tutorial/ -- --hide-warnings
+reading all `.asm` files in Programs/tutorial/
+processing: Programs/tutorial/tutorial-0.asm...
 \end{verbatim}
 The compilation output in this case corresponds  to a 3-party scenario using Shamir Secret Sharing for both, online and offline phases.
 The output introduces first some program level parameters, followed by the rolling of the tape (converting all operations to byte-code instructions), and offline data requirements. We now proceed to analyze the output more into detail.
@@ -465,7 +465,7 @@ This allows to call print_ln in tested programs, but nothing really happens when
 \label{sec:newcompiler}
 The new compilation pipeline works by calling the inner compiler with the flags
 
-\displaytt{compile-mamba.py -A -n -r -M -D -u -s Programs/some\_program}
+\displaytt{compile-mamba.py -A -n -r -u -s Programs/some\_program}
 
 \noindent The \verb|-A| option produces the output \verb+.asm+ files in the directory
 \verb+Programs/some\_program+.
@@ -483,6 +483,8 @@ flags etc by calling
 pipeline...
 
 \displaytt{./compile.sh target}
+
+\vspace{5mm}
 
 \noindent If you want to pass various optimization flags then you
 execute
@@ -504,6 +506,11 @@ as described below.
 \end{itemize}
 Note, that for very large \verb+.asm+ files, the last
 two optimizations can take a long time.
+
+You can also pass \verb+-D+ to the \verb+compile.sh+ program.
+Which passes the same flag onto the MAMBA compiler. This should
+be done for production code, but we do not set this by default
+as it is useful to have this flag unset for testing purposes.
 
 \subsubsection{scasm Commands}
 As a \verb+Rust+ program we can control the use of \verb+scasm+ with more fine-grain than

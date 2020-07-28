@@ -34,6 +34,7 @@ class Sender_COT
   vector<OT_Sender> ROT_S;
 #endif
   int pair;
+  unsigned int connection;
 
 public:
   // Execute the next extraction procedure
@@ -45,7 +46,7 @@ public:
                       vector<aBit> &aB,
                       const BitVector &x);
 
-  void init(Player &P, int i, CryptoPP::RandomPool &RNG);
+  void init(Player &P, int i, CryptoPP::RandomPool &RNG, unsigned int connectionNb= 2);
 
   // This is a COT with player i
 
@@ -67,6 +68,7 @@ class Receiver_COT
 #endif
   int pair;
   gf2n Delta;
+  unsigned int connection;
 
   void compute_Delta();
 
@@ -79,7 +81,7 @@ public:
   void next_iteration(Player &P, unsigned int sz_aB, vector<aBit> &aB);
 
   // This is a COT with player i
-  void init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int> choicebits);
+  void init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int> choicebits, unsigned int connectionNb= 2);
 
   gf2n get_Delta() const
   {

@@ -1,0 +1,34 @@
+
+execfile("Programs/Rescue/Rescue_Subs.mpc")
+
+security_level=128
+capacity = int(math.ceil(2*security_level/math.log(kPrime,2)))
+rate = capacity
+inp = sint.Array(32)
+for i in range(32):
+  inp[i]=sint(0)
+
+rescue = Rescue(rate, capacity, security_level)
+
+print_ln("alpha: %s", rescue.alpha)
+print_ln("inv_alpha: %s", rescue.inv_alpha)
+print_ln("m: %s", rescue.m)
+print_ln("r: %s", rate)
+print_ln("c: %s", capacity)
+
+start_timer(2)
+out = rescue.sponge(inp)
+stop_timer(2)
+print_ln('out: ')
+print_list(out)
+
+new_init=sint.Array(rescue.m)
+for i in range(rescue.rate):
+   new_init[i]=out[i]
+   new_init[i+rescue.rate]=out[i]
+
+start_timer(2)
+out = rescue.sponge(inp, new_init)
+stop_timer(2)
+print_ln('out: ')
+print_list(out)

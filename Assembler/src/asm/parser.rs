@@ -5,8 +5,8 @@ use crate::span::{Span, Spanned};
 use crate::{errors, Compiler};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
-use std::num::NonZeroU32;
 use std::iter;
+use std::num::NonZeroU32;
 
 impl<'a> Statement<'a> {
     pub fn parse(cx: &'a Compiler, lex: &Lexical<'a>) -> Self {
@@ -44,12 +44,11 @@ impl<'a> Statement<'a> {
                 Instruction::Nop
             }
             "" => Instruction::Nop,
-            "ldsi" | "ldi" | "ldint" | "movs" | "movc" | "movint" | "movsint" | "ldsint" | "ldsbit" => {
-                Instruction::Assign {
-                    destination: args.index_or_err(cx, 0).require(cx),
-                    value: args.index_or_err(cx, 1),
-                }
-            }
+            "ldsi" | "ldi" | "ldint" | "movs" | "movc" | "movint" | "movsint" | "ldsint"
+            | "ldsbit" => Instruction::Assign {
+                destination: args.index_or_err(cx, 0).require(cx),
+                value: args.index_or_err(cx, 1),
+            },
             "ldmc" | "ldms" | "ldmci" | "ldmsi" | "ldmint" | "ldminti" | "ldmsint" | "ldmsinti" => {
                 Instruction::LoadFromMemory {
                     destination: args.index_or_err(cx, 0).require(cx),
@@ -556,7 +555,11 @@ impl<'a> Body<'a> {
 
         let mut blocks = Vec::new();
         let mut stmts = Vec::new();
-        for (i, lexical) in lexicals.iter().chain(iter::once(&Lexical::nop())).enumerate() {
+        for (i, lexical) in lexicals
+            .iter()
+            .chain(iter::once(&Lexical::nop()))
+            .enumerate()
+        {
             trace!("{}: {}", i, lexical);
             // finalize the current block when we encounter a new one
             if let Some((next_block_id, _)) = block_starts.remove(&i) {

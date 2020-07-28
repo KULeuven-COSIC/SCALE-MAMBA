@@ -40,7 +40,7 @@ This defines the noise bounds for the FHE scheme below in
 the following sense.
 A FHE ciphertext in the protocol is gauranteed to decrypt
 correctly, even under adversarial inputs assuming the
-ZKPoKs are applied correctly, with probability $1-2^{-\epsilon}$.
+ZKPoKs are applied correctly, with probability $1-\phi(m) \cdot 2^{-\epsilon}$.
 In fact this is an under-estimate of the probability.
 From $\epsilon$ we define $e_i$ such that 
 $\mathsf{erfc}(e_i)^i \approx 2^{-\epsilon}$ and then we set $\gc_i = e_i^i$.
@@ -229,8 +229,9 @@ We let in what follows $V_\sk$ denote $\sqrt{\texttt{HwtSK}}$ in the case
 when \verb|HwtSK| is positive, and $\sigma \cdot \sqrt{\phi(m)}$ otherwise.
 By the law of large numbers we can use $\gc_1 \cdot \sqrt{V}$,
 where $V$ is the above variance, as a high probability bound
-on the size of $a(\zeta_m)$ (the probability is $1-2^{-\epsilon}$, 
-and this provides a bound on the canonical embedding norm of $a$.
+on the size of $a(\zeta_m)$ (the probability is $1-2^{-\epsilon}$), 
+and this provides the same bound on the canonical embedding norm of $a$
+with probability $1- \phi(m) \cdot 2^{-\epsilon}$.
 
 If we take a product of $t$ such
 elements with variances $V_1, V_2, \ldots, V_t$
@@ -287,8 +288,8 @@ We require
    p_0 - 1 & \equiv p_1-1 \equiv p-1 \equiv 0 \pmod{\phi(m)}.
 \end{align*}
 In particular the public key is of the form $(a,b)$ where
-\[ a \asn \calU(q,\phi(m)) \quad \mbox{ and } \quad b = a \cdot \sk + p \cdot \epsilon \]
-where $\epsilon \asn \dN(\sigma^2,\phi(m))$ 
+\[ a \asn \calU(q,\phi(m)) \quad \mbox{ and } \quad b = a \cdot \sk + p \cdot e_{sk} \]
+where $e_{sk} \asn \dN(\sigma^2,\phi(m))$ 
 and the switching key data $(a_{\sk,\sk^2},b_{\sk,\sk^2})$ is of the form
 \[ a_{\sk,\sk^2} \asn \calU(q,\phi(m)) \quad \mbox{ and } \quad 
    b_{\sk,\sk^2} =   a_{\sk,\sk^2} \cdot \sk + p \cdot e_{\sk,\sk^2} - p_1 \cdot \sk^2 \]
@@ -306,11 +307,11 @@ We calculate a bound (which holds with high probability) on the output noise of
 an honestly generated ciphertext to be
 \begin{align*}
   \norm{c_0 - \sk \cdot c_1}_\infty^\can 
-     &= \norm{((a \cdot \sk+ p \cdot \epsilon) \cdot v +p \cdot e_0 +m
+     &= \norm{((a \cdot \sk+ p \cdot e_{sk}) \cdot v +p \cdot e_0 +m
                 - (a \cdot v+ p \cdot e_1) \cdot \sk }_\infty^\can \\
-     &= \norm{m + p \cdot (\epsilon \cdot v +e_0 - e_1 \cdot \sk)}_\infty^\can \\
+     &= \norm{m + p \cdot (e_{sk} \cdot v +e_0 - e_1 \cdot \sk)}_\infty^\can \\
      &\le \norm{m}_\infty^\can 
-         +p \cdot \left( \norm{\epsilon\cdot v}_\infty^\can
+         +p \cdot \left( \norm{e_{sk} \cdot v}_\infty^\can
                        + \norm{e_0}_\infty^\can
                        + \norm{e_1 \cdot \sk}_\infty^\can
                   \right) \\
@@ -348,7 +349,7 @@ infinity norm in the canonical embedding of,
   \norm{c_0 - \sk \cdot c_1}_\infty^\can
   &\le \sum_{i=1}^n
   	\norm{2 \cdot m_i}_\infty^\can
-	+ p \cdot \Big(\norm{\epsilon}_\infty^\can \cdot \norm{2 \cdot v_i}_\infty^\can 
+	+ p \cdot \Big(\norm{e_{sk}}_\infty^\can \cdot \norm{2 \cdot v_i}_\infty^\can 
 	+ \norm{2 \cdot e_{0,i}}_\infty^\can \\
   &\hspace{3.5cm}
 	+ \norm{\sk}_\infty^\can \cdot \norm{2 \cdot e_{1,i}}_\infty^\can \Big) \\
@@ -493,7 +494,7 @@ In order to estimate the size of the output noise term
 in the canonical embedding we need first to estimate the size of the term
 (again probabilistically assuming validly generated public
 keys)
-\[ \norm{p \cdot d_2 \cdot \epsilon_{\sk,\sk^2}}_\infty^\can. \]
+\[ \norm{p \cdot d_2 \cdot e_{\sk,\sk^2}}_\infty^\can. \]
 Following \cite{GHS12c} we assume heuristically that $d_2$
 behaves like a uniform polynomial with coefficients drawn from
 $[-q_0/2,\ldots,q_0/2]$ (remember we apply $\SwitchKey$ at level

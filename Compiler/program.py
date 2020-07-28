@@ -1,3 +1,7 @@
+
+# Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
 # (C) 2017 University of Bristol. See License.txt
 
 from Compiler.config import *
@@ -508,14 +512,14 @@ class Tape:
         if (options.merge_opens and self.merge_opens) or options.dead_code_elimination:
             for i,block in enumerate(self.basicblocks):
                 if len(block.instructions) > 0:
-                    print 'Processing basic block %s, %d/%d, %d instructions' % \
-                        (block.name, i, len(self.basicblocks), \
-                         len(block.instructions))
+                    print 'Processing basic block %s, %d/%d, %d instructions ' %(block.name, i, len(self.basicblocks), len(block.instructions))
+                    sys.stdout.flush()
                 # the next call is necessary for allocation later even without merging
                 merger = al.Merger(block, options)
                 if options.dead_code_elimination:
                     if len(block.instructions) > 10000:
                         print 'Eliminate dead code...'
+                        sys.stdout.flush()
                     merger.eliminate_dead_code()
                 if options.merge_opens and self.merge_opens:
                     if len(block.instructions) == 0:
@@ -524,16 +528,20 @@ class Tape:
                         continue
                     if len(block.instructions) > 10000:
                         print 'Merging open instructions...'
+                        sys.stdout.flush()
                     numrounds = merger.longest_paths_merge()
                     if numrounds > 0:
                         print 'Program requires %d rounds of communication' % numrounds
+                        sys.stdout.flush()
                     numinv = sum(len(i.args) for i in block.instructions if isinstance(i, Compiler.instructions.startopen_class))
                     if numinv > 0:
                         print 'Program requires %d invocations' % numinv
+                        sys.stdout.flush()
                 if options.dead_code_elimination:
                     block.instructions = filter(lambda x: x is not None, block.instructions)
         if not (options.merge_opens and self.merge_opens):
             print 'Not merging open instructions in tape %s' % self.name
+            sys.stdout.flush()
 
         # add jumps
         offset = 0
@@ -555,6 +563,7 @@ class Tape:
             print 'Tape register usage:', reg_counts
             print 'modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp])
             print 'Re-allocating...'
+            sys.stdout.flush()
             allocator = al.StraightlineAllocator(REG_MAX)
             def alloc_loop(block):
                 for reg in block.used_from_scope:
@@ -566,6 +575,7 @@ class Tape:
                 if len(block.instructions) > 10000:
                     print 'Allocating %s, %d/%d' % \
                         (block.name, i, len(self.basicblocks))
+                    sys.stdout.flush()
                 if block.exit_condition is not None:
                     jump = block.exit_condition.get_relative_jump()
                     if jump != -1 and  \
@@ -611,6 +621,7 @@ class Tape:
     def write_encoding(self, filename):
         """ Write the readable encoding to a file. """
         print 'Writing to', filename
+        sys.stdout.flush()
         f = open(filename, 'w')
         for line in self.get_encoding():
             f.write(str(line) + '\n')
@@ -620,6 +631,7 @@ class Tape:
     def write_str(self, filename):
         """ Write the sequence of instructions to a file. """
         print 'Writing to', filename
+        sys.stdout.flush()
         f = open(filename, 'w')
         n = 0
         for block in self.basicblocks:
@@ -636,9 +648,11 @@ class Tape:
         if filename is None:
             filename = self.outfile
         print 'Writing to', filename
+        sys.stdout.flush()
         if not filename.endswith('.bc'):
             filename += '.bc'
         print 'Writing to', filename
+        sys.stdout.flush()
         f = open(filename, 'w')
         f.write(self.get_bytes())
         f.close()
@@ -790,6 +804,7 @@ class Tape:
                 self.caller = None
             if self.i % 1000000 == 0 and self.i > 0:
                 print "Initialized %d registers at" % self.i, time.asctime()
+                sys.stdout.flush()
 
         def set_size(self, size):
             if self.size == size:

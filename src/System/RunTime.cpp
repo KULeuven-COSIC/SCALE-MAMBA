@@ -241,6 +241,10 @@ void Print_Memory_Info(int player_num, int thread_num)
 void *Main_Func(void *ptr)
 {
   thread_info *tinfo= (thread_info *) ptr;
+
+  //Init thread_local gfp value
+  tinfo->PTD->init_field();
+
   unsigned int num= tinfo->thread_num;
   int me= tinfo->me;
   int verbose= tinfo->verbose;

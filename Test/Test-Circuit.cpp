@@ -301,4 +301,5 @@ int main()
   test_AES192();
   test_AES256();
   test_SHA3();
+  return 0;
 }

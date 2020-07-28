@@ -464,7 +464,7 @@ instructions! {
   BITSINT  & 0xDC & (dest: sbw, value: sr, bit: int) & vectorizable & r##"BITSINT sbi sj n \newline
                                                 Assigns sbit register sbi the n-th bit of register sj."## & ""
   SINTBIT  & 0xDD  & (value: srw, dest: sr, bit_value: sb, bit_index: int) & vectorizable & r##"BITSINT si sj sbk n \newline
-                                        Assigns si to sj, and then sets the n-th bit to be sbk"## & ""
+                                        Assigns sj to si, and then sets the n-th bit to be sbk"## & ""
   },
   "Others" {
   RAND & 0xE0 & (dest: rw, modulo: r) & vectorizable & r##"RAND ri rj \newline

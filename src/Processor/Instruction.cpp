@@ -12,6 +12,7 @@ All rights reserved
 #include "Processor/Processor.h"
 #include "Tools/Crypto.h"
 #include "Tools/parse.h"
+#include "Tools/util_containers.h"
 extern Local_Functions Global_LF;
 
 #include <algorithm>
@@ -1434,47 +1435,57 @@ void Instruction::execute_using_sacrifice_data(
   Wait_For_Preproc(opcode, size, thread, OCD);
 
   int r[3]= {this->r[0], this->r[1], this->r[2]};
+  list<Share> la, lb, lc;
 
   switch (opcode)
     {
       case TRIPLE:
         OCD.mul_mutex[thread].lock();
-        for (unsigned int i= 0; i < size; i++)
+        Split_Lists(la, SacrificeD[thread].TD.ta, size);
+        Split_Lists(lb, SacrificeD[thread].TD.tb, size);
+        Split_Lists(lc, SacrificeD[thread].TD.tc, size);
+        OCD.mul_mutex[thread].unlock();
+        for (list<Share>::const_iterator zz= la.begin(); zz != la.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[0])= SacrificeD[thread].TD.ta.front();
-            SacrificeD[thread].TD.ta.pop_front();
-            Proc.get_Sp_ref(r[1])= SacrificeD[thread].TD.tb.front();
-            SacrificeD[thread].TD.tb.pop_front();
-            Proc.get_Sp_ref(r[2])= SacrificeD[thread].TD.tc.front();
-            SacrificeD[thread].TD.tc.pop_front();
+            Proc.get_Sp_ref(r[0])= *zz;
             r[0]++;
+          }
+        for (list<Share>::const_iterator zz= lb.begin(); zz != lb.end(); ++zz)
+          {
+            Proc.get_Sp_ref(r[1])= *zz;
             r[1]++;
+          }
+        for (list<Share>::const_iterator zz= lc.begin(); zz != lc.end(); ++zz)
+          {
+            Proc.get_Sp_ref(r[2])= *zz;
             r[2]++;
           }
-        OCD.mul_mutex[thread].unlock();
         break;
       case SQUARE:
         OCD.sqr_mutex[thread].lock();
-        for (unsigned int i= 0; i < size; i++)
+        Split_Lists(la, SacrificeD[thread].SD.sa, size);
+        Split_Lists(lb, SacrificeD[thread].SD.sb, size);
+        OCD.sqr_mutex[thread].unlock();
+        for (list<Share>::const_iterator zz= la.begin(); zz != la.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[0])= SacrificeD[thread].SD.sa.front();
-            SacrificeD[thread].SD.sa.pop_front();
-            Proc.get_Sp_ref(r[1])= SacrificeD[thread].SD.sb.front();
-            SacrificeD[thread].SD.sb.pop_front();
+            Proc.get_Sp_ref(r[0])= *zz;
             r[0]++;
+          }
+        for (list<Share>::const_iterator zz= lb.begin(); zz != lb.end(); ++zz)
+          {
+            Proc.get_Sp_ref(r[1])= *zz;
             r[1]++;
           }
-        OCD.sqr_mutex[thread].unlock();
         break;
       case BIT:
         OCD.bit_mutex[thread].lock();
-        for (unsigned int i= 0; i < size; i++)
+        Split_Lists(lb, SacrificeD[thread].BD.bb, size);
+        OCD.bit_mutex[thread].unlock();
+        for (list<Share>::const_iterator zz= lb.begin(); zz != lb.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[0])= SacrificeD[thread].BD.bb.front();
-            SacrificeD[thread].BD.bb.pop_front();
+            Proc.get_Sp_ref(r[0])= *zz;
             r[0]++;
           }
-        OCD.bit_mutex[thread].unlock();
         break;
       default:
         throw bad_value();
@@ -1562,8 +1573,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             Proc.temp.ansp.assign(n);
             Proc.write_Cp(r[0], Proc.temp.ansp);
             break;
-          case LDSI:
-            {
+            case LDSI: {
               Proc.temp.ansp.assign(n);
               Proc.get_Sp_ref(r[0]).assign(Proc.temp.ansp, P.get_mac_keys());
             }
@@ -1801,8 +1811,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             to_gfp(Proc.temp.ansp, Proc.temp.aa);
             Proc.write_Cp(r[0], Proc.temp.ansp);
             break;
-          case DIGESTC:
-            {
+            case DIGESTC: {
               stringstream o;
               to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
 
@@ -2022,7 +2031,14 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
             break;
           case RETURN:
             long ret_pos;
-            Proc.pop_int(ret_pos);
+            if (Proc.stack_int.size() >= 1)
+              {
+                Proc.pop_int(ret_pos);
+              }
+            else
+              {
+                ret_pos= Proc.program_size();
+              }
             Proc.jump(ret_pos);
             break;
           case EQZINT:

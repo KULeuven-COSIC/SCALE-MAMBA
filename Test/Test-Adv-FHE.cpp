@@ -14,14 +14,13 @@ All rights reserved
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
-using namespace std;
 
 #include "FHE/FHE_Keys.h"
 #include "FHE/FHE_Params.h"
 #include "FHE/ZKPoK.h"
-#include "config.h"
+
+using namespace std;
 
 void Gen_FHE_Data(int &n, Ring &Rg, FFT_Data &PTD, FHE_Params &params,
                   FHE_PK *&pk, FHE_SK **&sk, FHE_SK *&Msk, PoKVersion version)
@@ -439,4 +438,5 @@ int main()
       delete sk[i];
     }
   delete[] sk;
+  return 0;
 }

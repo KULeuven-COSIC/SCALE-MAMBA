@@ -27,17 +27,18 @@ void LaAND::make_more(Player &P, int num_online)
   list<aBit> get_r= OTD.aBD.get_aShares(num_online, number);
   vector<string> o(P.nplayers());
   ostringstream os;
-  for (unsigned int t= 0; t < number; t++)
+  unsigned int t= 0;
+  for (list<aBit>::const_iterator zz= get_r.begin(); zz != get_r.end(); ++zz)
     {
       triples[t].x= HA.x[t];
       triples[t].y= HA.y[t];
-      triples[t].z= get_r.front();
-      get_r.pop_front();
+      triples[t].z= *zz;
       int zt= (triples[t].x.get_value() * triples[t].y.get_value()) ^ HA.v[t];
       int et= zt ^ triples[t].z.get_value();
       os << et << " ";
       // Sets my z value to z+e
       triples[t].z.set_value(triples[t].z.get_value() ^ et);
+      t++;
     }
 
   o[P.whoami()]= os.str();

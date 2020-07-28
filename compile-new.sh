@@ -16,22 +16,34 @@ export PYTHONPATH=$ROOT:$PYTHONPATH
 shift $[OPTIND-1]
 
 ARGS=("$@")
-# Get the last argument
+# Get the last argument which is the program name
 target=${ARGS[-1]}
-# Drop it from the array
-unset ARGS[${#ARGS[@]}-1]
+
+# Extract mamba/scasm specific args
+SCASM_ARGS=()
+MAMBA_ARGS=()
+for arg in "$@" 
+do
+  if [ $arg == "-D" ]; then
+    MAMBA_ARGS+=($arg)
+  fi
+  if [ $arg == "-O0" ] || [ $arg == "-O1" ] || [ $arg == "-O2" ] || [ $arg == "-O3" ] || [ $arg == "-T" ]; then
+    SCASM_ARGS+=($arg)
+  fi
+done
 
 rm $target/*.asm
 rm $target/*.bc
 rm $target/*.sch
-printf "Running \n\t ./compile.py -A -n -r -M -D -u -s %s\n\n" $1
-./compile-mamba.py -A -n -r -M -D -u -s $target || exit 1
-printf "\nNow running \n\t./scasm %s\n\n" $target
+# Do not add in -D flag automatically as this is too aggressive a remover of instructions
+printf "Running \n\t ./compile-mamba.py -A -n -r -u -s %s %s\n\n" $MAMBA_ARGS $target
+./compile-mamba.py -A -n -r -u -s $MAMBA_ARGS $target || exit 1
+printf "\nNow running \n\t./scasm %s %s\n\n" $SCASM_ARGS $target
 #./scasm --verbose $1 -- --optimizations start_stop_open nop_removal || exit 1
 #./scasm --verbose $1 -- --optimizations nop_removal || exit 1
 #./scasm --verbose $1 -- --optimizations start_stop_open || exit 1
 #./scasm --verbose $1 -- --optimizations register_coloring || exit 1
 #./scasm --verbose $1 -- --optimizations nop_removal register_coloring || exit 1
 #./scasm --verbose $1 -- --dump-optimizations=temp || exit 1
-./scasm --verbose $target -- --hide-warnings "${ARGS[@]}" || exit 1
+./scasm --verbose $target -- --hide-warnings "${SCASM_ARGS[@]}" || exit 1
 printf "\n\n"

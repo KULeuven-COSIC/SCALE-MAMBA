@@ -445,6 +445,33 @@ kappa = 16
 comparison.BitLTL(z, x, y, kappa)
 \end{lstlisting}
 
+\msubsubsection{$\mathsf{BitDecFull}(\sshare{a})$:}
+This produces the bit-decomposition of the shared value $a$ with
+respect to the prime \verb+program.P+.
+The method used is the one from \cite{DBLP:conf/pkc/NishideO07}, 
+and thus it does not depend on any statistical security gap.
+In the next section a more efficient variant which only
+gives statistical security guarantees, but does not
+work for all $a \in [0,\ldots,p)$ is given.
+When \verb+program.P+ is larger than $64$-bit the
+method from \cite{DFKNT06} is used; not because it is
+faster but purely because SCALE is not so adapt at doing
+the other method for large primes.
+This routine has a side-effect of writing to memory locations in the
+\verb+sint+ memory in the first $0,\ldots,\log_2 p$ locations.
+\paragraph{MAMBA Example:} A secret shared value can be decomposed into bits as shown in the following snippet: 
+\begin{lstlisting}[language={python}]
+x = cint(23)
+bits = BitDecFull(a)
+for i in range(program.P.bit_length()):
+  print_str('%s',bits[i].reveal())
+\end{lstlisting}
+
+\msubsection{Arithmetic with Signed Integers}
+In this section we define basic arithmetic on signed integers.
+We define $\Zk$ as the set of integers $\{x \in \Z: -2^{k-1} \le x \le 2^{k-1}-1\}$,
+which we embed into $\F_p$ via the map $x \mapsto x \pmod{p}$.
+
 \msubsubsection{$\mathsf{BitDec}(\sshare{a},k,m)$:}
 This outputs the $m$ least significant bits in the $2$'s complement
 representation of $a \in \Zk$.
@@ -466,10 +493,6 @@ kappa = 20
 b = floatingpoint.BitDec(a, k, m, kappa)
 \end{lstlisting}
 
-\msubsection{Arithmetic with Signed Integers}
-In this section we define basic arithmetic on signed integers.
-We define $\Zk$ as the set of integers $\{x \in \Z: -2^{k-1} \le x \le 2^{k-1}-1\}$,
-which we embed into $\F_p$ via the map $x \mapsto x \pmod{p}$.
 
 \msubsubsection{$\mathsf{TruncPR}(\sshare{a},k,m, \kappa)$:}
 An approximate truncation algorithm which is faster than 
@@ -1089,7 +1112,7 @@ We adopt the conventions that when $u=0$ we also have $z=1, v=0$ and $p=0$,
 and when $\err=1$ then the values of $v,p,z$ and $s$ are meaningless.
 
 The standard arithmetic operations of addition, multiplication and
-comparison are then implemented in MAMBA for this datetype using
+comparison (plus others) are then implemented in MAMBA for this datatype using
 operator overloading. The precise algorithms which are executed
 are detailed below.
 
@@ -1142,9 +1165,9 @@ this first.
 	(\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}),
         (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}))$:}
 \begin{enumerate}
-\item $\sshare{a} \asn \mathsf{LT}(\sshare{p_1},\sshare{p_2},k$.
-\item $\sshare{b} \asn \mathsf{EQ}(\sshare{p_1},\sshare{p_2},k$. 
-\item $\sshare{c} \asn \mathsf{LT}(\sshare{v_1},\sshare{v_2},k$.
+\item $\sshare{a} \asn \mathsf{LT}(\sshare{p_1},\sshare{p_2},k)$.
+\item $\sshare{b} \asn \mathsf{EQ}(\sshare{p_1},\sshare{p_2},k)$. 
+\item $\sshare{c} \asn \mathsf{LT}(\sshare{v_1},\sshare{v_2},k)$.
 \item $\sshare{p_{\max}} \asn \sshare{a} \cdot \sshare{p_2} + (1-\sshare{a}) \cdot \sshare{p_1}$.
 \item $\sshare{p_{\min}} \asn (1-\sshare{a}) \cdot  \sshare{p_2} + \sshare{a} \cdot \sshare{p_1}$.
 \item $\sshare{a \cdot b} \asn \sshare{a} \cdot \sshare{b}$.
@@ -1184,7 +1207,7 @@ this first.
 	             + (\sshare{z_2}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_1}
 		     + (\sshare{z_1}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_2}$.
 \item $\sshare{\err} \asn \sshare{\err_1} + \sshare{\err_2} + \mathsf{FlowDetect}(\sshare{p})$.
-\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err})$.
+\item $\sshare{\err} \asn \sshare{\err} + \mathsf{FlowDetect}(\sshare{p})$.
 \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
 \end{enumerate}
 
@@ -1898,7 +1921,7 @@ we will signal an error.
 \item $\sshare{v} \asn 2^{\ell-1} \cdot \sshare{z_1}+(1-\sshare{z_1}) \cdot \sshare{v_u}$.
 \item $\sshare{p} \asn -\sshare{z_1} \cdot (\ell-1)
 			+(1-\sshare{z_1}) \cdot \sshare{p}$.
-\item $\sshare{\err} \asn \mathsf{FlowDetect}(\sshare{p},\sshare{\err_1})$
+\item $\sshare{\err} \asn \sshare{\err_1} +  \mathsf{FlowDetect}(\sshare{p})$
 \item Return $(\sshare{v},\sshare{p},0,0,\sshare{\err})$.
 \end{enumerate}
 
@@ -1955,6 +1978,13 @@ x =sfix(4)
 # returns log_2(4) 
 log2_x=mpc_math.log2_fx(sfix(x))
 \end{lstlisting}
+Note, internally \verb+log2_fx+ uses a polynomial to approximate the logarithm, but it uses the \verb+sfloat+ arithmetic to do this.
+Thus, you need to set up \verb+sfloat+ and \verb+sfix+ correctly for this to work.
+In particular if you look deep inside the code there is the following cryptic remark in relation to \verb+log2_fx+...
+\begin{verbatim}
+     # Note that sfloat and sfix sizes have to be parametrized correctly,
+     # such that sfix vlen > sfloat vlen. This is not the case by default. 
+\end{verbatim}
 
 
 \msubsubsection{$\mathsf{FLLog2}((\sshare{v_1},\sshare{p_1},\sshare{z_1},\sshare{s_1},\sshare{\err_1}))$:}

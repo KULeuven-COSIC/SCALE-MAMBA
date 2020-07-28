@@ -31,8 +31,8 @@ class Memory
 {
   mutex memory_mutex;
 
-  vector<T> M;
   T def_value; // A default value of type T for copying
+  vector<T> M;
 
 public:
   void set_default(T d)
@@ -45,11 +45,11 @@ public:
     return M.size();
   }
 
-  int reduce_size(unsigned int sz)
+  void reduce_size(unsigned int sz)
   {
     if (sz < M.size())
       {
-        M.resize(sz);
+        M.resize(sz, def_value);
       }
   }
 

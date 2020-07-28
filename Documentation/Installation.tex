@@ -1,17 +1,17 @@
 \mainsection{Installation and Setup}
 
-\subsection{Installation}
+\subsection{Installation}\label{subsec:install}
 You will require the following previously loaded programs and
 libraries:
 \begin{itemize}
-\item GCC/G++: Tested with version 8.2.0
+\item GCC/G++: Tested with version 8.3.1
 \item MPIR library, compiled with C++ support (use flag --enable-cxx when running configure) : Tested with version 3.0.0
-\item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.5
+\item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.17
 \item CPU supporting AES-NI and PCLMUL
 \item OpenSSL: Tested with version 1.1.0.b
 \item Crypto++: Tested with version 7.0
-\item yasm
-\item m4
+\item yasm (for MPIR)
+\item m4 (for MPIR)
 \item CMake, only if you want to use it instead of make: Version 3.1 to 3.14 is required
 \item A Rust compiler of at least version 1.39.0 (4560ea788 2019-11-04)
 \end{itemize}
@@ -157,7 +157,7 @@ The only thing you now have to do is type
 That's it! After make finishes then you should see a `Player.x`
 executable inside the SCALE-MAMBA directory.
 
-\subsubsection{Compile with CMake (experimental)}
+\subsubsection{Compile with CMake (optional)}
 It is possible to build SCALE with CMake.
 We introduced CMake because there are many development tools that work with CMake-based projects,
 e.g., CLion, clangd and so on.
@@ -166,8 +166,8 @@ You may install the dependencies the same way as above.
 We explain how to use CMake with the example below.
 
 \begin{verbatim}
-    mkdir src/build
-    cd src/build
+    mkdir build
+    cd build
     # create the cmake project
     CC=gcc CXX=g++ cmake \
         -DOPENSSL_ROOT_DIR=$openssl_root \
@@ -181,11 +181,13 @@ The first step is to have CMake create a project using the \verb+cmake+ command.
 The compiler can be changed using \verb+CC+ and \verb+CXX+.
 Use the \verb+-D+ flag to configure the dependencies.
 For example, if the MPIR library is in \verb+$HOME/mpir/lib+ and its include files are in \verb+$HOME/mpir/include+,
-then \verb+-DMPIR_ROOT_DIR+ should be set to \verb+$HOME/mpir+, i.e., the parent directory of \verb+lib+ and \verb+include+.
+then \verb+-DMPIR_ROOT_DIR+ should be set to \verb+$HOME/mpir+.
 If the dependencies are installed in the default directories,
 e.g., \verb+/usr/{lib64,include}+ or \verb+/usr/local/{lib64,include}+,
 then the \verb+-D+ flags are not needed.
-Finally, run \verb+make+ to create the binaries.
+Finally, run \verb+make+ to create the binaries, or \verb+make target+ to build a specific target (e.g., \verb+make Player.x+).
+The resulting binaries (\verb+Player.x+ and \verb+Setup.x+) will be in the \verb+build+ directory,
+the test binaries are under \verb+build/Test+.
 The \verb+cmake+ command is not needed in subsequent compilations.
 For more information on CMake, we recommend this excellent wiki\footnote{\url{https://gitlab.kitware.com/cmake/community/wikis/home}}.
 
@@ -256,7 +258,7 @@ for player one, in a four player installation, will look like
 \end{verbatim}
 
 
-\subsection{Running Setup}
+\subsection{Running Setup}\label{subsec:setup}
 The program \verb+Setup.x+ is used to run a one-time setup
 for the networking and/or secret-sharing system being used
 and/or set up the GC to LSSS conversion circuit.
@@ -334,6 +336,10 @@ This is clearly an insecure way of parties picking their MAC keys. But this is o
 research system.
 At this stage we also generate a set of keys
 for distributed decryption of a level-one FHE scheme if needed.
+
+\textbf{NOTE:} Section \ref{sec:keygen} describes how to perform a secure distributed 
+FHE key generation to avoid relying on a trusted third party as the above does.
+
 \iffalse XXXX
 For the case of fake offline we assume these keys are on {\em each} computer,
 but using fake offline is only for test purposes in any case.

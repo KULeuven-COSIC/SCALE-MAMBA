@@ -142,12 +142,14 @@ void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD, const st
 Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
                vector<vector<int>> &csockets, const vector<gfp> &MacK, int verbose)
 {
+  unsigned int nbChannels= csockets[0].size();
   clocks.resize(10);
   G.ReSeed(thread);
-  sha256.resize(3);
-  SHA256_Init(&sha256[0]);
-  SHA256_Init(&sha256[1]);
-  SHA256_Init(&sha256[2]);
+  sha256.resize(nbChannels);
+  for (unsigned int i= 0; i < nbChannels; i++)
+    {
+      SHA256_Init(&sha256[i]);
+    }
 
   me= mynumber;
   ssl.resize(SD.n);
@@ -162,8 +164,8 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   // When communicating with player i, player me acts as server when i<me
   for (unsigned int i= 0; i < SD.n; i++)
     {
-      ssl[i].resize(3);
-      for (unsigned int j= 0; j < 3; j++)
+      ssl[i].resize(nbChannels);
+      for (unsigned int j= 0; j < nbChannels; j++)
         {
           if (i != me)
             {

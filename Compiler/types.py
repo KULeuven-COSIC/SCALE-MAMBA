@@ -1,3 +1,7 @@
+
+# Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
 """
 This is the collection of all possible types managed by the compiler
 that are available for MAMBA. This includes base types and abstract classes.
@@ -3301,6 +3305,25 @@ class sintMatrix(Matrix):
     def __init__(self, n, m, address=None):
         Matrix.__init__(self, n, m, sint, address)
 
+class regintArray(Array):
+    def __init__(self, n, address=None):
+        Array.__init__(self, n, regint, address)
+
+
+class regintMatrix(Matrix):
+    def __init__(self, n, m, address=None):
+        Matrix.__init__(self, n, m, regint, address)
+
+
+class sregintArray(Array):
+    def __init__(self, n, address=None):
+        Array.__init__(self, n, sregint, address)
+
+
+class sregintMatrix(Matrix):
+    def __init__(self, n, m, address=None):
+        Matrix.__init__(self, n, m, sregint, address)
+
 
 cint.MemValue = MemValue
 cint.Array = cintArray
@@ -3322,6 +3345,13 @@ sfix.Array = sfixArray
 sfix.Matrix = sfixMatrix
 sfix.MemValue = MemFix
 
+regint.MemValue = MemValue
+regint.Array = regintArray
+regint.Matrix = regintMatrix
+
+sregint.MemValue = MemValue
+sregint.Array = sregintArray
+sregint.Matrix = sregintMatrix
 
 def get_generic_array(value_type):
     class CustomMultiArray(MultiArray):

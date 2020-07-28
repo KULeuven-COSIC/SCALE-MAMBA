@@ -1,3 +1,7 @@
+
+# Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
 from Compiler.types import cint,sint,cfix,sfix,sfloat,cfloat,sbit,MPCThread,Array,MemValue,_number,_mem,_register,regint,Matrix,_types
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify
@@ -7,6 +11,7 @@ import random
 import collections
 import struct
 import array
+from floatingpoint import bits, PreOpL, or_op, SolvedBits, BitAdd
 
 def get_program():
     return instructions.program
@@ -402,9 +407,8 @@ def cond_swap(x,y):
             res[0].append(bx + yy - by)
             res[1].append(xx - bx + by)
         return sfloat(*res[0]), sfloat(*res[1])
-    bx = b * x
-    by = b * y
-    return bx + y - by, x - bx + by
+    c = b*(x-y)
+    return y+c, x-c
 
 def sort(a):
     res = a
@@ -1436,4 +1440,108 @@ def int2FL_plain(a, gamma, l, kappa):
 
     return v, p, z, s
 
+
+# LT bit comparison on shared bit values
+#  Assumes b has the larger size
+#   - From the paper
+#        Unconditionally Secure Constant-RoundsMulti-party Computation
+#        for Equality,Comparison, Bits and Exponentiation
+def BITLT(a, b, bit_length):
+  e = [sint(0)]*bit_length
+  g = [sint(0)]*bit_length
+  h = [sint(0)]*bit_length
+  for i in range(bit_length):
+    #e[i]]=a[i]+b[i]-2*a[i]*b[i] 
+    e[bit_length-i-1]=a[i]+b[i]-2*a[i]*b[i] # Compute the XOR (reverse order of e for PreOpL)
+  f = PreOpL(or_op, e)
+  g[bit_length-1] = f[0]
+  for i in range(bit_length-1):
+    #g[i] = f[i]-f[i+1]  
+    g[i] = f[bit_length-i-1]-f[bit_length-i-2]  # reverse order of f due to PreOpL
+  ans = sint(0)
+  for i in range(bit_length):
+    h[i] = g[i]*b[i]
+    ans = ans + h[i]
+  return ans
+
+
+# Exact BitDec with no need for a statistical gap
+#   - From the paper
+#        Unconditionally Secure Constant-RoundsMulti-party Computation
+#        for Equality,Comparison, Bits and Exponentiation
+def BitDecFullBig(a):
+    p=get_program().P
+    bit_length = p.bit_length()
+    abits = [sint(0)]*bit_length
+    bbits = [sint(0)]*bit_length
+    pbits = list(bits(p,bit_length+1))
+    # Loop until we get some random integers less than p
+    @do_while
+    def get_bits_loop():
+       # How can we do this with a vectorized load of the bits? XXXX
+       tbits = [sint(0)]*bit_length
+       for i in range(bit_length):
+         tbits[i] = sint.get_random_bit()
+         tbits[i].store_in_mem(i)
+       c = regint(BITLT(tbits, pbits, bit_length).reveal())
+       return (c!=1)
+    for i in range(bit_length):
+       bbits[i]=sint.load_mem(i)
+    b = SolvedBits(bbits, bit_length)
+    c = (a-b).reveal()
+    czero = (c==0)
+    d = BitAdd(list(bits(c,bit_length)), bbits)
+    q = BITLT( pbits, d, bit_length+1)
+    f = list(bits((1<<bit_length)-p,bit_length))
+    g = [sint(0)]*(bit_length+1)
+    for i in range(bit_length):
+        g[i]=f[i]*q;
+    h = BitAdd(d, g)
+    for i in range(bit_length):
+       abits[i] = (1-czero)*h[i]+czero*bbits[i]
+    return abits
+
+
+# Exact BitDec with no need for a statistical gap
+#   - From the paper
+#        Multiparty Computation for Interval, Equality, and Comparison without 
+#        Bit-Decomposition Protocol
+#   - For small p only as we convert to regint to make things easier
+def BitDecFull(a):
+    p=get_program().P
+    bit_length = p.bit_length()
+    if bit_length>63:
+        return BitDecFullBig(a)
+    abits = [sint(0)]*bit_length
+    bbits = [sint(0)]*bit_length
+    pbits = list(bits(p,bit_length))
+    # Loop until we get some random integers less than p
+    @do_while
+    def get_bits_loop():
+       # How can we do this with a vectorized load of the bits? XXXX
+       tbits = [sint(0)]*bit_length
+       for i in range(bit_length):
+         tbits[i] = sint.get_random_bit()
+         tbits[i].store_in_mem(i)
+       c = regint(BITLT(tbits, pbits, bit_length).reveal())
+       return (c!=1)
+    for i in range(bit_length):
+       bbits[i]=sint.load_mem(i)
+    b = SolvedBits(bbits, bit_length)
+    # Reveal c in the correct range
+    c = regint((a-b).reveal())
+    bit=c<0
+    c=c+p*bit
+    czero = (c==0)
+    t = (p-c).bit_decompose(bit_length)
+    q = 1-BITLT( bbits, t, bit_length)
+    fbar=((1<<bit_length)+c-p).bit_decompose(bit_length)
+    fbard=regint(c).bit_decompose(bit_length)
+    g = [sint(0)]*(bit_length)
+    for i in range(bit_length):
+       g[i]=(fbar[i]-fbard[i])*q+fbard[i];
+    h = BitAdd(bbits, g)
+    for i in range(bit_length):
+       abits[i] = (1-czero)*h[i]+czero*bbits[i]
+    return abits
 

@@ -1,0 +1,73 @@
+\mainsection{Distributed FHE Key Generation}\label{sec:keygen}
+In this chapter we describe how to securely generate
+the FHE keys.
+The detailed protocol is presented in \cite{SPDZKG}.
+The code for the protocol is located in the \verb+KeyGen+ folder.
+
+\subsection{Change config.h}
+If wanted you can edit the file \verb+src/config.h+ to
+tweak the parameters \verb+NewHopeB+ and \verb+HwtSK+.
+As explained in Section \ref{sec:fhe} the former defines
+how Gaussian are selected in the FHE system, while the
+latter defines the Hamming weight of the secret key.
+For a more detailed explanation on how this parameters
+affect the performance of the distributed key generation
+see \cite{SPDZKG}[Section 6.1-2].
+
+\subsection{Compilation}
+To compile the code you will first have to compile the main framework
+following the instructions in Section \ref{subsec:install}.
+Then do
+\begin{verbatim}
+   cd KeyGen
+   make
+\end{verbatim}
+
+\subsection{Running the Distributed Key Generation}
+To run the distributed key generation we still require
+to generate the \verb+Data/NetworkData.txt+ file as 
+explained in Section \ref{subsec:setup}.
+We then simply need to execute the following commands, 
+one on each of the computers that will be using the 
+MPC engine (assuming two players)
+\begin{verbatim}
+   ./PlayerKeyGen.x 0 prime_size
+   ./PlayerKeyGen.x 1 prime_size
+\end{verbatim}
+Note that \verb+prime_size+ refers to the size of the prime
+(in bits) that will be used to define the plaintext space
+of the FHE scheme.
+At the end of the execution, MAC keys and FHE secret keys are
+setup and written into the files
+\begin{center}
+\verb+Data/MKey-*.key+ and \verb+Data/FHE-Key-*.key+
+\end{center}
+alongside the access structure in \verb+Data/SharingData.txt+.
+Eventually, if \verb+prime_size+ is bigger than $64$, then
+you will need to generate the conversion circuit for the
+GC to LSSS conversion by running \verb+./Setup.x+
+(option 3).
+
+\subsubsection{Options}
+In addition to \verb+prime_size+, you can define
+the number of threads used to generate the 
+pre-processing data.
+It is important to note that we will need pre-processing
+data from two different finite field.
+Therefore, you can either specifiy one number, in which 
+case the program will start this number of threads for 
+both finite fields.
+\begin{verbatim}
+   ./PlayerKeyGen.x 0 prime_size nb_Threads
+   ./PlayerKeyGen.x 1 prime_size nb_Threads
+\end{verbatim}
+Or you can detail how many threads you want to use for
+each finite field.
+\begin{verbatim}
+   ./PlayerKeyGen.x 0 prime_size nb_Threads1 nb_Threads2
+   ./PlayerKeyGen.x 1 prime_size nb_Threads1 nb_Threads2
+\end{verbatim}
+Because the first finite field is bigger than the second one,
+having \verb+nb_Threads1+ $>$ \verb+nb_Threads2+ may result
+in a faster runtime.
+

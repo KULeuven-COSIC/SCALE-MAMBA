@@ -1,3 +1,7 @@
+
+# Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
 ##
 # @file
 # floating point operations
@@ -124,7 +128,7 @@ def FLGEZ(a):
 
 def bits(a,m):
     """ Get the bits of an int """
-    if isinstance(a, int):
+    if isinstance(a, (int, long)):
         res = [None]*m
         for i in range(m):
             res[i] = a & 1
@@ -325,6 +329,7 @@ def BitAdd(a, b, bits_to_compute=None):
     #print_state()
     return s
 
+# Statistically secure BitDec
 def BitDec(a, k, m, kappa, bits_to_compute=None):
     r_dprime = types.sint()
     r_prime = types.sint()

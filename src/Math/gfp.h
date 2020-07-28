@@ -9,7 +9,6 @@ All rights reserved
 
 #include <iostream>
 using namespace std;
-
 #include "Math/Zp_Data.h"
 #include "Math/modp.h"
 
@@ -23,7 +22,7 @@ using namespace std;
 class gfp
 {
   modp a;
-  static Zp_Data ZpD;
+  thread_local static Zp_Data ZpD;
 
 public:
   static void init_field(const bigint &p, bool mont= true)

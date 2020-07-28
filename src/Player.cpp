@@ -399,7 +399,7 @@ int main(int argc, const char *argv[])
   unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
 
   unsigned int number_FHE_threads= 0;
-  if (Share::SD.type == Full && SD.fake_offline == 0)
+  if (Share::SD.type == Full && (SD.fake_offline == 0 || SD.fake_sacrifice == 0))
     {
       number_FHE_threads= fhefacts;
     }

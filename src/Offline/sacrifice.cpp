@@ -15,6 +15,7 @@ All rights reserved
 using namespace std;
 
 #include "Tools/Crypto.h"
+#include "Tools/util_containers.h"
 #include "config.h"
 
 void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
@@ -45,25 +46,18 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
           Sh_Tau.resize(this_loop * rep);
         }
 
+      Split_Lists(a1, ao, a, this_loop);
+      Split_Lists(b1, bo, b, this_loop);
+      Split_Lists(c1, co, c, this_loop);
+
+      Split_Lists(a2, a, this_loop * rep);
+      Split_Lists(b2, b, this_loop * rep);
+      Split_Lists(c2, c, this_loop * rep);
+
       for (int i= 0; i < this_loop; i++)
         {
-          a1[i]= a.front();
-          a.pop_front();
-          ao.push_front(a1[i]);
-          b1[i]= b.front();
-          b.pop_front();
-          bo.push_front(b1[i]);
-          c1[i]= c.front();
-          c.pop_front();
-          co.push_front(c1[i]);
           for (int j= 0; j < rep; j++)
             {
-              a2[i * rep + j]= a.front();
-              a.pop_front();
-              b2[i * rep + j]= b.front();
-              b.pop_front();
-              c2[i * rep + j]= c.front();
-              c.pop_front();
               Sh_PO[2 * i * rep + j].mul(a1[i], t);
               Sh_PO[2 * i * rep + j].sub(Sh_PO[2 * i * rep + j], a2[i * rep + j]);
               Sh_PO[(2 * i + 1) * rep + j].sub(b1[i], b2[i * rep + j]);
@@ -103,9 +97,9 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
 
       left_todo-= this_loop;
     }
-  a= ao;
-  b= bo;
-  c= co;
+  a= move(ao);
+  b= move(bo);
+  c= move(co);
 }
 
 void sacrifice_phase_triples(Player &P, int fake_sacrifice, list<Share> &a,
@@ -151,20 +145,16 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
           Sh_Tau.resize(this_loop * rep);
         }
 
+      Split_Lists(a1, ao, a, this_loop);
+      Split_Lists(b1, bo, b, this_loop);
+
+      Split_Lists(a2, a, this_loop * rep);
+      Split_Lists(b2, b, this_loop * rep);
+
       for (int i= 0; i < this_loop; i++)
         {
-          a1[i]= a.front();
-          a.pop_front();
-          ao.push_front(a1[i]);
-          b1[i]= b.front();
-          b.pop_front();
-          bo.push_front(b1[i]);
           for (int j= 0; j < rep; j++)
             {
-              a2[i * rep + j]= a.front();
-              a.pop_front();
-              b2[i * rep + j]= b.front();
-              b.pop_front();
               Sh_PO[i * rep + j].mul(a1[i], t);
               Sh_PO[i * rep + j].sub(Sh_PO[i * rep + j], a2[i * rep + j]);
             }
@@ -203,8 +193,8 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
 
       left_todo-= this_loop;
     }
-  a= ao;
-  b= bo;
+  a= move(ao);
+  b= move(bo);
 }
 
 void sacrifice_phase_squares(Player &P, int fake_sacrifice, list<Share> &a,
@@ -249,17 +239,14 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
           Sh_Tau.resize(this_loop * rep);
         }
 
+      Split_Lists(bits1, bitso, bits, this_loop);
+      Split_Lists(a2, a, this_loop * rep);
+      Split_Lists(s2, s, this_loop * rep);
+
       for (int i= 0; i < this_loop; i++)
         {
-          bits1[i]= bits.front();
-          bits.pop_front();
-          bitso.push_front(bits1[i]);
           for (int j= 0; j < rep; j++)
             {
-              a2[i * rep + j]= a.front();
-              a.pop_front();
-              s2[i * rep + j]= s.front();
-              s.pop_front();
               Sh_PO[i * rep + j].mul(bits1[i], t);
               Sh_PO[i * rep + j].sub(Sh_PO[i * rep + j], a2[i * rep + j]);
             }
@@ -297,7 +284,7 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
 
       left_todo-= this_loop;
     }
-  bits= bitso;
+  bits= move(bitso);
 }
 
 void sacrifice_phase_bits(Player &P, int fake_sacrifice, list<Share> &bit,

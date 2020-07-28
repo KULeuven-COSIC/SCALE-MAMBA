@@ -33,6 +33,8 @@ impl<'a> Span<'a> {
             ..self
         }
     }
+    #[allow(clippy::reversed_empty_ranges)]
+    // This empty range is on purpose, so we have the correct pointer address.
     pub fn start(self) -> Self {
         Span {
             snippet: &self.snippet[0..0],

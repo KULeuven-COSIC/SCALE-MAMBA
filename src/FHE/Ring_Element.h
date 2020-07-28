@@ -122,7 +122,11 @@ public:
   void from_vec(const vector<bigint> &v);
   void from_vec(const vector<int> &v);
   vector<bigint> to_vec_bigint() const;
-  void to_vec_bigint(vector<bigint> &v) const;
+
+  // If changeRep is false, then the representation IS NOT altered
+  // before the output to a vector of bigint. (used in KeyGen only)
+  // Otherwise it ensures the representation is in polynomial representation
+  void to_vec_bigint(vector<bigint> &v, bool changeRep= true) const;
 
   ConversionIterator get_iterator() const;
 
@@ -144,6 +148,11 @@ public:
   void set_element(int i, const modp &a)
   {
     element[i]= a;
+  }
+
+  void set_element(int i, const bigint &a)
+  {
+    element[i].to_modp(a, FFTD->get_prD());
   }
 
   friend ostream &operator<<(ostream &s, const Ring_Element &e);

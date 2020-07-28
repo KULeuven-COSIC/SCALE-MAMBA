@@ -22,7 +22,6 @@ typedef mpz_class bigint;
 /**********************************
  *       Utility Functions        *
  **********************************/
-
 inline bigint div_f(const bigint n, const bigint d)
 {
   bigint q;

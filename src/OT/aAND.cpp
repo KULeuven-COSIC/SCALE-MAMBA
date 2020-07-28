@@ -95,16 +95,15 @@ void Mult_aBits(vector<aBit> &z, const vector<aBit> &x, const vector<aBit> &y,
 
   unsigned int sz= x.size();
   vector<aBit> a(sz), b(sz), ed(2 * sz);
-  aTriple aT;
-  for (unsigned int i= 0; i < sz; i++)
+  unsigned int i= 0;
+  for (list<aTriple>::const_iterator aT= T.begin(); aT != T.end(); ++aT)
     {
-      aT= T.front();
-      T.pop_front();
-      a[i]= aT.x;
-      b[i]= aT.y;
+      a[i]= aT->x;
+      b[i]= aT->y;
       ed[i].add(a[i], x[i]);
       ed[sz + i].add(b[i], y[i]);
-      z[i]= aT.z;
+      z[i]= aT->z;
+      i++;
     }
 
   vector<int> eedd(2 * sz);

@@ -30,13 +30,23 @@ void MaliciousDABitMachine::Initialize(uint nparties, offline_control_data &_OCD
 
   n_parties= nparties;
 
-  //We need to compute gamma and Delta
-  //Since p_{min} = 2, we have gamma = sec + 1
-  gamma= sec + 1;
+  if (numBits(gfp::pr()) >= 64)
+    {
+      //We need to compute gamma and Delta
+      //Since p_{min} = 2, we have gamma = sec + 1
+      gamma= sec + 1;
 
-  //Delta = ceil(p/nbParties)
-  bigint n_parties_bigint= n_parties;
-  Delta= div_c(gfp::pr(), n_parties_bigint);
+      //Delta = ceil(p/nbParties)
+      bigint n_parties_bigint= n_parties;
+      Delta= div_c(gfp::pr(), n_parties_bigint);
+    }
+  else
+    {
+      pre_cnc_params[make_pair(40, 8192)]= make_pair(2, 3);
+      pre_cnc_params[make_pair(64, 8192)]= make_pair(5, 4);
+      pre_cnc_params[make_pair(80, 8192)]= make_pair(5, 5);
+      find_cnc_params();
+    }
 }
 
 void MaliciousDABitMachine::find_cnc_params()

@@ -51,7 +51,6 @@ void init_FHE_Params(FHE_Params &params, bigint &pr, bigint &p0, bigint &p1,
 #else
   Generate_Parameters(N, p0, p1, pr, lg2p, n, HighGear, hwt);
 #endif
-
   Ring Rg(2 * N);
   gfp::init_field(pr);
 
@@ -419,7 +418,7 @@ void init_secret_sharing()
           cout << "Note if I cannot find FHE parameters suitable for this prime I will abort\n";
           cout << "This option is really for expert use only..." << endl;
           cin >> p;
-	  lg2p = numBits(p);
+          lg2p= numBits(p);
         }
       init_FHE(p, lg2p, n); // This internally calls gfp::init_field(p)
     }

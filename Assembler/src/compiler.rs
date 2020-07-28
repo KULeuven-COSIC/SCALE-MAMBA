@@ -112,12 +112,7 @@ impl Compiler {
             return span;
         }
         let dl = DisplayList::from(err.print(self));
-        writeln!(
-            self.destination.as_ref().unwrap().borrow_mut(),
-            "{}",
-            dl,
-        )
-        .unwrap();
+        writeln!(self.destination.as_ref().unwrap().borrow_mut(), "{}", dl,).unwrap();
         span.with_error()
     }
     pub fn checked_from<

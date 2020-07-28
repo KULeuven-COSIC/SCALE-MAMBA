@@ -1,0 +1,12 @@
+macro(add_test TESTNAME)
+    add_executable(${TESTNAME}.x ${TESTNAME}.cpp)
+    target_link_libraries(${TESTNAME}.x scale)
+endmacro()
+
+add_test("Test-Adv-FHE")
+add_test("Test-Circuit")
+add_test("Test-Convert")
+add_test("Test-FHE")
+add_test("Test-FP")
+add_test("Test-Simplify")
+add_test("Test")

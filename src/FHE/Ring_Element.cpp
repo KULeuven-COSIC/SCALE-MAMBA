@@ -452,14 +452,15 @@ vector<bigint> Ring_Element::to_vec_bigint() const
   return v;
 }
 
-void Ring_Element::to_vec_bigint(vector<bigint> &v) const
+void Ring_Element::to_vec_bigint(vector<bigint> &v, bool changeRep) const
 {
   v.resize(FFTD->phi_m());
-  if (rep == polynomial)
+  if ((rep == polynomial) || (!changeRep))
     {
+      Ring_Element a= *this;
       for (int i= 0; i < (*FFTD).phi_m(); i++)
         {
-          to_bigint(v[i], element[i], (*FFTD).get_prD());
+          to_bigint(v[i], a.element[i], (*FFTD).get_prD());
         }
     }
   else

@@ -70,9 +70,9 @@ void SmallPrimeDABitGenerator::adjust_and_pack(stringstream &ss,
 
   // Lock to retrieve gf(p) masks
   OCD.OCD_mutex[thread_num].lock();
-  take_first_to_vector(vec_random_masks_p, SacrificeD[thread_num].ID.ios[player], num_bits);
+  Split_Lists(vec_random_masks_p, SacrificeD[thread_num].ID.ios[player], num_bits);
   if (player == P.whoami())
-    take_first_to_vector(opened_masks_p, SacrificeD[thread_num].ID.opened_ios, num_bits);
+    Split_Lists(opened_masks_p, SacrificeD[thread_num].ID.opened_ios, num_bits);
   OCD.OCD_mutex[thread_num].unlock();
   timers["Retrieving input masks"].stop();
 
@@ -429,7 +429,7 @@ void LargePrimeDABitGenerator::input_GF2_bits(vector<aBit> &Sh2, const vector<bo
       list<aBit> random_masks_2= OTD.aBD.get_aShares(thread_num, num_dabits);
       timers["get aShares"].stop();
       // Now open masks in F_2 to current player
-      take_first_to_vector(allRandomMasks[pnum], random_masks_2, num_dabits);
+      Split_Lists(allRandomMasks[pnum], random_masks_2, num_dabits);
       Open_aBits_To(allOpenedMasks[pnum], pnum, allRandomMasks[pnum], P);
     }
 
@@ -561,7 +561,7 @@ void LargePrimeDABitGenerator::run(daBitVector &dabs)
   vector<Share> random_bits_modp;
   //Lock to retrieve GF(p) random bits
   OCD.bit_mutex[thread_num].lock();
-  take_first_to_vector(random_bits_modp, SacrificeD[thread_num].BD.bb, num_dabits);
+  Split_Lists(random_bits_modp, SacrificeD[thread_num].BD.bb, num_dabits);
   OCD.bit_mutex[thread_num].unlock();
 
   //Find out if I will take part in the tweaking step
@@ -686,10 +686,10 @@ void LargePrimeDABitGenerator::run(daBitVector &dabs)
 
           // Lock to retrieve gf(p) masks
           OCD.OCD_mutex[thread_num].lock();
-          take_first_to_vector(vec_random_masks_p[j], SacrificeD[thread_num].ID.ios[j], num_dabits);
+          Split_Lists(vec_random_masks_p[j], SacrificeD[thread_num].ID.ios[j], num_dabits);
           if (j == P.whoami())
             {
-              take_first_to_vector(opened_masks_p, SacrificeD[thread_num].ID.opened_ios, num_dabits);
+              Split_Lists(opened_masks_p, SacrificeD[thread_num].ID.opened_ios, num_dabits);
             }
           OCD.OCD_mutex[thread_num].unlock();
         }
@@ -774,7 +774,7 @@ void LargePrimeDABitGenerator::run(daBitVector &dabs)
           list<aBit> random_masks_2= OTD.aBD.get_aShares(thread_num, num_dabits);
           timers["get aShares"].stop();
           // Now open masks in F_2 to current player
-          take_first_to_vector(vec_random_masks_2[j], random_masks_2, num_dabits);
+          Split_Lists(vec_random_masks_2[j], random_masks_2, num_dabits);
           Open_aBits_To(opened_masks_2, j, vec_random_masks_2[j], P);
         }
     }

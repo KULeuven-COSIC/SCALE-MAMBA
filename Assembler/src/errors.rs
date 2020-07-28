@@ -3,8 +3,8 @@ use crate::compiler::Error;
 use crate::span::{Span, Spanned};
 use crate::Compiler;
 
-use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation};
 use annotate_snippets::display_list::FormatOptions;
+use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation};
 
 pub struct InvalidVectorSize<'a> {
     pub n: Spanned<'a, i32>,
@@ -28,7 +28,7 @@ impl<'a> Error<'a> for InvalidVectorSize<'a> {
             slices: self.slices(cx, "for vector length here", AnnotationType::Error),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -69,7 +69,7 @@ impl<'a, T: std::fmt::Display, E: std::fmt::Display> Error<'a> for ExpectedGot<'
             slices: self.slices(cx, "for operand here", AnnotationType::Error),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -94,7 +94,7 @@ impl<'a> Error<'a> for ExpectedOperand<'a> {
             slices: self.slices(cx, "in argument list here", AnnotationType::Error),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -120,7 +120,7 @@ impl<'a> Error<'a> for ArgNotFound<'a> {
             slices: self.slices(cx, "", AnnotationType::Error),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -163,7 +163,7 @@ impl<'a> Error<'a> for JumpOutOfBounds<'a> {
                 .collect(),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -192,7 +192,7 @@ impl<'a> Error<'a> for UnknownInstruction<'a> {
             slices: self.slices(cx, "", AnnotationType::Error),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -218,7 +218,7 @@ impl<'a> Error<'a> for InvalidRegisterId<'a> {
             slices: self.slices(cx, self.err.to_string(), AnnotationType::Error),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -243,7 +243,7 @@ impl<'a> Error<'a> for Io {
             slices: vec![],
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -273,7 +273,7 @@ impl<'a> Error<'a> for UnimplementedInstruction<'a> {
             ),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -304,7 +304,7 @@ impl<'a> Error<'a> for UninitializedRead<'a> {
             ),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -341,7 +341,7 @@ impl<'a> Error<'a> for DeadWrite<'a> {
             ),
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -370,7 +370,7 @@ impl<'a> Error<'a> for NotVectorizable {
             slices: vec![],
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }
@@ -399,7 +399,7 @@ impl<'a> Error<'a> for SkippedErrors {
             slices: vec![],
             opt: FormatOptions {
                 color: cx.colors,
-                .. Default::default()
+                ..Default::default()
             },
         }
     }

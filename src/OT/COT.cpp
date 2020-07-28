@@ -9,17 +9,19 @@ All rights reserved
 #include "LSSS/PRSS.h"
 #include "config.h"
 
-void Sender_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG)
+using namespace std::chrono;
+
+void Sender_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, unsigned int connectionNb)
 {
   pair= i;
-
+  connection= connectionNb;
   ROT_S.resize(OT_comp_sec);
   string input, output;
 
 #ifdef SimpleOT
   // Only generate one public key
   ROT_S[0].init(output, RNG);
-  P.send_to_player(i, output, 2);
+  P.send_to_player(i, output, connectionNb);
 #endif
 
   for (unsigned int j= 0; j < OT_comp_sec; j++)
@@ -30,30 +32,31 @@ void Sender_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG)
           ROT_S[j]= ROT_S[0];
           ROT_S[j].reset();
         }
-      P.receive_from_player(i, input, 2);
+      P.receive_from_player(i, input, connectionNb);
       ROT_S[j].message(input);
 #else
       ROT_S[j].init(RNG);
       while (!ROT_S[j].is_complete())
         {
-          P.receive_from_player(i, input, 2);
+          P.receive_from_player(i, input, connectionNb);
           ROT_S[j].message(output, input, RNG);
-          P.send_to_player(i, output, 2);
+          P.send_to_player(i, output, connectionNb);
         }
 #endif
     }
 }
 
-void Receiver_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int> choicebits)
+void Receiver_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int> choicebits, unsigned int connectionNb)
 {
   pair= i;
+  connection= connectionNb;
 
   ROT_R.resize(OT_comp_sec);
   string input, output;
 
 #ifdef SimpleOT
   // We only have one public key coming to us
-  P.receive_from_player(i, input, 2);
+  P.receive_from_player(i, input, connection);
 #endif
 
   for (unsigned int j= 0; j < OT_comp_sec; j++)
@@ -61,19 +64,19 @@ void Receiver_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int>
 #ifdef SimpleOT
       ROT_R[j].init(input, choicebits[j]);
       ROT_R[j].message(output, RNG);
-      P.send_to_player(i, output, 2);
+      P.send_to_player(i, output, connection);
 #else
       ROT_R[j].init(RNG, choicebits[j]);
       while (!ROT_R[j].is_complete())
         {
           if (ROT_R[j].get_state() != 0)
             {
-              P.receive_from_player(i, input, 2);
+              P.receive_from_player(i, input, connection);
             }
           ROT_R[j].message(output, input);
           if (!ROT_R[j].is_complete())
             {
-              P.send_to_player(i, output, 2);
+              P.send_to_player(i, output, connection);
             }
         }
 #endif
@@ -109,7 +112,7 @@ void Sender_COT::next_iteration(Player &P,
   // Now send xMatrix to the other player
   stringstream ss;
   xMatrix.output(ss);
-  P.send_to_player(pair, ss.str(), 2);
+  P.send_to_player(pair, ss.str(), connection);
 
   // Step 4
   gf2n t;
@@ -135,7 +138,7 @@ void Receiver_COT::next_iteration(Player &P,
   // Step 2 and 3
   string ss;
   BitMatrix xMatrix(sz_aB);
-  P.receive_from_player(pair, ss, 2);
+  P.receive_from_player(pair, ss, connection);
   istringstream iss(ss);
   xMatrix.input(iss);
 
@@ -194,7 +197,6 @@ void Sender_COT::next_checked_iteration(Player &P,
                                         BitVector &x)
 {
   next_iteration(P, sz_aB, aB, x);
-
   // Agree PRNG for checking
   vector<unsigned int> A(P.nplayers());
   for (unsigned int i= 0; i < P.nplayers(); i++)
@@ -205,7 +207,7 @@ void Sender_COT::next_checked_iteration(Player &P,
   A[pair]= 1;
 
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, A, seed, SEED_SIZE, 2);
+  AgreeRandom(P, A, seed, SEED_SIZE, connection);
   PRNG G2;
   G2.SetSeedFromRandom(seed);
 
@@ -228,14 +230,13 @@ void Sender_COT::next_checked_iteration(Player &P,
   stringstream ss;
   xc.output(ss);
   tc.output(ss);
-  P.send_to_player(pair, ss.str(), 2);
+  P.send_to_player(pair, ss.str(), connection);
 }
 
 void Receiver_COT::next_checked_iteration(Player &P,
                                           unsigned int sz_aB, vector<aBit> &aB)
 {
   next_iteration(P, sz_aB, aB);
-
   // Agree PRNG for checking
   vector<unsigned int> A(P.nplayers());
   for (unsigned int i= 0; i < P.nplayers(); i++)
@@ -246,7 +247,7 @@ void Receiver_COT::next_checked_iteration(Player &P,
   A[pair]= 1;
 
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, A, seed, SEED_SIZE, 2);
+  AgreeRandom(P, A, seed, SEED_SIZE, connection);
   PRNG G2;
   G2.SetSeedFromRandom(seed);
 
@@ -263,7 +264,7 @@ void Receiver_COT::next_checked_iteration(Player &P,
 
   // Get xc and tc from the Sender
   string ss;
-  P.receive_from_player(pair, ss, 2);
+  P.receive_from_player(pair, ss, connection);
   istringstream iss(ss);
   xc.input(iss);
   tc.input(iss);

@@ -209,8 +209,8 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   bool done= false;
   vector<Share> bpr(size);
   vector<aBit> b2r(size);
-  // Get a set of size daBits, until the value is less than p
   auto &daBitGen= get_generator();
+  // Get a set of size daBits, until the value is less than p
   while (!done)
     { // Get daBits
       daBitV.get_daBits(bpr, b2r, daBitGen);
@@ -228,7 +228,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
         }
     }
 
-  // Now create the integer r, which is gauranteed to be uniform mod p
+  // Now create the integer r, which is guaranteed to be uniform mod p
   Share r(P.whoami());
   r.assign_zero();
   for (int i= size - 1; i >= 0; i--)
@@ -258,7 +258,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   z.Bit_AND(z, bit, P, online_thread_num);
   bit.negate();
   y.Bit_AND(y, bit, P, online_thread_num);
-  z.add(z, y, P, online_thread_num);
+  z.Bitwise_XOR(z, y);
 
   // Now compare to p/2 to work out whether we need to negate
   y.sub(z, p / 2, P, online_thread_num);
@@ -269,7 +269,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   z.Bit_AND(z, bit, P, online_thread_num);
   bit.negate();
   y.Bit_AND(y, bit, P, online_thread_num);
-  x.add(z, y, P, online_thread_num);
+  x.Bitwise_XOR(z, y);
 
   // Write back into the processor
   write_srint(i1, x);
@@ -278,7 +278,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
 void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
 {
   unsigned int size0= numBits(gfp::pr());
-  unsigned int size1= 64 + conv_stat_sec;
+  unsigned int size1= sreg_bitl + conv_stat_sec;
   if (size1 > size0)
     {
       size1= size0;

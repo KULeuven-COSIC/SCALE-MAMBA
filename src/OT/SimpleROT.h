@@ -27,6 +27,7 @@ All rights reserved
 
 #include "BitMatrix.h"
 #include "CRS.h"
+#include "Math/gfp.h"
 #include "Tools/random.h"
 #include "cryptopp/randpool.h"
 #include <string>
@@ -59,6 +60,8 @@ public:
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int i, unsigned int row, BitMatrix &M);
+  void get_random_bits(unsigned int i, gfp &a);
+  void get_random_bits(unsigned int i, BitVector &v);
 };
 
 class SimpleOT_Receiver
@@ -86,6 +89,9 @@ public:
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int row, BitMatrix &M);
+
+  void get_random_bits(gfp &a);
+  void get_random_bits(BitVector &v);
 
   int get_bit() const
   {

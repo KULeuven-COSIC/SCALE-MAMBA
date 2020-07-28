@@ -129,3 +129,39 @@ void SimpleOT_Receiver::get_random_bits(unsigned int row, BitMatrix &M)
     }
   M.randomize(row, PRG);
 }
+
+void SimpleOT_Sender::get_random_bits(unsigned int i, gfp &a)
+{
+  if (!complete)
+    {
+      throw OT_error();
+    }
+  a.almost_randomize(PRG[i]);
+}
+
+void SimpleOT_Receiver::get_random_bits(gfp &a)
+{
+  if (!complete)
+    {
+      throw OT_error();
+    }
+  a.almost_randomize(PRG);
+}
+
+void SimpleOT_Sender::get_random_bits(unsigned int i, BitVector &v)
+{
+  if (!complete)
+    {
+      throw OT_error();
+    }
+  v.randomize(PRG[i]);
+}
+
+void SimpleOT_Receiver::get_random_bits(BitVector &v)
+{
+  if (!complete)
+    {
+      throw OT_error();
+    }
+  v.randomize(PRG);
+}

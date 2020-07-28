@@ -313,4 +313,5 @@ int main()
   test_zero_equal(G);
   cout << "Testing divide64" << endl;
   test_divide64(G);
+  return 0;
 }

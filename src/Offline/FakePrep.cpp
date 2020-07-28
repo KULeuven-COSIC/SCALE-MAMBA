@@ -17,6 +17,59 @@ All rights reserved
 #include "config.h"
 #include "offline_subroutines.h"
 
+#include <fstream>
+#include <mutex>
+using namespace std;
+
+vector<gfp> Mkeys;
+mutex mutex_global_mac_read;
+
+void init_fake()
+{
+  if (Share::SD.type == Full)
+    {
+      mutex_global_mac_read.lock();
+      // If no thread has read in the MKeys do it now
+      if (Mkeys.empty())
+        {
+          Mkeys.resize(Share::SD.nmacs);
+          for (unsigned int i= 0; i < Share::SD.nmacs; i++)
+            {
+              Mkeys[i].assign_zero();
+            }
+          gfp te;
+          for (unsigned int i= 0; i < Share::SD.M.nplayers(); i++)
+            {
+              stringstream ss;
+              ss << "Data/MKey-" << i << ".key";
+              ifstream inp(ss.str().c_str());
+              if (inp.fail())
+                {
+                  throw file_error(ss.str());
+                }
+              for (unsigned int j= 0; j < Share::SD.nmacs; j++)
+                {
+                  inp >> te;
+                  Mkeys[j].add(te);
+                }
+              inp.close();
+            }
+        }
+      mutex_global_mac_read.unlock();
+    }
+}
+
+void make_fake_macs(vector<gfp> &macs, const gfp &val)
+{
+  if (Share::SD.type == Full)
+    {
+      for (unsigned int i= 0; i < macs.size(); i++)
+        {
+          macs[i].mul(val, Mkeys[i]);
+        }
+    }
+}
+
 FakePrep::FakePrep(Player &P) : P(P)
 {
   triples.resize(3);
@@ -102,6 +155,7 @@ void FakePrep::produce_triples(list<Share> &a, list<Share> &b, list<Share> &c)
   triples[2]= c;
   rewind_triples= true;
 }
+
 void FakePrep::produce_squares(list<Share> &a, list<Share> &b, unsigned int rep)
 {
   if (rewind_squares)
@@ -238,4 +292,66 @@ void FakePrep::produce_bits(list<Share> &b)
     }
   bits= b;
   rewind_bits= true;
+}
+
+void make_IO_data_fake(Player &P, unsigned int player_num, list<Share> &a,
+                       list<gfp> &opened)
+{
+  gfp aa;
+  if (P.whoami() == 0)
+    {
+      PRNG PRG;
+      unsigned char Seed[SEED_SIZE];
+      for (int i= 0; i < SEED_SIZE; i++)
+        {
+          Seed[i]= 0;
+        }
+      PRG.SetSeedFromRandom(Seed);
+
+      init_fake();
+      int n= P.nplayers();
+      vector<gfp> amacs(Share::SD.nmacs);
+      vector<Share> sa(n);
+      for (int i= 0; i < sz_IO_batch; i++)
+        {
+          aa.randomize(PRG);
+          make_fake_macs(amacs, aa);
+          make_shares(sa, aa, amacs, PRG);
+
+          /* Now send the data to all parties and fix own shares */
+          a.push_back(sa[0]);
+          if (player_num == 0)
+            {
+              opened.push_back(aa);
+            }
+
+          for (unsigned int j= 1; j < P.nplayers(); j++)
+            {
+              stringstream ss;
+              sa[j].output(ss, false);
+              if (j == player_num)
+                {
+                  aa.output(ss, false);
+                }
+              P.send_to_player(j, ss.str());
+            }
+        }
+    }
+  else
+    {
+      for (int i= 0; i < sz_IO_batch; i++)
+        {
+          string ss;
+          P.receive_from_player(0, ss);
+          istringstream is(ss);
+          Share s(P.whoami());
+          s.input(is, false);
+          a.push_back(s);
+          if (P.whoami() == player_num)
+            {
+              aa.input(is, false);
+              opened.push_back(aa);
+            }
+        }
+    }
 }

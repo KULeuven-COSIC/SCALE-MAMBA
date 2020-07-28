@@ -63,6 +63,8 @@ class Processor
 
   // Program counter
   unsigned int PC;
+  // Current program size being executed by this processor
+  unsigned int current_program_size;
 
   // These are here for DEBUG mode
   int reg_maxp, reg_maxi, reg_maxb;
@@ -319,6 +321,10 @@ public:
   unsigned int get_PC() const
   {
     return PC;
+  }
+  unsigned int program_size() const
+  {
+    return current_program_size;
   }
 
 /* Read and write the registers */

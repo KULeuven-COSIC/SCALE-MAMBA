@@ -174,9 +174,9 @@ public:
   {
     return (bytes[i / 8] >> (i % 8)) & 1;
   }
-  void set_bit(int i, unsigned int a)
+  void set_bit(unsigned long int i, unsigned int a)
   {
-    int j= i / 8, k= i & 7;
+    unsigned long int j= i / 8, k= i & 7;
     if (a == 1)
       {
         bytes[j]|= (uint8_t)(1UL << k);

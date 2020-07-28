@@ -584,4 +584,5 @@ int main()
   PTD.init(Rg, gfp::get_ZpD());
 
   Test_FHE(Rg, PTD, p0, p1, hwt);
+  return 0;
 }

@@ -353,4 +353,5 @@ int main()
     }
   cout << "\n\n\nTesting LSSS_to_GC" << endl;
   test_LSSS_to_GC(p, G);
+  return 0;
 }

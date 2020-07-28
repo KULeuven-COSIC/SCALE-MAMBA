@@ -1,3 +1,7 @@
+
+# Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
 """ This module is for classes of actual assembly instructions.
         Details:
         -Each Class name is the same as its opcode, except when indicated otherwise.
@@ -667,7 +671,7 @@ class bitsint(base.Instruction):
 @base.vectorize
 class sintbit(base.Instruction):
     r""" SINTBIT i j k n
-         Assigns sri to srj, and then sets the n-th bit to be sb_k
+         Assigns srj to sri, and then sets the n-th bit to be sb_k
          This instruction is vectorizable
      """
     __slots__ = ["code"]

@@ -1,4 +1,7 @@
-# (C) 2016 University of Bristol. See License.txt
+
+# Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
+# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+
 
 import itertools, time
 from collections import defaultdict, deque
@@ -89,6 +92,7 @@ class StraightlineAllocator:
 
             if k % 1000000 == 0 and k > 0:
                 print "Allocated registers for %d instructions at" % k, time.asctime()
+                sys.stdout.flush()
 
         # print "Successfully allocated registers"
         # print "modp usage: %d clear, %d secret" % \
@@ -231,6 +235,7 @@ class Merger:
         def do_merge(nodes):
             if len(nodes) > 1000:
                 print 'Merging %d inputs...' % len(nodes)
+                sys.stdout.flush()
             self.do_merge(iter(nodes))
         for n in self.input_nodes:
             inst = self.instructions[n]
@@ -264,6 +269,7 @@ class Merger:
                 starters.append(n)
             if n % 10000000 == 0 and n > 0:
                 print "Processed %d nodes at" % n, time.asctime()
+                sys.stdout.flush()
 
         inputs = defaultdict(list)
         for node in self.input_nodes:
@@ -288,6 +294,7 @@ class Merger:
         max_depth = max(merges)
         if max_depth > 10000:
             print "Computing pre-ordering ..."
+            sys.stdout.flush()
         for i in xrange(max_depth, 0, -1):
             preorder.append(G.get_attr(merges[i], 'stop'))
             for j in flex_nodes[i-1].itervalues():
@@ -296,11 +303,13 @@ class Merger:
             preorder.append(merges[i])
             if i % 100000 == 0 and i > 0:
                 print "Done level %d at" % i, time.asctime()
+                sys.stdout.flush()
         preorder.extend(other_inputs)
         preorder.extend(starters)
         preorder.extend(first_inputs)
         if max_depth > 10000:
             print "Done at", time.asctime()
+            sys.stdout.flush()
         return preorder
 
     def compute_continuous_preorder(self, merges, rev_depth_of):
@@ -401,10 +410,12 @@ class Merger:
 
         if len(instructions) > 100000:
             print "Topological sort ..."
+            sys.stdout.flush()
         order = Compiler.graph.topological_sort(G, preorder)
         instructions[:] = [instructions[i] for i in order if instructions[i] is not None]
         if len(instructions) > 100000:
             print "Done at", time.asctime()
+            sys.stdout.flush()
 
         return len(merges)
 
@@ -478,18 +489,24 @@ class Merger:
                     addr_i = addr + i
                     handle_mem_access(addr_i, reg_type, last_access_this_kind,
                                       last_access_other_kind)
-                if not warned_about_mem and (instr.get_size() > 100):
+                if not warned_about_mem and (instr.get_size() > 100) and options.merge_opens:
                     print 'WARNING: Order of memory instructions ' \
                         'not preserved due to long vector, errors possible'
                     warned_about_mem.append(True)
+                    # Exit now as this could be catestrophic in terms of correctness
+                    # Could run with -M, but then -D could take ages
+                    sys.exit(1)
             else:
                 handle_mem_access(addr, reg_type, last_access_this_kind,
                                   last_access_other_kind)
-            if not warned_about_mem and not isinstance(instr, DirectMemoryInstruction):
+            if not warned_about_mem and not isinstance(instr, DirectMemoryInstruction) and options.merge_opens:
                 print 'WARNING: Order of memory instructions ' \
                     'not preserved, errors possible'
                 # hack
                 warned_about_mem.append(True)
+                # Exit now as this could be catestrophic in terms of correctness. 
+                # Could run with -M, but then -D could take ages
+                sys.exit(1)
 
         def keep_order(instr, n, t, arg_index=None):
             if arg_index is None:
@@ -575,12 +592,14 @@ class Merger:
             if not G.pred[n]:
                 self.sources.append(n)
 
-            if n % 100000 == 0 and n > 0:
+            if n % 100000 == 0 and n > 0:  
                 print "Processed dependency of %d/%d instructions at" % \
                     (n, len(block.instructions)), time.asctime()
+                sys.stdout.flush()
 
         if len(open_nodes) > 1000:
             print "Program has %d %s instructions" % (len(open_nodes), merge_class)
+            sys.stdout.flush()
 
     def merge_nodes(self, i, j):
         """ Merge node j into i, removing node j """
@@ -616,6 +635,7 @@ class Merger:
                     open_count += len(inst.args)
         if count > 0:
             print 'Eliminated %d dead instructions, among which %d opens' % (count, open_count)
+            sys.stdout.flush()
 
     def print_graph(self, filename):
         f = open(filename, 'w')

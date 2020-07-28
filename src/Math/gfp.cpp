@@ -9,7 +9,7 @@ All rights reserved
 
 #include "Exceptions/Exceptions.h"
 
-Zp_Data gfp::ZpD;
+thread_local Zp_Data gfp::ZpD;
 
 void gfp::almost_randomize(PRNG &G)
 {

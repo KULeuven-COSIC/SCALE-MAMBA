@@ -49,11 +49,17 @@ void Machine::Dump_Memory(unsigned int whoami)
   // Reduce memory size to speed up
   int max_size= 1 << 20;
   if (Mc.size() > max_size)
-    Mc.reduce_size(max_size);
+    {
+      Mc.reduce_size(max_size);
+    }
   if (Ms.size() > max_size)
-    Ms.reduce_size(max_size);
+    {
+      Ms.reduce_size(max_size);
+    }
   if (Mr.size() > max_size)
-    Mr.reduce_size(max_size);
+    {
+      Mr.reduce_size(max_size);
+    }
 
   // Write out the memory to use next time
   char filename[2048];

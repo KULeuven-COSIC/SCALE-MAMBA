@@ -2,8 +2,8 @@
 #![allow(clippy::trivial_regex)]
 #![deny(rust_2018_idioms)]
 
-use std::path::PathBuf;
 use std::io::Write;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]

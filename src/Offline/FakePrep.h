@@ -34,4 +34,6 @@ public:
   void produce_bits(list<Share> &b);
 };
 
+void make_IO_data_fake(Player &P, unsigned int player_num, list<Share> &a, list<gfp> &opened);
+
 #endif

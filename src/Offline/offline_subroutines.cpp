@@ -6,9 +6,6 @@ All rights reserved
 */
 
 #include "offline_subroutines.h"
-#include <fstream>
-#include <mutex>
-using namespace std;
 
 /* Make a share vector which shares a value val
  *   Given (global) mac values
@@ -75,56 +72,4 @@ gfp schur_sum_prod(const Share &aa, const Share &bb, const Player &P)
     }
 
   return prod;
-}
-
-vector<gfp> Mkeys;
-mutex mutex_global_mac_read;
-
-void init_fake()
-{
-  if (Share::SD.type == Full && Mkeys.empty())
-    {
-      mutex_global_mac_read.lock();
-      if (!Mkeys.empty())
-        {
-          // other thread already initialized the mac key
-          mutex_global_mac_read.unlock();
-          return;
-        }
-
-      Mkeys.resize(Share::SD.nmacs);
-      for (unsigned int i= 0; i < Share::SD.nmacs; i++)
-        {
-          Mkeys[i].assign_zero();
-        }
-      gfp te;
-      for (unsigned int i= 0; i < Share::SD.M.nplayers(); i++)
-        {
-          stringstream ss;
-          ss << "Data/MKey-" << i << ".key";
-          ifstream inp(ss.str().c_str());
-          if (inp.fail())
-            {
-              throw file_error(ss.str());
-            }
-          for (unsigned int j= 0; j < Share::SD.nmacs; j++)
-            {
-              inp >> te;
-              Mkeys[j].add(te);
-            }
-          inp.close();
-        }
-      mutex_global_mac_read.unlock();
-    }
-}
-
-void make_fake_macs(vector<gfp> &macs, const gfp &val)
-{
-  if (Share::SD.type == Full)
-    {
-      for (unsigned int i= 0; i < macs.size(); i++)
-        {
-          macs[i].mul(val, Mkeys[i]);
-        }
-    }
 }

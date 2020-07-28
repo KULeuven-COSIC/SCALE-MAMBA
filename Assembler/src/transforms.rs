@@ -90,5 +90,5 @@ pub fn vectorize(
     v: NonZeroU32,
     reg: Register,
 ) -> impl Iterator<Item = Register> + Clone + ExactSizeIterator {
-    (0..v.get()).map(move |i| reg.map(|j| u32::from(i) + j))
+    (0..v.get()).map(move |i| reg.map(|j| i + j))
 }
