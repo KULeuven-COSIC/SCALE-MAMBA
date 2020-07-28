@@ -32,9 +32,9 @@ do
   fi
 done
 
-rm $target/*.asm
-rm $target/*.bc
-rm $target/*.sch
+rm -f $target/*.asm
+rm -f $target/*.bc
+rm -f $target/*.sch
 # Do not add in -D flag automatically as this is too aggressive a remover of instructions
 printf "Running \n\t ./compile-mamba.py -A -n -r -u -s %s %s\n\n" $MAMBA_ARGS $target
 ./compile-mamba.py -A -n -r -u -s $MAMBA_ARGS $target || exit 1
