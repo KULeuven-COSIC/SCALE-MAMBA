@@ -4,7 +4,7 @@ if (${CMAKE_VERSION} VERSION_LESS 3.12)
     cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 endif ()
 
-project(SCALE_MAMBA VERSION 1.8 DESCRIPTION "SCALE MAMBA" LANGUAGES CXX)
+project(SCALE_MAMBA VERSION 1.9 DESCRIPTION "SCALE MAMBA" LANGUAGES CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 set(CMAKE_CXX_STANDARD 11)
@@ -27,7 +27,7 @@ find_package(CryptoPP REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/src ${MPIRXX_INCLUDE_DIRS})
+include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/src $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/KeyGen ${MPIRXX_INCLUDE_DIRS})
 
 add_library(exceptions OBJECT
         src/Exceptions/handler.cpp
@@ -111,8 +111,10 @@ add_library(ot OBJECT
         src/OT/aBit_Thread.cpp
         src/OT/aBitFactory.cpp
         src/OT/aBitVector.cpp
+        src/OT/exROT.cpp
         src/OT/BitMatrix.cpp
         src/OT/BitVector.cpp
+        src/OT/COPE.cpp
         src/OT/COT.cpp
         src/OT/CRS.cpp
         src/OT/DMC.cpp
@@ -156,11 +158,17 @@ add_library(local OBJECT
         src/Local/Local_Functions.cpp
         )
 
+add_library(keygen OBJECT
+        KeyGen/MASCOTTriples.cpp
+        KeyGen/KeyGenM.cpp
+        )
+
 add_library(scale
         $<TARGET_OBJECTS:exceptions>
         $<TARGET_OBJECTS:fhe>
         $<TARGET_OBJECTS:gc>
         $<TARGET_OBJECTS:io>
+        $<TARGET_OBJECTS:keygen>
         $<TARGET_OBJECTS:local>
         $<TARGET_OBJECTS:lsss>
         $<TARGET_OBJECTS:mpcmath>
@@ -181,5 +189,8 @@ target_link_libraries(Player.x PRIVATE scale)
 
 add_executable(Setup.x src/Setup.cpp)
 target_link_libraries(Setup.x PRIVATE OpenSSL::Crypto OpenSSL::SSL scale)
+
+add_executable(PlayerKeyGen.x KeyGen/PlayerKeyGen.cpp)
+target_link_libraries(PlayerKeyGen.x PRIVATE scale)
 
 add_subdirectory(Test)
