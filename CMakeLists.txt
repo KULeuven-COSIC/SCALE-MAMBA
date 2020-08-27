@@ -27,7 +27,7 @@ find_package(CryptoPP REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/src $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/KeyGen ${MPIRXX_INCLUDE_DIRS})
+include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/src ${MPIRXX_INCLUDE_DIRS})
 
 add_library(exceptions OBJECT
         src/Exceptions/handler.cpp
@@ -158,17 +158,11 @@ add_library(local OBJECT
         src/Local/Local_Functions.cpp
         )
 
-add_library(keygen OBJECT
-        KeyGen/MASCOTTriples.cpp
-        KeyGen/KeyGenM.cpp
-        )
-
 add_library(scale
         $<TARGET_OBJECTS:exceptions>
         $<TARGET_OBJECTS:fhe>
         $<TARGET_OBJECTS:gc>
         $<TARGET_OBJECTS:io>
-        $<TARGET_OBJECTS:keygen>
         $<TARGET_OBJECTS:local>
         $<TARGET_OBJECTS:lsss>
         $<TARGET_OBJECTS:mpcmath>
@@ -190,7 +184,5 @@ target_link_libraries(Player.x PRIVATE scale)
 add_executable(Setup.x src/Setup.cpp)
 target_link_libraries(Setup.x PRIVATE OpenSSL::Crypto OpenSSL::SSL scale)
 
-add_executable(PlayerKeyGen.x KeyGen/PlayerKeyGen.cpp)
-target_link_libraries(PlayerKeyGen.x PRIVATE scale)
-
+add_subdirectory(KeyGen)
 add_subdirectory(Test)
