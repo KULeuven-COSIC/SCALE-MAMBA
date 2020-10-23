@@ -2,8 +2,9 @@ include ../CONFIG.mine
 
 CC = g++
 
-CFLAGS = -Wall -std=c++11 -pedantic -Wextra -pthread -I$(ROOT)/src -maes -mpclmul -msse4.1 -mavx -march=core2 $(FLAGS) $(OPT) -I$(OSSL)/include
-CPPFLAGS = $(CFLAGS) 
+ARCH = -mtune=native -maes -mpclmul -msse4.1 -mavx -mbmi2 -madx -march=core2 
+CFLAGS = -Wall -std=c++11 -pedantic -Wextra -pthread -I$(ROOT)/src $(ARCH) $(FLAGS) $(OPT) -I$(OSSL)/include
+CPPFLAGS = $(CFLAGS)
 LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir -lcryptopp $(LDFLAGS)
 
 all: $(LIB) Setup.x Player.x
@@ -25,7 +26,7 @@ EXCEPTIONS = $(patsubst %.cpp,%.o,$(wildcard Exceptions/*.cpp))
 LIB = libMPC.a
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -o $@ -c $< 
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJ): $(SRC)
 	$(CC) $(CFLAGS) -c $*.cpp

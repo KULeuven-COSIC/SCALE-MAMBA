@@ -29,9 +29,10 @@ class aAND
   vector<aTriple> triples;
 
 public:
-  aAND()
+  aAND(Player &P)
   {
     LA.resize(1);
+    LA[0].Init(P, 2);
     triples.resize(0);
   }
 

@@ -26,29 +26,29 @@ struct Lifetime {
 }
 
 #[derive(Default)]
-struct BlockInfo<'a> {
+struct BlockInfo {
     lifetimes: RegisterStruct<BTreeMap<u32, Lifetime>>,
     /// Registers seen anywhere and whether their vector length
     seen: RegisterStruct<BTreeMap<u32, NonZeroU32>>,
     // Registers read before written (may have been written in a prev block)
-    uninit: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>>,
+    uninit: RegisterStruct<BTreeMap<u32, Vec<Span>>>,
     // Registers written but never read (may get read in a different block)
-    dead_write: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>>,
+    dead_write: RegisterStruct<BTreeMap<u32, Vec<Span>>>,
 }
 
 #[derive(Default)]
-struct BodyInfo<'a> {
-    blocks: Vec<BlockInfo<'a>>,
+struct BodyInfo {
+    blocks: Vec<BlockInfo>,
 }
 
-impl<'a> BodyInfo<'a> {
-    fn new(cx: &'a Compiler, body: &Body<'a>) -> Self {
+impl BodyInfo {
+    fn new(cx: &Compiler, body: &Body<'_>) -> Self {
         let mut info = Self::default();
         info.init(cx, body);
         info
     }
 
-    fn init(&mut self, cx: &'a Compiler, body: &Body<'a>) {
+    fn init(&mut self, cx: &Compiler, body: &Body<'_>) {
         let span = debug_span!("init");
         let _enter = span.enter();
         for (id, block) in body.blocks.iter().enumerate() {
@@ -56,13 +56,14 @@ impl<'a> BodyInfo<'a> {
             let _enter = span.enter();
             let mut lifetimes: RegisterStruct<BTreeMap<u32, Lifetime>> = Default::default();
             let mut seen: RegisterStruct<BTreeMap<u32, NonZeroU32>> = Default::default();
-            let mut uninit: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>> = Default::default();
-            let mut dead_write: RegisterStruct<BTreeMap<u32, Vec<Span<'a>>>> = Default::default();
+            let mut uninit: RegisterStruct<BTreeMap<u32, Vec<Span>>> = Default::default();
+            let mut dead_write: RegisterStruct<BTreeMap<u32, Vec<Span>>> = Default::default();
             // We can't insert into `seen` directly as that would mean later uses overwrite the vectorization
             let mut mark_seen =
                 |reg, v| seen.get_or_insert(reg, || Some(v), |old| *old = std::cmp::max(v, *old));
             for (stmt_id, stmt) in block.stmts.iter().enumerate() {
                 let relexed = stmt.relex(cx);
+                let relexed = relexed.display(cx);
                 let span = debug_span!("stmt", %relexed);
                 let _enter = span.enter();
                 // reads happen before writes, because any instruction will first read values
@@ -126,7 +127,7 @@ impl<'a> BodyInfo<'a> {
                 Terminator::Jump(jmp) => match &jmp.mode {
                     JumpMode::Conditional(cnd) => {
                         // FIXME: deduplicate with read logic above
-                        let reg = cnd.register.elem;
+                        let reg = cnd.register.elem.into();
                         mark_seen(reg, NonZeroU32::new(1).unwrap());
                         trace!(%reg);
                         // reading from a register makes it not dead code
@@ -561,12 +562,18 @@ impl super::Pass for Pass {
                     })
             };
             for stmt in &mut block.stmts {
-                trace!("replace reg in {}", stmt.relex(cx));
+                trace!("replace reg in {}", stmt.relex(cx).display(cx));
                 stmt.replace_registers(cx, map);
             }
             match &mut block.terminator.elem {
                 Terminator::Jump(jmp) => match &mut jmp.mode {
-                    JumpMode::Conditional(jc) => jc.register.elem = map(jc.register.elem),
+                    JumpMode::Conditional(jc) => {
+                        jc.register = jc
+                            .register
+                            .span
+                            .with(map(jc.register.elem.into()))
+                            .require(cx)
+                    }
                     JumpMode::Goto | JumpMode::Call => {}
                 },
                 Terminator::Restart { .. }

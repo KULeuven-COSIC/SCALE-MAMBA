@@ -5,10 +5,7 @@ Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 L
 All rights reserved
 */
 
-/* Tests the circuit evaluation on AES and SHA-3 
- *   Note the old Bristol AES-non-expanded.txt has the wires
- *   in a funny order
- */
+/* Tests the circuit evaluation on floating pint circuits */
 
 #include "GC/Circuit.h"
 #include "Tools/random.h"

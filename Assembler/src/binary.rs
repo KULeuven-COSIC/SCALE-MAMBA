@@ -10,7 +10,7 @@ use instructions::ArgTy;
 use std::collections::HashMap;
 use std::io::Read;
 
-pub mod instructions;
+pub use documentation as instructions;
 
 pub fn generate_bytecode<'a>(
     cx: &'a Compiler,
@@ -113,7 +113,7 @@ pub fn parse<'a>(cx: &'a Compiler, input: &'a [u8]) -> Vec<Lexical<'a>> {
                 cx: &'a Compiler,
                 ty: &'static ArgTy,
                 read: &mut impl FnMut(bool) -> Result<u32, ()>,
-                args: &mut Vec<Spanned<'a, Operand>>,
+                args: &mut Vec<Spanned<Operand>>,
                 arg_pos: impl (Fn(&str) -> (usize, &'static ArgTy)) + Copy,
             ) -> Result<(), ()> {
                 match ty {
@@ -122,13 +122,12 @@ pub fn parse<'a>(cx: &'a Compiler, input: &'a [u8]) -> Vec<Lexical<'a>> {
                         let i = read(false)?;
                         args.push(Span::DUMMY.with(Operand::from(i as i32)))
                     }
-                    ArgTy::String => unimplemented!(),
                     ArgTy::List {
                         element_type,
                         len_arg,
                     } => {
                         let (pos, ty) = arg_pos(len_arg);
-                        let n: Spanned<'_, i32> = args[pos].require(cx);
+                        let n: Spanned<i32> = args[pos].require(cx);
                         let n = match ty {
                             ArgTy::Int {
                                 signed: false,

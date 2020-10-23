@@ -1,9 +1,13 @@
+import floatingpoint
 
 # Use IEEE equivalent sizes
 sfloat.plen=11
 sfloat.vlen=53
 sfloat.kappa=40
 # Means we need 148 bit prime at least
+
+# Number of loops for timing
+n=50
 
 FP_add=120
 FP_mul=121
@@ -47,99 +51,46 @@ s4=sregint.pop()
 s5=sregint.pop()
 
 print_ln("GC + ")
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
+@for_range(n+1)
+def loop_body(i):
+  sregint.push(s0)
 start_timer(1)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
-GC(FP_add)
+@for_range(n)
+def loop_body(i):
+  GC(FP_add)
 stop_timer(1)
-
+s4=sregint.pop()
 
 
 print_ln("GC * ")
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
+@for_range(n+1)
+def loop_body(i):
+  sregint.push(s0)
 start_timer(1)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
-GC(FP_mul)
+@for_range(n)
+def loop_body(i):
+  GC(FP_mul)
 stop_timer(1)
-
+s4=sregint.pop()
 
 
 print_ln("GC / ")
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
-sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
+@for_range(n+1)
+def loop_body(i):
+  sregint.push(s0)
 start_timer(1)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
-GC(FP_div)
+@for_range(n)
+def loop_body(i):
+  GC(FP_div)
 stop_timer(1)
-
+s4=sregint.pop()
 
 print_ln("GC sqrt ")
 sregint.push(s0)
 start_timer(1)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
-GC(FP_sqrt)
+@for_range(n)
+def loop_body(i):
+  GC(FP_sqrt)
 stop_timer(1)
 s4=sregint.pop()
 
@@ -152,78 +103,26 @@ print_ln("")
 print_ln("")
 print_ln("sfloat +")
 start_timer(1)
-z=x+y
-w=x+y
-a=x+y
-b=x+y
-c=x+y
-z1=x+y
-w1=x+y
-a1=x+y
-b1=x+y
-c1=x+y
+@for_range(n)
+def loop_body(i):
+  z=x+y
 stop_timer(1)
-z.reveal().print_float()
-w.reveal().print_float()
-a.reveal().print_float()
-b.reveal().print_float()
-c.reveal().print_float()
-z1.reveal().print_float()
-w1.reveal().print_float()
-a1.reveal().print_float()
-b1.reveal().print_float()
-c1.reveal().print_float()
 
 print_ln("")
 print_ln("sfloat *")
 start_timer(1)
-z=x*y
-w=x*y
-a=x*y
-b=x*y
-c=x*y
-z1=x*y
-w1=x*y
-a1=x*y
-b1=x*y
-c1=x*y
+@for_range(n)
+def loop_body(i):
+  z=x*y
 stop_timer(1)
-z.reveal().print_float()
-w.reveal().print_float()
-a.reveal().print_float()
-b.reveal().print_float()
-c.reveal().print_float()
-z1.reveal().print_float()
-w1.reveal().print_float()
-a1.reveal().print_float()
-b1.reveal().print_float()
-c1.reveal().print_float()
-
 
 print_ln("")
 print_ln("sfloat /")
 start_timer(1)
-z=x/y
-w=x/y
-a=x/y
-b=x/y
-c=x/y
-z1=x/y
-w1=x/y
-a1=x/y
-b1=x/y
-c1=x/y
+@for_range(n)
+def loop_body(i):
+  z=x/y
 stop_timer(1)
-z.reveal().print_float()
-w.reveal().print_float()
-a.reveal().print_float()
-b.reveal().print_float()
-c.reveal().print_float()
-z1.reveal().print_float()
-w1.reveal().print_float()
-a1.reveal().print_float()
-b1.reveal().print_float()
-c1.reveal().print_float()
 
 
 x=sfix(-.3133131)
@@ -233,101 +132,56 @@ print_ln("")
 print_ln("")
 print_ln("sfix +")
 start_timer(1)
-z=x+y
-w=x+y
-a=x+y
-b=x+y
-c=x+y
-z1=x+y
-w1=x+y
-a1=x+y
-b1=x+y
-c1=x+y
+@for_range(n)
+def loop_body(i):
+  z=x+y
 stop_timer(1)
-z.reveal().print_fix()
-w.reveal().print_fix()
-a.reveal().print_fix()
-b.reveal().print_fix()
-c.reveal().print_fix()
-z1.reveal().print_fix()
-w1.reveal().print_fix()
-a1.reveal().print_fix()
-b1.reveal().print_fix()
-c1.reveal().print_fix()
 
 print_ln("")
 print_ln("sfix *")
 start_timer(1)
-z=x*y
-w=x*y
-a=x*y
-b=x*y
-c=x*y
-z1=x*y
-w1=x*y
-a1=x*y
-b1=x*y
-c1=x*y
+@for_range(n)
+def loop_body(i):
+  z=x*y
 stop_timer(1)
-z.reveal().print_fix()
-w.reveal().print_fix()
-a.reveal().print_fix()
-b.reveal().print_fix()
-c.reveal().print_fix()
-z1.reveal().print_fix()
-w1.reveal().print_fix()
-a1.reveal().print_fix()
-b1.reveal().print_fix()
-c1.reveal().print_fix()
-
 
 print_ln("")
 print_ln("sfix /")
 start_timer(1)
-z=x/y
-w=x/y
-a=x/y
-b=x/y
-c=x/y
-z1=x/y
-w1=x/y
-a1=x/y
-b1=x/y
-c1=x/y
+@for_range(n)
+def loop_body(i):
+  z=x/y
 stop_timer(1)
-z.reveal().print_fix()
-w.reveal().print_fix()
-a.reveal().print_fix()
-b.reveal().print_fix()
-c.reveal().print_fix()
-z1.reveal().print_fix()
-w1.reveal().print_fix()
-a1.reveal().print_fix()
-b1.reveal().print_fix()
-c1.reveal().print_fix()
-
 
 print_ln("")
 print_ln("sfix sqrt")
 start_timer(1)
-z=mpc_math.sqrt(x)
-w=mpc_math.sqrt(y)
-a=mpc_math.sqrt(y)
-b=mpc_math.sqrt(y)
-c=mpc_math.sqrt(y)
-z1=mpc_math.sqrt(x)
-w1=mpc_math.sqrt(y)
-a1=mpc_math.sqrt(y)
-b1=mpc_math.sqrt(y)
-c1=mpc_math.sqrt(y)
+@for_range(n)
+def loop_body(i):
+  z=mpc_math.sqrt(x)
 stop_timer(1)
-z.reveal().print_fix()
-w.reveal().print_fix()
-a.reveal().print_fix()
-b.reveal().print_fix()
-c.reveal().print_fix()
-z1.reveal().print_fix()
-w1.reveal().print_fix()
-a1.reveal().print_fix()
-b1.reveal().print_fix()
-c1.reveal().print_fix()
+
+# Now test the conversion
+x=sfloat(5.125)
+z=sregint(0)
+w=sfloat(0)
+
+print_ln("")
+print_ln("convert sfloat->ieee")
+start_timer(1)
+@for_range(n)
+def loop_body(i):
+  y=floatingpoint.sfloat_to_ieee(x)
+stop_timer(1)
+
+print_ln("")
+print_ln("convert ieee->sfloat")
+y=floatingpoint.sfloat_to_ieee(x)
+start_timer(1)
+@for_range(n)
+def loop_body(i):
+  x=floatingpoint.ieee_to_sfloat(y)
+stop_timer(1)
+
+print_ln("Remember to divide all times by %s",n)
+

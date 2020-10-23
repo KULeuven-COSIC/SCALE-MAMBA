@@ -19,6 +19,11 @@ Processor::Processor(int thread_num, unsigned int nplayers,
   daBitGen= daBitMachine.new_generator(P, thread_num);
   rounds= 0;
   sent= 0;
+  stack_Cp.reserve(16384);
+  stack_Sp.reserve(16384);
+  stack_int.reserve(16384);
+  stack_srint.reserve(16384);
+  stack_sbit.reserve(16384);
 }
 
 Processor::~Processor()
@@ -49,23 +54,25 @@ void Processor::POpen_Start(const vector<int> &reg, int size, Player &P)
     }
   else
     {
+      /*
       stringstream os;
       Sp[reg[0]].output(os, true);
-      // printf("Share : %d :  %s \n",reg[0],os.str().c_str());
+      printf("Share : %d :  %s \n",reg[0],os.str().c_str());
+      */
       for (int i= 0; i < sz; i++)
         {
           Sh_PO.push_back(get_Sp_ref(reg[i]));
         }
     }
   PO.resize(sz * size);
-  OP.Open_To_All_Begin(PO, Sh_PO, P);
+  OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
 }
 
 void Processor::POpen_Stop(const vector<int> &reg, int size, Player &P)
 {
   int sz= reg.size();
   PO.resize(sz * size);
-  OP.Open_To_All_End(PO, Sh_PO, P);
+  OP.Open_To_All_End(PO, Sh_PO, P, 0);
   if (size > 1)
     {
       typename vector<gfp>::iterator PO_it= PO.begin();
@@ -421,6 +428,83 @@ void Processor::convert_suregint_to_sint(int i0, int i1, Player &P)
 
   // Write back into the processor
   write_Sp(i1, ans);
+}
+
+void Processor::convert_sbit_to_sint(int i0, int i1, Player &P)
+{
+  Share apr;
+  aBit a2r;
+
+  /* Get a single daBit */
+  auto &daBitGen= get_generator();
+  daBitV.get_daBit(apr, a2r, daBitGen);
+
+  /* Add onto the input register */
+  a2r.add(read_sbit(i0));
+
+  /* Now open it */
+  int v;
+  Open_aBit(v, a2r, P);
+  Share one(1, P.whoami(), P.get_mac_keys());
+
+  /* Now form the XOR on the modp side
+   *   apr= apr+v-2*v*apr
+   *      = (v==0) * apr  + (v==1)*(-apr+1)
+   */
+  if (v == 1)
+    {
+      apr.negate();
+      apr.add(one);
+    }
+
+  // Write back into the processor
+  write_Sp(i1, apr);
+}
+
+void Processor::convert_sint_to_sbit(int i0, int i1, Player &P)
+{
+  unsigned int psize= numBits(gfp::pr());
+  if (1 + conv_stat_sec >= sreg_bitl || psize <= 1 + conv_stat_sec)
+    {
+      throw cannot_do_conversion();
+    }
+
+  unsigned int size= 1 + conv_stat_sec;
+
+  // Get a set of size daBits
+  vector<Share> bpr(size);
+  vector<aBit> b2r(size);
+  auto &daBitGen= get_generator();
+  daBitV.get_daBits(bpr, b2r, daBitGen);
+
+  // Now create the integer r
+  Share r(P.whoami());
+  aBitVector r2, z;
+  r.assign_zero();
+  r2.assign_zero();
+  for (int i= size - 1; i >= 0; i--)
+    {
+      r.add(r); // r=2*r
+      r.add(bpr[i]);
+      r2.set_bit(i, b2r[i]);
+    }
+
+  // Now form x+r
+  vector<Share> S_xr(1);
+  S_xr[0].add(read_Sp(i0), r);
+
+  // Now open x+r
+  vector<gfp> gfp_xr(1);
+  OP.Open_To_All_Begin(gfp_xr, S_xr, P, 2);
+  OP.Open_To_All_End(gfp_xr, S_xr, P, 2);
+
+  // Now add z=(x+r)-r in the GC routines
+  bigint bi_xr;
+  to_bigint(bi_xr, gfp_xr[0]);
+  z.sub(bi_xr.get_ui(), r2, P, online_thread_num);
+
+  // Write back into the processor, we only need the last bit
+  write_sbit(i1, z.get_bit(0));
 }
 
 /* Arguments are obtained from the srint stack, and then outputs

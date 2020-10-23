@@ -130,7 +130,7 @@ void FakePrep::produce_triples(list<Share> &a, list<Share> &b, list<Share> &c)
               sa[j].output(ss, false);
               sb[j].output(ss, false);
               sc[j].output(ss, false);
-              P.send_to_player(j, ss.str());
+              P.send_to_player(j, ss.str(), 0);
             }
         }
     }
@@ -139,7 +139,7 @@ void FakePrep::produce_triples(list<Share> &a, list<Share> &b, list<Share> &c)
       for (int i= 0; i < sz_offline_batch; i++)
         {
           string ss;
-          P.receive_from_player(0, ss);
+          P.receive_from_player(0, ss, 0);
           istringstream is(ss);
           Share s(P.whoami());
           s.input(is, false);
@@ -200,7 +200,7 @@ void FakePrep::produce_squares(list<Share> &a, list<Share> &b, unsigned int rep)
               stringstream ss;
               sa[j].output(ss, false);
               sb[j].output(ss, false);
-              P.send_to_player(j, ss.str());
+              P.send_to_player(j, ss.str(), 0);
             }
         }
     }
@@ -209,7 +209,7 @@ void FakePrep::produce_squares(list<Share> &a, list<Share> &b, unsigned int rep)
       while (a.size() < sz_offline_batch * rep)
         {
           string ss;
-          P.receive_from_player(0, ss);
+          P.receive_from_player(0, ss, 0);
           istringstream is(ss);
           Share s(P.whoami());
           s.input(is, false);
@@ -270,7 +270,7 @@ void FakePrep::produce_bits(list<Share> &b)
                 {
                   stringstream ss;
                   sb[k].output(ss, false);
-                  P.send_to_player(k, ss.str());
+                  P.send_to_player(k, ss.str(), 0);
                 }
             }
         }
@@ -282,7 +282,7 @@ void FakePrep::produce_bits(list<Share> &b)
           for (int j= 0; j < 8; j++)
             {
               string ss;
-              P.receive_from_player(0, ss);
+              P.receive_from_player(0, ss, 0);
               istringstream is(ss);
               Share s(P.whoami());
               s.input(is, false);
@@ -333,7 +333,7 @@ void make_IO_data_fake(Player &P, unsigned int player_num, list<Share> &a,
                 {
                   aa.output(ss, false);
                 }
-              P.send_to_player(j, ss.str());
+              P.send_to_player(j, ss.str(), 0);
             }
         }
     }
@@ -342,7 +342,7 @@ void make_IO_data_fake(Player &P, unsigned int player_num, list<Share> &a,
       for (int i= 0; i < sz_IO_batch; i++)
         {
           string ss;
-          P.receive_from_player(0, ss);
+          P.receive_from_player(0, ss, 0);
           istringstream is(ss);
           Share s(P.whoami());
           s.input(is, false);

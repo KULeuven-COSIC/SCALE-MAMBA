@@ -127,7 +127,7 @@ print_char 10
 print_char4 10
 print_char_regint r1
 print_char4_regint r1
-print_float c1, c2, c3, c4
+print_float c1, c2, c3, c4, c5
 print_fix c1, 10, 5
 print_int r1
 eqzsint sb1, sr1

@@ -244,7 +244,7 @@ pub fn augment_block<'a>(
     if !trace_span!("").is_disabled() {
         for i in 0..new_block.stmts.len() {
             let relexed = new_block.stmts[i].stmt.relex(cx);
-            trace!("    # {}", relexed);
+            trace!("    # {}", relexed.display(cx));
             trace!(
                 "    #  instruction_depth: {}",
                 new_block.stmts[i].instruction_depth
@@ -434,7 +434,7 @@ impl super::Pass for Pass {
                             trace!(
                                 "  {} # {} : {} {}",
                                 i,
-                                block.stmts[i].relex(cx),
+                                block.stmts[i].relex(cx).display(cx),
                                 augmented_block2.stmts[i].round_depth,
                                 augmented_block2.stmts[i].instruction_depth
                             );
@@ -514,7 +514,7 @@ impl super::Pass for Pass {
                     let mut start_free = None;
                     for i in start..=startopen_pos {
                         if instructions_keep.contains(&i) {
-                            trace!("\t\treserving {:?}", block.stmts[i].relex(cx).to_string());
+                            trace!("\t\treserving {}", block.stmts[i].relex(cx).display(cx));
                             cache.push(std::mem::replace(&mut block.stmts[i], dummy.clone()));
                             if start_free.is_none() {
                                 start_free = Some(i);
@@ -535,7 +535,7 @@ impl super::Pass for Pass {
                                 && augmented_block2.stmts[i].blck == blck
                             {
                                 let relexed = block.stmts[i].relex(cx);
-                                trace!("  {} # {}", i, relexed);
+                                trace!("  {} # {}", i, relexed.display(cx));
                             }
                         }
                     }

@@ -36,6 +36,43 @@ test(siaa, te)
 te=sint.convert_unsigned_to_sint(sa)
 test(sia, te)
 
+# test CONVSBITSINT, CONVSINTSBIT, bit->sregint
+a0 = sint(0)
+a1 = sint(1)
+b0 = sbit(0)
+b1 = sbit(1)
+d0 = sregint(0)
+d1 = sregint(1)
+ca0=sbit(a0)
+ca1=sbit(a1)
+cb0=sint(b0)
+cb1=sint(b1)
+c0=sregint(b0)
+c1=sregint(b1)
+test(ca0,b0)
+test(ca1,b1)
+test(cb0,a0)
+test(cb1,a1)
+test(c0,d0)
+test(c1,d1)
+
+# Test again to make sure...
+d0 = sregint(0)
+d1 = sregint(1)
+ca0=sbit(a0)
+ca1=sbit(a1)
+cb0=sint(b0)
+cb1=sint(b1)
+c0=sregint(b0)
+c1=sregint(b1)
+test(ca0,b0)
+test(ca1,b1)
+test(cb0,a0)
+test(cb1,a1)
+test(c0,d0)
+test(c1,d1)
+
+
 #test ADDSINT, ADDSINTC
 test(ca + cb)
 test(sa + cb)
@@ -109,12 +146,17 @@ test(sregint(-divisible) / (-sb))
 
 
 #test SHR/SHL
+cc=regint(3)
 test(sa << 3)
 test(sb << 11)
 saa=sa << 3
 sbb=sb << 11
 test(saa >> 3)
 test(sbb >> 3)
+test(ca << 3)
+test(cb >> 3)
+test(ca << cc)
+test(ca >> cc)
 
 # test INT MAX (instructions for sr to sr only)
 int_max = sregint(2**(64-1) - 1)
@@ -331,6 +373,8 @@ la = 32
 lb = 4
 sla = sregint(la)
 slb = sregint(lb)
+rla = regint(la)
+rlb = regint(lb)
 
 # test ANDSR
 test(sla & sla)
@@ -385,6 +429,49 @@ test(la ^ sla)
 test(la ^ slb)
 test(lb ^ sla)
 test(lb ^ slb)
+
+# test ANDRR
+test(rla & la)
+test(rla & lb)
+test(rlb & la)
+test(rlb & lb)
+test(rla & rla)
+test(rla & rlb)
+test(rlb & rla)
+test(rlb & rlb)
+test(la & rla)
+test(la & rlb)
+test(lb & rla)
+test(lb & rlb)
+
+# test ORRR
+test(rla | la)
+test(rla | lb)
+test(rlb | la)
+test(rlb | lb)
+test(rla | rla)
+test(rla | rlb)
+test(rlb | rla)
+test(rlb | rlb)
+test(la | rla)
+test(la | rlb)
+test(lb | rla)
+test(lb | rlb)
+
+# test XORRR
+test(rla ^ la)
+test(rla ^ lb)
+test(rlb ^ la)
+test(rlb ^ lb)
+test(rla ^ rla)
+test(rla ^ rlb)
+test(rlb ^ rla)
+test(rlb ^ rlb)
+test(la ^ rla)
+test(la ^ rlb)
+test(lb ^ rla)
+test(lb ^ rlb)
+
 
 # test mult 128 bits
 s64a = sregint(2 ** 62+28731371)

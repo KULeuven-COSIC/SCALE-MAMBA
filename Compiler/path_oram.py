@@ -134,7 +134,7 @@ def LT(a, b):
     a_bits = bit_decompose(a)
     b_bits = bit_decompose(b)
     u = cgf2n()
-    BitLTC1(u, a_bits, b_bits, 16)
+    BitLT(u, a_bits, b_bits, 16)
 
 class PathORAM(TreeORAM):
     def __init__(self, size, value_type=sgf2n, value_length=1, entry_size=None, \

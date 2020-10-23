@@ -125,6 +125,11 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case ORSINTC:
       case XORSINT:
       case XORSINTC:
+      case ANDINT:
+      case ORINT:
+      case XORINT:
+      case SHLINT:
+      case SHRINT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         r[2]= get_int(s);
@@ -137,6 +142,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case MOVC:
       case MOVS:
       case MOVINT:
+      case MOVSB:
       case LDMINTI:
       case STMINTI:
       case LEGENDREC:
@@ -153,12 +159,15 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case CONVREGSREG:
       case CONVSREGSINT:
       case CONVSUREGSINT:
+      case CONVSINTSBIT:
+      case CONVSBITSINT:
       case OPENSINT:
       case OPENSBIT:
       case LDMSINTI:
       case STMSINTI:
       case MOVSINT:
       case INVSINT:
+      case INVINT:
       case EQZSINT:
       case LTZSINT:
       case PEEKINT:
@@ -171,6 +180,16 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case POKEC:
       case POKES:
       case POKESBIT:
+      case RPEEKINT:
+      case RPEEKSINT:
+      case RPEEKC:
+      case RPEEKS:
+      case RPEEKSBIT:
+      case RPOKEINT:
+      case RPOKESINT:
+      case RPOKEC:
+      case RPOKES:
+      case RPOKESBIT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         break;
@@ -292,9 +311,12 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case RETURN:
         break;
       // instructions with 4 register operands
-      case PRINT_FLOAT:
       case MUL2SINT:
         get_vector(4, start, s);
+        break;
+      // instructions with 5 register operands
+      case PRINT_FLOAT:
+        get_vector(5, start, s);
         break;
       // open instructions instructions with variable length args
       case STARTOPEN:
@@ -335,10 +357,13 @@ RegType BaseInstruction::get_reg_type() const
       case MOVINT:
       case POPINT:
       case PEEKSINT:
+      case RPEEKSINT:
       case PUSHINT:
       case PUSHSINT:
       case POKEINT:
+      case RPOKEINT:
       case POKESINT:
+      case RPOKESINT:
       case GETSPINT:
       case GETSPSINT:
       case GETSPS:
@@ -390,9 +415,16 @@ RegType BaseInstruction::get_reg_type() const
       case XORSINT:
       case XORSINTC:
       case INVSINT:
+      case ANDINT:
+      case ORINT:
+      case XORINT:
+      case INVINT:
+      case SHLINT:
+      case SHRINT:
       case MUL2SINT:
       case OPEN_CHANNEL:
         return INT;
+      case MOVSB:
       case XORSB:
       case ANDSB:
       case ORSB:
@@ -403,7 +435,11 @@ RegType BaseInstruction::get_reg_type() const
       case POPSBIT:
       case PUSHSBIT:
       case PEEKSBIT:
+      case RPEEKSBIT:
       case POKESBIT:
+      case RPOKESBIT:
+      case CONVSINTSBIT:
+      case LDSBIT:
         return SBIT;
       case STARG:
       case REQBL:
@@ -532,6 +568,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDMINT:
         s << "LDMINT";
         break;
+      case MOVSB:
+        s << "MOVSB";
+        break;
       case STMINT:
         s << "STMINT";
         break;
@@ -586,6 +625,21 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case PEEKSBIT:
         s << "PEEKSBIT";
         break;
+      case RPEEKINT:
+        s << "RPEEKINT";
+        break;
+      case RPEEKSINT:
+        s << "RPEEKSINT";
+        break;
+      case RPEEKS:
+        s << "RPEEKS";
+        break;
+      case RPEEKC:
+        s << "RPEEKC";
+        break;
+      case RPEEKSBIT:
+        s << "RPEEKSBIT";
+        break;
       case POKEINT:
         s << "POKEINT";
         break;
@@ -600,6 +654,21 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       case POKESBIT:
         s << "POKESBIT";
+        break;
+      case RPOKEINT:
+        s << "RPOKEINT";
+        break;
+      case RPOKESINT:
+        s << "RPOKESINT";
+        break;
+      case RPOKES:
+        s << "RPOKES";
+        break;
+      case RPOKEC:
+        s << "RPOKEC";
+        break;
+      case RPOKESBIT:
+        s << "RPOKESBIT";
         break;
       case GETSPINT:
         s << "GETSPINT";
@@ -955,6 +1024,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case NEGB:
         s << "NEGB";
         break;
+      case LDSBIT:
+        s << "LDSBIT";
+        break;
       case LTZSINT:
         s << "LTZSINT";
         break;
@@ -978,6 +1050,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       case CONVSUREGSINT:
         s << "CONVSUREGSINT";
+        break;
+      case CONVSINTSBIT:
+        s << "CONVSINTSBIT";
+        break;
+      case CONVSBITSINT:
+        s << "CONVSBITSINT";
         break;
       case OPENSINT:
         s << "OPENSINT";
@@ -1006,6 +1084,24 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case INVSINT:
         s << "INVSINT";
         break;
+      case ANDINT:
+        s << "ANDINT";
+        break;
+      case ORINT:
+        s << "ORINT";
+        break;
+      case XORINT:
+        s << "XORINT";
+        break;
+      case INVINT:
+        s << "INVINT";
+        break;
+      case SHLINT:
+        s << "SHLINT";
+        break;
+      case SHRINT:
+        s << "SHRINT";
+        break;
       case MUL2SINT:
         s << "MUL2SINT";
         break;
@@ -1017,7 +1113,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       default:
         s << instr.opcode;
-        throw Invalid_Instruction("Verbose Opcode Note Known");
+        throw Invalid_Instruction("Verbose Opcode Not Known");
     }
 
   if (instr.size != 1)
@@ -1057,6 +1153,11 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case SUBINT:
       case MULINT:
       case DIVINT:
+      case ANDINT:
+      case ORINT:
+      case XORINT:
+      case SHLINT:
+      case SHRINT:
       case LTINT:
       case GTINT:
       case EQINT:
@@ -1113,8 +1214,24 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LTZSINT:
       case EQZSINT:
       case PEEKSBIT:
+      case RPEEKSBIT:
         s << "sb_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 sbit and 1 sint operands
+      case CONVSINTSBIT:
+        s << "sb_" << instr.r[0] << " ";
+        s << "s_" << instr.r[1] << " ";
+        break;
+      // instructions with 1 sbit and 1 integer operands
+      case LDSBIT:
+        s << "sb_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        break;
+      // instructions with 1 sint and 1 sbit operands
+      case CONVSBITSINT:
+        s << "s_" << instr.r[0] << " ";
+        s << "sb_" << instr.r[1] << " ";
         break;
       // instructions with 1 sbit and 1 sregint and 1 integer operands
       case BITSINT:
@@ -1146,6 +1263,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case CONVINT:
       case STMCI:
       case PEEKC:
+      case RPEEKC:
         s << "c_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1153,6 +1271,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDMSI:
       case STMSI:
       case PEEKS:
+      case RPEEKS:
         s << "s_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1160,6 +1279,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDMSINTI:
       case CONVREGSREG:
       case PEEKSINT:
+      case RPEEKSINT:
         s << "sr_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1174,6 +1294,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << "s_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
         break;
+      // instructions with 1 sint + 1 sbit register operand
       case DABIT:
         s << "s_" << instr.r[0] << " ";
         s << "sb_" << instr.r[1] << " ";
@@ -1181,22 +1302,26 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       // instructions with 1 rint + 1 sregint register operand
       case OPENSINT:
       case POKESINT:
+      case RPOKESINT:
         s << "r_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
         break;
       // instructions with 1 rint + 1 cint register operand
       case POKEC:
+      case RPOKEC:
         s << "r_" << instr.r[0] << " ";
         s << "c_" << instr.r[1] << " ";
         break;
       // instructions with 1 rint + 1 sint register operand
       case POKES:
+      case RPOKES:
         s << "r_" << instr.r[0] << " ";
         s << "s_" << instr.r[1] << " ";
         break;
       // instructions with 1 rint + 1 sbit register operand
       case OPENSBIT:
       case POKESBIT:
+      case RPOKESBIT:
         s << "r_" << instr.r[0] << " ";
         s << "sb_" << instr.r[1] << " ";
         break;
@@ -1222,7 +1347,10 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LTZINT:
       case EQZINT:
       case PEEKINT:
+      case RPEEKINT:
       case POKEINT:
+      case RPOKEINT:
+      case INVINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1235,6 +1363,7 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         break;
       // instructions with 2 sbit operands
       case NEGB:
+      case MOVSB:
         s << "sb_" << instr.r[0] << " ";
         s << "sb_" << instr.r[1] << " ";
         break;
@@ -1496,11 +1625,20 @@ void Instruction::execute_using_sacrifice_data(
 bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                           offline_control_data &OCD) const
 {
-  if (machine.verbose)
+  Timer instr_timer;
+  if (machine.verbose > 0)
     {
       stringstream s;
       s << *this;
-      printf("Thread %d : %s\n", Proc.get_thread_num(), s.str().c_str());
+      printf("Thread %d : %s", Proc.get_thread_num(), s.str().c_str());
+      if (machine.verbose > 1)
+        {
+          instr_timer.reset();
+        }
+      else
+        {
+          printf("\n");
+        }
       fflush(stdout);
     }
   bool restart= false;
@@ -1515,972 +1653,1084 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
    */
 
   // Deal the offline data input routines as these need thread locking
-  if (opcode == TRIPLE || opcode == SQUARE || opcode == BIT)
+  if (opcode == TRIPLE || opcode == SQUARE || opcode == BIT || opcode == DABIT || opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT || opcode == STARTOPEN || opcode == STOPOPEN)
     {
-      execute_using_sacrifice_data(Proc, OCD);
-      return restart;
+      if (opcode == TRIPLE || opcode == SQUARE || opcode == BIT)
+        {
+          // Deal with offline data
+          execute_using_sacrifice_data(Proc, OCD);
+        }
+      else if (opcode == DABIT)
+        {
+          // Extract daBit
+          for (unsigned int i= 0; i < size; i++)
+            {
+              Proc.write_daBit(r[0] + i, r[1] + i);
+            }
+        }
+      else if (opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT)
+        {
+          // Private input/output
+          if (Proc.get_thread_num() != 0)
+            {
+              throw IO_thread();
+            }
+          if (opcode == PRIVATE_OUTPUT)
+            {
+              Proc.iop.private_output(p, r[0], m, Proc, P, machine, OCD, size);
+            }
+          else
+            {
+              Proc.iop.private_input(p, r[0], m, Proc, P, machine, OCD, size);
+            }
+        }
+      else if (opcode == STARTOPEN)
+        {
+          Proc.POpen_Start(start, size, P);
+        }
+      else if (opcode == STOPOPEN)
+        {
+          Proc.POpen_Stop(start, size, P);
+        }
+#ifdef BENCH_OFFLINE
+       switch (opcode)
+	{
+	    case TRIPLE:
+		  P.triples+=size;
+		  break;
+	    case SQUARE:
+		  P.squares+=size;
+		  break;
+            case BIT:
+		  P.bits+=size;
+		  break;
+	    case DABIT:
+		  P.dabits+=size;
+		  break;
+            default:
+		  break;
+	}
+#endif
     }
-
-  // Extract daBit
-  if (opcode == DABIT)
+  else
     {
+      // Need to copy as we might need to alter this in the loop
+      //   But it should not be that big in any case here
+      vector<int> c_start= start;
+
+      // Loop here to cope with vectorization, if an instruction is not vectorizable
+      // then size=1 in any case :-)
       for (unsigned int i= 0; i < size; i++)
         {
-          Proc.write_daBit(r[0] + i, r[1] + i);
-        }
-      return restart;
-    }
+          switch (opcode)
+            {
+              case LDI:
+                Proc.temp.ansp.assign(n);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case LDSI:
+                {
+                  Proc.temp.ansp.assign(n);
+                  Proc.get_Sp_ref(r[0]).assign(Proc.temp.ansp, P.get_mac_keys());
+                }
+                break;
+              case LDMC:
+                Proc.write_Cp(r[0], machine.Mc.read(n, machine.verbose));
+                n++;
+                break;
+              case LDMS:
+                Proc.write_Sp(r[0], machine.Ms.read(n, machine.verbose));
+                n++;
+                break;
+              case LDMINT:
+                Proc.write_Ri(r[0], machine.Mr.read(n, machine.verbose).get());
+                n++;
+                break;
+              case LDMCI:
+                Proc.write_Cp(r[0], machine.Mc.read(Proc.read_Ri(r[1]), machine.verbose));
+                break;
+              case LDMSI:
+                Proc.write_Sp(r[0], machine.Ms.read(Proc.read_Ri(r[1]), machine.verbose));
+                break;
+              case LDMINTI:
+                Proc.write_Ri(r[0], machine.Mr.read(Proc.read_Ri(r[1]), machine.verbose).get());
+                break;
+              case STMC:
+                machine.Mc.write(n, Proc.read_Cp(r[0]), machine.verbose, Proc.get_PC());
+                n++;
+                break;
+              case STMS:
+                machine.Ms.write(n, Proc.read_Sp(r[0]), machine.verbose, Proc.get_PC());
+                n++;
+                break;
+              case STMINT:
+                machine.Mr.write(n, Integer(Proc.read_Ri(r[0])), machine.verbose, Proc.get_PC());
+                n++;
+                break;
+              case STMCI:
+                machine.Mc.write(Proc.read_Ri(r[1]), Proc.read_Cp(r[0]), machine.verbose, Proc.get_PC());
+                break;
+              case STMSI:
+                machine.Ms.write(Proc.read_Ri(r[1]), Proc.read_Sp(r[0]), machine.verbose, Proc.get_PC());
+                break;
+              case STMINTI:
+                machine.Mr.write(Proc.read_Ri(r[1]), Integer(Proc.read_Ri(r[0])),
+                                 machine.verbose, Proc.get_PC());
+                break;
+              case MOVC:
+                Proc.write_Cp(r[0], Proc.read_Cp(r[1]));
+                break;
+              case MOVS:
+                Proc.write_Sp(r[0], Proc.read_Sp(r[1]));
+                break;
+              case MOVINT:
+                Proc.write_Ri(r[0], Proc.read_Ri(r[1]));
+                break;
+              case MOVSB:
+                Proc.write_sbit(r[0], Proc.read_sbit(r[1]));
+                break;
+              case PUSHINT:
+                Proc.push_int(Proc.read_Ri(r[0]));
+                break;
+              case PUSHSINT:
+                Proc.push_srint(Proc.read_srint(r[0]));
+                break;
+              case PUSHC:
+                Proc.push_Cp(Proc.read_Cp(r[0]));
+                break;
+              case PUSHS:
+                Proc.push_Sp(Proc.read_Sp(r[0]));
+                break;
+              case PUSHSBIT:
+                Proc.push_sbit(Proc.read_sbit(r[0]));
+                break;
+              case POPINT:
+                Proc.pop_int(Proc.get_Ri_ref(r[0]));
+                break;
+              case POPSINT:
+                Proc.pop_srint(Proc.get_srint_ref(r[0]));
+                break;
+              case POPC:
+                Proc.pop_Cp(Proc.get_Cp_ref(r[0]));
+                break;
+              case POPS:
+                Proc.pop_Sp(Proc.get_Sp_ref(r[0]));
+                break;
+              case POPSBIT:
+                Proc.pop_sbit(Proc.get_sbit_ref(r[0]));
+                break;
+              case PEEKINT:
+                Proc.peek_int(Proc.get_Ri_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case PEEKSINT:
+                Proc.peek_srint(Proc.get_srint_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case PEEKC:
+                Proc.peek_Cp(Proc.get_Cp_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case PEEKS:
+                Proc.peek_Sp(Proc.get_Sp_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case PEEKSBIT:
+                Proc.peek_sbit(Proc.get_sbit_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+	      case RPEEKINT:
+                Proc.rpeek_int(Proc.get_Ri_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case RPEEKSINT:
+                Proc.rpeek_srint(Proc.get_srint_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case RPEEKC:
+                Proc.rpeek_Cp(Proc.get_Cp_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case RPEEKS:
+                Proc.rpeek_Sp(Proc.get_Sp_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case RPEEKSBIT:
+                Proc.rpeek_sbit(Proc.get_sbit_ref(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case POKEINT:
+                Proc.poke_int(Proc.read_Ri(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case POKESINT:
+                Proc.poke_srint(Proc.read_Ri(r[0]), Proc.read_srint(r[1]));
+                break;
+              case POKEC:
+                Proc.poke_Cp(Proc.read_Ri(r[0]), Proc.read_Cp(r[1]));
+                break;
+              case POKES:
+                Proc.poke_Sp(Proc.read_Ri(r[0]), Proc.read_Sp(r[1]));
+                break;
+              case POKESBIT:
+                Proc.poke_sbit(Proc.read_Ri(r[0]), Proc.read_sbit(r[1]));
+                break;
+	      case RPOKEINT:
+                Proc.rpoke_int(Proc.read_Ri(r[0]), Proc.read_Ri(r[1]));
+                break;
+              case RPOKESINT:
+                Proc.rpoke_srint(Proc.read_Ri(r[0]), Proc.read_srint(r[1]));
+                break;
+              case RPOKEC:
+                Proc.rpoke_Cp(Proc.read_Ri(r[0]), Proc.read_Cp(r[1]));
+                break;
+              case RPOKES:
+                Proc.rpoke_Sp(Proc.read_Ri(r[0]), Proc.read_Sp(r[1]));
+                break;
+              case RPOKESBIT:
+                Proc.rpoke_sbit(Proc.read_Ri(r[0]), Proc.read_sbit(r[1]));
+                break;
+              case GETSPINT:
+                Proc.getsp_int(Proc.get_Ri_ref(r[0]));
+                break;
+              case GETSPSINT:
+                Proc.getsp_srint(Proc.get_Ri_ref(r[0]));
+                break;
+              case GETSPC:
+                Proc.getsp_Cp(Proc.get_Ri_ref(r[0]));
+                break;
+              case GETSPS:
+                Proc.getsp_Sp(Proc.get_Ri_ref(r[0]));
+                break;
+              case GETSPSBIT:
+                Proc.getsp_sbit(Proc.get_Ri_ref(r[0]));
+                break;
+              case LDTN:
+                Proc.write_Ri(r[0], Proc.get_thread_num());
+                break;
+              case LDARG:
+                Proc.write_Ri(r[0], Proc.get_arg());
+                break;
+              case STARG:
+                Proc.set_arg(Proc.read_Ri(r[0]));
+                break;
+              case ADDC:
+#ifdef DEBUG
+                Proc.temp.ansp.add(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).add(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case ADDS:
+#ifdef DEBUG
+                Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
+#endif
+                break;
+              case ADDM:
+#ifdef DEBUG
+                Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]),
+                                          P.get_mac_keys());
+#endif
+                break;
+              case SUBC:
+#ifdef DEBUG
+                Proc.temp.ansp.sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case SUBS:
+#ifdef DEBUG
+                Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
+#endif
+                break;
+              case SUBML:
+#ifdef DEBUG
+                Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]),
+                                          P.get_mac_keys());
+#endif
+                break;
+              case SUBMR:
+#ifdef DEBUG
+                Proc.temp.Sansp.sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]), P.get_mac_keys());
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]),
+                                          P.get_mac_keys());
+#endif
+                break;
+              case MULC:
+#ifdef DEBUG
+                Proc.temp.ansp.mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case MULM:
+#ifdef DEBUG
+                Proc.temp.Sansp.mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case DIVC:
+                if (Proc.read_Cp(r[2]).is_zero())
+                  throw Processor_Error("Division by zero from register");
+                Proc.temp.ansp.invert(Proc.read_Cp(r[2]));
+                Proc.temp.ansp.mul(Proc.read_Cp(r[1]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case MODC:
+                to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
+                to_bigint(Proc.temp.aa2, Proc.read_Cp(r[2]));
+                mpz_fdiv_r(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t(),
+                           Proc.temp.aa2.get_mpz_t());
+                to_gfp(Proc.temp.ansp, Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case LEGENDREC:
+                to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
+                Proc.temp.aa=
+                    mpz_legendre(Proc.temp.aa.get_mpz_t(), gfp::pr().get_mpz_t());
+                to_gfp(Proc.temp.ansp, Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case DIGESTC:
+                {
+                  stringstream o;
+                  to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
 
-  // Private input/output
-  if (opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT)
-    {
-      if (Proc.get_thread_num() != 0)
-        {
-          throw IO_thread();
+                  to_gfp(Proc.temp.ansp, Proc.temp.aa);
+                  Proc.temp.ansp.output(o, false);
+                  string s= Hash(o.str());
+                  // keep first n bytes
+                  istringstream is(s);
+                  Proc.temp.ansp.input(is, false);
+                  Proc.write_Cp(r[0], Proc.temp.ansp);
+                }
+                break;
+              case DIVCI:
+                if (n == 0)
+                  throw Processor_Error("Division by immediate zero");
+                to_gfp(Proc.temp.ansp, n % gfp::pr());
+                Proc.temp.ansp.invert();
+                Proc.temp.ansp.mul(Proc.read_Cp(r[1]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case MODCI:
+                to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
+                to_gfp(Proc.temp.ansp, mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case ADDCI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.ansp.add(Proc.temp.ansp, Proc.read_Cp(r[1]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).add(Proc.temp.ansp, Proc.read_Cp(r[1]));
+#endif
+                break;
+              case ADDSI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.temp.ansp,
+                                          P.get_mac_keys());
+#endif
+                break;
+              case SUBCI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.ansp.sub(Proc.read_Cp(r[1]), Proc.temp.ansp);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.temp.ansp);
+#endif
+                break;
+              case SUBSI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.temp.ansp,
+                                          P.get_mac_keys());
+#endif
+                break;
+              case SUBCFI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.ansp.sub(Proc.temp.ansp, Proc.read_Cp(r[1]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).sub(Proc.temp.ansp, Proc.read_Cp(r[1]));
+#endif
+                break;
+              case SUBSFI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.Sansp.sub(Proc.temp.ansp, Proc.read_Sp(r[1]), P.get_mac_keys());
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).sub(Proc.temp.ansp, Proc.read_Sp(r[1]),
+                                          P.get_mac_keys());
+#endif
+                break;
+              case MULCI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.ansp.mul(Proc.temp.ansp, Proc.read_Cp(r[1]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).mul(Proc.temp.ansp, Proc.read_Cp(r[1]));
+#endif
+                break;
+              case MULSI:
+                Proc.temp.ansp.assign(n);
+#ifdef DEBUG
+                Proc.temp.Sansp.mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
+                Proc.write_Sp(r[0], Proc.temp.Sansp);
+#else
+                Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
+#endif
+                break;
+              case ANDC:
+#ifdef DEBUG
+                Proc.temp.ansp.AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case XORC:
+#ifdef DEBUG
+                Proc.temp.ansp.XOR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case ORC:
+#ifdef DEBUG
+                Proc.temp.ansp.OR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).OR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
+#endif
+                break;
+              case ANDCI:
+                Proc.temp.aa= n;
+#ifdef DEBUG
+                Proc.temp.ansp.AND(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]), Proc.temp.aa);
+#endif
+                break;
+              case XORCI:
+                Proc.temp.aa= n;
+#ifdef DEBUG
+                Proc.temp.ansp.XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
+#endif
+                break;
+              case ORCI:
+                Proc.temp.aa= n;
+#ifdef DEBUG
+                Proc.temp.ansp.OR(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).OR(Proc.read_Cp(r[1]), Proc.temp.aa);
+#endif
+                break;
+              case NOTC:
+                to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
+                mpz_com(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t());
+                Proc.temp.aa2= 1;
+                Proc.temp.aa2<<= n;
+                Proc.temp.aa+= Proc.temp.aa2;
+                to_gfp(Proc.temp.ansp, Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+                break;
+              case SHLC:
+                to_bigint(Proc.temp.aa, Proc.read_Cp(r[2]));
+                if (Proc.temp.aa > 63)
+                  throw not_implemented();
+#ifdef DEBUG
+                Proc.temp.ansp.SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
+#endif
+                break;
+              case SHRC:
+                to_bigint(Proc.temp.aa, Proc.read_Cp(r[2]));
+                if (Proc.temp.aa > 63)
+                  throw not_implemented();
+#ifdef DEBUG
+                Proc.temp.ansp.SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
+#endif
+                break;
+              case SHLCI:
+#ifdef DEBUG
+                Proc.temp.ansp.SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]), n);
+#endif
+                break;
+              case SHRCI:
+#ifdef DEBUG
+                Proc.temp.ansp.SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
+                Proc.write_Cp(r[0], Proc.temp.ansp);
+#else
+                Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]), n);
+#endif
+                break;
+              case JMP:
+                Proc.relative_jump((signed int) n);
+                break;
+              case JMPNZ:
+                if (Proc.read_Ri(r[0]) != 0)
+                  {
+                    Proc.relative_jump((signed int) n);
+                  }
+                break;
+              case JMPEQZ:
+                if (Proc.read_Ri(r[0]) == 0)
+                  {
+                    Proc.relative_jump((signed int) n);
+                  }
+                break;
+              case CALL:
+                Proc.push_int(Proc.get_PC());
+                Proc.relative_jump((signed int) n);
+                break;
+              case RETURN:
+                long ret_pos;
+                if (Proc.stack_int.size() >= 1)
+                  {
+                    Proc.pop_int(ret_pos);
+                  }
+                else
+                  {
+                    ret_pos= Proc.program_size();
+                  }
+                Proc.jump(ret_pos);
+                break;
+              case EQZINT:
+                if (Proc.read_Ri(r[1]) == 0)
+                  Proc.write_Ri(r[0], 1);
+                else
+                  Proc.write_Ri(r[0], 0);
+                break;
+              case LTZINT:
+                if (Proc.read_Ri(r[1]) < 0)
+                  Proc.write_Ri(r[0], 1);
+                else
+                  Proc.write_Ri(r[0], 0);
+                break;
+              case LTINT:
+                if (Proc.read_Ri(r[1]) < Proc.read_Ri(r[2]))
+                  Proc.write_Ri(r[0], 1);
+                else
+                  Proc.write_Ri(r[0], 0);
+                break;
+              case GTINT:
+                if (Proc.read_Ri(r[1]) > Proc.read_Ri(r[2]))
+                  Proc.write_Ri(r[0], 1);
+                else
+                  Proc.write_Ri(r[0], 0);
+                break;
+              case EQINT:
+                if (Proc.read_Ri(r[1]) == Proc.read_Ri(r[2]))
+                  Proc.write_Ri(r[0], 1);
+                else
+                  Proc.write_Ri(r[0], 0);
+                break;
+              case LDINT:
+                Proc.write_Ri(r[0], n);
+                break;
+              case ADDINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) + Proc.read_Ri(r[2]);
+                break;
+              case SUBINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) - Proc.read_Ri(r[2]);
+                break;
+              case MULINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) * Proc.read_Ri(r[2]);
+                break;
+              case DIVINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) / Proc.read_Ri(r[2]);
+                break;
+              case CONVINT:
+                Proc.get_Cp_ref(r[0]).assign(Proc.read_Ri(r[1]));
+                break;
+              case CONVMODP:
+                to_signed_bigint(Proc.temp.aa, Proc.read_Cp(r[1]), n);
+                Proc.write_Ri(r[0], Proc.temp.aa.get_si());
+                break;
+              case PRINT_MEM:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << "Mem[" << n << "] = " << machine.Mc.read(n, machine.verbose) << endl;
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_REG:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << Proc.read_Cp(r[0]);
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_FIX:
+                if (P.whoami() == 0)
+                  {
+                    gfp v= Proc.read_Cp(r[0]);
+                    // immediate values
+                    auto f= n;
+                    auto k= m;
+                    // v has k bits max
+                    to_signed_bigint(Proc.temp.aa, v, k);
+                    mpf_class res= Proc.temp.aa;
+                    // compute v * 2^{-f}
+                    mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), f);
+                    stringstream ss;
+                    ss << res;
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_FLOAT:
+                if (P.whoami() == 0)
+                  {
+                    gfp v= Proc.read_Cp(c_start[0]);
+                    gfp p= Proc.read_Cp(c_start[1]);
+                    gfp z= Proc.read_Cp(c_start[2]);
+                    gfp s= Proc.read_Cp(c_start[3]);
+                    gfp e= Proc.read_Cp(c_start[4]);
+                    to_bigint(Proc.temp.aa, v);
+                    // MPIR can't handle more precision in exponent
+                    to_signed_bigint(Proc.temp.aa2, p, 31);
+                    long exp= Proc.temp.aa2.get_si();
+                    mpf_class res= Proc.temp.aa;
+                    if (exp > 0)
+                      mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp);
+                    else
+                      mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), -exp);
+                    if (z.is_one())
+                      res= 0;
+                    if (!s.is_zero())
+                      res*= -1;
+                    if (not z.is_bit() or not s.is_bit())
+                      throw Processor_Error("invalid floating point number");
+                    stringstream ss;
+                    if (e.is_zero())
+                      {
+                        ss << res;
+                      }
+                    else
+                      {
+                        ss << "NaN";
+                      }
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_INT:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << Proc.read_Ri(r[0]);
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_IEEE_FLOAT:
+                if (P.whoami() == 0)
+                  {
+                    unsigned long y= Proc.read_Ri(r[0]);
+                    // First convert long to bits
+                    vector<int> bits(64);
+                    for (int index= 0; index < 64; index++)
+                      {
+                        bits[63 - index]= y & 1;
+                        y>>= 1;
+                      }
+                    // Now convert bits to double
+                    double x;
+                    uint8_t *ptr= (uint8_t *) &x;
+                    for (int index= 0; index < 8; index++)
+                      {
+                        uint8_t byte= 0;
+                        for (int j= 0; j < 8; j++)
+                          {
+                            byte<<= 1;
+                            byte+= bits[56 + j - index * 8];
+                          }
+                        ptr[index]= byte;
+                      }
+                    // Now print the double
+                    stringstream ss;
+                    ss.precision(numeric_limits<double>::digits10 + 2);
+                    ss << x;
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_CHAR4:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << string((char *) &n, sizeof(n));
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_CHAR:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << string((char *) &n, 1);
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_CHAR_REGINT:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << string((char *) &(Proc.read_Ri(r[0])), 1);
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case PRINT_CHAR4_REGINT:
+                if (P.whoami() == 0)
+                  {
+                    stringstream ss;
+                    ss << string((char *) &(Proc.read_Ri(r[0])), sizeof(int));
+                    machine.get_IO().debug_output(ss);
+                  }
+                break;
+              case RAND:
+                Proc.write_Ri(r[0], Proc.get_random_uint() % (1 << Proc.read_Ri(r[1])));
+                break;
+              case START_CLOCK:
+                machine.start_timer(n);
+                break;
+              case STOP_CLOCK:
+                machine.stop_timer(n);
+                break;
+              case REQBL:
+                break;
+              case RUN_TAPE:
+                machine.run_tape(r[0], r[2], r[1]);
+                break;
+              case JOIN_TAPE:
+                machine.Lock_Until_Finished_Tape(n);
+                break;
+              case CRASH:
+                machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
+                // Note deliberately no "break" to enable CRASH to call RESTART
+                // if the IO.crash returns
+              case RESTART:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                restart= true;
+                break;
+              case CLEAR_MEMORY:
+                machine.Mc.clear_memory();
+                machine.Ms.clear_memory();
+                machine.Mr.clear_memory();
+                machine.Msr.clear_memory();
+                break;
+              case CLEAR_REGISTERS:
+                Proc.clear_registers();
+                break;
+              case OUTPUT_SHARES:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                for (unsigned int j= 0; j < c_start.size(); j++)
+                  {
+                    machine.get_IO().output_share(Proc.get_Sp_ref(c_start[j]), p);
+                  }
+                break;
+              case INPUT_SHARES:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                for (unsigned int j= 0; j < c_start.size(); j++)
+                  {
+                    Proc.get_Sp_ref(c_start[j])= machine.get_IO().input_share(p);
+                  }
+                break;
+              case INPUT_CLEAR:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                Proc.get_Cp_ref(r[0])= machine.get_IO().public_input_gfp(n);
+                break;
+              case INPUT_INT:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                Proc.get_Ri_ref(r[0])= machine.get_IO().public_input_int(n);
+                break;
+              case OUTPUT_CLEAR:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                machine.get_IO().public_output_gfp(Proc.read_Cp(r[0]), n);
+                break;
+              case OUTPUT_INT:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                machine.get_IO().public_output_int(Proc.read_Ri(r[0]), n);
+                break;
+              case OPEN_CHANNEL:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                Proc.get_Ri_ref(r[0])= machine.get_IO().open_channel(n);
+                break;
+              case CLOSE_CHANNEL:
+                if (Proc.get_thread_num() != 0)
+                  {
+                    throw IO_thread();
+                  }
+                machine.get_IO().close_channel(n);
+                break;
+              /* Now we add in the new instructions for sregint and sbit operations */
+              case LDMSINT:
+                Proc.write_srint(r[0], machine.Msr.read(n, machine.verbose));
+                n++;
+                break;
+              case LDMSINTI:
+                Proc.write_srint(r[0], machine.Msr.read(Proc.read_Ri(r[1]), machine.verbose));
+                break;
+              case STMSINT:
+                machine.Msr.write(n, Proc.read_srint(r[0]), machine.verbose, Proc.get_PC());
+                n++;
+                break;
+              case STMSINTI:
+                machine.Msr.write(Proc.read_Ri(r[1]), Proc.read_srint(r[0]), machine.verbose, Proc.get_PC());
+                break;
+              case MOVSINT:
+                Proc.write_srint(r[0], Proc.read_srint(r[1]));
+                break;
+              case LDSINT:
+                Proc.write_srint(r[0], n);
+                break;
+              case LDSBIT:
+                Proc.temp.aB.assign_zero();
+                Proc.temp.aB.add(n);
+                Proc.write_sbit(r[0], Proc.temp.aB);
+                break;
+              case ADDSINT:
+                Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case ADDSINTC:
+                Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.online_thread_num);
+                break;
+              case SUBSINT:
+                Proc.get_srint_ref(r[0]).sub(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case SUBSINTC:
+                Proc.get_srint_ref(r[0]).sub(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.online_thread_num);
+                break;
+              case SUBCINTS:
+                Proc.get_srint_ref(r[0]).sub(Proc.read_Ri(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case MULSINT:
+                Proc.get_srint_ref(r[0]).mul(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case MULSINTC:
+                Proc.get_srint_ref(r[0]).mul(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.online_thread_num);
+                break;
+              case MUL2SINT:
+                mul(Proc.get_srint_ref(c_start[0]), Proc.get_srint_ref(c_start[1]), Proc.read_srint(c_start[2]), Proc.read_srint(c_start[3]), P, Proc.online_thread_num);
+                break;
+              case DIVSINT:
+                Proc.get_srint_ref(r[0]).div(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case SHLSINT:
+                Proc.get_srint_ref(r[0]).SHL(Proc.read_srint(r[1]), n);
+                break;
+              case SHRSINT:
+                Proc.get_srint_ref(r[0]).SHR(Proc.read_srint(r[1]), n);
+                break;
+              case NEG:
+                Proc.get_srint_ref(r[0]).negate(Proc.read_srint(r[1]), P, Proc.online_thread_num);
+                break;
+              case SAND:
+                Proc.get_srint_ref(r[0]).Bit_AND(Proc.read_srint(r[1]), Proc.read_sbit(r[2]), P, Proc.online_thread_num);
+                break;
+              case ANDSINT:
+                Proc.get_srint_ref(r[0]).Bitwise_AND(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case ANDSINTC:
+                Proc.get_srint_ref(r[0]).Bitwise_AND(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
+                break;
+              case ORSINT:
+                Proc.get_srint_ref(r[0]).Bitwise_OR(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
+                break;
+              case ORSINTC:
+                Proc.get_srint_ref(r[0]).Bitwise_OR(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
+                break;
+              case XORSINT:
+                Proc.get_srint_ref(r[0]).Bitwise_XOR(Proc.read_srint(r[1]), Proc.read_srint(r[2]));
+                break;
+              case XORSINTC:
+                Proc.get_srint_ref(r[0]).Bitwise_XOR(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
+                break;
+              case INVSINT:
+                Proc.get_srint_ref(r[0]).Bitwise_Negate(Proc.read_srint(r[1]));
+                break;
+              case ANDINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) & Proc.read_Ri(r[2]);
+                break;
+              case ORINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) | Proc.read_Ri(r[2]);
+                break;
+              case XORINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) ^ Proc.read_Ri(r[2]);
+                break;
+              case INVINT:
+                Proc.get_Ri_ref(r[0])= ~Proc.read_Ri(r[1]);
+                break;
+              case SHLINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) << Proc.read_Ri(r[2]);
+                break;
+              case SHRINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) >> Proc.read_Ri(r[2]);
+                break;
+              case XORSB:
+                Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
+                break;
+              case ANDSB:
+                OTD.check();
+                Proc.temp.T= OTD.aAD.get_aAND(Proc.online_thread_num);
+                Mult_aBit(Proc.get_sbit_ref(r[0]), Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
+                #if BENCH_OFFLINE
+			P.aands++;
+                #endif
+                break;
+              case ORSB:
+                OTD.check();
+                Proc.temp.T= OTD.aAD.get_aAND(Proc.online_thread_num);
+                Mult_aBit(Proc.temp.aB, Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
+                Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
+                Proc.get_sbit_ref(r[0]).add(Proc.temp.aB);
+		#if BENCH_OFFLINE
+                        P.aands++;
+                #endif
+                break;
+              case NEGB:
+                Proc.get_sbit_ref(r[0]).negate(Proc.read_sbit(r[1]));
+                break;
+              case LTZSINT:
+                Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).less_than_zero();
+                break;
+              case EQZSINT:
+                Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).equal_zero(P, Proc.online_thread_num);
+                break;
+              case BITSINT:
+                Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).get_bit(n);
+                break;
+              case SINTBIT:
+                Proc.get_srint_ref(r[0])= Proc.read_srint(r[1]);
+                Proc.get_srint_ref(r[0]).set_bit(n, Proc.read_sbit(r[2]));
+                break;
+              case CONVSINTSREG:
+                Proc.convert_sint_to_sregint(r[1], r[0], P);
+                break;
+              case CONVSREGSINT:
+                Proc.convert_sregint_to_sint(r[1], r[0], P);
+                break;
+              case CONVSUREGSINT:
+                Proc.convert_suregint_to_sint(r[1], r[0], P);
+                break;
+              case CONVREGSREG:
+                Proc.write_srint(r[0], Proc.read_Ri(r[1]));
+                break;
+              case CONVSINTSBIT:
+                Proc.convert_sint_to_sbit(r[1], r[0], P);
+                break;
+              case CONVSBITSINT:
+                Proc.convert_sbit_to_sint(r[1], r[0], P);
+                break;
+              case OPENSINT:
+                Proc.write_Ri(r[0], Proc.read_srint(r[1]).Open(P));
+                break;
+              case OPENSBIT:
+                int t;
+                Open_aBit(t, Proc.read_sbit(r[1]), P);
+                Proc.write_Ri(r[0], t);
+                break;
+              case GC:
+                Proc.apply_GC(n, P);
+                break;
+              case LF:
+                Global_LF.apply_Function(n, Proc);
+                break;
+              default:
+                printf("Invalid opcode=%d. Since it is not implemented\n", opcode);
+                throw not_implemented();
+                break;
+            }
+          if (size > 1)
+            {
+              r[0]++;
+              r[1]++;
+              r[2]++;
+              for (unsigned int j= 0; j < c_start.size(); j++)
+                {
+                  c_start[j]++;
+                }
+            }
         }
-      if (opcode == PRIVATE_OUTPUT)
+    }
+  if (machine.verbose > 1)
+    {
+      long long time= instr_timer.elapsed_since_last_start();
+      printf(BENCH_TEXT_BOLD);
+      if (time > 10000)
         {
-          Proc.iop.private_output(p, r[0], m, Proc, P, machine, OCD, size);
+          printf(BENCH_COLOR_RED "++");
+        }
+      else if (time > 1000)
+        {
+          printf(BENCH_COLOR_BLUE "+ ");
         }
       else
         {
-          Proc.iop.private_input(p, r[0], m, Proc, P, machine, OCD, size);
+          printf(BENCH_COLOR_GREEN "  ");
         }
-      return restart;
-    }
-  if (opcode == STARTOPEN)
-    {
-      Proc.POpen_Start(start, size, P);
-      return restart;
-    }
-  if (opcode == STOPOPEN)
-    {
-      Proc.POpen_Stop(start, size, P);
-      return restart;
-    }
-
-  // Need to copy as we might need to alter this in the loop
-  //   But it should not be that big in any case here
-  vector<int> c_start= start;
-
-  // Loop here to cope with vectorization, if an instruction is not vectorizable
-  // then size=1 in any case :-)
-  for (unsigned int i= 0; i < size; i++)
-    {
-      switch (opcode)
-        {
-          case LDI:
-            Proc.temp.ansp.assign(n);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-            case LDSI: {
-              Proc.temp.ansp.assign(n);
-              Proc.get_Sp_ref(r[0]).assign(Proc.temp.ansp, P.get_mac_keys());
-            }
-            break;
-          case LDMC:
-            Proc.write_Cp(r[0], machine.Mc.read(n, machine.verbose));
-            n++;
-            break;
-          case LDMS:
-            Proc.write_Sp(r[0], machine.Ms.read(n, machine.verbose));
-            n++;
-            break;
-          case LDMINT:
-            Proc.write_Ri(r[0], machine.Mr.read(n, machine.verbose).get());
-            n++;
-            break;
-          case LDMCI:
-            Proc.write_Cp(r[0], machine.Mc.read(Proc.read_Ri(r[1]), machine.verbose));
-            break;
-          case LDMSI:
-            Proc.write_Sp(r[0], machine.Ms.read(Proc.read_Ri(r[1]), machine.verbose));
-            break;
-          case LDMINTI:
-            Proc.write_Ri(r[0], machine.Mr.read(Proc.read_Ri(r[1]), machine.verbose).get());
-            break;
-          case STMC:
-            machine.Mc.write(n, Proc.read_Cp(r[0]), machine.verbose, Proc.get_PC());
-            n++;
-            break;
-          case STMS:
-            machine.Ms.write(n, Proc.read_Sp(r[0]), machine.verbose, Proc.get_PC());
-            n++;
-            break;
-          case STMINT:
-            machine.Mr.write(n, Integer(Proc.read_Ri(r[0])), machine.verbose, Proc.get_PC());
-            n++;
-            break;
-          case STMCI:
-            machine.Mc.write(Proc.read_Ri(r[1]), Proc.read_Cp(r[0]), machine.verbose, Proc.get_PC());
-            break;
-          case STMSI:
-            machine.Ms.write(Proc.read_Ri(r[1]), Proc.read_Sp(r[0]), machine.verbose, Proc.get_PC());
-            break;
-          case STMINTI:
-            machine.Mr.write(Proc.read_Ri(r[1]), Integer(Proc.read_Ri(r[0])),
-                             machine.verbose, Proc.get_PC());
-            break;
-          case MOVC:
-            Proc.write_Cp(r[0], Proc.read_Cp(r[1]));
-            break;
-          case MOVS:
-            Proc.write_Sp(r[0], Proc.read_Sp(r[1]));
-            break;
-          case MOVINT:
-            Proc.write_Ri(r[0], Proc.read_Ri(r[1]));
-            break;
-          case PUSHINT:
-            Proc.push_int(Proc.read_Ri(r[0]));
-            break;
-          case PUSHSINT:
-            Proc.push_srint(Proc.read_srint(r[0]));
-            break;
-          case PUSHC:
-            Proc.push_Cp(Proc.read_Cp(r[0]));
-            break;
-          case PUSHS:
-            Proc.push_Sp(Proc.read_Sp(r[0]));
-            break;
-          case PUSHSBIT:
-            Proc.push_sbit(Proc.read_sbit(r[0]));
-            break;
-          case POPINT:
-            Proc.pop_int(Proc.get_Ri_ref(r[0]));
-            break;
-          case POPSINT:
-            Proc.pop_srint(Proc.get_srint_ref(r[0]));
-            break;
-          case POPC:
-            Proc.pop_Cp(Proc.get_Cp_ref(r[0]));
-            break;
-          case POPS:
-            Proc.pop_Sp(Proc.get_Sp_ref(r[0]));
-            break;
-          case POPSBIT:
-            Proc.pop_sbit(Proc.get_sbit_ref(r[0]));
-            break;
-          case PEEKINT:
-            Proc.peek_int(Proc.get_Ri_ref(r[0]), Proc.read_Ri(r[1]));
-            break;
-          case PEEKSINT:
-            Proc.peek_srint(Proc.get_srint_ref(r[0]), Proc.read_Ri(r[1]));
-            break;
-          case PEEKC:
-            Proc.peek_Cp(Proc.get_Cp_ref(r[0]), Proc.read_Ri(r[1]));
-            break;
-          case PEEKS:
-            Proc.peek_Sp(Proc.get_Sp_ref(r[0]), Proc.read_Ri(r[1]));
-            break;
-          case PEEKSBIT:
-            Proc.peek_sbit(Proc.get_sbit_ref(r[0]), Proc.read_Ri(r[1]));
-            break;
-          case POKEINT:
-            Proc.poke_int(Proc.read_Ri(r[0]), Proc.read_Ri(r[1]));
-            break;
-          case POKESINT:
-            Proc.poke_srint(Proc.read_Ri(r[0]), Proc.read_srint(r[1]));
-            break;
-          case POKEC:
-            Proc.poke_Cp(Proc.read_Ri(r[0]), Proc.read_Cp(r[1]));
-            break;
-          case POKES:
-            Proc.poke_Sp(Proc.read_Ri(r[0]), Proc.read_Sp(r[1]));
-            break;
-          case POKESBIT:
-            Proc.poke_sbit(Proc.read_Ri(r[0]), Proc.read_sbit(r[1]));
-            break;
-          case GETSPINT:
-            Proc.getsp_int(Proc.get_Ri_ref(r[0]));
-            break;
-          case GETSPSINT:
-            Proc.getsp_srint(Proc.get_Ri_ref(r[0]));
-            break;
-          case GETSPC:
-            Proc.getsp_Cp(Proc.get_Ri_ref(r[0]));
-            break;
-          case GETSPS:
-            Proc.getsp_Sp(Proc.get_Ri_ref(r[0]));
-            break;
-          case GETSPSBIT:
-            Proc.getsp_sbit(Proc.get_Ri_ref(r[0]));
-            break;
-          case LDTN:
-            Proc.write_Ri(r[0], Proc.get_thread_num());
-            break;
-          case LDARG:
-            Proc.write_Ri(r[0], Proc.get_arg());
-            break;
-          case STARG:
-            Proc.set_arg(Proc.read_Ri(r[0]));
-            break;
-          case ADDC:
-#ifdef DEBUG
-            Proc.temp.ansp.add(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).add(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case ADDS:
-#ifdef DEBUG
-            Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
-#endif
-            break;
-          case ADDM:
-#ifdef DEBUG
-            Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]),
-                                      P.get_mac_keys());
-#endif
-            break;
-          case SUBC:
-#ifdef DEBUG
-            Proc.temp.ansp.sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case SUBS:
-#ifdef DEBUG
-            Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.read_Sp(r[2]));
-#endif
-            break;
-          case SUBML:
-#ifdef DEBUG
-            Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]),
-                                      P.get_mac_keys());
-#endif
-            break;
-          case SUBMR:
-#ifdef DEBUG
-            Proc.temp.Sansp.sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.read_Sp(r[2]),
-                                      P.get_mac_keys());
-#endif
-            break;
-          case MULC:
-#ifdef DEBUG
-            Proc.temp.ansp.mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).mul(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case MULM:
-#ifdef DEBUG
-            Proc.temp.Sansp.mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case DIVC:
-            if (Proc.read_Cp(r[2]).is_zero())
-              throw Processor_Error("Division by zero from register");
-            Proc.temp.ansp.invert(Proc.read_Cp(r[2]));
-            Proc.temp.ansp.mul(Proc.read_Cp(r[1]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-          case MODC:
-            to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-            to_bigint(Proc.temp.aa2, Proc.read_Cp(r[2]));
-            mpz_fdiv_r(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t(),
-                       Proc.temp.aa2.get_mpz_t());
-            to_gfp(Proc.temp.ansp, Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-          case LEGENDREC:
-            to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-            Proc.temp.aa=
-                mpz_legendre(Proc.temp.aa.get_mpz_t(), gfp::pr().get_mpz_t());
-            to_gfp(Proc.temp.ansp, Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-            case DIGESTC: {
-              stringstream o;
-              to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-
-              to_gfp(Proc.temp.ansp, Proc.temp.aa);
-              Proc.temp.ansp.output(o, false);
-              string s= Hash(o.str());
-              // keep first n bytes
-              istringstream is(s);
-              Proc.temp.ansp.input(is, false);
-              Proc.write_Cp(r[0], Proc.temp.ansp);
-            }
-            break;
-          case DIVCI:
-            if (n == 0)
-              throw Processor_Error("Division by immediate zero");
-            to_gfp(Proc.temp.ansp, n % gfp::pr());
-            Proc.temp.ansp.invert();
-            Proc.temp.ansp.mul(Proc.read_Cp(r[1]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-          case MODCI:
-            to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-            to_gfp(Proc.temp.ansp, mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-          case ADDCI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.ansp.add(Proc.temp.ansp, Proc.read_Cp(r[1]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).add(Proc.temp.ansp, Proc.read_Cp(r[1]));
-#endif
-            break;
-          case ADDSI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.Sansp.add(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]), Proc.temp.ansp,
-                                      P.get_mac_keys());
-#endif
-            break;
-          case SUBCI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.ansp.sub(Proc.read_Cp(r[1]), Proc.temp.ansp);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]), Proc.temp.ansp);
-#endif
-            break;
-          case SUBSI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.Sansp.sub(Proc.read_Sp(r[1]), Proc.temp.ansp, P.get_mac_keys());
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]), Proc.temp.ansp,
-                                      P.get_mac_keys());
-#endif
-            break;
-          case SUBCFI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.ansp.sub(Proc.temp.ansp, Proc.read_Cp(r[1]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).sub(Proc.temp.ansp, Proc.read_Cp(r[1]));
-#endif
-            break;
-          case SUBSFI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.Sansp.sub(Proc.temp.ansp, Proc.read_Sp(r[1]), P.get_mac_keys());
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).sub(Proc.temp.ansp, Proc.read_Sp(r[1]),
-                                      P.get_mac_keys());
-#endif
-            break;
-          case MULCI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.ansp.mul(Proc.temp.ansp, Proc.read_Cp(r[1]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).mul(Proc.temp.ansp, Proc.read_Cp(r[1]));
-#endif
-            break;
-          case MULSI:
-            Proc.temp.ansp.assign(n);
-#ifdef DEBUG
-            Proc.temp.Sansp.mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
-            Proc.write_Sp(r[0], Proc.temp.Sansp);
-#else
-            Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]), Proc.temp.ansp);
-#endif
-            break;
-          case ANDC:
-#ifdef DEBUG
-            Proc.temp.ansp.AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case XORC:
-#ifdef DEBUG
-            Proc.temp.ansp.XOR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case ORC:
-#ifdef DEBUG
-            Proc.temp.ansp.OR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).OR(Proc.read_Cp(r[1]), Proc.read_Cp(r[2]));
-#endif
-            break;
-          case ANDCI:
-            Proc.temp.aa= n;
-#ifdef DEBUG
-            Proc.temp.ansp.AND(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]), Proc.temp.aa);
-#endif
-            break;
-          case XORCI:
-            Proc.temp.aa= n;
-#ifdef DEBUG
-            Proc.temp.ansp.XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]), Proc.temp.aa);
-#endif
-            break;
-          case ORCI:
-            Proc.temp.aa= n;
-#ifdef DEBUG
-            Proc.temp.ansp.OR(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).OR(Proc.read_Cp(r[1]), Proc.temp.aa);
-#endif
-            break;
-          case NOTC:
-            to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-            mpz_com(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t());
-            Proc.temp.aa2= 1;
-            Proc.temp.aa2<<= n;
-            Proc.temp.aa+= Proc.temp.aa2;
-            to_gfp(Proc.temp.ansp, Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-            break;
-          case SHLC:
-            to_bigint(Proc.temp.aa, Proc.read_Cp(r[2]));
-            if (Proc.temp.aa > 63)
-              throw not_implemented();
-#ifdef DEBUG
-            Proc.temp.ansp.SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
-#endif
-            break;
-          case SHRC:
-            to_bigint(Proc.temp.aa, Proc.read_Cp(r[2]));
-            if (Proc.temp.aa > 63)
-              throw not_implemented();
-#ifdef DEBUG
-            Proc.temp.ansp.SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
-#endif
-            break;
-          case SHLCI:
-#ifdef DEBUG
-            Proc.temp.ansp.SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]), n);
-#endif
-            break;
-          case SHRCI:
-#ifdef DEBUG
-            Proc.temp.ansp.SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
-            Proc.write_Cp(r[0], Proc.temp.ansp);
-#else
-            Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]), n);
-#endif
-            break;
-          case JMP:
-            Proc.relative_jump((signed int) n);
-            break;
-          case JMPNZ:
-            if (Proc.read_Ri(r[0]) != 0)
-              {
-                Proc.relative_jump((signed int) n);
-              }
-            break;
-          case JMPEQZ:
-            if (Proc.read_Ri(r[0]) == 0)
-              {
-                Proc.relative_jump((signed int) n);
-              }
-            break;
-          case CALL:
-            Proc.push_int(Proc.get_PC());
-            Proc.relative_jump((signed int) n);
-            break;
-          case RETURN:
-            long ret_pos;
-            if (Proc.stack_int.size() >= 1)
-              {
-                Proc.pop_int(ret_pos);
-              }
-            else
-              {
-                ret_pos= Proc.program_size();
-              }
-            Proc.jump(ret_pos);
-            break;
-          case EQZINT:
-            if (Proc.read_Ri(r[1]) == 0)
-              Proc.write_Ri(r[0], 1);
-            else
-              Proc.write_Ri(r[0], 0);
-            break;
-          case LTZINT:
-            if (Proc.read_Ri(r[1]) < 0)
-              Proc.write_Ri(r[0], 1);
-            else
-              Proc.write_Ri(r[0], 0);
-            break;
-          case LTINT:
-            if (Proc.read_Ri(r[1]) < Proc.read_Ri(r[2]))
-              Proc.write_Ri(r[0], 1);
-            else
-              Proc.write_Ri(r[0], 0);
-            break;
-          case GTINT:
-            if (Proc.read_Ri(r[1]) > Proc.read_Ri(r[2]))
-              Proc.write_Ri(r[0], 1);
-            else
-              Proc.write_Ri(r[0], 0);
-            break;
-          case EQINT:
-            if (Proc.read_Ri(r[1]) == Proc.read_Ri(r[2]))
-              Proc.write_Ri(r[0], 1);
-            else
-              Proc.write_Ri(r[0], 0);
-            break;
-          case LDINT:
-            Proc.write_Ri(r[0], n);
-            break;
-          case ADDINT:
-            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) + Proc.read_Ri(r[2]);
-            break;
-          case SUBINT:
-            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) - Proc.read_Ri(r[2]);
-            break;
-          case MULINT:
-            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) * Proc.read_Ri(r[2]);
-            break;
-          case DIVINT:
-            Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) / Proc.read_Ri(r[2]);
-            break;
-          case CONVINT:
-            Proc.get_Cp_ref(r[0]).assign(Proc.read_Ri(r[1]));
-            break;
-          case CONVMODP:
-            to_signed_bigint(Proc.temp.aa, Proc.read_Cp(r[1]), n);
-            Proc.write_Ri(r[0], Proc.temp.aa.get_si());
-            break;
-          case PRINT_MEM:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << "Mem[" << n << "] = " << machine.Mc.read(n, machine.verbose) << endl;
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_REG:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << Proc.read_Cp(r[0]);
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_FIX:
-            if (P.whoami() == 0)
-              {
-                gfp v= Proc.read_Cp(r[0]);
-                // immediate values
-                auto f= n;
-                auto k= m;
-                // v has k bits max
-                to_signed_bigint(Proc.temp.aa, v, k);
-                mpf_class res= Proc.temp.aa;
-                // compute v * 2^{-f}
-                mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), f);
-                stringstream ss;
-                ss << res;
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_FLOAT:
-            if (P.whoami() == 0)
-              {
-                gfp v= Proc.read_Cp(c_start[0]);
-                gfp p= Proc.read_Cp(c_start[1]);
-                gfp z= Proc.read_Cp(c_start[2]);
-                gfp s= Proc.read_Cp(c_start[3]);
-                to_bigint(Proc.temp.aa, v);
-                // MPIR can't handle more precision in exponent
-                to_signed_bigint(Proc.temp.aa2, p, 31);
-                long exp= Proc.temp.aa2.get_si();
-                mpf_class res= Proc.temp.aa;
-                if (exp > 0)
-                  mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp);
-                else
-                  mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), -exp);
-                if (z.is_one())
-                  res= 0;
-                if (!s.is_zero())
-                  res*= -1;
-                if (not z.is_bit() or not s.is_bit())
-                  throw Processor_Error("invalid floating point number");
-                stringstream ss;
-                ss << res;
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_INT:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << Proc.read_Ri(r[0]);
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_IEEE_FLOAT:
-            if (P.whoami() == 0)
-              {
-                unsigned long y= Proc.read_Ri(r[0]);
-                // First convert long to bits
-                vector<int> bits(64);
-                for (int index= 0; index < 64; index++)
-                  {
-                    bits[63 - index]= y & 1;
-                    y>>= 1;
-                  }
-                // Now convert bits to double
-                double x;
-                uint8_t *ptr= (uint8_t *) &x;
-                for (int index= 0; index < 8; index++)
-                  {
-                    uint8_t byte= 0;
-                    for (int j= 0; j < 8; j++)
-                      {
-                        byte<<= 1;
-                        byte+= bits[56 + j - index * 8];
-                      }
-                    ptr[index]= byte;
-                  }
-                // Now print the double
-                stringstream ss;
-                ss.precision(numeric_limits<double>::digits10 + 2);
-                ss << x;
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_CHAR4:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << string((char *) &n, sizeof(n));
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_CHAR:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << string((char *) &n, 1);
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_CHAR_REGINT:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << string((char *) &(Proc.read_Ri(r[0])), 1);
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case PRINT_CHAR4_REGINT:
-            if (P.whoami() == 0)
-              {
-                stringstream ss;
-                ss << string((char *) &(Proc.read_Ri(r[0])), sizeof(int));
-                machine.get_IO().debug_output(ss);
-              }
-            break;
-          case RAND:
-            Proc.write_Ri(r[0], Proc.get_random_uint() % (1 << Proc.read_Ri(r[1])));
-            break;
-          case START_CLOCK:
-            machine.start_timer(n);
-            break;
-          case STOP_CLOCK:
-            machine.stop_timer(n);
-            break;
-          case REQBL:
-            break;
-          case RUN_TAPE:
-            machine.run_tape(r[0], r[2], r[1]);
-            break;
-          case JOIN_TAPE:
-            machine.Lock_Until_Finished_Tape(n);
-            break;
-          case CRASH:
-            machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
-            // Note deliberately no "break" to enable CRASH to call RESTART
-            // if the IO.crash returns
-          case RESTART:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            restart= true;
-            break;
-          case CLEAR_MEMORY:
-            machine.Mc.clear_memory();
-            machine.Ms.clear_memory();
-            machine.Mr.clear_memory();
-            machine.Msr.clear_memory();
-            break;
-          case CLEAR_REGISTERS:
-            Proc.clear_registers();
-            break;
-          case OUTPUT_SHARES:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            for (unsigned int j= 0; j < c_start.size(); j++)
-              {
-                machine.get_IO().output_share(Proc.get_Sp_ref(c_start[j]), p);
-              }
-            break;
-          case INPUT_SHARES:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            for (unsigned int j= 0; j < c_start.size(); j++)
-              {
-                Proc.get_Sp_ref(c_start[j])= machine.get_IO().input_share(p);
-              }
-            break;
-          case INPUT_CLEAR:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            Proc.get_Cp_ref(r[0])= machine.get_IO().public_input_gfp(n);
-            break;
-          case INPUT_INT:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            Proc.get_Ri_ref(r[0])= machine.get_IO().public_input_int(n);
-            break;
-          case OUTPUT_CLEAR:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            machine.get_IO().public_output_gfp(Proc.read_Cp(r[0]), n);
-            break;
-          case OUTPUT_INT:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            machine.get_IO().public_output_int(Proc.read_Ri(r[0]), n);
-            break;
-          case OPEN_CHANNEL:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            Proc.get_Ri_ref(r[0])= machine.get_IO().open_channel(n);
-            break;
-          case CLOSE_CHANNEL:
-            if (Proc.get_thread_num() != 0)
-              {
-                throw IO_thread();
-              }
-            machine.get_IO().close_channel(n);
-            break;
-          /* Now we add in the new instructions for sregint and sbit operations */
-          case LDMSINT:
-            Proc.write_srint(r[0], machine.Msr.read(n, machine.verbose));
-            n++;
-            break;
-          case LDMSINTI:
-            Proc.write_srint(r[0], machine.Msr.read(Proc.read_Ri(r[1]), machine.verbose));
-            break;
-          case STMSINT:
-            machine.Msr.write(n, Proc.read_srint(r[0]), machine.verbose, Proc.get_PC());
-            n++;
-            break;
-          case STMSINTI:
-            machine.Msr.write(Proc.read_Ri(r[1]), Proc.read_srint(r[0]), machine.verbose, Proc.get_PC());
-            break;
-          case MOVSINT:
-            Proc.write_srint(r[0], Proc.read_srint(r[1]));
-            break;
-          case LDSINT:
-            Proc.write_srint(r[0], n);
-            break;
-          case LDSBIT:
-            Proc.temp.aB.assign_zero();
-            Proc.temp.aB.add(n);
-            Proc.write_sbit(r[0], Proc.temp.aB);
-            break;
-          case ADDSINT:
-            Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case ADDSINTC:
-            Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.online_thread_num);
-            break;
-          case SUBSINT:
-            Proc.get_srint_ref(r[0]).sub(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case SUBSINTC:
-            Proc.get_srint_ref(r[0]).sub(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.online_thread_num);
-            break;
-          case SUBCINTS:
-            Proc.get_srint_ref(r[0]).sub(Proc.read_Ri(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case MULSINT:
-            Proc.get_srint_ref(r[0]).mul(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case MULSINTC:
-            Proc.get_srint_ref(r[0]).mul(Proc.read_srint(r[1]), Proc.read_Ri(r[2]), P, Proc.online_thread_num);
-            break;
-          case MUL2SINT:
-            mul(Proc.get_srint_ref(c_start[0]), Proc.get_srint_ref(c_start[1]), Proc.read_srint(c_start[2]), Proc.read_srint(c_start[3]), P, Proc.online_thread_num);
-            break;
-          case DIVSINT:
-            Proc.get_srint_ref(r[0]).div(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case SHLSINT:
-            Proc.get_srint_ref(r[0]).SHL(Proc.read_srint(r[1]), n);
-            break;
-          case SHRSINT:
-            Proc.get_srint_ref(r[0]).SHR(Proc.read_srint(r[1]), n);
-            break;
-          case NEG:
-            Proc.get_srint_ref(r[0]).negate(Proc.read_srint(r[1]), P, Proc.online_thread_num);
-            break;
-          case SAND:
-            Proc.get_srint_ref(r[0]).Bit_AND(Proc.read_srint(r[1]), Proc.read_sbit(r[2]), P, Proc.online_thread_num);
-            break;
-          case ANDSINT:
-            Proc.get_srint_ref(r[0]).Bitwise_AND(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case ANDSINTC:
-            Proc.get_srint_ref(r[0]).Bitwise_AND(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
-            break;
-          case ORSINT:
-            Proc.get_srint_ref(r[0]).Bitwise_OR(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
-            break;
-          case ORSINTC:
-            Proc.get_srint_ref(r[0]).Bitwise_OR(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
-            break;
-          case XORSINT:
-            Proc.get_srint_ref(r[0]).Bitwise_XOR(Proc.read_srint(r[1]), Proc.read_srint(r[2]));
-            break;
-          case XORSINTC:
-            Proc.get_srint_ref(r[0]).Bitwise_XOR(Proc.read_srint(r[1]), Proc.read_Ri(r[2]));
-            break;
-          case INVSINT:
-            Proc.get_srint_ref(r[0]).Bitwise_Negate(Proc.read_srint(r[1]));
-            break;
-          case XORSB:
-            Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
-            break;
-          case ANDSB:
-            OTD.check();
-            Proc.temp.T= OTD.aAD.get_aAND(Proc.online_thread_num);
-            Mult_aBit(Proc.get_sbit_ref(r[0]), Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
-            break;
-          case ORSB:
-            OTD.check();
-            Proc.temp.T= OTD.aAD.get_aAND(Proc.online_thread_num);
-            Mult_aBit(Proc.temp.aB, Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
-            Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
-            Proc.get_sbit_ref(r[0]).add(Proc.temp.aB);
-            break;
-          case NEGB:
-            Proc.get_sbit_ref(r[0]).negate(Proc.read_sbit(r[1]));
-            break;
-          case LTZSINT:
-            Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).less_than_zero();
-            break;
-          case EQZSINT:
-            Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).equal_zero(P, Proc.online_thread_num);
-            break;
-          case BITSINT:
-            Proc.get_sbit_ref(r[0])= Proc.read_srint(r[1]).get_bit(n);
-            break;
-          case SINTBIT:
-            Proc.get_srint_ref(r[0])= Proc.read_srint(r[1]);
-            Proc.get_srint_ref(r[0]).set_bit(n, Proc.read_sbit(r[2]));
-            break;
-          case CONVSINTSREG:
-            Proc.convert_sint_to_sregint(r[1], r[0], P);
-            break;
-          case CONVSREGSINT:
-            Proc.convert_sregint_to_sint(r[1], r[0], P);
-            break;
-          case CONVSUREGSINT:
-            Proc.convert_suregint_to_sint(r[1], r[0], P);
-            break;
-          case CONVREGSREG:
-            Proc.write_srint(r[0], Proc.read_Ri(r[1]));
-            break;
-          case OPENSINT:
-            Proc.write_Ri(r[0], Proc.read_srint(r[1]).Open(P));
-            break;
-          case OPENSBIT:
-            int t;
-            Open_aBit(t, Proc.read_sbit(r[1]), P);
-            Proc.write_Ri(r[0], t);
-            break;
-          case GC:
-            Proc.apply_GC(n, P);
-            break;
-          case LF:
-            Global_LF.apply_Function(n, Proc);
-            break;
-          default:
-            printf("Invalid opcode=%d. Since it is not implemented\n", opcode);
-            throw not_implemented();
-            break;
-        }
-      if (size > 1)
-        {
-          r[0]++;
-          r[1]++;
-          r[2]++;
-          for (unsigned int j= 0; j < c_start.size(); j++)
-            {
-              c_start[j]++;
-            }
-        }
+      printf("\t{\"instruction_timer\": %lld}",
+             time);
+      printf("\n" BENCH_ATTR_RESET);
+      fflush(stdout);
     }
   return restart;
 }

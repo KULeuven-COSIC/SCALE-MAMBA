@@ -30,11 +30,6 @@ class FFT_Data
 public:
   void init(const Ring &Rg, const Zp_Data &PrD);
 
-  void init_field() const
-  {
-    gfp::init_field(prData.pr);
-  }
-
   FFT_Data()
   {
     ;

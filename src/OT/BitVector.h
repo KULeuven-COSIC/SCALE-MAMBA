@@ -65,36 +65,6 @@ public:
 
         nbits= new_nbits;
         nbytes= new_nbytes;
-        /*
-            // use realloc to preserve original contents
-            if (new_nbits < nbits)
-            {
-                memcpy(tmp, bytes, new_nbytes);
-            }
-            else
-            {
-                memset(tmp, 0, new_nbytes);
-                memcpy(tmp, bytes, nbytes);   
-            }*/
-
-        // realloc may fail on size 0
-        /*if (new_nbits == 0)
-            {
-                free(bytes);
-                bytes = (uint8_t*) malloc(0);//new uint8_t[0];
-                //free(bytes);
-                return;
-            }
-            bytes = (uint8_t*)realloc(bytes, nbytes);
-            if (bytes == NULL)
-            {
-                cerr << "realloc failed\n";
-                exit(1);
-            }*/
-        /*delete[] bytes;
-            nbits = new_nbits;
-            nbytes = DIV_CEIL(nbits, 8);
-            bytes = new uint8_t[nbytes];*/
       }
   }
   unsigned int size() const

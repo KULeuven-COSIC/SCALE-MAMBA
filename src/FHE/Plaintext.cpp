@@ -35,7 +35,7 @@ void Plaintext::to_poly() const
 
   Ring_Element e(*Field_Data, evaluation);
   for (unsigned int i= 0; i < a.size(); i++)
-    {
+    { 
       e.set_element(i, a[i].get());
     }
   e.change_rep(polynomial);

@@ -7,12 +7,12 @@ All rights reserved
 #ifndef _COT
 #define _COT
 
-/* This implements the COT protocol in Figure 19 of eprint 2015/901
+/* This implements the COT protocol in Figure 19 of ePrint 2015/901
  * The role of sender and receiver are reversed, so as to match
  * the sender and receiver of the initial seed ROT
  *
  * To get active security the outputs are then checked using the
- * protocol in Figure 7 of eprint 2015/546.
+ * protocol in Figure 7 of ePrint 2015/546.
  *
  * We do OT_comp_sec such OTs at once, so in terms of the above
  * paper kappa=OT_comp_sec, but as we use gf2n elements to store
@@ -38,7 +38,7 @@ class Sender_COT
 
 public:
   // Execute the next extraction procedure
-  // This is protocol of Figure 19 of eprint 2015/901
+  // This is protocol of Figure 19 of ePrint 2015/901
   // We pass in the aBit here and this procedure sets the t value
   // Note we pass in sz_aB, as aB/x could be much bigger
   //   - This is passively secure only!
@@ -50,7 +50,7 @@ public:
 
   // This is a COT with player i
 
-  // This executes Fig 19 of eprint 2015/901 and then does
+  // This executes Fig 19 of ePrint 2015/901 and then does
   // Figure 7 of 2015/546
   // Note we pass in sz_aB, as aB and x could be much bigger
   void next_checked_iteration(Player &P,
@@ -74,7 +74,7 @@ class Receiver_COT
 
 public:
   // Execute the next extraction procedure
-  // This is protocol of Figure 19 of eprint 2015/901
+  // This is protocol of Figure 19 of ePrint 2015/901
   // We pass in the aBit here and this procedure sets the q value
   // Note we pass in sz_aB, as aB could be much bigger
   //   - This is passively secure only!
@@ -88,8 +88,8 @@ public:
     return Delta;
   }
 
-  // This executes Fig 19 of eprint 2015/901 and then does
-  // Figure 7 of 2015/546
+  // This executes Fig 19 of ePrint 2015/901 and then does
+  // Figure 7 of ePrint 2015/546
   void next_checked_iteration(Player &P, unsigned int sz_aB, vector<aBit> &aB);
 };
 

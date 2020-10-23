@@ -55,7 +55,7 @@ public:
   }
 
   /* If one party says every thread is finished then signal we should finish */
-  bool is_finished(unsigned int num, Player &P, const offline_control_data &OCD);
+  bool is_finished(unsigned int num, Player &P, const offline_control_data &OCD, bool main=false);
 
   /* Returns the number within the factory used for checking purposes
    *   -1 if should exit

@@ -383,7 +383,8 @@ int main(int argc, const char *argv[])
   Machine machine;
   if (verbose < 0)
     {
-      machine.set_verbose();
+      // Remember to reverse the sign here
+      machine.set_verbose(-verbose);
       verbose= 0;
     }
   machine.SetUp_Memory(my_number, memtype);

@@ -17,7 +17,7 @@ run_test() {
     echo "$test"
     $ROOT/compile.sh $optimizations Programs/$test || exit 1
     Scripts/run-online.sh Programs/$test || exit 1
-    python Scripts/test-result.py $test_opts $test || exit 1
+    python2 Scripts/test-result.py $test_opts $test || exit 1
 }
 
 if test "$1"; then
@@ -29,4 +29,5 @@ else
 	run_test $test
     done
     run_test test_math -O1
+    printf "\n\n\n\n\n\n\n\n\n\n"
 fi

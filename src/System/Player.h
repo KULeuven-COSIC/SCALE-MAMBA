@@ -52,6 +52,17 @@ class Player
   vector<SHA256_CTX> sha256;
 
 public:
+
+#ifdef BENCH_OFFLINE
+  mutable unsigned long triples;
+  mutable unsigned long squares;
+  mutable unsigned long bits;
+  mutable unsigned long dabits;
+  mutable unsigned long inputs;
+  mutable unsigned long abits;
+  mutable unsigned long aands;
+#endif
+
   PRNG G; // Each player has a local PRNG
           // Avoids needing to set one up all the time
 
@@ -67,9 +78,9 @@ public:
   ~Player();
 
   // Send and receive strings
-  void send_all(const string &o, int connection= 0, bool verbose= false) const;
-  void send_to_player(int player, const string &o, int connection= 0) const;
-  void receive_from_player(int i, string &o, int connection= 0, bool verbose= false) const;
+  void send_all(const string &o, int connection, bool verbose= false) const;
+  void send_to_player(int player, const string &o, int connection) const;
+  void receive_from_player(int i, string &o, int connection, bool verbose= false) const;
 
   unsigned int whoami() const
   {
@@ -93,18 +104,22 @@ public:
    *  - Assumes o[me] contains the thing broadcast by me
    *  - Check says whether we do a hash check or not
    */
-  void Broadcast_Receive(vector<string> &o, bool check= false, int connection= 0);
+  void Broadcast_Receive(vector<string> &o, bool check, int connection);
 
   /* Runs the broadcast check for any checked broadcast */
-  void Check_Broadcast(int connection= 0);
+  void Check_Broadcast(int connection);
 
   /* This sends o[i] to player i for all i,
    * then receives back o[i] from player i
    */
-  void Send_Distinct_And_Receive(vector<string> &o, int connection= 0) const;
+  void Send_Distinct_And_Receive(vector<string> &o, int connection) const;
 
 #ifdef BENCH_NETDATA
   void print_network_data(int thread_num);
+#endif
+
+#ifdef BENCH_OFFLINE
+  void print_offline(int thread_num);
 #endif
 };
 

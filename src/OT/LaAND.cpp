@@ -16,7 +16,6 @@ void LaAND::make_more(Player &P, int num_online)
 
   //P.clocks[2].reset(); P.clocks[2].start(); cout << "\t\tIn LaAND" << endl;
   // First steps 1,2,3
-  HaAND HA;
   HA.make_more(P, num_online);
   unsigned int number= HA.get_number();
 

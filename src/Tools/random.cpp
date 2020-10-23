@@ -8,13 +8,14 @@ All rights reserved
 #include "Tools/random.h"
 #include "Exceptions/Exceptions.h"
 #include "Tools/CBC-MAC.h"
+#include "cpu-support.h"
 #include "Tools/int.h"
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
 using namespace std;
 
-PRNG::PRNG() { useC= (Check_CPU_support_AES() == 0); }
+PRNG::PRNG() { useC= (cpu_has_aes()==false); }
 
 void PRNG::ReSeed(int thread)
 {

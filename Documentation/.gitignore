@@ -6,3 +6,5 @@ Compiler_Documentation/
 *.out
 *.pdf
 *.toc
+*.fdb_latexmk
+Instructions.tex

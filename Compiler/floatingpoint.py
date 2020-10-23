@@ -9,25 +9,15 @@
 #
 from math import log, floor, ceil
 from Compiler.instructions import *
-import types
-import comparison
+from Compiler.types import *
 import program
-
+import sys
+import types
+from Compiler import AdvInteger
 
 ##
 ## Helper functions for floating point arithmetic
 ##
-
-
-def two_power(n):
-    if isinstance(n, int) and n < 31:
-        return 2**n
-    else:
-        max = types.cint(1) << 31
-        res = 2**(n%31)
-        for i in range(n / 31):
-            res *= max
-        return res
 
 def shift_two(n, pos):
     if pos < 63:
@@ -54,7 +44,7 @@ def FLLT (fl_a, fl_b):
     s1 = fl_a.s
     s2 = fl_b.s
     a = fl_a.p.less_than(fl_b.p, fl_a.plen, fl_a.kappa)
-    c = EQZ(fl_a.p - fl_b.p, fl_a.plen, fl_a.kappa)
+    c = AdvInteger.EQZ(fl_a.p - fl_b.p, fl_a.plen, fl_a.kappa)
     d = ((1 - 2 * fl_a.s) * fl_a.v).less_than((1 - 2 * fl_b.s) * fl_b.v, fl_a.vlen + 1, fl_a.kappa)
     cd = c * d
     ca = c * a
@@ -65,20 +55,6 @@ def FLLT (fl_a, fl_b):
     b = (z1 - z12) * (1 - s2) + (z2 - z12) * s1 + (1 + z12 - z1 - z2) * \
         (s1 - s12 + (1 + s12 - s1 - s2) * b1 + s12 * b2) * t
     return b
-
-
-def EQZ(a, k, kappa):
-    r_dprime = types.sint()
-    r_prime = types.sint()
-    c = types.cint()
-    d = [None]*k
-    r = [types.sint() for i in range(k)]
-    comparison.PRandM(r_dprime, r_prime, r, k, k, kappa)
-    startopen(a + two_power(k) * r_dprime + r_prime)# + 2**(k-1))
-    stopopen(c)
-    for i,b in enumerate(bits(c, k)):
-        d[i] = b + r[i] - 2*b*r[i]
-    return 1 - KOR(d, kappa)
 
 
 ##
@@ -126,318 +102,27 @@ def FLGEZ(a):
     return (1 - a.s) * (a.err == 0)
 
 
-def bits(a,m):
-    """ Get the bits of an int """
-    if isinstance(a, (int, long)):
-        res = [None]*m
-        for i in range(m):
-            res[i] = a & 1
-            a >>= 1
-    else:
-        c = [[types.cint() for i in range(m)] for i in range(2)]
-        res = [types.cint() for i in range(m)]
-        modci(res[0], a, 2)
-        c[1][0] = a
-        for i in range(1,m):
-            subc(c[0][i], c[1][i-1], res[i-1])
-            divci(c[1][i], c[0][i], 2)
-            modci(res[i], c[1][i], 2)
-    return res
-
-def carry(b, a, compute_p=True):
-    """ Carry propogation:
-        (p,g) = (p_2, g_2)o(p_1, g_1) -> (p_1 & p_2, g_2 | (p_2 & g_1))
-    """
-    if compute_p:
-        t1 = a[0] * b[0]
-    else:
-        t1 = None
-    t2 = a[1] + a[0] * b[1]
-    return (t1, t2)
-
-def or_op(a, b, void=None):
-    return a + b - a * b
-
-def mul_op(a, b, void=None):
-    return a * b
-
-def xor_op(a, b, void=None):
-    return a + b - 2* a * b
-
-
-def PreORC(a, kappa=None, m=None, raw=False):
-    k = len(a)
-    if k == 1:
-        return [a[0]]
-    m = m or k
-    max_k = int(log(program.Program.prog.P) / log(2)) - kappa
-    if k <= max_k:
-        p = [None] * m
-        if m == k:
-            p[0] = a[0]
-        t = [types.sint() for i in range(m)]
-        b = comparison.PreMulC([a[i] + 1 for i in range(k)])
-        for i in range(m):
-           comparison.Mod2(t[i], b[k-1-i], k, kappa, False)
-           p[m-1-i] = 1 - t[i]
-        return p
-    else:
-        # not constant-round anymore
-        s = [PreORC(a[i:i+max_k], kappa, raw=raw) for i in range(0,k,max_k)]
-        t = PreORC([si[-1] for si in s[:-1]], kappa, raw=raw)
-        return sum(([or_op(x, y) for x in si] for si,y in zip(s[1:],t)), s[0])
-
-def PreOpL(op, items):
-    """
-    Uses algorithm from SecureSCM WP9 deliverable.
-    
-    op must be a binary function that outputs a new register
-    """
-    k = len(items)
-    logk = int(ceil(log(k,2)))
-    kmax = 2**logk
-    output = list(items)
-    for i in range(logk):
-        for j in range(kmax/(2**(i+1))):
-            y = two_power(i) + j*two_power(i+1) - 1
-            for z in range(1, 2**i+1):
-                if y+z < k:
-                    output[y+z] = op(output[y], output[y+z], j != 0)
-    return output
-
-def PreOpN(op, items):
-    """ Naive PreOp algorithm """
-    k = len(items)
-    output = [None]*k
-    output[0] = items[0]
-    for i in range(1, k):
-        output[i] = op(output[i-1], items[i])
-    return output
-
-def PreOR(a, kappa=None, raw=False):
-    if comparison.const_rounds:
-        return PreORC(a, kappa, raw=raw)
-    else:
-        return PreOpL(or_op, a)
-
-def KOpL(op, a):
-    k = len(a)
-    if k == 1:
-        return a[0]
-    else:
-        t1 = KOpL(op, a[:k/2])
-        t2 = KOpL(op, a[k/2:])
-        return op(t1, t2)
-
-def KORL(a, kappa):
-    """ log rounds k-ary OR """
-    k = len(a)
-    if k == 1:
-        return a[0]
-    else:
-        t1 = KORL(a[:k/2], kappa)
-        t2 = KORL(a[k/2:], kappa)
-        return t1 + t2 - t1*t2
-
-def KORC(a, kappa):
-    return PreORC(a, kappa, 1)[0]
-
-def KOR(a, kappa):
-    if comparison.const_rounds:
-        return KORC(a, kappa)
-    else:
-        return KORL(a, None)
-
-def KMul(a):
-    if comparison.const_rounds:
-        return comparison.KMulC(a)
-    else:
-        return KOpL(mul_op, a)
-
 def FlAbs(a):
     return types.sfloat(v = a.v, p = a.p, z = a.z, s = types.sint(0), err = a.err)
 
-def Inv(a):
-    """ Invert a non-zero value """
-    t = [types.sint() for i in range(2)]
-    c = [types.cint() for i in range(2)]
-    one = types.cint()
-    ldi(one, 1)
-    square(t[0],t[1]);
-    s = t[0]*a
-    asm_open(c[0], s)
-    # avoid division by zero for benchmarking
-    divc(c[1], one, c[0])
-    #divc(c[1], c[0], one)
-    return c[1]*t[0]
 
-def BitAdd(a, b, bits_to_compute=None):
-    """ Add the bits a[k-1], ..., a[0] and b[k-1], ..., b[0], return k+1
-        bits s[0], ... , s[k] """
-    k = len(a)
-    if not bits_to_compute:
-        bits_to_compute = range(k)
-    d = [None] * k
-    for i in range(1,k):
-        #assert(a[i].value == 0 or a[i].value == 1)
-        #assert(b[i].value == 0 or b[i].value == 1)
-        t = a[i]*b[i]
-        d[i] = (a[i] + b[i] - 2*t, t)
-        #assert(d[i][0].value == 0 or d[i][0].value == 1)
-    d[0] = (None, a[0]*b[0])
-    pg = PreOpL(carry, d)
-    c = [pair[1] for pair in pg]
-    
-    # (for testing)
-    def print_state():
-        print 'a: ',
-        for i in range(k):
-            print '%d ' % a[i].value,
-        print '\nb: ',
-        for i in range(k):
-            print '%d ' % b[i].value,
-        print '\nd: ',
-        for i in range(k):
-            print '%d ' % d[i][0].value,
-        print '\n   ',
-        for i in range(k):
-            print '%d ' % d[i][1].value,
-        print '\n\npg:',
-        for i in range(k):
-            print '%d ' % pg[i][0].value,
-        print '\n    ',
-        for i in range(k):
-            print '%d ' % pg[i][1].value,
-        print ''
-    
-    for bit in c:
-        pass#assert(bit.value == 0 or bit.value == 1)
-    s = [None] * (k+1)
-    if 0 in bits_to_compute:
-        s[0] = a[0] + b[0] - 2*c[0]
-        bits_to_compute.remove(0)
-    #assert(c[0].value == a[0].value*b[0].value)
-    #assert(s[0].value == 0 or s[0].value == 1)
-    for i in bits_to_compute:
-        s[i] = a[i] + b[i] + c[i-1] - 2*c[i]
-        try:
-            pass#assert(s[i].value == 0 or s[i].value == 1)
-        except AssertionError:
-            print '#assertion failed in BitAdd for s[%d]' % i
-            print_state()
-    s[k] = c[k-1]
-    #print_state()
-    return s
-
-# Statistically secure BitDec
-def BitDec(a, k, m, kappa, bits_to_compute=None):
-    r_dprime = types.sint()
-    r_prime = types.sint()
-    c = types.cint()
-    r = [types.sint() for i in range(m)]
-    comparison.PRandM(r_dprime, r_prime, r, k, m, kappa)
-    #assert(r_prime.value == sum(r[i].value*2**i for i in range(m)) % comparison.program.P)
-    pow2 = two_power(k + kappa)
-    asm_open(c, pow2 + two_power(k) + a - two_power(m)*r_dprime - r_prime)
-    #rval = 2**m*r_dprime.value + r_prime.value
-    #assert(rval % 2**m == r_prime.value)
-    #assert(rval == (2**m*r_dprime.value + sum(r[i].value*2**i for i in range(m)) % comparison.program.P ))
-    try:
-        pass#assert(c.value == (2**(k + kappa) + 2**k + (a.value%2**k) - rval) % comparison.program.P)
-    except AssertionError:
-        print 'BitDec assertion failed'
-        print 'a =', a.value
-        print 'a mod 2^%d =' % k, (a.value % 2**k)
-    return BitAdd(list(bits(c,m)), r, bits_to_compute)[:-1]
-
-
-def Pow2(a, l, kappa):
-    m = int(ceil(log(l, 2)))
-    t = BitDec(a, m, m, kappa)
-    x = [types.sint() for i in range(m)]
-    pow2k = [types.cint() for i in range(m)]
-    for i in range(m):
-        pow2k[i] = two_power(2**i)
-        t[i] = t[i]*pow2k[i] + 1 - t[i]
-    return KMul(t)
-
-def B2U(a, l, kappa):
-    pow2a = Pow2(a, l, kappa)
-    #assert(pow2a.value == 2**a.value)
-    r = [types.sint() for i in range(l)]
-    t = types.sint()
-    c = types.cint()
-    for i in range(l):
-        bit(r[i])
-    comparison.PRandInt(t, kappa)
-    asm_open(c, pow2a + two_power(l) * t + sum(two_power(i)*r[i] for i in range(l)))
-    comparison.program.curr_tape.require_bit_length(l + kappa)
-    c = list(bits(c, l))
-    x = [c[i] + r[i] - 2*c[i]*r[i] for i in range(l)]
-    #print ' '.join(str(b.value) for b in x)
-    y = PreOR(x, kappa)
-    #print ' '.join(str(b.value) for b in y)
-    return [1 - y[i] for i in range(l)], pow2a
-
-def Trunc(a, l, m, kappa, compute_modulo=False):
-    """ Oblivious truncation by secret m """
-    if l == 1:
-        if compute_modulo:
-            return a * m, 1 + m
-        else:
-            return a * (1 - m)
-    r = [types.sint() for i in range(l)]
-    r_dprime = types.sint(0)
-    r_prime = types.sint(0)
-    rk = types.sint()
-    c = types.cint()
-    ci = [types.cint() for i in range(l)]
-    d = types.sint()
-    x, pow2m = B2U(m, l, kappa)
-    #assert(pow2m.value == 2**m.value)
-    #assert(sum(b.value for b in x) == m.value)
-    for i in range(l):
-        bit(r[i])
-        t1 = two_power(i) * r[i]
-        t2 = t1*x[i]
-        r_prime += t2
-        r_dprime += t1 - t2
-    #assert(r_prime.value == (sum(2**i*x[i].value*r[i].value for i in range(l)) % comparison.program.P))
-    comparison.PRandInt(rk, kappa)
-    r_dprime += two_power(l) * rk
-    #assert(r_dprime.value == (2**l * rk.value + sum(2**i*(1 - x[i].value)*r[i].value for i in range(l)) % comparison.program.P))
-    asm_open(c, a + r_dprime + r_prime)
-    for i in range(1,l):
-        ci[i] = c % two_power(i)
-        #assert(ci[i].value == c.value % 2**i)
-    c_dprime = sum(ci[i]*(x[i-1] - x[i]) for i in range(1,l))
-    #assert(c_dprime.value == (sum(ci[i].value*(x[i-1].value - x[i].value) for i in range(1,l)) % comparison.program.P))
-    lts(d, c_dprime, r_prime, l, kappa)
-    if compute_modulo:
-        b = c_dprime - r_prime + pow2m * d
-        return b, pow2m
-    else:
-        pow2inv = Inv(pow2m)
-        #assert(pow2inv.value * pow2m.value % comparison.program.P == 1)
-        b = (a - c_dprime + r_prime) * pow2inv - d
-    return b
 
 def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
-    t = comparison.TruncRoundNearest(a, length, length - target_length, kappa)
-    overflow = t.greater_equal(two_power(target_length), target_length + 1, kappa)
+    t = AdvInteger.TruncRoundNearest(a, length, length - target_length, kappa)
+    overflow = t.greater_equal(AdvInteger.two_power(target_length), target_length + 1, kappa)
     s = (1 - overflow) * t + overflow * t / 2
     return s, overflow
 
 def Int2FL(a, gamma, l, kappa):
     lam = gamma - 1
     s = types.sint()
-    comparison.LTZ(s, a, gamma, kappa)
-    z = EQZ(a, gamma, kappa)
+    AdvInteger.LTZ(s, a, gamma, kappa)
+    z = AdvInteger.EQZ(a, gamma, kappa)
     a = (1 - 2 * s) * a
 
-    a_bits = BitDec(a, lam, lam, kappa)
+    a_bits = AdvInteger.BitDec(a, lam, lam, kappa)
     a_bits.reverse()
-    b = PreOR(a_bits, kappa)
+    b = AdvInteger.PreOR(a_bits)
     t = a * (1 + sum(2**i * (1 - b_i) for i,b_i in enumerate(b)))
     p = - (lam - sum(b))
     if lam > l:
@@ -446,7 +131,7 @@ def Int2FL(a, gamma, l, kappa):
             p = p + overflow
         else:
             v = types.sint()
-            comparison.Trunc(v, t, gamma - 1, gamma - l - 1, kappa, False)
+            AdvInteger.Trunc(v, t, gamma - 1, gamma - l - 1, kappa, False)
             #TODO: Shouldnt this be only gamma
     else:
         v = 2**(l-gamma+1) * t
@@ -457,8 +142,7 @@ def Int2FL(a, gamma, l, kappa):
 ##
 # Original Function that converts inputs to
 # floats, as implemented in legacy code (sfloat).
-# It looks like a special adaptation from
-# [ABZ13]
+# It looks like a special adaptation from [ABZ13]
 # @param v: int or cint value to be transformed to sfloat
 # @param vlen: length of v (usually l) in paper
 # @param plen: bit-length of supported precision
@@ -494,68 +178,47 @@ def FLRound(x, mode):
     *mode*: 0 -> floor, 1 -> ceil, -1 > trunc """
     v1, p1, z1, s1, l, k = x.v, x.p, x.z, x.s, x.vlen, x.plen
     a = types.sint()
-    comparison.LTZ(a, p1, k, x.kappa)
+    AdvInteger.LTZ(a, p1, k, x.kappa)
     b = p1.less_than(-l + 1, k, x.kappa)
-    v2, inv_2pow_p1 = Trunc(v1, l, -a * (1 - b) * x.p, x.kappa, True)
-    c = EQZ(v2, l, x.kappa)
+    v2, inv_2pow_p1 = AdvInteger.Oblivious_Trunc(v1, l, -a * (1 - b) * x.p, x.kappa, True)
+    c = AdvInteger.EQZ(v2, l, x.kappa)
     if mode == -1:
         away_from_zero = 0
         mode = x.s
     else:
         away_from_zero = mode + s1 - 2 * mode * s1
     v = v1 - v2 + (1 - c) * inv_2pow_p1 * away_from_zero
-    d = v.equal(two_power(l), l + 1, x.kappa)
-    v = d * two_power(l-1) + (1 - d) * v
-    v = a * ((1 - b) * v + b * away_from_zero * two_power(l-1)) + (1 - a) * v1
+    d = v.equal(AdvInteger.two_power(l), l + 1, x.kappa)
+    v = d * AdvInteger.two_power(l-1) + (1 - d) * v
+    v = a * ((1 - b) * v + b * away_from_zero * AdvInteger.two_power(l-1)) + (1 - a) * v1
     s = (1 - b * mode) * s1
-    z = or_op(EQZ(v, l, x.kappa), z1)
+    z = AdvInteger.or_op(AdvInteger.EQZ(v, l, x.kappa), z1)
     v = v * (1 - z)
     p = ((p1 + d * a) * (1 - b) + b * away_from_zero * (1 - l)) * (1 - z)
     return v, p, z, s
 
-def TruncPr(a, k, m, kappa=None):
-    """ Probabilistic truncation [a/2^m + u]
-        where Pr[u = 1] = (a % 2^m) / 2^m
-    """
-    if isinstance(a, types.cint):
-        return shift_two(a, m)
-
-    if kappa is None:
-       kappa = 40 
-
-    b = two_power(k-1) + a
-    r_prime, r_dprime = types.sint(), types.sint()
-    comparison.PRandM(r_dprime, r_prime, [types.sint() for i in range(m)],
-                      k, m, kappa)
-    two_to_m = two_power(m)
-    r = two_to_m * r_dprime + r_prime
-    c = (b + r).reveal()
-    c_prime = c % two_to_m
-    a_prime = c_prime - r_prime
-    d = (a - a_prime) / two_to_m
-    return d
 
 def SDiv(a, b, l, kappa):
     theta = int(ceil(log(l / 3.5) / log(2)))
-    alpha = two_power(2*l)
-    beta = 1 / types.cint(two_power(l))
-    w = types.cint(int(2.9142 * two_power(l))) - 2 * b
+    alpha = AdvInteger.two_power(2*l)
+    beta = 1 / types.cint(AdvInteger.two_power(l))
+    w = types.cint(int(2.9142 * AdvInteger.two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
-    y = TruncPr(y, 2 * l, l, kappa)
+    y = AdvInteger.TruncPr(y, 2 * l, l, kappa)
     x2 = types.sint()
-    comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
+    AdvInteger.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
     x1 = (x - x2) * beta
     for i in range(theta-1):
-        y = y * (x1 + two_power(l)) + TruncPr(y * x2, 2 * l, l, kappa)
-        y = TruncPr(y, 2 * l + 1, l + 1, kappa)
-        x = x1 * x2 + TruncPr(x2**2, 2 * l + 1, l + 1, kappa)
-        x = x1 * x1 + TruncPr(x, 2 * l + 1, l - 1, kappa)
+        y = y * (x1 + two_power(l)) + AdvInteger.TruncPr(y * x2, 2 * l, l, kappa)
+        y = AdvInteger.TruncPr(y, 2 * l + 1, l + 1, kappa)
+        x = x1 * x2 + AdvInteger.TruncPr(x2**2, 2 * l + 1, l + 1, kappa)
+        x = x1 * x1 + AdvInteger.TruncPr(x, 2 * l + 1, l - 1, kappa)
         x2 = types.sint()
-        comparison.Mod2m(x2, x, 2 * l, l, kappa, False)
+        AdvInteger.Mod2m(x2, x, 2 * l, l, kappa, False)
         x1 = (x - x2) * beta
-    y = y * (x1 + two_power(l)) + TruncPr(y * x2, 2 * l, l, kappa)
-    y = TruncPr(y, 2 * l + 1, l - 1, kappa)
+    y = y * (x1 + two_power(l)) + AdvInteger.TruncPr(y * x2, 2 * l, l, kappa)
+    y = AdvInteger.TruncPr(y, 2 * l + 1, l - 1, kappa)
     return y
 
 def SDiv_mono(a, b, l, kappa):
@@ -564,16 +227,16 @@ def SDiv_mono(a, b, l, kappa):
     w = types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
-    y = TruncPr(y, 2 * l + 1, l + 1, kappa)
+    y = AdvInteger.TruncPr(y, 2 * l + 1, l + 1, kappa)
     for i in range(theta-1):
         y = y * (alpha + x)
         # keep y with l bits
-        y = TruncPr(y, 3 * l, 2 * l, kappa)
+        y = AdvInteger.TruncPr(y, 3 * l, 2 * l, kappa)
         x = x**2
         # keep x with 2l bits
-        x = TruncPr(x, 4 * l, 2 * l, kappa)
+        x = AdvInteger.TruncPr(x, 4 * l, 2 * l, kappa)
     y = y * (alpha + x)
-    y = TruncPr(y, 3 * l, 2 * l, kappa)
+    y = AdvInteger.TruncPr(y, 3 * l, 2 * l, kappa)
     return y
 
 ##
@@ -586,17 +249,144 @@ def SDiv_ABZS12(a, b, l, kappa):
     y = a
     for i in range(theta -1):
         y = y * ((2 ** (l + 1)) - x)
-        y = TruncPr(y, 2 * l + 1, l, kappa)
+        y = AdvInteger.TruncPr(y, 2 * l + 1, l, kappa)
         x = x * ((2 ** (l + 1)) - x)
-        x = TruncPr(x, 2 * l + 1, l, kappa)
+        x = AdvInteger.TruncPr(x, 2 * l + 1, l, kappa)
     y = y * ((2 ** (l + 1)) - x)
-    y = TruncPr(y, 2 * l + 1, l, kappa)
+    y = AdvInteger.TruncPr(y, 2 * l + 1, l, kappa)
     return y
 
-def AdditionKOp(a,b):
-    return a + b
+##
+# Converts an sfloat to an IEEE sregint
+def sfloat_to_ieee(a):
+   vq=a.v
+   pq=a.p
+   sq=a.s
+   zq=a.z
+   eq=a.err
+
+   # We have to take the top bit off v, if non-zero
+   # Easier to do this now before converting to an sregint
+   vq=vq-(1-zq)*(1<<(a.vlen-1))
+
+   # Now if sfloat.vlen>64 we cannot convert it as is,
+   # as sregint only holds 64 bit values. So we need
+   # to shift down. We do this now for values with
+   # vlen>64 as doing it now is expensive.
+   # We then shift down for  53<= vlen <=64 in the
+   # sregint type as this is cheaper there
+
+   effective_vlen=a.vlen
+   if a.vlen>64:
+     effective_vlen=53
+     vq=vq>>(a.vlen-53)
+
+   v2=sregint(vq)
+
+   # Now we shift the v2 value into the correct position
+   if effective_vlen<53:
+     v2=v2 << (53-effective_vlen)
+
+   if effective_vlen>53:
+     v2=v2 >> (effective_vlen-53)
+
+   # ok2 is a flag which says if we should end up with a NaN
+   okq=(eq==0)
+   ok2=sbit(okq)
+
+   # Now we have to convert the p bit
+   p2=sregint((1-zq)*(pq+a.vlen+1023-1))
+   # If plen>11 then we need to make sure p2 is not too big
+   if (a.plen>11):
+     # This is the big pattern 1111..1100..00 with eleven ones at the end
+     p2test=p2 & 0xFFFFFFFFFFFFFF800
+     ok2=ok2 & p2test.eqz()
+     
+   # Now convert sq to an sbit
+   s2 = sbit(sq)
+
+   # Now pack into a IEEE vector in the sregint space
+   temp = (p2 << 52) ^ v2
+   x2=sregint()
+   sintbit(x2,temp,s2,63)
+
+   # Now need to deal with the zero flag
+   z2=sbit(zq)
+   x2 = (~z2) & x2
+
+   # Now deal with the error flag
+   #   - This bit pattern is an IEEE NaN
+   NaN = sregint(0x7FF0000000000001)
+   x2 = (ok2 & x2) ^ ((~ok2) & NaN )
+
+   return x2
 
 
-def SolvedBits(x_bits, k):
-    pow_of_two= [x_bits[i] * 2 ** i  for i in range(k)]
-    return KOpL(AdditionKOp, pow_of_two)
+##
+# Converts an IEEE sregint to an sfloat
+def ieee_to_sfloat(x2):
+   # We take the bit 63 of the IEEE as
+   s2 = sbit()
+   bitsint(s2,x2,63)
+   sq = sint(s2)
+
+   # Test for zero
+   z2 = x2.eqz()
+
+   # We know that to get v_q we need to have the most significant bit
+   # of v_q = 1 (unless z2=1) so when we whant to shift down the value
+   # v_2, we make the first bit 1 as well and it couses to have a
+   # negative value which does not effect to any thing but for vlen >= 64
+   # which will be solved by using unsiigned conversion of sregint to sint.
+   v2 = x2 << 11
+   v2a = sregint()
+   sintbit(v2a,v2,~z2,63)
+
+   # Here we make the bit 63 zero
+   zero = sbit(0)
+   x2a = sregint()
+   sintbit(x2a,x2,zero,63)
+
+   # Next 11 bits of the IEEE will be placed in exponent p of
+   # sfloat but we have to fit into the p_len.
+   #   - Note we have no issue if plen>11 since IEEE values
+   #     will convert OK
+   #   - But if plen<11 we may need to signal an error
+   p2 = x2a >> 52
+   # To deal with NaN, we need to just check if all the
+   # bits of p2 are 1, if yes,then return err_q= 1.
+   e2=(p2==2047)
+
+   p2d=(-(sfloat.vlen-1)-1023)+p2
+   pq = sint(p2d)
+   # Now check for issue re plen (note brackets to avoid too many additions of sregints)
+   if (sfloat.plen<11):
+      mask=0xFFFFFFFFFFFFFFFF-(2**sfloat.plen-1)
+      p2test=p2d & mask
+      p2t=sbit()
+      bitsint(p2t,p2test,63)
+      p2t = p2t | (p2test.eqz()) 
+      e2=e2 ^ (~p2t)
+
+   # If vlen is equal to 64 bits, then we need to have an unsigned
+   # converstion for sregint to sint in order to avoid having
+   # negative number from previous step as in previous step we
+   # have 64 bits.
+   if sfloat.vlen>=64:
+     vqa = sint.convert_unsigned_to_sint(v2a)
+     vq = vqa << (sfloat.vlen-64)
+
+   if sfloat.vlen<64:
+     v2a = v2a>>(64-sfloat.vlen)
+     vq = sint(v2a)
+
+   # Now need to deal with the zero flags
+   zq=sint(z2)
+
+   # Convert error flag to sfloat domain
+   eq=sint(e2)
+
+   a = sfloat(vq, pq, zq, sq, eq)
+
+   return a
+

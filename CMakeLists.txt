@@ -4,13 +4,14 @@ if (${CMAKE_VERSION} VERSION_LESS 3.12)
     cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 endif ()
 
-project(SCALE_MAMBA VERSION 1.8 DESCRIPTION "SCALE MAMBA" LANGUAGES CXX)
+project(SCALE_MAMBA VERSION 1.9 DESCRIPTION "SCALE MAMBA" LANGUAGES CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules)
 set(CMAKE_CXX_STANDARD 11)
 
 # TODO why is it not in config.h as well?
 add_definitions(-DMAX_MOD_SZ=7)
+add_definitions(-DMAX_GFP_SZ=2)
 add_compile_options(
         -maes
         -mpclmul
@@ -74,10 +75,8 @@ add_library(lsss OBJECT
 add_library(mpcmath OBJECT
         src/Math/bigint.cpp
         src/Math/gf2n.cpp
-        src/Math/gfp.cpp
         src/Math/Integer.cpp
         src/Math/Matrix.cpp
-        src/Math/modp.cpp
         src/Math/Zp_Data.cpp
         )
 
@@ -113,15 +112,16 @@ add_library(ot OBJECT
         src/OT/aBitVector.cpp
         src/OT/BitMatrix.cpp
         src/OT/BitVector.cpp
+        src/OT/COPE.cpp
         src/OT/COT.cpp
         src/OT/CRS.cpp
         src/OT/DMC.cpp
+        src/OT/exROT.cpp
         src/OT/HaAND.cpp
         src/OT/LaAND.cpp
         src/OT/ROT.cpp
         src/OT/SimpleROT.cpp
         )
-target_link_libraries(ot PRIVATE ${CRYPTOPP_LIBRARIES})
 target_include_directories(ot PRIVATE ${CRYPTOPP_INCLUDE_DIRS})
 
 add_library(processor OBJECT
@@ -137,8 +137,8 @@ add_library(system OBJECT
         src/System/Player.cpp
         src/System/RunTime.cpp
         src/System/SystemData.cpp
+	src/System/Init.cpp
         )
-target_link_libraries(system PRIVATE OpenSSL::SSL)
 
 add_library(tools OBJECT
         src/Tools/aes-ni.cpp
@@ -183,3 +183,4 @@ add_executable(Setup.x src/Setup.cpp)
 target_link_libraries(Setup.x PRIVATE OpenSSL::Crypto OpenSSL::SSL scale)
 
 add_subdirectory(Test)
+add_subdirectory(KeyGen)

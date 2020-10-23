@@ -32,11 +32,11 @@ def find_deeper(a, b, path, start, length, compute_level=True):
     a_diff = [XOR(a_bits[i], path_bits[i]) for i in range(start, length)]
     b_diff = [XOR(b_bits[i], path_bits[i]) for i in range(start, length)]
     diff = [XOR(ab, bb) for ab,bb in zip(a_bits, b_bits)[start:length]]
-    diff_preor = floatingpoint.PreOR([any_empty] + diff)
+    diff_preor = AdvInteger.PreOR([any_empty] + diff)
     diff_first = [x - y for x,y in zip(diff_preor, diff_preor[1:])]
     winner = sum((ad * df for ad,df in zip(a_diff, diff_first)), a.empty)
     winner_bits = [if_else(winner, bd, ad) for ad,bd in zip(a_diff, b_diff)]
-    winner_preor = floatingpoint.PreOR(winner_bits)
+    winner_preor = AdvInteger.PreOR(winner_bits)
     level_bits = [x - y for x,y in zip(winner_preor, [0] + winner_preor)]
     return [0] * start + level_bits + [1 - sum(level_bits)], winner
 

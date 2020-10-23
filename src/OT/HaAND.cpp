@@ -5,12 +5,29 @@ Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 L
 All rights reserved
 */
 #include "HaAND.h"
+#include "LSSS/PRSS.h"
 #include "OT_Thread_Data.h"
 #include "Tools/MMO.h"
+
+void HaAND::Init(Player &P, int connection)
+{
+  AgreeRandom(P, base_key, AES_BLK_SIZE, connection);
+  counter= 0;
+}
 
 void HaAND::make_more(Player &P, int num_online)
 {
   extern OT_Thread_Data OTD;
+
+  // Make the MMO key
+  uint8_t buffer[AES_BLK_SIZE];
+  memset(buffer, 0, AES_BLK_SIZE);
+  INT_TO_BYTES(buffer, counter);
+  for (unsigned int i= 0; i < AES_BLK_SIZE; i++)
+    {
+      buffer[i]^= base_key[i];
+    }
+  counter++;
 
   //P.clocks[0].reset(); P.clocks[0].start(); cout << "\t\t\tIn HaAND" << endl;
   unsigned int n= P.nplayers();
@@ -35,7 +52,7 @@ void HaAND::make_more(Player &P, int num_online)
 
   vector<string> o(n);
   uint8_t array[OT_Amort * 16];
-  MMO mmo;
+  MMO mmo(buffer);
   for (unsigned int i= 0; i < n; i++)
     {
       if (i != P.whoami())

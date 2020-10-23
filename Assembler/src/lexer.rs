@@ -7,6 +7,7 @@ use crate::compiler::Expected;
 use crate::errors::UnknownInstruction;
 use crate::span::{Span, Spanned};
 use crate::Compiler;
+pub use documentation::RegisterKind;
 pub use parser::parse;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -15,11 +16,6 @@ use std::convert::TryInto;
 
 macro_rules! gen_register {
     ($($name:ident = $e:ident,)*) => {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
-        pub enum RegisterKind {
-            $($name,)*
-        }
-
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
         pub enum Register {
             $($name(register::$name),)*
@@ -32,6 +28,12 @@ macro_rules! gen_register {
                 }
             }
 
+            pub fn kind(&self) -> RegisterKind {
+                match self {
+                    $(Register::$name(_) => RegisterKind::$name,)*
+                }
+            }
+
             pub fn map(self, f: impl FnOnce(u32) -> u32) -> Self {
                 match self {
                     $(Register::$name(i) => Register::$name(register::$name(f(i.0))),)*
@@ -40,6 +42,7 @@ macro_rules! gen_register {
 
             pub fn new(kind: RegisterKind, id: u32) -> Self {
                 match kind {
+                    RegisterKind::Bit => Register::Regint(register::Regint(id)),
                     $(
                         RegisterKind::$name => Register::$name(register::$name(id)),
                     )*
@@ -74,13 +77,13 @@ macro_rules! gen_register {
                         super::Operand::Register(r.into())
                     }
                 }
-                impl<'a> From<Spanned<'a, $name>> for Spanned<'a, super::Register> {
-                    fn from(r: Spanned<'a, $name>) -> Self {
+                impl From<Spanned<$name>> for Spanned<super::Register> {
+                    fn from(r: Spanned<$name>) -> Self {
                         r.map(Into::into)
                     }
                 }
-                impl<'a> From<Spanned<'a, $name>> for Spanned<'a, super::Operand> {
-                    fn from(r: Spanned<'a, $name>) -> Self {
+                impl From<Spanned<$name>> for Spanned<super::Operand> {
+                    fn from(r: Spanned<$name>) -> Self {
                         r.map(Into::into)
                     }
                 }
@@ -110,26 +113,26 @@ macro_rules! gen_register {
                 impl crate::compiler::Expected for $name {
                     const EXPECTED: &'static str = stringify!($name);
                 }
-                impl<'a> From<Vec<Spanned<'a, $name>>> for super::RegisterVec<'a> {
-                    fn from(args: Vec<Spanned<'a, $name>>) -> Self {
+                impl From<Vec<Spanned<$name>>> for super::RegisterVec {
+                    fn from(args: Vec<Spanned<$name>>) -> Self {
                         super::RegisterVec::$name(args)
                     }
                 }
             )*
         }
         #[derive(Clone, Debug)]
-        pub enum RegisterVec<'a> {
-            $($name(Vec<Spanned<'a, register::$name>>),)*
+        pub enum RegisterVec {
+            $($name(Vec<Spanned<register::$name>>),)*
         }
-        impl<'a> RegisterVec<'a> {
-            pub fn iter(&self) -> Vec<Spanned<'a, Register>> {
+        impl RegisterVec {
+            pub fn iter(&self) -> Vec<Spanned<Register>> {
                 match self {
                     $(RegisterVec::$name(v) => v.iter().map(|e| e.map(|r| r.into())).collect(),)*
                 }
             }
         }
 
-        impl<'a> MapAllValues<Register> for RegisterVec<'a> {
+        impl MapAllValues<Register> for RegisterVec {
             fn map_all_values(&mut self, cx: &Compiler, mut f: impl FnMut(Register) -> Register)
             {
                 match self {
@@ -209,12 +212,31 @@ macro_rules! gen_register {
         }
 
         impl<T> RegisterStruct<T> {
+            /// Access just a single register bank's entry
+            pub fn access(&self, kind: RegisterKind) -> &T {
+                match kind {
+                    RegisterKind::Bit => &self.r,
+                    $(RegisterKind::$name => &self.$e,)*
+                }
+            }
+
+            /// Access just a single register bank's entry
+            pub fn access_mut(&mut self, kind: RegisterKind) -> &mut T {
+                match kind {
+                    RegisterKind::Bit => &mut self.r,
+                    $(RegisterKind::$name => &mut self.$e,)*
+                }
+            }
+
+            /// Transform all register banks' value
             pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> RegisterStruct<U> {
                 RegisterStruct {
                     $($e: f(self.$e),)*
                 }
             }
 
+            /// Transform a register while accessing the appropriate bank.
+            #[must_use]
             pub fn map_reg(self, register: Register, mut f: impl FnMut(u32, T) -> u32) -> Register {
                 match register {
                     $(Register::$name(reg) => Register::$name(register::$name(f(reg.0, self.$e))),)*
@@ -222,6 +244,8 @@ macro_rules! gen_register {
             }
 
             #[must_use]
+            /// Create a `RegisterStruct` that takes ownership of the data and tuples it.
+            /// When you use `map` next, you get tuples of the elements.
             pub fn join<U>(self, other: RegisterStruct<U>) -> RegisterStruct<(T, U)> {
                 RegisterStruct {
                     $($e: (self.$e, other.$e),)*
@@ -229,6 +253,7 @@ macro_rules! gen_register {
             }
 
             #[must_use]
+            /// Create a `RegisterStruct` of references so `map` does not consume the original.
             pub fn as_ref(&self) -> RegisterStruct<&T> {
                 RegisterStruct {
                     $($e: &self.$e,)*
@@ -236,6 +261,7 @@ macro_rules! gen_register {
             }
 
             #[must_use]
+            /// Create a `RegisterStruct` of references so `map` does not consume the original.
             pub fn as_mut(&mut self) -> RegisterStruct<&mut T> {
                 RegisterStruct {
                     $($e: &mut self.$e,)*
@@ -256,9 +282,9 @@ gen_register! {
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Lexical<'a> {
     pub instruction: &'a str,
-    pub args: Vec<Spanned<'a, Operand>>,
-    pub comment: Span<'a>,
-    pub span: Span<'a>,
+    pub args: Vec<Spanned<Operand>>,
+    pub comment: Span,
+    pub span: Span,
 }
 
 impl<'a> Lexical<'a> {
@@ -275,7 +301,7 @@ impl<'a> Lexical<'a> {
         cx: &Compiler,
     ) -> Option<(
         &'static crate::binary::instructions::Instruction,
-        &'b [Spanned<'a, Operand>],
+        &'b [Spanned<Operand>],
     )> {
         let (instr, args) = if self.instruction.starts_with('v') {
             (&self.instruction[1..], &self.args[1..])
@@ -296,10 +322,10 @@ impl<'a> Lexical<'a> {
     }
 }
 
-check_type_size!(LEXICAL: Lexical<'static>, 88);
+check_type_size!(LEXICAL: Lexical<'static>, 72);
 
 impl<'a> Lexical<'a> {
-    pub fn args(&self) -> Spanned<'a, &[Spanned<'a, Operand>]> {
+    pub fn args(&self) -> Spanned<&[Spanned<Operand>]> {
         self.span.with(&self.args)
     }
 }
@@ -423,17 +449,16 @@ pub trait MapAllValues<T> {
 }
 
 impl<
-        'a,
         T: std::fmt::Display + Copy,
         U: Expected + Default + TryFrom<T> + Into<T> + Copy + std::fmt::Display,
-    > MapAllValues<T> for Spanned<'a, U>
+    > MapAllValues<T> for Spanned<U>
 {
     fn map_all_values(&mut self, cx: &Compiler, mut f: impl FnMut(T) -> T) {
         *self = self.map(|this| f(this.into())).require(cx);
     }
 }
 
-impl<'a> MapAllValues<Register> for Spanned<'a, Operand> {
+impl MapAllValues<Register> for Spanned<Operand> {
     fn map_all_values(&mut self, _cx: &Compiler, mut f: impl FnMut(Register) -> Register) {
         match self.elem {
             Operand::Value(_) => {}
@@ -442,21 +467,21 @@ impl<'a> MapAllValues<Register> for Spanned<'a, Operand> {
     }
 }
 
-impl<'a, U: std::fmt::Display + Copy> Spanned<'a, U> {
-    pub fn require<T: Expected + Default + TryFrom<U>>(self, cx: &Compiler) -> Spanned<'a, T> {
+impl<U: std::fmt::Display + Copy> Spanned<U> {
+    pub fn require<T: Expected + Default + TryFrom<U>>(self, cx: &Compiler) -> Spanned<T> {
         cx.checked_from(self)
     }
 }
 
-impl<'a> Spanned<'a, Operand> {
-    pub fn require_uint(self, cx: &Compiler) -> Spanned<'a, u32> {
+impl Spanned<Operand> {
+    pub fn require_uint(self, cx: &Compiler) -> Spanned<u32> {
         // FIXME: error, not panic
         cx.checked_from(self).map(|i: i32| i.try_into().unwrap())
     }
 }
 
-impl<'a, T: TryInto<Operand> + Copy + std::fmt::Display> Spanned<'a, T> {
-    pub fn into_operand(self, cx: &Compiler) -> Spanned<'a, Operand> {
+impl<T: TryInto<Operand> + Copy + std::fmt::Display> Spanned<T> {
+    pub fn into_operand(self, cx: &Compiler) -> Spanned<Operand> {
         cx.checked_from(self)
     }
 }

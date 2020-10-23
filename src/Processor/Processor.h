@@ -153,6 +153,22 @@ public:
       }
     stack_int[x]= y;
   }
+  void rpeek_int(long &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_int.size())
+      {
+        throw stack_error();
+      }
+    x= stack_int[stack_int.size()-1-y];
+  }
+  void rpoke_int(long x, long y)
+  {
+    if (x < 0 || x >= (long) stack_int.size())
+      {
+        throw stack_error();
+      }
+    stack_int[stack_int.size()-1-x]= y;
+  }
   void getsp_int(long &x) const
   {
     x= (long) stack_int.size() - 1;
@@ -186,6 +202,22 @@ public:
         throw stack_error();
       }
     stack_srint[x]= y;
+  }
+  void rpeek_srint(aBitVector &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_srint.size())
+      {
+        throw stack_error();
+      }
+    x= stack_srint[stack_srint.size()-1-y];
+  }
+  void rpoke_srint(long x, const aBitVector &y)
+  {
+    if (x < 0 || x >= (long) stack_srint.size())
+      {
+        throw stack_error();
+      }
+    stack_srint[stack_srint.size()-1-x]= y;
   }
   void getsp_srint(long &x) const
   {
@@ -221,11 +253,26 @@ public:
       }
     stack_Cp[x]= y;
   }
+  void rpeek_Cp(gfp &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_Cp.size())
+      {
+        throw stack_error();
+      }
+    x= stack_Cp[stack_Cp.size()-1-y];
+  }
+  void rpoke_Cp(long x, const gfp &y)
+  {
+    if (x < 0 || x >= (long) stack_Cp.size())
+      {
+        throw stack_error();
+      }
+    stack_Cp[stack_Cp.size()-1-x]= y;
+  }
   void getsp_Cp(long &x) const
   {
     x= (long) stack_Cp.size() - 1;
   }
-
   void push_Sp(const Share &x)
   {
     stack_Sp.push_back(x);
@@ -255,11 +302,26 @@ public:
       }
     stack_Sp[x]= y;
   }
+  void rpeek_Sp(Share &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_Sp.size())
+      {
+        throw stack_error();
+      }
+    x= stack_Sp[stack_Sp.size()-1-y];
+  }
+  void rpoke_Sp(long x, const Share &y)
+  {
+    if (x < 0 || x >= (long) stack_Sp.size())
+      {
+        throw stack_error();
+      }
+    stack_Sp[stack_Sp.size()-1-x]= y;
+  }
   void getsp_Sp(long &x) const
   {
     x= (long) stack_Sp.size() - 1;
   }
-
   void push_sbit(const aBit &x)
   {
     stack_sbit.push_back(x);
@@ -288,6 +350,22 @@ public:
         throw stack_error();
       }
     stack_sbit[x]= y;
+  }
+  void rpeek_sbit(aBit &x, long y) const
+  {
+    if (y < 0 || y >= (long) stack_sbit.size())
+      {
+        throw stack_error();
+      }
+    x= stack_sbit[stack_sbit.size()-1-y];
+  }
+  void rpoke_sbit(long x, const aBit &y)
+  {
+    if (x < 0 || x >= (long) stack_sbit.size())
+      {
+        throw stack_error();
+      }
+    stack_sbit[stack_sbit.size()-1-x]= y;
   }
   void getsp_sbit(long &x) const
   {
@@ -554,6 +632,15 @@ public:
   // But converts as an unsigned sregint
   //   Uses the daBits
   void convert_suregint_to_sint(int i0, int i1, Player &P);
+
+  // Converts a sint register i0 to a sbit register i1
+  // Programmer must gaurantee that i0 only contains a bit
+  //   Uses the daBits
+  void convert_sint_to_sbit(int i0, int i1, Player &P);
+
+  // Converts an sbit register i0 to an sint register i1
+  //   Uses the daBits
+  void convert_sbit_to_sint(int i0, int i1, Player &P);
 
   // Apply one of the indirect GC's
   void apply_GC(unsigned int n, Player &P);

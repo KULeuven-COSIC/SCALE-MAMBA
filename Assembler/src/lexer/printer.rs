@@ -18,21 +18,31 @@ impl std::fmt::Display for Const {
     }
 }
 
-impl<'a> std::fmt::Display for Lexical<'a> {
+impl<'a> Lexical<'a> {
+    pub fn display(&'a self, cx: &'a Compiler) -> LexicalDisplay<'a> {
+        LexicalDisplay(self, cx)
+    }
+}
+
+pub struct LexicalDisplay<'a>(&'a Lexical<'a>, &'a Compiler);
+
+impl<'a> std::fmt::Display for LexicalDisplay<'a> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "{}", self.instruction)?;
-        let mut args = self.args.iter().map(|a| &a.elem);
+        write!(fmt, "{}", self.0.instruction)?;
+        // FIXME: check that all arguments have the correct type by checking against the
+        // documentation in binary/instructions.rs
+        let mut args = self.0.args.iter().map(|a| &a.elem);
         if let Some(arg) = args.next() {
             write!(fmt, " {}", arg)?;
             for arg in args {
                 write!(fmt, ", {}", arg)?;
             }
         }
-        if !self.comment.is_empty() {
-            if !self.instruction.is_empty() {
+        if !self.0.comment.is_empty() {
+            if !self.0.instruction.is_empty() {
                 write!(fmt, " ")?;
             }
-            write!(fmt, "# {}", self.comment.snippet())?;
+            write!(fmt, "# {}", self.0.comment.snippet(self.1))?;
         }
         Ok(())
     }

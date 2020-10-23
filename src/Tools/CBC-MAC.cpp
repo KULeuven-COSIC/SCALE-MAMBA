@@ -8,6 +8,7 @@ All rights reserved
 */
 
 #include "CBC-MAC.h"
+#include "cpu-support.h"
 #include <string.h>
 #include <wmmintrin.h>
 
@@ -20,13 +21,13 @@ void CBC_MAC::zero_key()
 
 CBC_MAC::CBC_MAC()
 {
-  useC= (Check_CPU_support_AES() == 0);
+  useC= (cpu_has_aes() == false);
   zero_key();
 }
 
 CBC_MAC::CBC_MAC(uint8_t key[AES_BLK_SIZE])
 {
-  useC= (Check_CPU_support_AES() == 0);
+  useC= (cpu_has_aes() == false);
   Set_Key(key);
 }
 

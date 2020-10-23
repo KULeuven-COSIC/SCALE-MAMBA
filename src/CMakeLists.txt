@@ -14,6 +14,7 @@ include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 # TODO is it possible to make this into a runtime parameter?
 # TODO why is it not in config.h as well?
 add_definitions(-DMAX_MOD_SZ=7)
+add_definitions(-DMAX_GFP_SZ=2)
 add_compile_options(
         -maes
         -mpclmul
@@ -138,6 +139,7 @@ add_library(system OBJECT
         System/Player.cpp
         System/RunTime.cpp
         System/SystemData.cpp
+	System/Init.cpp
         )
 target_link_libraries(system PRIVATE OpenSSL::SSL)
 

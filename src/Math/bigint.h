@@ -18,6 +18,7 @@ typedef mpz_class bigint;
 #include "Exceptions/Exceptions.h"
 #include "Tools/int.h"
 #include "Tools/random.h"
+#include "mpn_routines.h"
 
 /**********************************
  *       Utility Functions        *

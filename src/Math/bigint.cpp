@@ -7,6 +7,8 @@ All rights reserved
 
 #include "bigint.h"
 #include "Exceptions/Exceptions.h"
+#include "config.h"
+
 #include <sstream>
 using namespace std;
 
@@ -125,8 +127,9 @@ int powerMod(int x, int e, int p)
 bigint randomBnd(PRNG &G, const bigint &B)
 {
   bigint x;
-  // Hash the seed again and again until we have a lot of len bytes
-  unsigned int len= ((2 * numBytes(B)) / RAND_SIZE + 1) * RAND_SIZE;
+  // Hash the seed again and again until we have enough bytes
+
+  unsigned int len= numBytes(B) + modp_stat_sec / 8;
   uint8_t *bytes= new uint8_t[len];
   G.get_random_bytes(bytes, len);
   bigintFromBytes(x, bytes, len);

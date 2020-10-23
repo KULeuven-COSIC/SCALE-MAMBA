@@ -20,7 +20,7 @@ impl super::Pass for Pass {
             trace!("# Block {}", block_id);
             for stmt in block.stmts.iter() {
                 let relexed = stmt.relex(cx);
-                trace!("    # {}", relexed);
+                trace!("    # {}", relexed.display(cx));
                 trace!("        # write: {:?}", stmt.write_registers(cx));
                 trace!("        #  read: {:?}", stmt.read_registers(cx));
                 trace!("        #  barrier: {:?}", stmt.is_barrier(cx));

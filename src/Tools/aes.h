@@ -42,8 +42,7 @@ inline void aes_encrypt(uint8_t *C, uint8_t *M, uint *RK)
 }
 
 /*********** M-Code Version ***********/
-// Check can support this
-int Check_CPU_support_AES();
+
 // Key Schedule
 void aes_128_schedule(uint8_t *key, const uint8_t *userkey);
 void aes_192_schedule(uint8_t *key, const uint8_t *userkey);

@@ -29,7 +29,6 @@ for op in instr_classes:
 # add open and input separately due to name conflict
 compilerLib.VARS['open'] = instructions.asm_open
 compilerLib.VARS['vopen'] = instructions.vasm_open
-
-compilerLib.VARS['comparison'] = comparison
+compilerLib.VARS['AdvInteger'] = AdvInteger
 compilerLib.VARS['mpc_math'] = mpc_math
 compilerLib.VARS['floatingpoint'] = floatingpoint

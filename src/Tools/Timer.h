@@ -45,6 +45,7 @@ class Timer
   long long elapsed_time;
   clockid_t clock_id;
 
+public:
   long long elapsed_since_last_start()
   {
     timespec endv;
@@ -52,7 +53,6 @@ class Timer
     return timespec_diff(&startv, &endv);
   }
 
-public:
   Timer(clockid_t clock_id= CLOCK_MONOTONIC)
       : running(false), elapsed_time(0), clock_id(clock_id)
   {

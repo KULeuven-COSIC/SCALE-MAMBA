@@ -85,11 +85,11 @@ int check_exit(int num_online, const Player &P, offline_control_data &OCD, ODtyp
                 throw bad_value();
             }
         }
-      P.send_all(ss);
+      P.send_all(ss, 0);
     }
   else
     {
-      P.receive_from_player(0, ss);
+      P.receive_from_player(0, ss, 0);
       if (ss.compare("E") == 0)
         {
           result= 1;
@@ -340,7 +340,7 @@ bool propose_what_to_do(int num_online, Player &P, int &finish,
              ss.str().c_str(), rep);
       fflush(stdout);
     }
-  P.send_all(ss.str());
+  P.send_all(ss.str(), 0);
 
   // Now get data from all players taking minimum/max where necessary
   for (unsigned int i= 0; i < P.nplayers(); i++)
@@ -348,7 +348,7 @@ bool propose_what_to_do(int num_online, Player &P, int &finish,
       if (i != P.whoami())
         {
           string ss;
-          P.receive_from_player(i, ss);
+          P.receive_from_player(i, ss, 0);
           istringstream is(ss);
           int fint, ni;
           is >> fint;

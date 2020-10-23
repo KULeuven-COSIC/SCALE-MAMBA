@@ -52,6 +52,9 @@ void Processor_IO::private_input(unsigned int player, int target, unsigned int c
         }
     }
   OCD.OCD_mutex[thread].unlock();
+  #ifdef BENCH_OFFLINE
+  P.inputs+=vectorize;
+  #endif
   Proc.increment_counters(Share::SD.M.shares_per_player(P.whoami()));
 
   if (player == P.whoami())
@@ -113,6 +116,9 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
     }
 
   OCD.OCD_mutex[thread].unlock();
+  #ifdef BENCH_OFFLINE
+  P.inputs+=vectorize;
+  #endif
 
   for (unsigned int i= 0; i < vectorize; i++)
     {

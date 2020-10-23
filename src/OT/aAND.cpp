@@ -25,7 +25,14 @@ void aAND::make_aANDs(Player &P, int num_online)
 
   int lg2number= CEIL_LOG2(number);
   unsigned int B= DIV_CEIL(OT_stat_sec, lg2number);
-  LA.resize(B);
+  if (LA.size() != B)
+    {
+      LA.resize(B);
+      for (unsigned int i= 1; i < B; i++)
+        {
+          LA[i].Init(P, 2);
+        }
+    }
   for (unsigned int i= 1; i < B; i++)
     {
       LA[i].make_more(P, num_online);

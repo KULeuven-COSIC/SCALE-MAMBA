@@ -7,6 +7,10 @@ use std::io::Write;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 
+mod cond_flip;
+mod dead_block_removal;
+mod goto_chain_collapse;
+mod move_done_block_to_end;
 mod nop;
 mod nop_removal;
 mod optimizer_step1;
@@ -28,7 +32,11 @@ const PASSES: &[fn() -> Box<dyn Pass>] = &[
     mk_pass::<print::Pass>,
     mk_pass::<optimizer_step1::Pass>,
     mk_pass::<nop_removal::Pass>,
+    mk_pass::<goto_chain_collapse::Pass>,
+    mk_pass::<dead_block_removal::Pass>,
+    mk_pass::<move_done_block_to_end::Pass>,
     mk_pass::<register_reuse::Pass>,
+    mk_pass::<cond_flip::Pass>,
 ];
 
 pub fn apply_default_optimization_pipeline<'a>(
@@ -52,7 +60,7 @@ fn dump_pass<'a>(cx: &'a Compiler, body: &Body<'a>, dump: &Path, pass_name: &str
     // FIXME: get rid of these unwraps
     let mut file = std::fs::File::create(dump.join(pass_name)).unwrap();
     for lex in relexed {
-        writeln!(file, "{}", lex).unwrap();
+        writeln!(file, "{}", lex.display(cx)).unwrap();
     }
 }
 

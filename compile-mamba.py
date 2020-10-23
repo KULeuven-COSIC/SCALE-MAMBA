@@ -28,8 +28,6 @@ def main():
 		      help="produces .asm files in the *same* directory as the .mpc files"),
     parser.add_option("-d", "--debug", action="store_true", dest="debug",
                       help="keep track of trace for debugging")
-    parser.add_option("-c", "--comparison", dest="comparison", default="log",
-                      help="comparison variant: log|plain")
     parser.add_option("-D", "--dead-code-elimination", action="store_true",
                       dest="dead_code_elimination", default=False,
                       help="eliminate instructions with unused result")

@@ -160,7 +160,7 @@ void PRSS::ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M)
             {
               throw bad_value();
             }
-          AgreeRandom(P, A, seed, SEED_SIZE);
+          AgreeRandom(P, A, seed, SEED_SIZE, 0);
 
           G[k].SetSeedFromRandom(seed);
         }
@@ -239,7 +239,7 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
       uint8_t seed[SEED_SIZE];
       if (Asets[i][whoami] == 1)
         {
-          AgreeRandom(P, Asets[i], seed, SEED_SIZE);
+          AgreeRandom(P, Asets[i], seed, SEED_SIZE, 0);
           G[i].SetSeedFromRandom(seed);
           Shares_Of_One[i].assign(whoami, sh, macs);
         }
@@ -341,7 +341,7 @@ void PRSS::batch_production(Player &P)
     {
       if (j != whoami)
         {
-          P.send_to_player(j, ss[j].str());
+          P.send_to_player(j, ss[j].str(), 0);
         }
     }
   for (unsigned int j= 0; j < P.nplayers(); j++)
@@ -349,7 +349,7 @@ void PRSS::batch_production(Player &P)
       if (j != whoami)
         {
           string ss;
-          P.receive_from_player(j, ss);
+          P.receive_from_player(j, ss, 0);
           stringstream is(ss);
           for (unsigned int i= 0; i < batch.size(); i++)
             {

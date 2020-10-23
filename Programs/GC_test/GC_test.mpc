@@ -125,7 +125,7 @@ GC(SHA_3)
 pop_data(ostate_eval1,25)
 
 print_ln("First invocation of SHA-1")
-for i in range(24, 0, -1):
+for i in range(24, -1, -1):
 	ostate_eval1[i].reveal().public_output()
 print_ln("\nShould be")
 print_ln("0xe7dde140798f25f1")
@@ -138,7 +138,7 @@ GC(SHA_3)
 pop_data(ostate_eval2,25)
 
 print_ln("Second invocation of SHA-3")
-for i in range(24, 0, -1):
+for i in range(24, -1, -1):
 	ostate_eval2[i].reveal().public_output()
 
 print_ln("\nShould be")

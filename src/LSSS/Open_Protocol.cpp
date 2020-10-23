@@ -168,6 +168,7 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
 
       vector<gfp> vs(Share::SD.ReconS[p].size());
       gfp t;
+      stringstream hss;
       for (unsigned int i= 0; i < S.size(); i++)
         {
           int c= 0;
@@ -197,14 +198,14 @@ void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
           values[i]= dot_product(vs, Share::SD.ReconS[p]);
           vector<gfp> ssv= Mul(Share::SD.ReconSS[p], vs);
 
-          // Hash into the state
-          stringstream ss;
+          // Prepare to hash into the state
           for (unsigned int j= 0; j < ssv.size(); j++)
             {
-              ssv[j].output(ss, false);
+              ssv[j].output(hss, false);
             }
-          SHA256_Update(&sha256[connection], ss.str().c_str(), ss.str().size());
         }
+      // Hash into the state
+      SHA256_Update(&sha256[connection], hss.str().c_str(), hss.str().size());
       counter[connection]-= S.size();
     }
   open_cnt[connection]+= values.size();
@@ -238,7 +239,7 @@ void Open_Protocol::RunOpenCheck(Player &P, const string &aux, int connection, b
           gami[j].assign_zero();
           for (int i= 0; i < open_cnt[connection]; i++)
             {
-              r.almost_randomize(G);
+              r.randomize(G);
               temp.mul(r, vals[connection][i]);
               a[j].add(temp);
 
@@ -376,7 +377,7 @@ void Open_Protocol::Open_To_One_Begin(unsigned int player_num,
           S[i].a[k].output(ss, false);
         }
     }
-  P.send_to_player(player_num, ss.str());
+  P.send_to_player(player_num, ss.str(), 0);
 }
 
 void Open_Protocol::Open_To_One_End(vector<gfp> &values, const vector<Share> &S,
@@ -388,7 +389,7 @@ void Open_Protocol::Open_To_One_End(vector<gfp> &values, const vector<Share> &S,
       if (i != P.whoami())
         {
           string ss;
-          P.receive_from_player(i, ss);
+          P.receive_from_player(i, ss, 0);
           is[i].str(ss);
         }
     }

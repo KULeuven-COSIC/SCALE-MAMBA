@@ -435,4 +435,23 @@ public:
   }
 };
 
+class wrong_gfp_size : public exception
+{
+  string msg;
+
+public:
+  wrong_gfp_size(string m)
+  {
+    msg= "wrong_gfp_size : " + m;
+  }
+  ~wrong_gfp_size() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
+  }
+};
+
+
 #endif

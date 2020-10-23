@@ -33,6 +33,7 @@ opcodes = dict(
   MOVC= 0xB,
   MOVS= 0xC,
   MOVINT= 0xD,
+  MOVSB= 0xE,
   LDMINT= 0xCA,
   STMINT= 0xCB,
   LDMINTI= 0xCC,
@@ -103,6 +104,14 @@ opcodes = dict(
   SQUARE= 0x52,
   DABIT= 0x53,
 
+  # Bitwise logical operations on regints
+  ANDINT= 0x5A,
+  ORINT= 0x5B,
+  XORINT= 0x5C,
+  INVINT= 0x5D,
+  SHLINT= 0x5E,
+  SHRINT= 0x5F,
+
   # sregint/sbit instructions
   LDMSINT= 0x60,
   LDMSINTI= 0x61,
@@ -167,6 +176,8 @@ opcodes = dict(
   CONVREGSREG= 0xC3,
   CONVSREGSINT= 0xC4,
   CONVSUREGSINT= 0xC5,
+  CONVSINTSBIT= 0xC6,
+  CONVSBITSINT= 0xC7,
 
   # Debug Printing
   PRINT_MEM= 0xB0,
@@ -238,6 +249,17 @@ opcodes = dict(
   POKES= 0x118,
   GETSPS= 0x119,
 
+  # Relative peek and poke
+  RPEEKINT= 0x120,
+  RPOKEINT= 0x121,
+  RPEEKSINT= 0x122,
+  RPOKESINT= 0x123,
+  RPEEKSBIT= 0x124,
+  RPOKESBIT= 0x125,
+  RPEEKC= 0x126,
+  RPOKEC= 0x127,
+  RPEEKS= 0x128,
+  RPOKES= 0x129,
 )
 
 

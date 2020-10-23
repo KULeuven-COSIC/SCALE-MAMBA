@@ -258,9 +258,9 @@ void *Main_Func(void *ptr)
   printf("Set up player %d in thread %d \n", me, num);
   fflush(stdout);
 
+  int num5= num % 5;
   if (num < 10000)
     {
-      int num5= num % 5;
       int num_online= (num - num5) / 5;
       switch (num5)
         {
@@ -311,6 +311,11 @@ void *Main_Func(void *ptr)
 
 #ifdef BENCH_MEMORY
   Print_Memory_Info(me, num);
+#endif
+
+#ifdef BENCH_OFFLINE
+  if (num<10000 && num5==4)
+    { P.print_offline(num); }
 #endif
 
   return 0;

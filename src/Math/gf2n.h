@@ -444,7 +444,7 @@ public:
     bigint tmp;
     s >> hex >> tmp >> dec;
     x.a= 0;
-    mpn_copyi((word *) &x.a.a, tmp.get_mpz_t()->_mp_d, tmp.get_mpz_t()->_mp_size);
+    inline_mpn_copyi((word *) &x.a.a, tmp.get_mpz_t()->_mp_d, tmp.get_mpz_t()->_mp_size);
     return s;
   }
 };

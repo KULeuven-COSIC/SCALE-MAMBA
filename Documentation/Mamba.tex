@@ -85,23 +85,80 @@ We use \verb|regint| in such a generic way, given that operations on regint are 
 This is because \verb+regint+ values map directly to the integer values in the byte-codes,
 whereas \verb+cint+ map to the clear type in the byte-code.
 
-\paragraph{Conversions:} We can perform conversions between \verb|sint| and \verb|sregint|, bearing in mind that both have to be allocated in the same integer range. This can be done by simply instantiating either an \verb|sregint| or a
+\paragraph{Conversions:} 
+We can perform conversions between \verb|sint| and \verb|sregint|, bearing in mind that both have to be allocated in the same integer range. This can be done by simply instantiating either an \verb|sregint| or a
 \verb|sint| object passing the corresponding register as a parameter in the constructor as follows: 
 \begin{lstlisting}
 a = sint(-5)
 b = sregint(-5)
 # casting
-d = sregint(a)                        # returns signed sregint
-c = sint(b)                           # returns signed sint
+d = sregint(a)                         # returns signed sregint
+c = sint(b)                            # returns signed sint
 d = sregint(2**64-5)
 e = sint.convert_unsigned_to_sint(saa) # Explicit unsigned conversion
 \end{lstlisting}
-The conversion back and forth between \verb|sregint| and \verb|sint| values uses the
+We can also convert a \verb|sint| value to an \verb|sbit|, on the assumption the
+original \verb|sint| register holds a bit (if it does not then information
+could leak).
+We can obviously also convert back from an \verb|sbit| to an \verb|sint|,
+which does not lose information.
+There is also some syntactic sugar to load a \verb|sbit| value into an
+\verb|sregint| register as well (the other direction can be done directly
+using \verb|bitsint| command).
+\begin{lstlisting}
+a0 = sint(0)
+a1 = sint(1)
+b0 = sbit(0)
+b1 = sbit(1)
+d0 = sregint(0)
+d1 = sregint(1)
+ca0=sbit(a0)
+ca1=sbit(a1)
+cb0=sint(b0)
+cb1=sint(b1)
+c0=sregint(b0)
+c1=sregint(b1)
+\end{lstlisting}
+The conversion back and forth between \verb|sregint|/\verb|sbit| and \verb|sint| values uses the
 daBit method of \cite{daBitPaper}, plus the evaluation (in the case of \verb|sint| to 
 \verb|sregint| conversions) of a (relatively large) garbled circuit.
 Thus whilst it is easy to pass from one secret data-type to the other, 
 this operation has some computational and communication cost associated to it, hence 
 we recommend such conversions to be used with care. 
+
+
+~
+
+\noindent{\bf sbit to sint conversion:}
+Recall a daBit is a doubly shared bit $b_i$ in two secret sharing
+schemes (corresponding to our \verb|sint| and \verb|sbit| types)
+$\sshare{b_i}_p$ and $\sshare{b_i}_2$.
+To convert from a \verb|sbit| value to a \verb|sint| value we take
+a single daBit $r$ and XOR it into the \verb|sbit| $x$.
+Thus we form $\sshare{v}_2 \asn \sshare{x}_2 \oplus \sshare{r}_2$.
+The value $v$ is then opened to all parties.
+All parties can then locally produce the sharing as an \verb|sint|
+by forming
+\[  \sshare{x}_p \asn v + \sshare{r}_p - 2 \cdot v \cdot \sshare{r}_p. \]
+
+~
+
+\noindent{\bf sint to sbit conversion:}
+To do this we make a number of assumptions;
+\[ \mathsf{conv\_stat\_sec}+1 < \min \{ 64, \log_2 p \}.  \]
+If these do not hold then the run-time system will abort.
+It is also assumed that the programmer is sure that the \verb|sint|
+does in fact hold a shared bit. 
+If this is not true, then information on the value in the
+\verb|sint| value $\sshare{x}_p$ may leak to the adversary.
+To perform the method we generate $1+\mathsf{conv\_stat\_sec}$ random 
+daBits $r_i$ and form the value 
+$r = \sum_{i=0}^{\mathsf{conv\_stat\_sec}} r_i \cdot 2^i$.
+We now compute $\sshare{v}_p \asn \sshare{x}_p + \sshare{r}_p$.
+It is gauranteed that $\sshare{v}_p$ holds a $64$-bit unsigned integer,
+so we open it.
+Then using a Garbled Circuit we subtract $\sshare{r}_2$ from $x+r$,
+which requires at most a $64$-bit subtraction.
 
 ~
 
@@ -110,11 +167,10 @@ Note that such a conversion may loose precision if
 $\log_2 p < 64$, thus if this is the case the user should guarantee
 that the number being converted is in the correct range, otherwise
 undefined behaviour will occur.
-Recall a daBit is a doubly shared bit $b_i$ in two secret sharing
-schemes (corresponding to our \verb|sint| and \verb|sbit| types)
-$\sshare{b_i}_p$ and $\sshare{b_i}_2$.
+The basic idea is to duplicate $64$ times the above method for converting
+an \verb|sbit| to an \verb|sint|, and then do some adjustment.
 To convert from a \verb|sregint| value to a \verb|sint| value we take
-$64$ daBits $r_i$ and add them into the bits representing the 64-bit
+$64$ daBits $r_i$ and XOR them into the bits representing the 64-bit
 \verb|sregint| $x$.
 Thus we form $\sshare{v_i}_2 \asn \sshare{x_i}_2 \oplus \sshare{r_i}_2$.
 The value $v_i$ is then opened to all parties.
@@ -163,7 +219,7 @@ Thus we require one of the following three conditions on $p$ to be met:
 \item $(2^{\log_2 p}-p) / p < 2^{-\mathsf{conv\_stat\_sec}}$, i.e. $p$ is slightly less than a power of two.
 \end{enumerate}
 If these conditions are not met, then the conversion will abort at runtime.
-The value \verb|conv_stat_sec| is by default equal to 40, but this can be modified in
+The value \verb|conv\_stat\_sec| is by default equal to 40, but this can be modified in
 \verb|config.h|.
 
 In the latter case, when $\log_2 p < 64$, we repeatedly generate 
@@ -179,8 +235,8 @@ using a Garbled Circuit and adjusting to get the sign correct.
 
 ~
 
-\noindent
-Extractions of bits from an \verb|sregint| register can be done as follows:
+\noindent{\bf Extract and Setting \verb|sbits|s:}
+Extractions of \verb|sbit|s from an \verb|sregint| register can be done as follows:
 \begin{lstlisting}
 sa=sregint(5424)
 for j in range(32,0,-1):
@@ -215,9 +271,6 @@ d = a + b     # returns regint
 c =  b + a    # returns regint
 \end{lstlisting}
 This would also implicitly allow the compiler to include operations between \verb|regint| and secret $\modp$ types. However, this is not recommended, given that the disparity on bit-length support in both $\modp$ and $\modn$ types might cause incongruity among the answers. We advise users to use the conversion routines instead to transition between both type families.
-
-\subsubsection{Complex Secret Data Types}
-Fixed and floating point types can be instantiated using the \verb|sfix| and \verb|sfloat| classes, and are described in later part of documentation about Advanced Algorithms.
 
 \subsubsection{Creating data}
 \func{sint(value)}
@@ -429,6 +482,16 @@ print_ln(' %s',e)
 This will print the values one, then three, then one. 
 To use other stacks one uses the prefixes, \verb+sregint+, \verb+cint+,
 \verb+sint+ and \verb+sbit+.
+
+The above peek and poke operations are relative to the bottom
+of the stack. If you want to reference relative to the top
+of the stack then use
+\begin{lstlisting}
+c=regint.peek(1)
+regint.poke(0,three)
+\end{lstlisting}
+This will have the same affect as the peek and poke in the previous
+code segment.
 
 \subsubsection{Operations on Data Types}
 Most of the usual arithmetic operators ($+, -, *, /, \%, <<, >>$) can be used with
@@ -1106,6 +1169,25 @@ The reader should note that our encoding does not directly
 emulate IEEE floating point standards, but tries to mimic them
 (thus precision etc of results will be different from IEEE
 standard).
+
+If you want to have IEEE floating point arithmetic then you
+can do this by using an \verb|sregint| which encodes an
+IEEE double value.
+You can then operate on these values using the Garbled Circuit
+routines, see Section \ref{sec:ieee}.
+It is possible to convert between the \verb|sfloat| and
+IEEE double values held in an \verb|sregint| using the following
+operations.
+\begin{lstlisting}
+import floatingpoint
+a = sfloat(0.0)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+\end{lstlisting}
+The conversion will work always, but its accuracy will
+depend on the values for \verb|plen| and \verb|vlen|
+below.
+
 Our encoding is in line with the one described in detail 
 by Aliasgari et. al~\cite{ABZS13} and used across various 
 complex protocols for mathematical operations on MPC.
@@ -1250,8 +1332,6 @@ once they are cast into \verb|cfloat| values.
 This basically means that an instance of the same number, on \verb|sfloat| and \verb|cfloat|, 
 would  encode the number in the same fashion, 
 as long as they are using the same precision parameters. 
-However, \verb|cfloat| values do not include an $\err$ parameter, 
-given that such flag is not necessary.
 
 \paragraph{Data Components:}
 		The following is a detailed description of the most important member state variables of \verb|cfloat|, and how it stores its value representation:
@@ -1278,6 +1358,15 @@ given that such flag is not necessary.
 		When this variable takes a value of $0$, it means that the \verb|cfloat| 
 		instance is a non-zero value and $1$ otherwise. 
 		Our aim is to mimic the behaviour of its secret shared counterpart.
+
+                \func{err}
+                \textbf{Accessed by:} \verb|Default|.\\
+                \textbf{Type:} \verb|cint|.\\
+                Stores a register of type \verb|cint|,
+                that serves to flag whether the instance is reporting a numeric error.
+                When this variable takes a value of $0$
+                it means that the \verb|sfloat| instance is valid and non-zero otherwise.
+
 
 \paragraph{Special Operations:}
 \func{cfloat.sizeof()}
@@ -1547,11 +1636,8 @@ print_ln("The returned value is %s %s %s",hh[0][0].reveal(), hh[0][1].reveal(), 
 print_ln("m value : %s",m())
 print_ln("m value : %s",m(2))
 \end{lstlisting}
-The functions are called by pushing data onto the requesite stacks,
-executing a \verb+CALL+ bytecode, then the arguments are popped off,
-and the function is run.
-Return arguments are done using pushing, calling the \verb+RETURN+ 
-bytecode, and then popping the arguments off.
+The functions are called executing a \verb+CALL+ bytecode, which
+pushes the current program counter onto the integer stack.
 
 If you call \verb+RETURN()+ from within a MAMBA program this will
 execute a jump to the address on the integer stack.

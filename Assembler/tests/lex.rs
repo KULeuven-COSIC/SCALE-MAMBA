@@ -2,9 +2,11 @@ use pretty_assertions::assert_eq;
 use scasm::asm::Body;
 use scasm::lexer::*;
 use scasm::span::Span;
+use std::convert::TryInto;
 
 #[test]
 fn parse_check() -> std::io::Result<()> {
+    scasm::init_logger().unwrap();
     for file in std::fs::read_dir("tests")? {
         let file = file?.path();
         println!("seeing: {}", file.display());
@@ -13,7 +15,10 @@ fn parse_check() -> std::io::Result<()> {
                 println!("processing: {}", file.display());
                 let input = std::fs::read_to_string(&file)?;
                 let cx = scasm::Compiler::stderr();
-                let lexed = parse(&cx, &input);
+                let file_id = cx.files.len();
+                cx.files.push(input);
+                cx.file_paths.push(file.clone());
+                let lexed = parse(&cx, file_id.try_into().unwrap());
                 let parsed = Body::parse(&cx, &lexed);
                 let dot = std::fs::File::create(file.with_extension("dot")).unwrap();
                 parsed.print_dot_file(&cx, dot).unwrap();
@@ -21,7 +26,7 @@ fn parse_check() -> std::io::Result<()> {
                 cx.check_for_errors().unwrap();
                 for (lex, relex) in lexed.iter().zip(relexed) {
                     //println!("{} \t\t {}", lex, relex);
-                    assert_eq!(lex.to_string(), relex.to_string());
+                    assert_eq!(lex.display(&cx).to_string(), relex.display(&cx).to_string());
                 }
                 scasm::binary::generate_bytecode(
                     &cx,
@@ -40,7 +45,7 @@ fn parse_check() -> std::io::Result<()> {
                         comment: Span::DUMMY,
                         ..lex.clone()
                     };
-                    assert_eq!(lex.to_string(), relex.to_string());
+                    assert_eq!(lex.display(&cx).to_string(), relex.display(&cx).to_string());
                 }
                 cx.check_for_errors().unwrap();
             }

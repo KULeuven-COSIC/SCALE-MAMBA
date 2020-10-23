@@ -45,6 +45,7 @@ enum {
   MOVC= 0xB,
   MOVS= 0xC,
   MOVINT= 0xD,
+  MOVSB= 0xE,
   LDMINT= 0xCA,
   STMINT= 0xCB,
   LDMINTI= 0xCC,
@@ -115,6 +116,14 @@ enum {
   SQUARE= 0x52,
   DABIT= 0x53,
 
+  // Bitwise logical operations on regints
+  ANDINT= 0x5A,
+  ORINT= 0x5B,
+  XORINT= 0x5C,
+  INVINT= 0x5D,
+  SHLINT= 0x5E,
+  SHRINT= 0x5F,
+
   // sregint/sbit instructions
   LDMSINT= 0x60,
   LDMSINTI= 0x61,
@@ -179,6 +188,8 @@ enum {
   CONVREGSREG= 0xC3,
   CONVSREGSINT= 0xC4,
   CONVSUREGSINT= 0xC5,
+  CONVSINTSBIT= 0xC6,
+  CONVSBITSINT= 0xC7,
 
   // Debug Printing
   PRINT_MEM= 0xB0,
@@ -225,26 +236,42 @@ enum {
   PEEKINT= 0x102,
   POKEINT= 0x103,
   GETSPINT= 0x104,
+
   PUSHSINT= 0x105,
   POPSINT= 0x106,
   PEEKSINT= 0x107,
   POKESINT= 0x108,
   GETSPSINT= 0x109,
+
   PUSHSBIT= 0x10A,
   POPSBIT= 0x10B,
   PEEKSBIT= 0x10C,
   POKESBIT= 0x10D,
   GETSPSBIT= 0x10E,
+
   PUSHC= 0x110,
   POPC= 0x111,
   PEEKC= 0x112,
   POKEC= 0x113,
   GETSPC= 0x114,
+
   PUSHS= 0x115,
   POPS= 0x116,
   PEEKS= 0x117,
   POKES= 0x118,
   GETSPS= 0x119,
+
+  // Relative peek and poke
+  RPEEKINT= 0x120,
+  RPOKEINT= 0x121,
+  RPEEKSINT= 0x122,
+  RPOKESINT= 0x123,
+  RPEEKSBIT= 0x124,
+  RPOKESBIT= 0x125,
+  RPEEKC= 0x126,
+  RPOKEC= 0x127,
+  RPEEKS= 0x128,
+  RPOKES= 0x129,
 };
 
 // Register types

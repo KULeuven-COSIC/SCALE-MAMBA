@@ -3,11 +3,12 @@ include ../CONFIG.mine
 
 CC = g++
 
-CFLAGS = -Wall -std=c++11 -pedantic -Wextra  -pthread -I$(ROOT)/src -maes -mpclmul -msse4.1 -march=core2 $(FLAGS) $(OPT)
+ARCH = -mtune=native -maes -mpclmul -msse4.1 -mavx -mbmi2 -madx -march=core2
+CFLAGS = -Wall -std=c++11 -pedantic -Wextra  -pthread -I$(ROOT)/src $(ARCH) $(FLAGS) $(OPT)
 CPPFLAGS = $(CFLAGS) 
 LDLIBS = -L/$(OSSL)/lib -lm -lssl -lcrypto -lmpirxx -lmpir -lcryptopp $(LDFLAGS)
 
-all: Test.x Test-FHE.x Test-Adv-FHE.x Test-Circuit.x FHE-P.x Test-Simplify.x Test-Convert.x  Test-FP.x
+all: Test.x Test-FHE.x Test-Adv-FHE.x Test-Circuit.x FHE-P.x Test-Simplify.x Test-Convert.x  Test-FP.x Test-gfp.x
 
 LIB = ../src/libMPC.a
 

@@ -6,21 +6,21 @@ use crate::Compiler;
 use annotate_snippets::display_list::FormatOptions;
 use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation};
 
-pub struct InvalidVectorSize<'a> {
-    pub n: Spanned<'a, i32>,
+pub struct InvalidVectorSize {
+    pub n: Spanned<i32>,
 }
 
-impl<'a> Error<'a> for InvalidVectorSize<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for InvalidVectorSize {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.n.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!(
+                label: Some(cx.strings.push_get(format!(
                     "invalid vector length: expected value between 2 and 2^16, got `{}`",
                     self.n.elem
-                )),
+                ))),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -46,22 +46,22 @@ pub fn line(substr: &str, s: &str) -> (usize, (usize, usize), String) {
     (n + 1, (col, col + substr.len()), s.to_owned())
 }
 
-pub struct ExpectedGot<'a, T, E> {
-    pub got: Spanned<'a, T>,
+pub struct ExpectedGot<T, E> {
+    pub got: Spanned<T>,
     pub expected: E,
 }
 
-impl<'a, T: std::fmt::Display, E: std::fmt::Display> Error<'a> for ExpectedGot<'a, T, E> {
-    fn spans(&self) -> &[Span<'a>] {
+impl<T: std::fmt::Display, E: std::fmt::Display> Error for ExpectedGot<T, E> {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.got.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!(
+                label: Some(cx.strings.push_get(format!(
                     "expected {}, got `{}`",
                     self.expected, self.got.elem
-                )),
+                ))),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -75,18 +75,18 @@ impl<'a, T: std::fmt::Display, E: std::fmt::Display> Error<'a> for ExpectedGot<'
     }
 }
 
-pub struct ExpectedOperand<'a> {
-    pub span: Span<'a>,
+pub struct ExpectedOperand {
+    pub span: Span,
 }
 
-impl<'a> Error<'a> for ExpectedOperand<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for ExpectedOperand {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some("expected an operand`".to_owned()),
+                label: Some("expected an operand`"),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -100,19 +100,22 @@ impl<'a> Error<'a> for ExpectedOperand<'a> {
     }
 }
 
-pub struct ArgNotFound<'a> {
-    pub span: Span<'a>,
+pub struct ArgNotFound {
+    pub span: Span,
     pub i: usize,
 }
 
-impl<'a> Error<'a> for ArgNotFound<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for ArgNotFound {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!("expected at least {} arguments", self.i)),
+                label: Some(
+                    cx.strings
+                        .push_get(format!("expected at least {} arguments", self.i)),
+                ),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -126,18 +129,18 @@ impl<'a> Error<'a> for ArgNotFound<'a> {
     }
 }
 
-pub struct JumpOutOfBounds<'a> {
-    pub spans: Vec<Span<'a>>,
+pub struct JumpOutOfBounds {
+    pub spans: Vec<Span>,
 }
 
-impl<'a> Error<'a> for JumpOutOfBounds<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for JumpOutOfBounds {
+    fn spans(&self) -> &[Span] {
         &self.spans
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some("a jump jumped beyond the program's boundaries".to_owned()),
+                label: Some("a jump jumped beyond the program's boundaries"),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -147,14 +150,14 @@ impl<'a> Error<'a> for JumpOutOfBounds<'a> {
                 .into_iter()
                 .map(|span| {
                     let (path, file) = cx.get_file(span).unwrap();
-                    let (line_start, range, source) = line(span.snippet(), file);
+                    let (line_start, range, source) = line(span.snippet(cx), file);
                     Slice {
-                        source,
+                        source: cx.strings.push_get(source),
                         line_start,
-                        origin: Some(path.display().to_string()),
+                        origin: Some(cx.strings.push_get(path.display().to_string())),
                         fold: false,
                         annotations: vec![SourceAnnotation {
-                            label: "jumped from here".to_string(),
+                            label: "jumped from here",
                             annotation_type: AnnotationType::Error,
                             range,
                         }],
@@ -170,21 +173,21 @@ impl<'a> Error<'a> for JumpOutOfBounds<'a> {
 }
 
 pub struct UnknownInstruction<'a> {
-    pub span: Span<'a>,
+    pub span: Span,
     pub instruction: &'a str,
 }
 
-impl<'a> Error<'a> for UnknownInstruction<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl<'a> Error for UnknownInstruction<'a> {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'b>(self, cx: &'b Compiler) -> Snippet<'b> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!(
+                label: Some(cx.strings.push_get(format!(
                     "unknown or unimplemented instruction: {}",
                     self.instruction,
-                )),
+                ))),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -198,24 +201,28 @@ impl<'a> Error<'a> for UnknownInstruction<'a> {
     }
 }
 
-pub struct InvalidRegisterId<'a> {
-    pub span: Span<'a>,
+pub struct InvalidRegisterId {
+    pub span: Span,
     pub err: std::num::ParseIntError,
 }
 
-impl<'a> Error<'a> for InvalidRegisterId<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for InvalidRegisterId {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some("invalid register id".to_string()),
+                label: Some("invalid register id"),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
             footer: vec![],
-            slices: self.slices(cx, self.err.to_string(), AnnotationType::Error),
+            slices: self.slices(
+                cx,
+                cx.strings.push_get(self.err.to_string()),
+                AnnotationType::Error,
+            ),
             opt: FormatOptions {
                 color: cx.colors,
                 ..Default::default()
@@ -228,14 +235,14 @@ pub struct Io {
     pub err: std::io::Error,
 }
 
-impl<'a> Error<'a> for Io {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for Io {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some(self.err.to_string()),
+                label: Some(cx.strings.push_get(self.err.to_string())),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -250,25 +257,28 @@ impl<'a> Error<'a> for Io {
 }
 
 pub struct UnimplementedInstruction<'a> {
-    pub span: Span<'a>,
+    pub span: Span,
     pub name: &'a str,
 }
 
-impl<'a> Error<'a> for UnimplementedInstruction<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl<'a> Error for UnimplementedInstruction<'a> {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'b>(self, cx: &'b Compiler) -> Snippet<'b> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!("unimplemented instruction: {}", self.name)),
+                label: Some(
+                    cx.strings
+                        .push_get(format!("unimplemented instruction: {}", self.name)),
+                ),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
             footer: vec![],
             slices: self.slices(
                 cx,
-                "cranelift backend does not yet support this instruction",
+                "the instruction is not yet supported",
                 AnnotationType::Error,
             ),
             opt: FormatOptions {
@@ -279,27 +289,57 @@ impl<'a> Error<'a> for UnimplementedInstruction<'a> {
     }
 }
 
-pub struct UninitializedRead<'a> {
-    pub spans: Vec<Span<'a>>,
+pub struct TooManyArguments {
+    pub span: Span,
+}
+
+impl Error for TooManyArguments {
+    fn spans(&self) -> &[Span] {
+        std::slice::from_ref(&self.span)
+    }
+    fn print<'b>(self, cx: &'b Compiler) -> Snippet<'b> {
+        Snippet {
+            title: Some(Annotation {
+                label: Some(cx.strings.push_get("invalid number of arguments".to_string())),
+                id: None,
+                annotation_type: AnnotationType::Error,
+            }),
+            footer: vec![],
+            slices: self.slices(
+                cx,
+                "The number of arguments given did not match what the assembly instruction requires",
+                AnnotationType::Error,
+            ),
+            opt: FormatOptions {
+                color: cx.colors,
+                ..Default::default()
+            },
+        }
+    }
+}
+
+pub struct UninitializedRead {
+    pub spans: Vec<Span>,
     // FIXME: make this a `Register`
     pub reg: u32,
 }
 
-impl<'a> Error<'a> for UninitializedRead<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for UninitializedRead {
+    fn spans(&self) -> &[Span] {
         &self.spans
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some("read from uninitialized register".to_string()),
+                label: Some("read from uninitialized register"),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
             footer: vec![],
             slices: self.slices(
                 cx,
-                format!("register {} was never written to", self.reg),
+                cx.strings
+                    .push_get(format!("register {} was never written to", self.reg)),
                 AnnotationType::Error,
             ),
             opt: FormatOptions {
@@ -310,33 +350,33 @@ impl<'a> Error<'a> for UninitializedRead<'a> {
     }
 }
 
-pub struct DeadWrite<'a> {
-    pub spans: Vec<Span<'a>>,
+pub struct DeadWrite {
+    pub spans: Vec<Span>,
     // FIXME: make this a `Register`
     pub reg: u32,
 }
 
-impl<'a> Error<'a> for DeadWrite<'a> {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for DeadWrite {
+    fn spans(&self) -> &[Span] {
         &self.spans
     }
     fn fatal(&self) -> bool {
         false
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some("Write to register is never read".to_string()),
+                label: Some("Write to register is never read"),
                 id: None,
                 annotation_type: AnnotationType::Warning,
             }),
             footer: vec![],
             slices: self.slices(
                 cx,
-                format!(
+                cx.strings.push_get(format!(
                     "register {} written to but will never be read from again",
                     self.reg
-                ),
+                )),
                 AnnotationType::Warning,
             ),
             opt: FormatOptions {
@@ -352,17 +392,17 @@ pub struct NotVectorizable {
     pub v: u32,
 }
 
-impl<'a> Error<'a> for NotVectorizable {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for NotVectorizable {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!(
+                label: Some(cx.strings.push_get(format!(
                     "{:?} is not vectorizable but had a vector number of {}",
                     self.instr, self.v
-                )),
+                ))),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),
@@ -380,18 +420,18 @@ pub struct SkippedErrors {
     pub error_count: usize,
 }
 
-impl<'a> Error<'a> for SkippedErrors {
-    fn spans(&self) -> &[Span<'a>] {
+impl Error for SkippedErrors {
+    fn spans(&self) -> &[Span] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print(self, cx: &Compiler) -> Snippet {
+    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
         Snippet {
             title: Some(Annotation {
-                label: Some(format!(
+                label: Some(cx.strings.push_get(format!(
                     "{}/{} errors not shown",
                     self.error_count - 100,
                     self.error_count
-                )),
+                ))),
                 id: None,
                 annotation_type: AnnotationType::Error,
             }),

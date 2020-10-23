@@ -104,11 +104,6 @@ def tree_reduce(function, sequence):
         reduced = [function(sequence[2*i], sequence[2*i+1]) for i in range(n/2)]
         return tree_reduce(function, reduced + sequence[n/2*2:])
 
-def or_op(a, b):
-    return a + b - a * b
-
-OR = or_op
-
 def pow2(bits):
     powers = [b.if_else(2**2**i, 1) for i,b in enumerate(bits)]
     return tree_reduce(operator.mul, powers)

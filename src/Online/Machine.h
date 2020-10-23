@@ -97,10 +97,10 @@ public:
   // The Schedule process we are running
   Schedule schedule;
 
-  bool verbose;
-  void set_verbose()
+  int verbose;
+  void set_verbose(int xx)
   {
-    verbose= true;
+    verbose= xx;
   }
 
   // -----------------------------------------------------
@@ -109,7 +109,7 @@ public:
 
   Machine()
   {
-    verbose= false;
+    verbose= 0;
   }
 
   // Set up/store data

@@ -24,7 +24,7 @@ void DistDecrypt(Plaintext &mess, const Ciphertext &ctx, const FHE_SK &sk, Playe
     }
 
   // Broadcast and Receive the values
-  P.Broadcast_Receive(vs);
+  P.Broadcast_Receive(vs, false, 0);
 
   // Reconstruct the value mod p0 from all shares
   vector<bigint> vv1(params.phi_m());
@@ -118,7 +118,7 @@ void Reshare(Plaintext &m, const Ciphertext &cm, const Player &P,
         }
 
       // Broadcast and Receive the values
-      P.send_to_player(0, os);
+      P.send_to_player(0, os, 0);
     }
   else
     {
@@ -127,7 +127,7 @@ void Reshare(Plaintext &m, const Ciphertext &cm, const Player &P,
       for (unsigned int i= 1; i < P.nplayers(); i++)
         {
           string ss;
-          P.receive_from_player(i, ss);
+          P.receive_from_player(i, ss, 0);
           for (unsigned int j= 0; j < params.phi_m(); j++)
             {
               inputBigint(ss, vv1[j]);
@@ -309,12 +309,12 @@ void Update_ZKPoK(ZKPoK &ZKP, Player &P,
     {
       stringstream osE;
       ZKP.get_vE(osE);
-      P.send_all(osE.str());
+      P.send_all(osE.str(), 0);
     }
   else
     {
       string vsE;
-      P.receive_from_player(prover, vsE);
+      P.receive_from_player(prover, vsE, 0);
       istringstream isE(vsE);
       ZKP.Step0_Step(isE, pk);
     }
@@ -327,19 +327,19 @@ void Update_ZKPoK(ZKPoK &ZKP, Player &P,
     {
       stringstream osA;
       ZKP.get_vA(osA);
-      P.send_all(osA.str());
+      P.send_all(osA.str(), 0);
     }
   else
     {
       string vsA;
-      P.receive_from_player(prover, vsA);
+      P.receive_from_player(prover, vsA, 0);
       istringstream isA(vsA);
       ZKP.Step1_Step(isA, pk);
     }
 
   // Step 2 first step
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, seed, SEED_SIZE);
+  AgreeRandom(P, seed, SEED_SIZE, 0);
   vector<int> e;
   ZKP.Generate_e(e, seed);
 
@@ -351,14 +351,14 @@ void Update_ZKPoK(ZKPoK &ZKP, Player &P,
       stringstream osT, osZ;
       ZKP.get_vT(osT);
       ZKP.get_vZ(osZ);
-      P.send_all(osT.str());
-      P.send_all(osZ.str());
+      P.send_all(osT.str(), 0);
+      P.send_all(osZ.str(), 0);
     }
   else
     {
       string vsT, vsZ;
-      P.receive_from_player(prover, vsT);
-      P.receive_from_player(prover, vsZ);
+      P.receive_from_player(prover, vsT, 0);
+      P.receive_from_player(prover, vsZ, 0);
       istringstream isT(vsT), isZ(vsZ);
       ZKP.Step2_Step(isT, isZ, pk);
     }

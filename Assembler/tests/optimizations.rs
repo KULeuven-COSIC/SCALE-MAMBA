@@ -32,7 +32,7 @@ fn optimizations() -> std::io::Result<()> {
                 let optimized = file.with_extension("optimized");
                 let mut optimized = File::create(optimized)?;
                 for lex in &lexed {
-                    writeln!(optimized, "{}", lex)?;
+                    writeln!(optimized, "{}", lex.display(&cx))?;
                 }
 
                 if cx.check_for_errors().is_ok() {

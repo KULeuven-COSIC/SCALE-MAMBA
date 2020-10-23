@@ -85,7 +85,6 @@ def read_mem(address, value=None):
     if isinstance(value, (regint, bool)):
         return read_int(address)
     elif isinstance(value, (sregint.type, sbit.type)):
-
         return read_int(address)
     else:
         return read_modp(address)

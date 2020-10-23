@@ -142,6 +142,7 @@ void Generate_Parameters(unsigned int &N, bigint &p0, bigint &p1, bigint &p, int
               double U2= U1 + B_Clean / pp1 + B_Scale;
 
               double LHS= 2 * U2 * (1 + n * ss);
+              // cout << i << "  N=" << N << " lgp=" <<  lgq << "  lgp0=" << lgp0 << "  LHS<p0 = " << LHS << "<" << pp0 << endl;
               if (LHS < pp0)
                 {
                   if (p == 0)

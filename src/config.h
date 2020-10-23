@@ -108,6 +108,11 @@ All rights reserved
  */
 #define OT_stat_sec 40
 
+/* This is a stat security parameter for when we sample random values
+ * mod p
+ */
+#define modp_stat_sec 64
+
 /* This is the bound we use on for the NewHope approximation
  * to a discrete Gaussian with sigma=sqrt(B/2)
  */

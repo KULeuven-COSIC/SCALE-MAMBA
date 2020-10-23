@@ -51,11 +51,9 @@ public:
 /* Agree a random seed between all players in set A
  *    Gauranteed that whoami is in A
  */
-void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len,
-                 int connection= 0);
+void AgreeRandom(Player &P, vector<unsigned int> &A, uint8_t *seed, int len, int connection);
 
 // Same but for all players
-void AgreeRandom(Player &P, uint8_t *seed, int len,
-                 int connection= 0);
+void AgreeRandom(Player &P, uint8_t *seed, int len, int connection);
 
 #endif

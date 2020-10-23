@@ -1,4 +1,4 @@
-n=1
+n=4
 
 # Create some dummy threads to ensure we have multiple threads
 

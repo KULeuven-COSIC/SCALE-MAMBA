@@ -143,7 +143,7 @@ int FHE_Industry::Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
       stringstream ss;
       ss << num << " " << batch << " " << i;
       //printf("\tTelling players to access item : %s : %s\n",ss.str().c_str(),info.c_str());
-      P.send_all(ss.str());
+      P.send_all(ss.str(), 0);
     }
 
   // It not player zero wait for batch_number and item number
@@ -154,7 +154,7 @@ int FHE_Industry::Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
   if (P.whoami() != 0)
     {
       string ss;
-      P.receive_from_player(0, ss);
+      P.receive_from_player(0, ss, 0);
       //printf("\tBeen told to access item : %s : %s\n",ss.c_str(),info.c_str());
       istringstream is(ss);
       is >> num >> batch >> i;
@@ -187,7 +187,7 @@ int FHE_Industry::Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
 }
 
 /* If one party says every thread is finished then finish */
-bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_control_data &OCD)
+bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_control_data &OCD,bool main)
 {
   bool finished= false, wait= true;
   // Loop if we are waiting and not finished
@@ -212,12 +212,12 @@ bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_contro
       //printf("Waiting for FL lock %d C\n",num); fflush(stdout);
       Factory_List_Lock[num].lock();
 #ifndef TOP_GEAR
-      if (Factory[num].size() > 2)
+      if (Factory[num].size() > 4)
         {
           wait= true;
         }
 #else
-      if (Factory[num].size() > 4)
+      if (Factory[num].size() > 8)
         {
           wait= true;
         }
@@ -234,11 +234,17 @@ bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_contro
         {
           o[P.whoami()]= "Y";
         }
-      //printf("\n is_finished B : %d %s\n",P.whoami(),o[P.whoami()].c_str());
-      P.Broadcast_Receive(o);
+      /*
+      if (main)
+	{ printf("\nis_finished B : %d %s %lu\n",num,o[P.whoami()].c_str(),Factory[num].size()); }
+      */
+      P.Broadcast_Receive(o, false, 0);
       for (unsigned int p= 0; p < P.nplayers(); p++)
         {
-          //printf("\n is_finished R : %d %s\n",p,o[p].c_str());
+	  /*
+	  if (main && p!=P.whoami())
+            { printf("\tis_finished R : %d %d %s\n",num,p,o[p].c_str()); }
+	  */
           if (o[p].compare("Y") == 0)
             {
               finished= true;
@@ -250,7 +256,14 @@ bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_contro
         }
       if (wait && !finished)
         {
-          sleep(5);
+	  /*
+	  if (main)
+            { printf("\tSleeping\n"); }
+	  */
+          if (main)
+	    { sleep(15); }
+	  else
+	    { sleep(5);  }
         }
     }
   return finished;
@@ -273,7 +286,7 @@ void Do_Step0_Step(ZKPoK &ZK, Player &P, const FHE_PK &pk,
   //printf("\n Do_Step0 : B %d\n",P.whoami());
 
   // Do commit and open to avoid the attack of Ivan
-  Commit_And_Open(vsE, P, true);
+  Commit_And_Open(vsE, P, true, 0);
 
   //printf("\n Do_Step0 : R %d\n",P.whoami());
   for (unsigned int i= 0; i < nplayers; i++)
@@ -323,7 +336,7 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
     ZK.get_vA(osA);
     vsA[whoami]= osA.str();
     //printf("\n Do_ZKPoK : B vsA %d\n",P.whoami());
-    P.Broadcast_Receive(vsA);
+    P.Broadcast_Receive(vsA, false, 0);
     //printf("\n Do_ZKPoK : R vsA %d\n",P.whoami());
     for (unsigned int i= 0; i < nplayers; i++)
       {
@@ -347,7 +360,7 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
     }
   uint8_t seed[SEED_SIZE];
   //printf("\n Do_ZKPoK : ARS %d\n",P.whoami());
-  AgreeRandom(P, seed, SEED_SIZE);
+  AgreeRandom(P, seed, SEED_SIZE, 0);
   //printf("\n Do_ZKPoK : ARE %d\n",P.whoami());
   vector<int> e;
   ZK.Generate_e(e, seed);
@@ -381,10 +394,10 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
     vsT[whoami]= osT.str();
     vsZ[whoami]= osZ.str();
     //printf("\n Do_ZKPoK : B vsT %d\n",P.whoami());
-    P.Broadcast_Receive(vsT);
+    P.Broadcast_Receive(vsT, false, 0);
     //printf("\n Do_ZKPoK : R vsT %d\n",P.whoami());
     //printf("\n Do_ZKPoK : B vzZ %d\n",P.whoami());
-    P.Broadcast_Receive(vsZ);
+    P.Broadcast_Receive(vsZ, false, 0);
     //printf("\n Do_ZKPoK : R vzZ %d\n",P.whoami());
     for (unsigned int i= 0; i < nplayers; i++)
       {
@@ -488,7 +501,8 @@ void FHE_Industry::FHE_Factory(Player &P, const offline_control_data &OCD, const
   bool finished= false;
   while (!finished)
     {
-      finished= is_finished(mynumber, P, OCD);
+      finished= is_finished(mynumber, P, OCD, true);
+      //printf("Out of is_finished \n\n");
 
       // Only execute a new ZKPoK if we have not finished
       if (!finished)

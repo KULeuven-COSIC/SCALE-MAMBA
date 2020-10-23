@@ -8,13 +8,21 @@ OSSL = /users/cosic/nsmart/local/openssl/
 
 # MAX_MOD = 7 should be OK for 128 bit based FHE operations
 MAX_MOD = 7
+# 2 should be OK for 128 bit fiels [better check all]
+MAX_GFP = 3
 
 # Benchmark flags
 #   BENCH_NETDATA = Enable benchmarking of network data
 #   BENCH_MEMORY  = Enable benchmarking of memory 
+#   BENCH_OFFLINE = Estimate how much offline data is consumed
+#   		    - Note this counts how much stuff is needed by the
+#   		      program and the daBit machine.
+#   		    - The aBits/aANDs count counts all those used
+#   		      by GC calls/sregint ops and GC. But not the
+#   		      creation of the aANDs themselves
 
 #FLAGS = -DSH_DEBUG -DDEBUG -DMAX_MOD_SZ=$(MAX_MOD) -DDETERMINISTIC -DBENCH_NETDATA -DBENCH_MEMORY
-FLAGS = -DMAX_MOD_SZ=$(MAX_MOD) 
+FLAGS = -DMAX_MOD_SZ=$(MAX_MOD) -DMAX_GFP_SZ=$(MAX_GFP)
 
 OPT = -O3 
 

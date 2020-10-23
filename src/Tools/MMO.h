@@ -14,7 +14,7 @@ All rights reserved
 //
 //  We use the MMO function from eprint 2019/074 defined by
 //     MMO(x) = AES_k(sigma(x)) xor sigma(x)
-//  where sigma(x) = (_mm_shuffle_epi32 ( a , 78)) xor (_mm_and_si128 ( a , mask))
+//  where sigma(a) = (_mm_shuffle_epi32 ( a , 78)) xor (_mm_and_si128 ( a , mask))
 //  with mask = 1^64 || 0^64.
 //
 //  This gives a Circular Correlation Robust hash function
@@ -36,6 +36,10 @@ public:
   MMO()
   {
     zeroIV();
+  }
+  MMO(uint8_t key[AES_BLK_SIZE])
+  {
+    setIV(key);
   }
   void zeroIV();
   void setIV(uint8_t key[AES_BLK_SIZE]);

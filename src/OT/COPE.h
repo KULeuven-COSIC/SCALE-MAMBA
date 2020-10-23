@@ -13,10 +13,10 @@ All rights reserved
 #include "Tools/random.h"
 
 /* Correlated Oblivious Product Evaluation
-   Follows protocol 1 from 2016/505 (MASCOT).
+   Follows protocol 1 from ePrint 2016/505 (MASCOT).
    Init with a key Delta from Receiver.
    At each extend with input x from Sender, creates a sharing of x*Delta
-   (Used pairwise between parties to authenticate shares, see protocol 3 from 2016/505).
+   (Used pairwise between parties to authenticate shares, see protocol 3 from ePrint 2016/505).
 */
 class Sender_COPE
 {

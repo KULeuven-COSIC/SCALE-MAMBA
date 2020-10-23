@@ -1,6 +1,8 @@
-use super::{BinaryOperation, Block, Body, JumpMode, MemoryBank, Statement, Terminator};
-use super::{Instruction, IoInstruction, Jump, JumpCondition, UnaryOperation};
-use crate::lexer::{Const, Lexical, Operand, RegisterKind};
+use documentation::name2instr;
+
+use super::{Block, Body, JumpMode, Statement, Terminator};
+use super::{Instruction, IoInstruction, Jump, JumpCondition};
+use crate::lexer::{Const, Lexical, Operand};
 use crate::span::{Span, Spanned};
 use crate::{errors, Compiler};
 use std::collections::HashMap;
@@ -33,181 +35,72 @@ impl<'a> Statement<'a> {
     fn parse_inner(
         cx: &'a Compiler,
         instruction: &'a str,
-        vectorized: Spanned<'a, NonZeroU32>,
-        args: Spanned<'a, &[Spanned<'a, Operand>]>,
-        comment: Span<'a>,
+        vectorized: Spanned<NonZeroU32>,
+        args: Spanned<&[Spanned<Operand>]>,
+        comment: Span,
     ) -> Self {
         let instr: Instruction<'a> = match instruction {
             "jmp" => {
-                let offset: Spanned<'a, u32> = args.index_or_err(cx, 0).require(cx);
+                let offset: Spanned<u32> = args.index_or_err(cx, 0).require(cx);
                 assert_eq!(offset.elem, 0);
                 Instruction::Nop
             }
             "" => Instruction::Nop,
-            "ldsi" | "ldi" | "ldint" | "movs" | "movc" | "movint" | "movsint" | "ldsint"
-            | "ldsbit" => Instruction::Assign {
+            "ldsi" | "ldi" | "ldint" | "movs" | "movc" | "movint" | "movsint" | "movsb"
+            | "ldsint" | "ldsbit" => Instruction::Assign {
                 destination: args.index_or_err(cx, 0).require(cx),
                 value: args.index_or_err(cx, 1),
             },
-            "ldmc" | "ldms" | "ldmci" | "ldmsi" | "ldmint" | "ldminti" | "ldmsint" | "ldmsinti" => {
-                Instruction::LoadFromMemory {
-                    destination: args.index_or_err(cx, 0).require(cx),
-                    source: args.index_or_err(cx, 1),
-                    memory_bank: match &instruction[3..] {
-                        "s" | "si" => MemoryBank::Secret,
-                        "sint" | "sinti" => MemoryBank::SecretRegint,
-                        "c" | "ci" => MemoryBank::Clear,
-                        "int" | "inti" => MemoryBank::Regint,
-                        _ => unreachable!(),
-                    },
+            "restart" | "crash" | "addc" | "adds" | "addm" | "addci" | "addsi" | "addsint"
+            | "addsintc" | "addint" | "subc" | "subs" | "subml" | "submr" | "subci" | "subsi"
+            | "subcfi" | "subsfi" | "subint" | "subsint" | "subsintc" | "subcints" | "mulc"
+            | "mulm" | "mulci" | "mulsi" | "mulsint" | "mulsintc" | "mulint" | "divc" | "divci"
+            | "divsint" | "divint" | "modc" | "modci" | "shlsint" | "shrsint" | "shlc" | "shrc"
+            | "shlci" | "shrci" | "ltint" | "gtint" | "eqint" | "andc" | "xorc" | "orc"
+            | "andci" | "orci" | "xorci" | "sand" | "xorsb" | "andsb" | "orsb" | "andsint"
+            | "andsintc" | "orsint" | "xorsint" | "notc" | "orsintc" | "xorsintc" | "bitsint"
+            | "andint" | "orint" | "xorint" | "shlint" | "shrint" | "legendrec" | "digestc"
+            | "neg" | "negb" | "invsint" | "eqzint" | "ltzint" | "invint" | "eqzsint"
+            | "ltzsint" | "rand" | "getspc" | "getsps" | "getspint" | "getspsint" | "getspsbit"
+            | "ldmc" | "ldms" | "ldmci" | "ldmsi" | "ldmint" | "ldminti" | "ldmsint"
+            | "ldmsinti" | "stmc" | "stms" | "stmci" | "stmsi" | "stmint" | "stminti"
+            | "stmsint" | "stmsinti" | "open_channel" | "close_channel" | "private_input"
+            | "private_output" | "output_clear" | "input_clear" | "output_int" | "input_int"
+            | "reqbl" | "join_tape" | "run_tape" | "start_clock" | "stop_clock"
+            | "clear_memory" | "clear_registers" | "starg" | "convsuregsint" | "convint"
+            | "convmodp" | "convregsreg" | "convsregsint" | "convsintsreg" | "convsintsbit"
+            | "convsbitsint" | "pokeint" | "pokec" | "pokes" | "pokesint" | "pokesbit"
+            | "peekint" | "peekc" | "peeks" | "peeksint" | "peeksbit" | "rpokeint" 
+            | "rpokec" | "rpokes" | "rpokesint" | "rpokesbit" | "rpeekint" | "rpeekc" 
+            | "rpeeks" | "rpeeksint" | "rpeeksbit" | "popint" | "popc"
+            | "pops" | "popsint" | "popsbit" | "pushint" | "pushc" | "pushs" | "pushsint"
+            | "pushsbit" | "ldarg" | "ldtn" | "opensint" | "opensbit" | "dabit" | "print_reg"
+            | "gc" | "lf" | "print_char_regint" | "print_char4_regint" | "print_int"
+            | "print_fix_plain" | "print_ieee_float" | "print_float" | "print_mem"
+            | "print_fix" | "print_char" | "print_char4" | "mul2sint" | "bit" | "square"
+            | "triple" | "sintbit" => {
+                let instr = name2instr(instruction).expect("unknown instruction");
+                if instr.args.len() == args.elem.len() {
+                    let num_destinations = instr
+                        .args
+                        .iter()
+                        .position(|arg| !arg.ty.is_write())
+                        .unwrap_or(instr.args.len());
+                    let destinations = args.elem[..num_destinations]
+                        .iter()
+                        .map(|r| r.require(cx))
+                        .collect();
+                    let values = args.elem[num_destinations..].iter().copied().collect();
+                    Instruction::General {
+                        instruction,
+                        destinations,
+                        values,
+                    }
+                } else {
+                    cx.report(crate::errors::TooManyArguments { span: args.span });
+                    Instruction::Nop
                 }
             }
-            "stmc" | "stms" | "stmci" | "stmsi" | "stmint" | "stminti" | "stmsint" | "stmsinti" => {
-                Instruction::StoreToMemory {
-                    value: args.index_or_err(cx, 0).require(cx),
-                    destination: args.index_or_err(cx, 1),
-                    memory_bank: match &instruction[3..] {
-                        "s" | "si" => MemoryBank::Secret,
-                        "sint" | "sinti" => MemoryBank::SecretRegint,
-                        "c" | "ci" => MemoryBank::Clear,
-                        "int" | "inti" => MemoryBank::Regint,
-                        _ => unreachable!(),
-                    },
-                }
-            }
-            "addc" | "adds" | "addm" | "addci" | "addsi" | "addsint" | "addsintc" | "addint"
-            | "subc" | "subs" | "subml" | "submr" | "subci" | "subsi" | "subcfi" | "subsfi"
-            | "subint" | "subsint" | "subsintc" | "subcints" | "mulc" | "mulm" | "mulci"
-            | "mulsi" | "mulsint" | "mulsintc" | "mulint" | "divc" | "divci" | "divsint"
-            | "divint" | "modc" | "modci" | "shlsint" | "shrsint" | "shlc" | "shrc" | "shlci"
-            | "shrci" | "ltint" | "gtint" | "eqint" | "andc" | "xorc" | "orc" | "andci"
-            | "orci" | "xorci" | "sand" | "xorsb" | "andsb" | "orsb" | "andsint" | "andsintc"
-            | "orsint" | "xorsint" | "notc" | "orsintc" | "xorsintc" | "bitsint" => {
-                Instruction::BinaryOperation {
-                    op: match &instruction[..3] {
-                        "add" => BinaryOperation::Add,
-                        "sub" => BinaryOperation::Sub,
-                        "mul" => BinaryOperation::Mul,
-                        "mod" => BinaryOperation::Mod,
-                        "div" => BinaryOperation::Div,
-                        "shl" => BinaryOperation::Shl,
-                        "shr" => BinaryOperation::Shr,
-                        "and" => BinaryOperation::And,
-                        "san" => BinaryOperation::And,
-                        "xor" => BinaryOperation::Xor,
-                        "not" => BinaryOperation::Not,
-                        "bit" => BinaryOperation::Bit,
-                        _ => match &instruction[..2] {
-                            "lt" => BinaryOperation::Lt,
-                            "gt" => BinaryOperation::Gt,
-                            "or" => BinaryOperation::Or,
-                            "eq" => BinaryOperation::Eq,
-                            _ => unreachable!(),
-                        },
-                    },
-                    a: args.index_or_err(cx, 1),
-                    b: args.index_or_err(cx, 2),
-                    destination: args.index_or_err(cx, 0).require(cx),
-                    instruction,
-                }
-            }
-            "legendrec" | "digestc" | "neg" | "negb" | "invsint" | "eqzint" | "ltzint"
-            | "eqzsint" | "ltzsint" | "rand" => Instruction::UnaryOperation {
-                op: match &instruction[..3] {
-                    "leg" => UnaryOperation::Legendre,
-                    "dig" => UnaryOperation::Digestc,
-                    "neg" => UnaryOperation::Neg,
-                    "inv" => UnaryOperation::Inv,
-                    "ltz" => UnaryOperation::Lt,
-                    "eqz" => UnaryOperation::Eq,
-                    "ran" => UnaryOperation::Rand,
-                    _ => unreachable!(),
-                },
-                a: args.index_or_err(cx, 1),
-                destination: args.index_or_err(cx, 0).require(cx),
-            },
-            "triple" => Instruction::GenerateTriple {
-                destinations: [
-                    args.index_or_err(cx, 0).require(cx),
-                    args.index_or_err(cx, 1).require(cx),
-                    args.index_or_err(cx, 2).require(cx),
-                ],
-            },
-            "bit" => Instruction::GenerateBit {
-                destination: args.index_or_err(cx, 0).require(cx),
-            },
-            "square" => Instruction::GenerateSquare {
-                destinations: [
-                    args.index_or_err(cx, 0).require(cx),
-                    args.index_or_err(cx, 1).require(cx),
-                ],
-            },
-            "mul2sint" => Instruction::Mul2Sint {
-                destinations: [
-                    args.index_or_err(cx, 0).require(cx),
-                    args.index_or_err(cx, 1).require(cx),
-                ],
-                values: [
-                    args.index_or_err(cx, 2).require(cx),
-                    args.index_or_err(cx, 3).require(cx),
-                ],
-            },
-            "sintbit" => Instruction::SintBit {
-                destination: args.index_or_err(cx, 0).require(cx),
-                args: [
-                    args.index_or_err(cx, 1),
-                    args.index_or_err(cx, 2),
-                    args.index_or_err(cx, 3),
-                ],
-            },
-            "pushint" | "pushc" | "pushs" | "pushsint" | "pushsbit" => Instruction::PushR {
-                value: args.index_or_err(cx, 0).require(cx),
-            },
-            "popint" | "popc" | "pops" | "popsint" | "popsbit" => Instruction::PopR {
-                destination: args.index_or_err(cx, 0).require(cx),
-            },
-            "peekint" | "peekc" | "peeks" | "peeksint" | "peeksbit" => Instruction::PeekR {
-                destination: args.index_or_err(cx, 0).require(cx),
-                value: args.index_or_err(cx, 1).require(cx),
-            },
-            "pokeint" | "pokec" | "pokes" | "pokesint" | "pokesbit" => Instruction::PokeR {
-                value1: args.index_or_err(cx, 0).require(cx),
-                value2: args.index_or_err(cx, 1).require(cx),
-            },
-            "getspc" => Instruction::GetSP {
-                destination: args.index_or_err(cx, 0).require(cx),
-                itype: RegisterKind::Clear,
-            },
-            "getsps" => Instruction::GetSP {
-                destination: args.index_or_err(cx, 0).require(cx),
-                itype: RegisterKind::Secret,
-            },
-            "getspint" => Instruction::GetSP {
-                destination: args.index_or_err(cx, 0).require(cx),
-                itype: RegisterKind::Regint,
-            },
-            "getspsint" => Instruction::GetSP {
-                destination: args.index_or_err(cx, 0).require(cx),
-                itype: RegisterKind::SecretRegint,
-            },
-            "getspsbit" => Instruction::GetSP {
-                destination: args.index_or_err(cx, 0).require(cx),
-                itype: RegisterKind::SecretBit,
-            },
-            "convint" | "convmodp" | "convregsreg" | "convsregsint" | "convsintsreg" => {
-                Instruction::Convert {
-                    destination: args.index_or_err(cx, 0).require(cx),
-                    value: args.index_or_err(cx, 1).require(cx),
-                    modp: args.get(2).map(|arg| arg.require(cx)),
-                    unsignedint: false,
-                }
-            }
-            "convsuregsint" => Instruction::Convert {
-                destination: args.index_or_err(cx, 0).require(cx),
-                value: args.index_or_err(cx, 1).require(cx),
-                modp: args.get(2).map(|arg| arg.require(cx)),
-                unsignedint: true,
-            },
             "startopen" => {
                 let registers = args.elem.iter().skip(1).map(|op| op.require(cx)).collect();
                 assert_eq!(
@@ -225,145 +118,21 @@ impl<'a> Statement<'a> {
                 Instruction::StopOpen { registers }
             }
 
-            "reqbl" => Instruction::RequiredBitLength(args.index_or_err(cx, 0).require(cx)),
-
-            "join_tape" => Instruction::JoinTape(args.index_or_err(cx, 0).require(cx)),
-
-            "run_tape" => Instruction::RunTape {
-                source: [
-                    args.index_or_err(cx, 0).require(cx),
-                    args.index_or_err(cx, 1).require(cx),
-                    args.index_or_err(cx, 2).require(cx),
-                ],
-            },
-
-            "start_clock" | "stop_clock" => Instruction::Clock {
-                stop: instruction == "stop_clock",
-                id: args.index_or_err(cx, 0).require(cx),
-            },
-
-            "clear_memory" | "clear_registers" => Instruction::VMControl(instruction),
-
-            "ldarg" => Instruction::LdArg {
-                destination: args.index_or_err(cx, 0).require(cx),
-            },
-
-            "ldtn" => Instruction::LdTn {
-                destination: args.index_or_err(cx, 0).require(cx),
-            },
-
-            "print_mem" | "print_char" | "print_char4" => Instruction::PrintI {
-                instruction,
-                arg: args.index_or_err(cx, 0).require(cx),
-            },
-            "print_reg" | "print_char_regint" | "print_char4_regint" | "print_int"
-            | "print_fix_plain" | "print_ieee_float" => Instruction::PrintR {
-                instruction,
-                arg: args.index_or_err(cx, 0).require(cx),
-            },
-            "print_float" => Instruction::PrintFL {
-                args: [
-                    args.index_or_err(cx, 0).require(cx),
-                    args.index_or_err(cx, 1).require(cx),
-                    args.index_or_err(cx, 2).require(cx),
-                    args.index_or_err(cx, 3).require(cx),
-                ],
-            },
-            "print_fix" => Instruction::PrintFix {
-                args: [
-                    args.index_or_err(cx, 0),
-                    args.index_or_err(cx, 1),
-                    args.index_or_err(cx, 2),
-                ],
-            },
-            "starg" => Instruction::StArg {
-                source: args.index_or_err(cx, 0).require(cx),
-            },
-            "opensint" => Instruction::OpenSint {
-                destination: args.index_or_err(cx, 0).require(cx),
-                source: args.index_or_err(cx, 1).require(cx),
-            },
-            "opensbit" => Instruction::OpenSbit {
-                destination: args.index_or_err(cx, 0).require(cx),
-                source: args.index_or_err(cx, 1).require(cx),
-            },
-            "dabit" => Instruction::DaBit {
-                dest1: args.index_or_err(cx, 0).require(cx),
-                dest2: args.index_or_err(cx, 1).require(cx),
-            },
-            "open_channel" | "close_channel" | "private_input" | "private_output"
-            | "input_shares" | "output_shares" | "output_clear" | "input_clear" | "output_int"
-            | "input_int" => {
-                let (instr, channel) = match instruction {
-                    "open_channel" => (
-                        IoInstruction::OpenChan {
-                            destination: args.index_or_err(cx, 0).require(cx),
-                        },
-                        args.index_or_err(cx, 1).require_uint(cx),
-                    ),
-                    "close_channel" => (
-                        IoInstruction::CloseChan,
-                        args.index_or_err(cx, 0).require_uint(cx),
-                    ),
-                    "private_input" => (
-                        IoInstruction::PrivateInput {
-                            destination: args.index_or_err(cx, 0).require(cx),
-                            player: args.index_or_err(cx, 1).require_uint(cx),
-                        },
-                        args.index_or_err(cx, 2).require_uint(cx),
-                    ),
-                    "private_output" => (
-                        IoInstruction::PrivateOutput {
-                            value: args.index_or_err(cx, 0).require(cx),
-                            player: args.index_or_err(cx, 1).require_uint(cx),
-                        },
-                        args.index_or_err(cx, 2).require_uint(cx),
-                    ),
-                    "input_shares" | "output_shares" => {
-                        let channel = args.index_or_err(cx, 1).require_uint(cx);
-                        let registers: Vec<_> =
-                            args.elem.iter().skip(2).map(|op| op.require(cx)).collect();
-                        assert_eq!(
-                            args.index_or_err(cx, 0).require_uint(cx).elem,
-                            registers.len() as u32 + 1,
-                        );
-                        match instruction {
-                            "input_shares" => (IoInstruction::InputShares { registers }, channel),
-                            "output_shares" => (IoInstruction::OutputShares { registers }, channel),
-                            _ => unreachable!(),
-                        }
-                    }
-                    "output_clear" => (
-                        IoInstruction::OutputClear {
-                            value: args.index_or_err(cx, 0).require(cx),
-                        },
-                        args.index_or_err(cx, 1).require_uint(cx),
-                    ),
-                    "input_clear" => (
-                        IoInstruction::InputClear {
-                            destination: args.index_or_err(cx, 0).require(cx),
-                        },
-                        args.index_or_err(cx, 1).require_uint(cx),
-                    ),
-                    "output_int" => (
-                        IoInstruction::OutputInt {
-                            value: args.index_or_err(cx, 0).require(cx),
-                        },
-                        args.index_or_err(cx, 1).require_uint(cx),
-                    ),
-                    "input_int" => (
-                        IoInstruction::InputInt {
-                            destination: args.index_or_err(cx, 0).require(cx),
-                        },
-                        args.index_or_err(cx, 1).require_uint(cx),
-                    ),
+            "input_shares" | "output_shares" => {
+                let channel = args.index_or_err(cx, 1).require_uint(cx);
+                let registers: Vec<_> = args.elem.iter().skip(2).map(|op| op.require(cx)).collect();
+                assert_eq!(
+                    args.index_or_err(cx, 0).require_uint(cx).elem,
+                    registers.len() as u32 + 1,
+                );
+                let instr = match instruction {
+                    "input_shares" => IoInstruction::InputShares { registers },
+                    "output_shares" => IoInstruction::OutputShares { registers },
                     _ => unreachable!(),
                 };
                 Instruction::Io { instr, channel }
             }
 
-            "gc" => Instruction::GarbledCircuit(args.index_or_err(cx, 0).require(cx)),
-            "lf" => Instruction::LocalFunction(args.index_or_err(cx, 0).require(cx)),
             "nop" => Instruction::Nop,
             _ => {
                 cx.report(errors::UnknownInstruction {
@@ -539,7 +308,7 @@ impl<'a> Body<'a> {
             .map(|(i, (_, (v, _)))| (*v, i + 1))
             .collect();
         // This closure fixes all the block ids in a terminator
-        let fix_jl = |mut jl: Spanned<'a, Terminator<'a>>| {
+        let fix_jl = |mut jl: Spanned<Terminator>| {
             // adjust jump targets
             if let Terminator::Jump(jmp) = &mut jl.elem {
                 jmp.target_block = block_map[&jmp.target_block];
@@ -560,7 +329,7 @@ impl<'a> Body<'a> {
             .chain(iter::once(&Lexical::nop()))
             .enumerate()
         {
-            trace!("{}: {}", i, lexical);
+            trace!("{}: {}", i, lexical.display(cx));
             // finalize the current block when we encounter a new one
             if let Some((next_block_id, _)) = block_starts.remove(&i) {
                 let next_block_id = block_map[&next_block_id];
@@ -571,11 +340,11 @@ impl<'a> Body<'a> {
                     .and_then(|i| jump_labels.remove(&i))
                     .map(fix_jl)
                     .unwrap_or_else(|| {
-                        Span::generated("autogenerated").with(Terminator::Jump(Jump {
+                        Span::generated().with(Terminator::Jump(Jump {
                             target_block: next_block_id,
                             mode: JumpMode::Goto,
                             // FIXME: store a span in the jump labels
-                            comment: Span::generated("autogenerated for block continuation"),
+                            comment: Span::generated(),
                         }))
                     });
                 blocks.push(Block {

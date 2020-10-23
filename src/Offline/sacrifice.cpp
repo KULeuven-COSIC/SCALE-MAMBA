@@ -24,7 +24,7 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
   // The number of sacrifice equations we need per item produced
   int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
   gfp t, te;
-  Create_Random(t, P);
+  Create_Random(t, P, 0);
   list<Share> ao, bo, co;
   vector<Share> Sh_PO(2 * amortize * rep), Sh_Tau(amortize * rep);
   vector<gfp> PO(2 * amortize * rep), Tau(amortize * rep);
@@ -64,8 +64,8 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
             }
         }
 
-      OP.Open_To_All_Begin(PO, Sh_PO, P);
-      OP.Open_To_All_End(PO, Sh_PO, P);
+      OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
+      OP.Open_To_All_End(PO, Sh_PO, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -81,8 +81,8 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
               Sh_Tau[i * rep + j].sub(Sh_Tau[i * rep + j], te, P.get_mac_keys());
             }
         }
-      OP.Open_To_All_Begin(Tau, Sh_Tau, P);
-      OP.Open_To_All_End(Tau, Sh_Tau, P);
+      OP.Open_To_All_Begin(Tau, Sh_Tau, P, 0);
+      OP.Open_To_All_End(Tau, Sh_Tau, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -122,7 +122,7 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
   // The number of sacrifice equations we need per item produced
   int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
   gfp t, t2, te;
-  Create_Random(t, P);
+  Create_Random(t, P, 0);
   t2.mul(t, t);
 
   list<Share> ao, bo;
@@ -160,8 +160,8 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
             }
         }
 
-      OP.Open_To_All_Begin(PO, Sh_PO, P);
-      OP.Open_To_All_End(PO, Sh_PO, P);
+      OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
+      OP.Open_To_All_End(PO, Sh_PO, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -177,8 +177,8 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
             }
         }
 
-      OP.Open_To_All_Begin(Tau, Sh_Tau, P);
-      OP.Open_To_All_End(Tau, Sh_Tau, P);
+      OP.Open_To_All_Begin(Tau, Sh_Tau, P, 0);
+      OP.Open_To_All_End(Tau, Sh_Tau, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -216,7 +216,7 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
   // The number of sacrifice equations we need per item produced
   int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
   gfp t, t2, te;
-  Create_Random(t, P);
+  Create_Random(t, P, 0);
   t2.mul(t, t);
 
   list<Share> bitso;
@@ -252,8 +252,8 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
             }
         }
 
-      OP.Open_To_All_Begin(PO, Sh_PO, P);
-      OP.Open_To_All_End(PO, Sh_PO, P);
+      OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
+      OP.Open_To_All_End(PO, Sh_PO, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -268,8 +268,8 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
               Sh_Tau[i * rep + j].sub(Sh_Tau[i * rep + j], temp);
             }
         }
-      OP.Open_To_All_Begin(Tau, Sh_Tau, P);
-      OP.Open_To_All_End(Tau, Sh_Tau, P);
+      OP.Open_To_All_Begin(Tau, Sh_Tau, P, 0);
+      OP.Open_To_All_End(Tau, Sh_Tau, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {

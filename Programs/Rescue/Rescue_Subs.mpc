@@ -83,7 +83,11 @@ def compute_mds_matrix(m, p):
 def mod_classic_matrix_vector_mul(matrix, vector):
     product = cint.Array(len(matrix))
     for i in range(len(product)):
-        product[i] = cint(sum(matrix[i][j] * vector[j] for j in range(len(vector))) % kPrime)
+        t = sum(matrix[i][j] * vector[j] for j in range(len(vector)))
+        if isinstance(t,cint):
+           product[i] = t
+        else:
+           product[i] = cint(sum(matrix[i][j] * vector[j] for j in range(len(vector))) % kPrime)
     return product
 
 def classic_matrix_vector_mul(matrix, vector):
@@ -215,7 +219,7 @@ class Rescue(object):
             l1 = math.ceil((1.0 * security_level + 2) / (4*self.m))
         else :
             l1 = math.ceil((1.0 * security_level + 3) / (5.5*self.m))
-        self.rnds = 2*max(l0, l1, 5)
+        self.rnds = int(2*max(l0, l1, 5))
 
         # TODO use something like sha3?
         random.seed(seed)
@@ -223,6 +227,7 @@ class Rescue(object):
         for i in range(self.m):
           self.key[i]=0 if key is None else key[i]
         assert len(self.key) == self.m
+
         self.subkeys = self.key_schedule()
 
     def key_schedule(self):
@@ -297,7 +302,7 @@ class Rescue(object):
 
     def squeeze(self):
         outputs = sint.Array(self.rate)
-        for i in range(rate):
+        for i in range(self.rate):
             outputs[i] =self.data_state[i]
         return outputs
 

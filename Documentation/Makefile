@@ -1,6 +1,6 @@
 
 all: $(wildcard *.tex)
-	cd ../Assembler ; cargo test generate_instruction_tex_table
+	cargo run
 	pdflatex Documentation-SCALE.tex
 	bibtex Documentation-SCALE
 	pdflatex Documentation-SCALE.tex
@@ -8,5 +8,3 @@ all: $(wildcard *.tex)
 
 clean:
 	rm *.pdf *.aux *.log *.out *.toc texput.log
-
-

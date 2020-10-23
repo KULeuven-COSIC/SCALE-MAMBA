@@ -39,7 +39,7 @@ void mult_inner_subroutine_two(vector<vector<Share>> &cc,
     {
       sstr[k]= ss[k].str();
     }
-  P.Send_Distinct_And_Receive(sstr);
+  P.Send_Distinct_And_Receive(sstr, 0);
   for (unsigned int k= 0; k < P.nplayers(); k++)
     {
       if (k != P.whoami())
@@ -166,8 +166,8 @@ void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b,
         }
 
       /* Now open the values bb to get the values a2 */
-      OP.Open_To_All_Begin(a2, bb, P);
-      OP.Open_To_All_End(a2, bb, P);
+      OP.Open_To_All_Begin(a2, bb, P, 0);
+      OP.Open_To_All_End(a2, bb, P, 0);
 
       /* Now compute v=a/sqrt{a2} assuming a2<>0
        * and then    (v+1)/2

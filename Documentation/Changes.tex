@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.9} of the SCALE and MAMBA software.
+This is currently {\bf version 1.10} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -25,6 +25,47 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.10 from 1.9}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item There has been some optimization of the low level math routines. This means
+	there is a new compile time flag called \verb+MAX_GFP_SIZE+, which needs
+	to be set. This corresponds to the maximum size of the finite field used
+	for the secret sharing scheme. The variable  \verb+MAX_MOD_SIZE+ corresponds
+	to the maximum size of the moduli in the FHE scheme used for the Offline
+	phase in the Full Threshold implementation.
+\item  A compile time flag \verb+BENCH_OFFLINE+ now prints at the end of the program
+	how much offline data your program consumed. By using this data and tweaking
+	the settings in \verb|config.h|, and using the \verb|min| and \verb|max| flags
+	you can get better latency for your programs (sometimes).
+\item   Some extension to the API for the stacks has been introduced, you can
+	now peek and poke in relative to the top as well as relative to the bottom
+	of the stack.
+\item A negative value of verbose larger than $-1$ now prints timing information
+	for each instruction in the virtual machine which is executed in the online
+	phase.
+\item Tidy up of the compiler re location of functions etc. 
+	Fixed a lot of documentation, and the definitions in the process. 
+	Some functions are now removed/renamed; but these are
+	more in the internal functions and less in the exposed functions.
+	If a function you have used seems to have changed (i.e. it is not found
+	by the compiler) let us know and we will tell you what it has been
+        renamed to.
+\item You can now convert back and forward between \verb|sint| and \verb|sbit| values
+	directly, without having to go via a costly \verb|sregint| intermediate
+	value.
+\item You can now also convert between an sregint holding an IEEE floating
+	point value and an sfloat (and vice-versa).
+\item Modifications to how we use the MMO hash function in garbling and in OT
+	extension in the main SCALE program.
+\item Added instructions for regint bitwise and shift operations, this may speed up some
+        programs.
+\item Corrected a silly mistake in the random number generation. This gives
+	about a 10 percent improvement in throughput for triples generation
+	for full threshold access structures; plus minor improvements in
+	other cases.
+\end{enumerate}
 
 \subsection{Changes in version 1.9 from 1.8}
 Apart from the usual minor bug fixes...

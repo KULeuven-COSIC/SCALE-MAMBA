@@ -24,8 +24,19 @@ All rights reserved
 
 class HaAND
 {
+  // Base key for the MMO key
+  uint8_t base_key[AES_BLK_SIZE];
+  // Counter to increase the MMO key on each major iteration
+  unsigned int counter;
 
 public:
+  HaAND() { memset(base_key, 0, AES_BLK_SIZE); }
+  HaAND(Player &P, int connection)
+  {
+    Init(P, connection);
+  }
+  void Init(Player &P, int connection);
+
   vector<aBit> x, y;
   vector<vector<gf2n>> HKi, HKiD, HMi;
   vector<int> v;

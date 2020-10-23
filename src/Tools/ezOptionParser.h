@@ -1019,7 +1019,8 @@ bool ezOptionValidator::isValid(const std::string *valueAsString)
           case U4:
             CHECKRANGE(U4, unsigned int);
             break;
-            case S8: {
+          case S8:
+            {
               if ((valueAsString->at(0) == '-') && isdigit(valueAsString, 1) &&
                   (valueAsString->size() > 19) &&
                   (valueAsString->compare(1, 19, "9223372036854775808") > 0))
@@ -1040,7 +1041,8 @@ bool ezOptionValidator::isValid(const std::string *valueAsString)
                 }
             }
             break;
-            case U8: {
+          case U8:
+            {
               if (valueAsString->compare("0") < 0)
                 {
                   if (!quiet)
@@ -1059,7 +1061,8 @@ bool ezOptionValidator::isValid(const std::string *valueAsString)
                 }
             }
             break;
-            case F: {
+          case F:
+            {
               double dmax= static_cast<double>(std::numeric_limits<float>::max());
               double dvalue= atof(valueAsString->c_str());
               double dmin= -dmax;
@@ -1083,7 +1086,8 @@ bool ezOptionValidator::isValid(const std::string *valueAsString)
                 }
             }
             break;
-            case D: {
+          case D:
+            {
               long double ldmax=
                   static_cast<long double>(std::numeric_limits<double>::max());
               std::stringstream ss(valueAsString->c_str());

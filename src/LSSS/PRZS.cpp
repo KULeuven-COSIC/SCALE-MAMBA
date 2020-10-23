@@ -33,16 +33,16 @@ PRZS::PRZS(Player &P)
           Commit(my_Comm, my_Open, ss, P.G);
 
           // Send my commitment
-          P.send_to_player(i, my_Comm);
+          P.send_to_player(i, my_Comm, 0);
 
           // Receive their commitment
-          P.receive_from_player(i, their_Comm);
+          P.receive_from_player(i, their_Comm, 0);
 
           // Send my opening
-          P.send_to_player(i, my_Open);
+          P.send_to_player(i, my_Open, 0);
 
           // Receive their opening
-          P.receive_from_player(i, their_Open);
+          P.receive_from_player(i, their_Open, 0);
 
           // Get their seed
           string ee;

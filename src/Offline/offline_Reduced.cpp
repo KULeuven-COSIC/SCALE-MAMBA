@@ -133,7 +133,7 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
         {
           if (k != whoami)
             {
-              P.send_to_player(k, ss_m[k].str());
+              P.send_to_player(k, ss_m[k].str(), 0);
             }
         }
     }
@@ -142,7 +142,7 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
       for (unsigned int k= 0; k < Share::SD.mult_chans[whoami][pos].size();
            k++)
         {
-          P.send_to_player(Share::SD.mult_chans[whoami][pos][k], ss_r.str());
+          P.send_to_player(Share::SD.mult_chans[whoami][pos][k], ss_r.str(), 0);
         }
     }
 
@@ -155,7 +155,7 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
         {
           int pl= Share::SD.mult_chans[whoami][k][0];
           string sstr;
-          P.receive_from_player(pl, sstr);
+          P.receive_from_player(pl, sstr, 0);
           istringstream is(sstr);
           for (int j= 0; j < amortize; j++)
             {
@@ -175,7 +175,7 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
       if (pl != whoami)
         {
           string sstr;
-          P.receive_from_player(pl, sstr);
+          P.receive_from_player(pl, sstr, 0);
           istringstream is(sstr);
           for (int j= 0; j < amortize; j++)
             {
@@ -303,8 +303,8 @@ number of sharing of a and sharing of b=a^2
       mult_inner_subroutine_two(bb, bb_m, ss_m, ss_r, P);
 
       /* Now open the values bb to get the values a2 */
-      OP.Open_To_All_Begin(a2, bb, P);
-      OP.Open_To_All_End(a2, bb, P);
+      OP.Open_To_All_Begin(a2, bb, P, 0);
+      OP.Open_To_All_End(a2, bb, P, 0);
 
       /* Now compute v=a/sqrt{a2} assuming a2<>0
  * and then    (v+1)/2

@@ -119,7 +119,6 @@ class _register(long):
     __radd__ = __add__
     __rmul__ = __mul__
 
-    
 class _sbit(_register):
     __and__ =  lambda self,other,x=None,y=None: sbit(bool(self) & other) if (isinstance(other, _sbit)) else sregint(bool(self) * other)
     __or__ = lambda self, other, x=None, y=None: sbit(bool(self) | other)
@@ -133,7 +132,9 @@ class _sbit(_register):
     push = classmethod(lambda cls,x: _sbit.content.append(x))
     pop = classmethod(lambda cls: _sbit.content.pop() if len(_sbit.content) > 0 else None)
     peek = classmethod(lambda cls,x: _sbit.content[x] if x < len(_sbit.content) else None)
+    reverse_peek = classmethod(lambda cls,x: _sbit.content[len(_sbit.content)-1-x] if x < len(_sbit.content) else None)
     poke = classmethod(lambda cls,x,y: _sbit.content.insert(x,y) if x < len(_sbit.content) else None)
+    reverse_poke = classmethod(lambda cls,x,y: _sbit.content.insert(len(_sbit.content)-1-x,y) if x < len(_sbit.content) else None)
 
 sbit = lambda x=0,size=None: (x if isinstance(x, Vector) else _sbit(x)) if size is None else Vector(_sbit(x),size)
 sbit.basic_type = _sbit
@@ -144,7 +145,9 @@ sbit.getsp = _sbit.getsp
 sbit.push = _sbit.push
 sbit.pop = _sbit.pop
 sbit.peek = _sbit.peek
+sbit.reverse_peek = _sbit.reverse_peek
 sbit.poke = _sbit.poke
+sbit.reverse_poke = _sbit.reverse_poke
 
 class _sregint(_register):
     __and__ =  lambda self,other,x=None,y=None: sregint(long(self) * other) if (isinstance(other, _sbit)) else sregint(long(self) & other)
@@ -178,7 +181,9 @@ class _sregint(_register):
     push = classmethod(lambda cls,x: _sregint.content.append(x))
     pop = classmethod(lambda cls: _sregint.content.pop() if len(_sregint.content) > 0 else None)
     peek = classmethod(lambda cls,x: _sregint.content[x] if x < len(_sregint.content) else None)
+    reverse_peek = classmethod(lambda cls,x: _sregint.content[len(_sregint.content)-1-x] if x < len(_sregint.content) else None)
     poke = classmethod(lambda cls,x,y: _sregint.content.insert(x,y) if x < len(_sregint.content) else None)
+    reverse_poke = classmethod(lambda cls,x,y: _sregint.content.insert(len(_sregint.content)-1-x,y) if x < len(_sregint.content) else None)
 
 sregint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sregint(x)) if size is None else Vector(_sregint(x),size)
 sregint.load_mem = _sregint.load_mem
@@ -190,7 +195,9 @@ sregint.getsp =_sregint.getsp
 sregint.push =_sregint.push
 sregint.pop =_sregint.pop
 sregint.peek =_sregint.peek
+sregint.reverse_peek =_sregint.reverse_peek
 sregint.poke =_sregint.poke
+sregint.reverse_poke =_sregint.reverse_poke
 
 class _sint(_register):
     less_than = lambda self,other,x=None,y=None: sint(long(self) < other)
@@ -204,7 +211,7 @@ class _sint(_register):
     pow2 = lambda self,x=None,y=None: 2**self
     right_shift = lambda self,other,x=None,y=None: self >> other
     bit_decompose = lambda self,length=None,*args: \
-        [(self >> i) & 1 for i in range(length or program.bit_length)]
+        [(self >> i) & 1 for i in range(length or program.bit_length)] 
     __lt__ = less_than
     __gt__ = greater_than
     __le__ = less_equal
@@ -220,7 +227,9 @@ class _sint(_register):
     push = classmethod(lambda cls,x: _sint.content.append(x))
     pop = classmethod(lambda cls: _sint.content.pop() if len(_sint.content) > 0 else None)
     peek = classmethod(lambda cls,x: _sint.content[x] if x < len(_sint.content) else None)
+    reverse_peek = classmethod(lambda cls,x: _sint.content[len(_sint.content)-1-x] if x < len(_sint.content) else None)
     poke = classmethod(lambda cls,x,y: _sint.content.insert(x,y) if x < len(_sint.content) else None)
+    reverse_poke = classmethod(lambda cls,x,y: _sint.content.insert(len(_sint.content)-1-x,y) if x < len(_sint.content) else None)
 
 sint = lambda x=0,size=None: (x if isinstance(x, Vector) else _sint(x)) if size is None else Vector(_sint(x),size)
 sint.load_mem = _sint.load_mem
@@ -237,13 +246,21 @@ sint.getsp =_sint.getsp
 sint.push =_sint.push
 sint.pop =_sint.pop
 sint.peek =_sint.peek
+sint.reverse_peek =_sint.reverse_peek
 sint.poke =_sint.poke
+sint.reverse_poke =_sint.reverse_poke
 
 # additional methods
 sint.convert_unsigned_to_sint = _sint.convert_unsigned_to_sint
 
 class _cint(_register):
     print_reg = lambda x,y=None: None
+    __and__ =  lambda self,other,x=None,y=None: cint(long(self) & other)
+    __or__ = lambda self, other, x=None, y=None: cint(long(self) | other)
+    __xor__ = lambda self, other, x=None, y=None: cint(long(self) ^ other)
+    __rand__ = __and__
+    __ror__ = __or__
+    __rxor__ = __xor__
 
     #stack simulation
     content = []    
@@ -251,7 +268,9 @@ class _cint(_register):
     push = classmethod(lambda cls,x: _cint.content.append(x))
     pop = classmethod(lambda cls: _cint.content.pop() if len(_cint.content) > 0 else None)
     peek = classmethod(lambda cls,x: _cint.content[x] if x < len(_cint.content) else None)
+    reverse_peek = classmethod(lambda cls,x: _cint.content[len(_cint.content)-1-x] if x < len(_cint.content) else None)
     poke = classmethod(lambda cls,x,y: _cint.content.insert(x,y) if x < len(_cint.content) else None)
+    reverse_poke = classmethod(lambda cls,x,y: _cint.content.insert(len(_cint.content)-1-x,y) if x < len(_cint.content) else None)
 
 cint = lambda x=0,size=None: (x if isinstance(x, Vector) else _cint(x)) if size is None else Vector(_cint(x),size)
 cint.load_mem = cint
@@ -262,7 +281,9 @@ cint.getsp =_cint.getsp
 cint.push =_cint.push
 cint.pop =_cint.pop
 cint.peek =_cint.peek
+cint.reverse_peek =_cint.reverse_peek
 cint.poke =_cint.poke
+cint.reverse_poke =_cint.reverse_poke
 
 class A:
     def malloc(self, size, reg_type):
@@ -277,22 +298,41 @@ class A:
     set_security = lambda *args: None
 A.options = A()
 
-comparison = A()
-comparison.PRandInt = lambda x,y: None
-comparison.PRandM = lambda x,y,z,a,b,c: None
-comparison.ld2i = lambda x,y: None
-comparison.PreMulC_with_inverses = lambda x,y: None
-comparison.PreMulC_without_inverses = lambda x,y: None
-comparison.BitLTC1 = lambda x,y,z,a: ([None] * 100, [None] * 100, [None] * 100, [None] * 100, [[None] * 100] * 100, [[None] * 100] * 100, [None] * 100, [None] * 100)
-comparison.BitLTL = lambda x,y,z,a: ([None] * 100, [None] * 100)
-comparison.CarryOut = lambda x,y,z,a,b: None
-comparison.Mod2m = lambda *args: [None] * 5 + [[None] * 6] + [None]
-comparison.Mod2 = lambda *args: None
-comparison.PreMulC = lambda x: [None] * 100
-comparison.KMulC = lambda x: None
-comparison.PreMulC_with_inverses_and_vectors = lambda x,y: [[[None] * 100] * 100] * 8
-comparison.LTZ = lambda x,y,z,a: None
-comparison.TruncRoundNearest = lambda x,y,z,a: None
+# AdvInteger stuff
+AdvInteger = A()
+AdvInteger.PRandInt = lambda x,y: None
+AdvInteger.PRandM = lambda x,y,z,a,b,c: None
+AdvInteger.CarryOut = lambda x,y,z,a: None
+AdvInteger.carry = None
+AdvInteger.KOpL = lambda x,y: [None] * 100
+AdvInteger.PreOpL = lambda x,y: [(None,None)] * 100
+AdvInteger.KOR = lambda x: None
+AdvInteger.PreOR = lambda x: [type(x[0])()] * len(x)
+AdvInteger.Inv = lambda x: 0
+AdvInteger.BitLT = lambda x,y,z,a: ([None] * 100, [None] * 100)
+AdvInteger.two_power = lambda x: 2**x
+AdvInteger.BitAdd = lambda x,y: [None] * 100
+AdvInteger.BitDec = lambda x,y,z,a: [None] * 100
+AdvInteger.ld2i = lambda x,y: None
+AdvInteger.Mod2m = lambda *args: [None] * 5 + [[None] * 6] + [None]
+AdvInteger.Mod2 = lambda *args: None
+AdvInteger.TruncPr = lambda x,y,z,a: None
+AdvInteger.Trunc = lambda x,y,z,a,b=False: (None,None) if b else None
+AdvInteger.Oblivious_Trunc = lambda x,y,z,a,b=False: (None,None) if b else None
+AdvInteger.TruncRoundNearest = lambda x,y,z,a: None
+AdvInteger.B2U = lambda x,y,z: ([None] * 100, None)
+AdvInteger.Pow2 = lambda x,y,z: 2 ** x
+AdvInteger.LTZ = lambda x,y,z,a: None
+AdvInteger.bits = lambda x,y: [None] * 100
+
+#comparison.PreMulC_with_inverses = lambda x,y: None
+#comparison.PreMulC_without_inverses = lambda x,y: None
+#comparison.PreMulC = lambda x: [None] * 100
+#comparison.KMulC = lambda x: None
+#comparison.PreMulC_with_inverses_and_vectors = lambda x,y: [[[None] * 100] * 100] * 8
+#comparison.BitLTC1 = lambda x,y,z,a: ([None] * 100, [None] * 100, [None] * 100, [None] * 100, [[None] * 100] * 100, [[None] * 100] * 100, [None] * 100, [None] * 100)
+
+
 class F(float):
     v = p = z = s = None
     __add__ = lambda x,y: F(float(x) + y)
@@ -327,7 +367,7 @@ class CF(float):
     __ne__ = lambda x,y: cint(float(x) != y)
     __neg__ = lambda x: CF(-float(x))
 
-cfloat = lambda x,y=None,z=None,a=None,size=None: CF(x) if size is None else Vector(CF(x), size)
+cfloat = lambda x,y=None,z=None,a=None,err=None,size=None: CF(x) if size is None else Vector(CF(x), size)
 cfloat.vlen = 24
 cfloat.plen = 8
 
@@ -410,24 +450,11 @@ cfix.load_mem = cfix
 
 load_float_to_secret = sfloat
 floatingpoint = A()
-floatingpoint.Trunc = lambda x,y,z,a,b=False: (None,None) if b else None
-floatingpoint.B2U = lambda x,y,z: ([None] * 100, None)
-floatingpoint.Pow2 = lambda x,y,z: 2 ** x
-floatingpoint.PreORC = lambda x,y: [type(x[0])()] * len(x)
-floatingpoint.bits = lambda x,y: [None] * 100
-floatingpoint.BitDec = lambda x,y,z,a: [None] * 100
-floatingpoint.two_power = lambda x: 2**x
-floatingpoint.PreOpL = lambda x,y: [(None,None)] * 100
-floatingpoint.carry = None
-floatingpoint.Inv = lambda x: 0
-floatingpoint.KOpL = lambda x,y: [None] * 100
-floatingpoint.KORL = lambda x,y: None
-floatingpoint.KORC = lambda x,y: None
-floatingpoint.BitAdd = lambda x,y: [None] * 100
 floatingpoint.TruncRoundNearestAdjustOverflow = lambda x,y,z,a: (None, None)
-floatingpoint.TruncPr = lambda x,y,z,a: None
 floatingpoint.SDiv = lambda x,y,z,a: None
 floatingpoint.SDiv_mono = lambda x,y,z,a: None
+#floatingpoint.KORL = lambda x,y: None
+
 
 import math
 mpc_math = A()
@@ -605,7 +632,16 @@ class regint(_register):
    push = classmethod(lambda cls,x: regint.content.append(x))
    pop = classmethod(lambda cls: regint.content.pop() if len(regint.content) > 0 else None)
    peek = classmethod(lambda cls,x: regint.content[x] if x < len(regint.content) else None)
+   reverse_peek = classmethod(lambda cls,x: regint.content[len(regint.content)-1-x] if x < len(regint.content) else None)
    poke = classmethod(lambda cls,x,y: regint.content.insert(x,y) if x < len(regint.content) else None)
+   reverse_poke = classmethod(lambda cls,x,y: regint.content.insert(len(regint.content)-1-x,y) if x < len(regint.content) else None)
+
+   __and__ =  lambda self,other,x=None,y=None:  regint(long(self) & other)
+   __or__ = lambda self, other, x=None, y=None: regint(long(self) | other)
+   __xor__ = lambda self, other, x=None, y=None: regint(long(self) ^ other)
+   __rand__ = __and__
+   __ror__ = __or__
+   __rxor__ = __xor__
 
 
 

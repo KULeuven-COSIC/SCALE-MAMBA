@@ -9,10 +9,10 @@ pub use instructions::*;
 
 use std::num::NonZeroU32;
 
-use crate::lexer::Register;
+use crate::lexer::register;
 use crate::span::{Span, Spanned};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// Represents an entire file
 pub struct Body<'a> {
     pub blocks: Vec<Block<'a>>,
@@ -21,7 +21,16 @@ pub struct Body<'a> {
 #[derive(Debug, Clone)]
 pub struct Block<'a> {
     pub stmts: Vec<Statement<'a>>,
-    pub terminator: Spanned<'a, Terminator<'a>>,
+    pub terminator: Spanned<Terminator>,
+}
+
+impl<'a> Default for Block<'a> {
+    fn default() -> Self {
+        Self {
+            stmts: Default::default(),
+            terminator: Span::DUMMY.with(Terminator::Done),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -29,9 +38,26 @@ pub struct Statement<'a> {
     pub instr: Instruction<'a>,
     // FIXME: what's the maximum value for `vectorized`?
     // XXXXX: Answer : 2^23
-    pub vectorized: Spanned<'a, NonZeroU32>,
-    pub comment: Span<'a>,
-    pub span: Span<'a>,
+    pub vectorized: Spanned<NonZeroU32>,
+    pub comment: Span,
+    pub span: Span,
+}
+
+impl<'a> From<Instruction<'a>> for Statement<'a> {
+    fn from(instr: Instruction<'a>) -> Self {
+        Self::from_instr_with_comment(instr, Span::DUMMY)
+    }
+}
+
+impl<'a> Statement<'a> {
+    pub fn from_instr_with_comment(instr: Instruction<'a>, comment: Span) -> Self {
+        Self {
+            instr,
+            vectorized: Span::DUMMY.with(NonZeroU32::new(1).unwrap()),
+            comment,
+            span: Span::DUMMY,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -48,85 +74,39 @@ pub struct AugmentedStatement<'a> {
     pub processed: bool,
 }
 
-check_type_size!(STATEMENT: Statement<'static>, 240);
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MemoryBank {
-    Secret,
-    Clear,
-    Regint,
-    SecretRegint,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum BinaryOperation {
-    Add,
-    Mul,
-    Sub,
-    Div,
-    Mod,
-    And,
-    Or,
-    Xor,
-    Not,
-    /// `<` operation
-    Lt,
-    /// `>` operation
-    Gt,
-    /// `==` operation
-    Eq,
-    /// `<<` operation
-    Shl,
-    /// `>>` operation
-    Shr,
-    /// Extract b-th bit from a
-    Bit,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum UnaryOperation {
-    Legendre,
-    Digestc,
-    Neg,
-    Inv,
-    Lt,
-    Eq,
-    Rand,
-}
+check_type_size!(STATEMENT: Statement<'static>, 128);
 
 #[derive(Clone, Debug)]
-pub enum Terminator<'a> {
-    Jump(Jump<'a>),
-    Restart { comment: Span<'a> },
-    Crash { comment: Span<'a> },
-    Return { comment: Span<'a> },
+pub enum Terminator {
+    Jump(Jump),
+    Restart { comment: Span },
+    Crash { comment: Span },
+    Return { comment: Span },
     Done,
 }
 
 #[derive(Clone, Debug)]
-pub struct Jump<'a> {
+pub struct Jump {
     pub target_block: usize,
-    pub mode: JumpMode<'a>,
-    pub comment: Span<'a>,
+    pub mode: JumpMode,
+    pub comment: Span,
 }
 
 #[derive(Clone, Debug)]
-pub enum JumpMode<'a> {
+pub enum JumpMode {
     Goto,
-    Conditional(JumpCondition<'a>),
+    Conditional(JumpCondition),
     /// Calls in SCALE are just jumps that push their address onto a stack.
     /// `return` will pop the last item from the stack and jump there.
     Call,
 }
 
 #[derive(Clone, Debug)]
-pub struct JumpCondition<'a> {
+pub struct JumpCondition {
     pub fallthrough_block: usize,
     /// If true, jumps to `target_block` on zero and to
     /// `fallthrough_block` on nonzero
     pub jump_if_zero: bool,
-    // FIXME: should only work on clear registers, right?
-    // Indeed XXXX
     /// Register to be checked
-    pub register: Spanned<'a, Register>,
+    pub register: Spanned<register::Regint>,
 }

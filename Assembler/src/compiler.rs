@@ -10,17 +10,22 @@ use crate::asm::Body;
 use crate::errors::ExpectedGot;
 use crate::span::{Expansion, Span, Spanned};
 use std::cell::{Cell, RefCell};
-use std::sync::{Arc, Mutex};
+use std::{
+    convert::TryInto,
+    sync::{Arc, Mutex},
+};
 
 pub struct Compiler {
     destination: Option<RefCell<Box<dyn std::io::Write>>>,
     pub colors: bool,
     error_count: Cell<usize>,
-    pub files: elsa::FrozenMap<PathBuf, String>,
+    pub files: elsa::FrozenVec<String>,
+    pub file_paths: elsa::FrozenVec<PathBuf>,
     pub binary_files: elsa::FrozenMap<PathBuf, Vec<u8>>,
     pub strings: elsa::FrozenVec<String>,
     pub show_warnings: bool,
     pub optimization_level: u8,
+    pub verbose: bool,
 }
 
 #[derive(Default, Clone)]
@@ -45,11 +50,13 @@ impl Compiler {
             destination: Some(RefCell::new(destination)),
             colors,
             files: Default::default(),
+            file_paths: Default::default(),
             binary_files: Default::default(),
             strings: Default::default(),
             show_warnings: true,
             optimization_level: 3,
             error_count: Cell::new(0),
+            verbose: false,
         }
     }
 
@@ -61,13 +68,15 @@ impl Compiler {
         self.parse_asm_buf(source, text)
     }
 
-    pub fn lex<'a>(&'a self, text: &'a str) -> Vec<Lexical<'a>> {
-        crate::lexer::parse(&self, &text)
+    pub fn lex<'a>(&'a self, file: u32) -> Vec<Lexical<'a>> {
+        crate::lexer::parse(&self, file)
     }
 
     pub fn parse_asm_buf(&self, source: impl Into<PathBuf>, text: String) -> Body<'_> {
-        let text = self.files.insert(source.into(), text);
-        let lexed = self.lex(text);
+        let file = self.files.len();
+        self.files.push(text);
+        self.file_paths.push(source.into());
+        let lexed = self.lex(file.try_into().unwrap());
         Body::parse(&self, &lexed)
     }
 
@@ -90,7 +99,7 @@ impl Compiler {
     }
     /// Returns a span to be used for broken items, so they don't get more
     /// errors reported on them
-    pub fn report<'a>(&self, err: impl Error<'a>) -> Span<'a> {
+    pub fn report(&self, err: impl Error) -> Span {
         let spans = err.spans();
         if let Some(&span) = spans
             .iter()
@@ -121,8 +130,8 @@ impl Compiler {
         U: Expected + Default,
     >(
         &self,
-        got: Spanned<'a, T>,
-    ) -> Spanned<'a, U> {
+        got: Spanned<T>,
+    ) -> Spanned<U> {
         got.try_map(T::try_into).unwrap_or_else(|_| {
             self.report(ExpectedGot {
                 got,
@@ -146,10 +155,11 @@ impl Compiler {
         }
     }
 
-    pub fn get_file(&self, span: Span<'_>) -> Option<(&Path, &str)> {
-        self.files
+    pub fn get_file(&self, span: Span) -> Option<(&Path, &str)> {
+        self.file_paths
             .iter()
-            .find(|(_, v)| substr_offset(span.snippet(), v).is_some())
+            .zip(self.files.iter())
+            .find(|(_, v)| substr_offset(span.snippet(&self), v).is_some())
     }
 }
 
@@ -179,32 +189,31 @@ impl std::fmt::Debug for ErrorReported {
     }
 }
 
-pub trait Error<'a>: Sized {
-    fn print(self, cx: &Compiler) -> Snippet;
+pub trait Error: Sized {
+    fn print(self, cx: &Compiler) -> Snippet<'_>;
     /// Whether compilation should not succeed
     fn fatal(&self) -> bool {
         true
     }
-    fn spans(&self) -> &[Span<'a>];
-    fn slices(
+    fn spans(&self) -> &[Span];
+    fn slices<'a>(
         &self,
-        cx: &Compiler,
-        label: impl Into<String>,
+        cx: &'a Compiler,
+        label: &'a str,
         annotation_type: AnnotationType,
-    ) -> Vec<Slice> {
-        let label = label.into();
+    ) -> Vec<Slice<'a>> {
         self.spans()
             .iter()
             .filter_map(|&span| cx.get_file(span).map(|(p, f)| (p, f, span)))
-            .map(|(path, file, span)| {
-                let (line_start, range, source) = crate::errors::line(span.snippet(), file);
+            .map(move |(path, file, span)| {
+                let (line_start, range, source) = crate::errors::line(span.snippet(cx), file);
                 Slice {
-                    source,
+                    source: cx.strings.push_get(source),
                     line_start,
-                    origin: Some(path.display().to_string()),
+                    origin: Some(cx.strings.push_get(path.display().to_string())),
                     fold: false,
                     annotations: vec![SourceAnnotation {
-                        label: label.clone(),
+                        label,
                         annotation_type,
                         range,
                     }],

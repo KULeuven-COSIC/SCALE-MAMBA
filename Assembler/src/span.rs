@@ -1,13 +1,16 @@
 use crate::compiler::Compiler;
-use crate::errors::ArgNotFound;
+use crate::{errors::ArgNotFound, substr_offset};
+use std::convert::{TryFrom, TryInto};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Span<'a> {
-    pub snippet: &'a str,
+pub struct Span {
+    file: u32,
+    start: u32,
+    end: u32,
     pub expansion: Expansion,
 }
 
-check_type_size!(SPAN: Span<'static>, 24);
+check_type_size!(SPAN: Span, 16);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Expansion {
@@ -16,15 +19,27 @@ pub enum Expansion {
     None,
 }
 
-impl<'a> Span<'a> {
-    pub fn generated(s: &'static str) -> Self {
+impl<'a> Span {
+    pub fn new(file: u32, start: u32, end: u32, expansion: Expansion) -> Self {
+        Self {
+            file,
+            start,
+            end,
+            expansion,
+        }
+    }
+    pub fn generated() -> Self {
         Span {
-            snippet: s,
+            file: u32::max_value(),
+            start: u32::max_value(),
+            end: u32::max_value(),
             expansion: Expansion::Generated,
         }
     }
     pub const DUMMY: Self = Span {
-        snippet: "",
+        file: u32::max_value(),
+        start: u32::max_value(),
+        end: u32::max_value(),
         expansion: Expansion::None,
     };
     pub fn with_error(self) -> Self {
@@ -33,106 +48,121 @@ impl<'a> Span<'a> {
             ..self
         }
     }
-    #[allow(clippy::reversed_empty_ranges)]
-    // This empty range is on purpose, so we have the correct pointer address.
     pub fn start(self) -> Self {
         Span {
-            snippet: &self.snippet[0..0],
+            end: self.start,
             ..self
         }
     }
     pub fn end(self) -> Self {
         Span {
-            snippet: &self.snippet[self.snippet.len()..],
+            start: self.end,
             ..self
         }
     }
     pub fn is_empty(&self) -> bool {
-        self.snippet.is_empty()
+        self.start == self.end
     }
-    pub fn lines(file: &'a str) -> impl Iterator<Item = Span<'a>> + 'a {
-        file.lines().map(move |snippet| Span {
-            snippet,
-            expansion: Expansion::None,
+    pub fn lines(cx: &'a Compiler, file: u32) -> impl Iterator<Item = Span> + 'a {
+        let file_str = cx.files.get(file.try_into().unwrap()).unwrap();
+        file_str.lines().map(move |snippet| {
+            let start = substr_offset(snippet, file_str).unwrap();
+            let start = u32::try_from(start).unwrap();
+            Span {
+                file,
+                start,
+                end: start + u32::try_from(snippet.len()).unwrap(),
+                expansion: Expansion::None,
+            }
         })
     }
-    pub fn split_at_first_char(self, c: char) -> (Self, Option<Self>) {
-        match self.snippet().find(c) {
+    pub fn split_at_first_char(self, c: char, cx: &Compiler) -> (Self, Option<Self>) {
+        match self.snippet(cx).find(c) {
             None => (self, None),
             Some(pos) => {
+                let pos: u32 = pos.try_into().unwrap();
                 let first = Span {
-                    snippet: &self.snippet[..pos],
+                    end: self.start + pos,
                     ..self
                 };
                 let second = Span {
-                    snippet: &self.snippet[pos + 1..],
+                    start: self.start + pos + 1,
                     ..self
                 };
                 (first, Some(second))
             }
         }
     }
-    pub fn split(self, c: char) -> impl Iterator<Item = Span<'a>> + 'a {
-        struct Iter<'a>(Option<Span<'a>>, char);
+    pub fn split(self, c: char, cx: &'a Compiler) -> impl Iterator<Item = Span> + 'a {
+        struct Iter<'a>(Option<Span>, char, &'a Compiler);
         impl<'a> Iterator for Iter<'a> {
-            type Item = Span<'a>;
-            fn next(&mut self) -> Option<Span<'a>> {
+            type Item = Span;
+            fn next(&mut self) -> Option<Span> {
                 let span = self.0.as_mut()?;
-                let pos = match span.snippet().find(self.1) {
+                let pos = match span.snippet(self.2).find(self.1) {
                     Some(pos) => pos,
                     None => return self.0.take(),
                 };
+                let pos = u32::try_from(pos).unwrap();
                 let ret = Span {
-                    snippet: &span.snippet[..pos],
+                    end: span.start + pos,
                     ..*span
                 };
-                span.snippet = &span.snippet[pos + 1..];
+                span.start += pos + 1;
                 Some(ret)
             }
         }
-        Iter(Some(self), c)
+        Iter(Some(self), c, cx)
     }
-    pub fn trim(mut self) -> Self {
-        let first = self.snippet().find(|c: char| !c.is_whitespace());
+    pub fn trim(mut self, cx: &Compiler) -> Self {
+        let first = self.snippet(cx).find(|c: char| !c.is_whitespace());
         if let Some(pos) = first {
-            self.snippet = &self.snippet[pos..];
+            self.start += u32::try_from(pos).unwrap();
         } else {
             return self.start();
         }
-        let last = self.snippet().rfind(|c: char| !c.is_whitespace());
+        let last = self.snippet(cx).rfind(|c: char| !c.is_whitespace());
         if let Some(pos) = last {
-            self.snippet = &self.snippet[..=pos];
+            self.end = self.start + u32::try_from(pos).unwrap() + 1;
         } else {
             unreachable!()
         }
         self
     }
-    pub fn snippet(&self) -> &'a str {
-        &self.snippet
+    pub fn snippet<'b>(self, cx: &'b Compiler) -> &'b str {
+        cx.files
+            .get(self.file as usize)
+            .map_or("", |x| &x[self.start as usize..self.end as usize])
     }
-    pub fn with<T>(self, elem: T) -> Spanned<'a, T> {
+    pub fn with<T>(self, elem: T) -> Spanned<T> {
         Spanned { span: self, elem }
+    }
+    /// Create a sub-snippet that references everything but the first character.
+    /// Panics if the first character is larger than one byte.
+    pub fn eat_one(mut self) -> Self {
+        self.start += 1;
+        self
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Spanned<'a, T> {
-    pub span: Span<'a>,
+pub struct Spanned<T> {
+    pub span: Span,
     pub elem: T,
 }
 
-impl<'a, 'b, T: Copy + Default> Spanned<'a, &'b [Spanned<'a, T>]> {
-    pub fn get(&self, i: usize) -> Option<Spanned<'a, T>> {
+impl<'a, 'b, T: Copy + Default> Spanned<&'b [Spanned<T>]> {
+    pub fn get(&self, i: usize) -> Option<Spanned<T>> {
         self.elem.get(i).copied()
     }
-    pub fn index_or_err(&self, cx: &'a Compiler, i: usize) -> Spanned<'a, T> {
+    pub fn index_or_err(&self, cx: &'a Compiler, i: usize) -> Spanned<T> {
         self.get(i).unwrap_or_else(|| {
             cx.report(ArgNotFound { span: self.span, i })
                 .with_error()
                 .with(Default::default())
         })
     }
-    pub fn split_first_or_err(&self, cx: &Compiler) -> (Spanned<'a, T>, Self) {
+    pub fn split_first_or_err(&self, cx: &Compiler) -> (Spanned<T>, Self) {
         self.elem
             .split_first()
             .map(|(a, rest)| (*a, self.span.with(rest)))
@@ -149,8 +179,8 @@ impl<'a, 'b, T: Copy + Default> Spanned<'a, &'b [Spanned<'a, T>]> {
     }
 }
 
-impl<'a, T> Spanned<'a, T> {
-    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Spanned<'a, U> {
+impl<'a, T> Spanned<T> {
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Spanned<U> {
         Spanned {
             span: self.span,
             elem: f(self.elem),
@@ -159,7 +189,7 @@ impl<'a, T> Spanned<'a, T> {
     pub fn try_map<U, E>(
         self,
         f: impl FnOnce(T) -> Result<U, E>,
-    ) -> Result<Spanned<'a, U>, Spanned<'a, E>> {
+    ) -> Result<Spanned<U>, Spanned<E>> {
         match f(self.elem) {
             Ok(elem) => Ok(Spanned {
                 elem,

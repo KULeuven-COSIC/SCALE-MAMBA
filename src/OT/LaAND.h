@@ -25,7 +25,16 @@ public:
 
 class LaAND
 {
+  HaAND HA;
+
 public:
+  LaAND() { ; }
+  LaAND(Player &P, int connection) : HA(P, connection) { ; }
+  void Init(Player &P, int connection)
+  {
+    HA.Init(P, connection);
+  }
+
   vector<aTriple> triples;
 
   /* This is Figure 8 of ePrint 2017/189 executed number times */

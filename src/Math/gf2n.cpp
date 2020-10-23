@@ -8,7 +8,6 @@ All rights reserved
 #include "gf2n.h"
 
 #include "Exceptions/Exceptions.h"
-#include "Tools/avx_memcpy.h"
 
 #include <emmintrin.h>
 #include <stdint.h>
@@ -167,7 +166,7 @@ void gf2n::reduce_pentanomial(int128 xh, int128 xl)
 gf2n &gf2n::mul(const gf2n &x, const gf2n &y)
 {
   __m128i res[2];
-  avx_memzero(res, sizeof(res));
+  memset(res, 0, sizeof(res));
 
   mul128(x.a.a, y.a.a, res, res + 1);
 

@@ -62,7 +62,7 @@ int make_aAND_Thread_decision(Player &P)
 void aAND_Thread(Player &P, unsigned int no_online_threads,
                  offline_control_data &OCD, int verbose)
 {
-  aAND aAF;
+  aAND aAF(P);
 
   while (0 == 0)
     { /* Decide whether to finish */

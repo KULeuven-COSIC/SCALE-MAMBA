@@ -108,7 +108,7 @@ impl<'a> Statement<'a> {
                         .iter()
                         .position(|arg| arg.name == len_arg)
                         .unwrap();
-                    let len: Spanned<'_, i32> = args[arg_pos].require(cx);
+                    let len: Spanned<i32> = args[arg_pos].require(cx);
                     let len = match &instr.args[arg_pos].ty {
                         ArgTy::Int {
                             signed: false,
@@ -136,7 +136,7 @@ impl<'a> Statement<'a> {
                 }
             }
         }
-        assert_eq!(args_iter.next(), None);
+        assert_eq!(args_iter.next(), None, "{:?}", relexed);
         list
     }
 
@@ -158,156 +158,44 @@ impl<'a> Statement<'a> {
         instr.mem_write
     }
 
-    pub fn replace_registers(&mut self, cx: &Compiler, f: impl Fn(Register) -> Register) {
-        let f = &f;
+    pub fn replace_registers(&mut self, cx: &Compiler, mut f: impl FnMut(Register) -> Register) {
         match &mut self.instr {
-            Instruction::StoreToMemory {
-                destination, value, ..
-            } => {
-                destination.map_all_values(cx, f);
-                value.map_all_values(cx, f);
+            Instruction::Assign { destination, value } => {
+                destination.map_all_values(cx, &mut f);
+                value.map_all_values(cx, &mut f);
             }
-            Instruction::LoadFromMemory {
-                source,
-                destination,
-                ..
-            } => {
-                source.map_all_values(cx, f);
-                destination.map_all_values(cx, f);
-            }
-            Instruction::BinaryOperation {
-                a, b, destination, ..
-            } => {
-                a.map_all_values(cx, f);
-                b.map_all_values(cx, f);
-                destination.map_all_values(cx, f);
-            }
-            Instruction::Mul2Sint {
-                values,
-                destinations,
-            } => {
-                for value in values {
-                    value.map_all_values(cx, f);
-                }
-                for dest in destinations {
-                    dest.map_all_values(cx, f);
-                }
-            }
-            Instruction::PopR { destination } => destination.map_all_values(cx, f),
-            Instruction::PushR { value } => value.map_all_values(cx, f),
-            Instruction::PeekR { destination, value } => {
-                destination.map_all_values(cx, f);
-                value.map_all_values(cx, f);
-            }
-            Instruction::PokeR { value1, value2 } => {
-                value1.map_all_values(cx, f);
-                value2.map_all_values(cx, f);
-            }
-            Instruction::GetSP { destination, .. } => destination.map_all_values(cx, f),
-            Instruction::StArg { source } => source.map_all_values(cx, f),
-            Instruction::OpenSbit {
-                source,
-                destination,
-            } => {
-                source.map_all_values(cx, f);
-                destination.map_all_values(cx, f);
-            }
-            Instruction::OpenSint {
-                source,
-                destination,
-            } => {
-                source.map_all_values(cx, f);
-                destination.map_all_values(cx, f);
-            }
-            Instruction::Assign { destination, value }
-            | Instruction::UnaryOperation {
-                a: value,
-                destination,
-                ..
-            } => {
-                destination.map_all_values(cx, f);
-                value.map_all_values(cx, f);
-            }
-            Instruction::Convert {
-                value, destination, ..
-            } => {
-                destination.map_all_values(cx, f);
-                value.map_all_values(cx, f);
-            }
-            Instruction::PrintR { arg, .. } => arg.map_all_values(cx, f),
-            Instruction::SintBit { args, destination } => {
-                for arg in args {
-                    arg.map_all_values(cx, f);
-                }
-                destination.map_all_values(cx, f);
-            }
-            Instruction::PrintFL { args } => {
-                for arg in args {
-                    arg.map_all_values(cx, f);
-                }
-            }
-            Instruction::PrintFix { args, .. } => {
-                for arg in args {
-                    arg.map_all_values(cx, f);
-                }
-            }
-            Instruction::Io {
-                instr: IoInstruction::OutputInt { value },
-                ..
-            } => value.map_all_values(cx, f),
-            Instruction::Io {
-                instr: IoInstruction::PrivateOutput { value, .. },
-                ..
-            } => value.map_all_values(cx, f),
-            Instruction::Io {
-                instr: IoInstruction::OutputClear { value },
-                ..
-            } => value.map_all_values(cx, f),
             Instruction::Io {
                 instr: IoInstruction::OutputShares { registers },
                 ..
             } => {
                 for register in registers {
-                    register.map_all_values(cx, f);
+                    register.map_all_values(cx, &mut f);
                 }
             }
             Instruction::StartOpen { registers } => {
                 for register in registers {
-                    register.map_all_values(cx, f);
+                    register.map_all_values(cx, &mut f);
                 }
             }
-            Instruction::DaBit { dest1, dest2 } => {
-                dest1.map_all_values(cx, f);
-                dest2.map_all_values(cx, f);
-            }
-            Instruction::Clock { .. } => {}
             Instruction::StopOpen { registers } => {
                 for reg in registers {
-                    reg.map_all_values(cx, f);
+                    reg.map_all_values(cx, &mut f);
                 }
             }
-            Instruction::GenerateBit { destination } => destination.map_all_values(cx, f),
-            Instruction::GenerateTriple { destinations } => {
-                for destination in destinations {
-                    destination.map_all_values(cx, f)
+            Instruction::General {
+                destinations,
+                values,
+                ..
+            } => {
+                for value in values {
+                    value.map_all_values(cx, &mut f);
+                }
+                for dest in destinations {
+                    dest.map_all_values(cx, &mut f);
                 }
             }
-            Instruction::GenerateSquare { destinations } => {
-                for destination in destinations {
-                    destination.map_all_values(cx, f)
-                }
-            }
-            Instruction::RequiredBitLength(_) => {}
-            Instruction::JoinTape(_) => {}
-            Instruction::LocalFunction(_) => {}
-            Instruction::GarbledCircuit(_) => {}
-            Instruction::RunTape { .. } => {}
-            Instruction::VMControl(_) => {}
-            Instruction::LdArg { destination } => destination.map_all_values(cx, f),
-            Instruction::LdTn { destination } => destination.map_all_values(cx, f),
-            Instruction::PrintI { .. } => {}
             Instruction::Nop => {}
-            Instruction::Io { instr, .. } => instr.replace_registers(cx, f),
+            Instruction::Io { instr, .. } => instr.replace_registers(cx, &mut f),
         }
     }
 
@@ -334,30 +222,19 @@ impl<'a> Statement<'a> {
     }
 }
 
-impl IoInstruction<'_> {
-    pub fn replace_registers(&mut self, cx: &Compiler, f: impl Fn(Register) -> Register) {
-        let f = &f;
+impl IoInstruction {
+    pub fn replace_registers(&mut self, cx: &Compiler, mut f: impl FnMut(Register) -> Register) {
         match self {
-            IoInstruction::OpenChan { destination } => destination.map_all_values(cx, f),
-            IoInstruction::CloseChan => {}
-            IoInstruction::PrivateInput { destination, .. } => {
-                destination.map_all_values(cx, f);
-            }
-            IoInstruction::PrivateOutput { value, .. } => value.map_all_values(cx, f),
             IoInstruction::InputShares { registers } => {
                 for reg in registers {
-                    reg.map_all_values(cx, f);
+                    reg.map_all_values(cx, &mut f);
                 }
             }
             IoInstruction::OutputShares { registers } => {
                 for reg in registers {
-                    reg.map_all_values(cx, f);
+                    reg.map_all_values(cx, &mut f);
                 }
             }
-            IoInstruction::OutputClear { value } => value.map_all_values(cx, f),
-            IoInstruction::InputClear { destination } => destination.map_all_values(cx, f),
-            IoInstruction::OutputInt { value } => value.map_all_values(cx, f),
-            IoInstruction::InputInt { destination } => destination.map_all_values(cx, f),
         }
     }
 }

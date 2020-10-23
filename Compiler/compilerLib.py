@@ -5,7 +5,7 @@
 from Compiler.program import Program
 from Compiler.config import *
 from Compiler.exceptions import *
-import instructions, instructions_base, types, comparison, library
+import instructions, instructions_base, types, library, AdvInteger
 
 import random
 import time
@@ -23,10 +23,9 @@ def run(args, options, param=-1, merge_opens=True, \
     instructions.program = prog
     instructions_base.program = prog
     types.program = prog
-    comparison.program = prog
+    AdvInteger.program = prog
     prog.DEBUG = debug
     VARS['program'] = prog
-    comparison.set_variant(options)
     
     print 'Compiling file', prog.infile
     

@@ -21,6 +21,9 @@ void exROT_Sender::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int>
   Delta= COTR.get_Delta();
   aBit::set_nplayers(P.nplayers(), P.whoami(), Delta);
 
+  AgreeRandom(P, base_key, AES_BLK_SIZE, connectionNb);
+  counter = 0;
+
   cout << "[exROT - Sender::init] Finished Base-OT for Sender (" << P.whoami() << "," << nb_rcver << ")" << endl;
 }
 
@@ -30,12 +33,24 @@ void exROT_Receiver::init(Player &P, int i, CryptoPP::RandomPool &RNG, unsigned 
   gf2n::init_field(OT_comp_sec);
 
   COTS.init(P, nb_sender, RNG, connectionNb);
+  
+  AgreeRandom(P, base_key, AES_BLK_SIZE, connectionNb);
+  counter = 0;
 
   cout << "[exRot - Receiver::init] Finished Base-OT for Receiver (" << nb_sender << "," << P.whoami() << ")" << endl;
 }
 
 void exROT_Sender::next_iteration(Player &P, unsigned int size, vector<vector<gf2n>> &out_vec)
 {
+  // Make the MMO key 
+  uint8_t buffer[AES_BLK_SIZE];
+  memset(buffer, 0, AES_BLK_SIZE);
+  INT_TO_BYTES(buffer, counter);
+  for (unsigned int i=0; i<AES_BLK_SIZE; i++)
+    { buffer[i]^=base_key[i]; }
+  counter++;
+  mmo.setIV(buffer);
+
   vector<aBit> aB(size);
   vector<vector<gf2n>> aBLifted(size, vector<gf2n>(2));
   uint8_t *array0;
@@ -77,6 +92,16 @@ void exROT_Sender::next_iteration(Player &P, unsigned int size, vector<vector<gf
 
 void exROT_Receiver::next_iteration(Player &P, unsigned int size, BitVector &choice_vec, vector<gf2n> &out_vec)
 {
+  
+  // Make the MMO key 
+  uint8_t buffer[AES_BLK_SIZE];
+  memset(buffer, 0, AES_BLK_SIZE);
+  INT_TO_BYTES(buffer, counter);
+  for (unsigned int i=0; i<AES_BLK_SIZE; i++)
+    { buffer[i]^=base_key[i]; }
+  counter++;
+  mmo.setIV(buffer);
+
   vector<aBit> aB(size);
   vector<gf2n> aBLifted(size);
   uint8_t *array;

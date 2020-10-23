@@ -58,9 +58,9 @@ public:
    * The connection is zero for START/STOP OPENs and one for private IO commands
    */
   void Open_To_All_Begin(vector<gfp> &values, const vector<Share> &S, Player &P,
-                         int connection= 0, bool verbose= false);
+                         int connection, bool verbose= false);
   void Open_To_All_End(vector<gfp> &values, const vector<Share> &S, Player &P,
-                       int connection= 0, bool verbose= false);
+                       int connection, bool verbose= false);
 
   /* First routine called by all bar player_num
    * Second routines called by player_num only

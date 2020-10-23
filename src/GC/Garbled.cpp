@@ -6,15 +6,15 @@ All rights reserved
 */
 
 #include "Garbled.h"
+#include "LSSS/PRSS.h"
 #include "OT/OT_Thread_Data.h"
-#include "Tools/MMO.h"
-#include "Tools/Timer.h"
 
 extern OT_Thread_Data OTD;
 
 // Apply the PRF with keys k1 and k2 to the message (g||j) where
 // j runs through 1 to n. To get an n-vector of gf2n elements out
-void apply_PRF(vector<gf2n> &ans, const gf2n &k1, const gf2n &k2, unsigned int g)
+void Base_Garbled_Circuit::apply_PRF(vector<gf2n> &ans,
+                                     const gf2n &k1, const gf2n &k2, unsigned int g)
 {
 
   gf2n temp1, temp2, x;
@@ -43,7 +43,6 @@ void apply_PRF(vector<gf2n> &ans, const gf2n &k1, const gf2n &k2, unsigned int g
         }
     }
 
-  MMO mmo;
   for (unsigned int j= 0; j < ans.size(); j++)
     {
       INT_TO_BYTES(ibuffer, j);
@@ -61,6 +60,13 @@ void Base_Garbled_Circuit::Garble(const Circuit &C,
                                   unsigned int online_thread_no)
 {
   // This follows the method on page 27 of ePrint 2017/214
+
+  // First agree the per circuit MMO key
+  uint8_t mmo_key[AES_BLK_SIZE];
+  AgreeRandom(P, mmo_key, AES_BLK_SIZE, 2);
+  mmo.setIV(mmo_key);
+
+  // Now do the Garbling
   unsigned int n= P.nplayers();
 
   lambda.resize(C.get_nWires());
@@ -85,6 +91,10 @@ void Base_Garbled_Circuit::Garble(const Circuit &C,
   list<aBit> in_AND_aBits= OTD.aBD.get_aShares(online_thread_no, cnt);
   list<aTriple> triples= OTD.aAD.get_aANDs(online_thread_no, nAG);
   gf2n Delta= aBit::get_Delta();
+  #ifdef BENCH_OFFLINE
+     P.aands+=nAG;
+     P.abits+=cnt;
+  #endif
 
   unsigned int nI= 0;
   for (unsigned int i= 0; i < C.num_inputs(); i++)
@@ -350,13 +360,6 @@ void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
         }
     }
 
-/* Time Evaluation */
-#ifdef GC_Time
-  Timer T;
-  T.reset();
-  T.start();
-#endif
-
   // Line 4
   unsigned int i0= -1, i1= -1, out;
   vector<vector<gf2n>> ans(P.nplayers(), vector<gf2n>(P.nplayers()));
@@ -426,14 +429,6 @@ void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
           throw circuit_error();
         }
     }
-
-#ifdef GC_Time
-  T.stop();
-  if (P.whoami() == 0)
-    {
-      cout << "Time To Evaluate = " << T.elapsed() << endl;
-    }
-#endif
 
   P.Check_Broadcast(2);
 }

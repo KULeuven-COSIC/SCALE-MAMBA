@@ -6,6 +6,8 @@
 *Multiparty AlgorithMs Basic Argot*         : MAMBA
 
 
+## Detailed installation instructions
+
 First type
 ```
 make doc
@@ -13,14 +15,32 @@ make doc
 
 Then *read* the documentation!
 
-Note: For Leuven maintainers, if wishing to recompile the basic 64 bit 
+In the documentation you will see quick install information using `nix-shell' for installing
+the depdencies. If you want to use this then install `nix-shell' if you don't already have it 
+(you may need a re-login to update environment variables).
+
+```
+curl -L https://nixos.org/nix/install | sh
+```
+
+Invoke `nix-shell` to get a fully ready development environment with all libraries installed.
+This will automatically download all the dependencies and tools you need. After you have
+compiled the system you can compile a program in the `Programs` directory by invoking
+
+```
+./compile.sh Programs/test_fix_array
+```
+
+## 64 bit circuits
+
+Note: For Leuven maintainers, if wishing to recompile the basic 64 bit
 circuits then call
 ```
 make circuits
 ```
 
 These are then compiled down from the netlist down to the Bristol
-fashion again, and then simplified. 
+fashion again, and then simplified.
 
 After doing this run
 ```
@@ -54,5 +74,4 @@ iv)  For small changes/bug fixes you find, either email the group
 v)   Major changes (more than the odd line here or there), please
      talk  with us first. You may be doing something which we
      plan to scrap in the near future. So you dont want to waste
-     your time. 
-
+     your time.

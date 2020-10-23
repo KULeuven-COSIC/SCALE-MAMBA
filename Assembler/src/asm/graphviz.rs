@@ -34,7 +34,7 @@ impl<'a> Body<'a> {
             write!(f, "b{} [shape=\"none\" label=<", i)?;
             write!(f, r#"<table border="0" cellborder="1" cellspacing="0">"#)?;
             write!(f, r#"<tr><td align="left" balign="left">"#)?;
-            let (end, start2) = if block.stmts.len() > 10 {
+            let (end, start2) = if block.stmts.len() > 11 && !cx.verbose {
                 (5, block.stmts.len() - 5)
             } else {
                 (block.stmts.len(), block.stmts.len())
@@ -43,17 +43,17 @@ impl<'a> Body<'a> {
                 write!(
                     f,
                     "{}<br/>",
-                    v_htmlescape::escape(&stmt.relex(cx).to_string())
+                    v_htmlescape::escape(&stmt.relex(cx).display(cx).to_string())
                 )
             };
             for stmt in &block.stmts[..end] {
                 print_stmt(&mut f, stmt)?
             }
-            if block.stmts.len() > 10 {
+            if block.stmts.len() > 11 && !cx.verbose {
                 write!(
                     f,
                     "... {} elements skipped ...<br/>",
-                    block.stmts.len() - 10
+                    block.stmts.len() - 11
                 )?;
             }
             for stmt in &block.stmts[start2..] {

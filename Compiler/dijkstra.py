@@ -101,7 +101,7 @@ class HeapQ(object):
     def bubble_up(self, start):
         bits = bit_decompose(start, self.levels)
         bits.reverse()
-        bits = [0] + floatingpoint.PreOR(bits, self.levels)
+        bits = [0] + AdvInteger.PreOR(bits)
         bits = [bits[i+1] - bits[i] for i in range(self.levels)]
         shift = sum([bit << i for i,bit in enumerate(bits)])
         childpos = MemValue(start * shift)

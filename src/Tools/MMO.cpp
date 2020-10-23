@@ -7,7 +7,6 @@ All rights reserved
 
 #include "MMO.h"
 #include "Math/gf2n.h"
-#include "avx_memcpy.h"
 #include <unistd.h>
 
 void MMO::zeroIV()
@@ -40,7 +39,7 @@ void MMO::encrypt_and_xor(void *output, const void *input, const uint8_t *key)
   ecb_aes_128_encrypt<N>(out, in, key);
   for (int i= 0; i < N; i++)
     out[i]= _mm_xor_si128(out[i], in[i]);
-  avx_memcpy(output, out, sizeof(out));
+  memcpy(output, out, sizeof(out));
 }
 
 // XXX Is this next one used?

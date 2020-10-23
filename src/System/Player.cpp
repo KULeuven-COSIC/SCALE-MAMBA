@@ -161,6 +161,16 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   data_received= 0;
 #endif
 
+#ifdef BENCH_OFFLINE
+  triples=0;
+  squares=0;
+  bits=0;
+  dabits=0;
+  inputs=0;
+  abits=0;
+  aands=0;
+#endif
+
   // When communicating with player i, player me acts as server when i<me
   for (unsigned int i= 0; i < SD.n; i++)
     {
@@ -483,5 +493,26 @@ void Player::print_network_data(int thread_num)
          "  }\n"
          "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
          me, thread_num, data_sent, ((double) data_sent / 1000000), data_received, ((double) data_received / 1000000), br_messages_sent, pp_messages_sent);
+}
+#endif
+
+
+#ifdef BENCH_OFFLINE
+void Player::print_offline(int thread_num)
+{
+  printf(BENCH_TEXT_BOLD BENCH_COLOR_BLUE BENCH_MAGIC_START
+         "{\"player\":%u,\n"
+         "  \"thread\":%d,\n"
+         "  \"offlinedata\":{\n"
+         "    \"triples\":{\%lu\"},\n"
+         "    \"squares\":{\%lu\"},\n"
+         "    \"bits\":{\%lu\"},\n"
+         "    \"dabits\":{\%lu\"},\n"
+         "    \"inputs\":{\%lu\"},\n"
+         "    \"aBits\":{\%lu\"},\n"
+         "    \"aANDs\":{\%lu\"},\n"
+         "  }\n"
+         "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+         me, thread_num, triples, squares, bits, dabits, inputs, abits, aands);
 }
 #endif

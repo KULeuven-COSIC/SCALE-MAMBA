@@ -196,7 +196,7 @@ fn write_output<'a>(
         OutputFormat::Assembly => {
             let relexed = parsed.relex(&cx);
             for lex in relexed {
-                writeln!(f, "{}", lex)?;
+                writeln!(f, "{}", lex.display(cx))?;
             }
         }
         OutputFormat::Graphviz => parsed.print_dot_file(cx, f)?,

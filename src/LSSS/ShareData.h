@@ -25,20 +25,20 @@ All rights reserved
 #include "Math/Matrix.h"
 
 enum ShareType {
-  Full,
-  Shamir,
-  Replicated,
-  Q2MSP,
+  Full = 0,
+  Shamir = 1,
+  Replicated = 2,
+  Q2MSP = 3,
   Other
 };
 
 // The following is only needed when Type=Replicated
 // (otherwise we have always Maurer (or SPDZ for Full))
 enum OfflineType {
-  Fake,
-  Maurer,
-  Reduced,
-  SPDZ
+  Fake= 0,
+  Maurer= 1,
+  Reduced= 2,
+  SPDZ= 3,
 };
 
 class ShareData
@@ -80,8 +80,8 @@ public:
    */
   vector<vector<vector<int>>> RCt;
 
-  /* Reconstruction vectors. 
-   * Entry i corresponds to how player i reconstructs s from 
+  /* Reconstruction vectors.
+   * Entry i corresponds to how player i reconstructs s from
    * the input values from players described in RCt[*][j][*]
    */
   vector<vector<gfp>> ReconS;

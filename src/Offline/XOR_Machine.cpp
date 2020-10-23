@@ -83,6 +83,9 @@ void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
   ta.splice(ta.begin(), sd_ta, sd_ta.begin(), next(sd_ta.begin(), n));
   tb.splice(tb.begin(), sd_tb, sd_tb.begin(), next(sd_tb.begin(), n));
   tc.splice(tc.begin(), sd_tc, sd_tc.begin(), next(sd_tc.begin(), n));
+#ifdef BENCH_OFFLINE
+  P.triples+=n;
+#endif
 
   OCD.mul_mutex[thread].unlock();
 

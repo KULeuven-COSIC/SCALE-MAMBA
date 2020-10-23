@@ -136,7 +136,7 @@ void SimpleOT_Sender::get_random_bits(unsigned int i, gfp &a)
     {
       throw OT_error();
     }
-  a.almost_randomize(PRG[i]);
+  a.randomize(PRG[i]);
 }
 
 void SimpleOT_Receiver::get_random_bits(gfp &a)
@@ -145,7 +145,7 @@ void SimpleOT_Receiver::get_random_bits(gfp &a)
     {
       throw OT_error();
     }
-  a.almost_randomize(PRG);
+  a.randomize(PRG);
 }
 
 void SimpleOT_Sender::get_random_bits(unsigned int i, BitVector &v)

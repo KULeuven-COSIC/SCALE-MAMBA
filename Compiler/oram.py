@@ -15,14 +15,14 @@ if 'Emulation' in sys.path:
     from Emulation.types import *
     from Emulation.types import _secret
     from Emulation.program import Program
-    from Emulation import floatingpoint,comparison,permutation
+    from Emulation import floatingpoint,permutation
 else:
     print 'compilation mode'
     from Compiler.types import *
     from Compiler.types import _secret
     from Compiler.library import *
     from Compiler.program import Program
-    from Compiler import floatingpoint,comparison,permutation
+    from Compiler import floatingpoint,permutation
 
 from Compiler.util import *
 
@@ -70,7 +70,7 @@ class intBlock(Block):
         self.n_bits = length * entries_per_block
         self.start = self.value_type.hard_conv(start * length)
         self.lower, self.shift = \
-            floatingpoint.Trunc(self.value, self.n_bits, self.start, \
+            AdvInteger.Oblivious_Trunc(self.value, self.n_bits, self.start, \
                                     Program.prog.security, True)
         trunc = (self.value - self.lower) / self.shift
         self.slice = trunc.mod2m(length, self.n_bits, False)
@@ -116,7 +116,7 @@ class gf2nBlock(Block):
             l = log2(entries_per_block)
             start_bits = bit_decompose(start, l)
             choice_bits = demux(start_bits)
-            inv_bits = [1 - bit for bit in floatingpoint.PreOR(choice_bits, None)]
+            inv_bits = [1 - bit for bit in AdvInteger.PreOR(choice_bits, None)]
             mask_bits = sum(([x] * length for x in inv_bits), [])
             lower_bits = map(operator.mul, value_bits, mask_bits)
             self.lower = sum(bit << i for i,bit in enumerate(lower_bits))
@@ -134,7 +134,7 @@ class gf2nBlock(Block):
             power_start = floatingpoint.KOpL(operator.mul, selected)
             bits = bit_decompose(power_start, entries_per_block)
             adjust = sum(bit << (i * length) for i,bit in enumerate(bits))
-            pre_bits = floatingpoint.PreOpL(lambda x,y,z=None: x + y, bits)
+            pre_bits = AdvInteger.PreOpL(lambda x,y,z=None: x + y, bits)
             inv_bits = [1 - bit for bit in pre_bits]
             mask_bits = sum(([x] * length for x in inv_bits), [])
             lower_bits = map(operator.mul, value_bits, mask_bits)
@@ -218,7 +218,7 @@ def demux_array(x):
     return res
 
 def get_first_one(x):
-    prefix_list = [0] + floatingpoint.PreOR(x, Program.prog.security)
+    prefix_list = [0] + AdvInteger.PreOR(x)
     return [prefix_list[i+1] - prefix_list[i] for i in range(len(x))]
 
 class Value(object):
@@ -521,8 +521,6 @@ class RefTrivialORAM(object):
             indices = self.ram.get_indices()
             empty_bits = self.ram.get_empty_bits()
             parallel = 1024
-            if comparison.const_rounds:
-                parallel /= 4
             if self.size >= 128:
                 #n_threads = 8 if self.size >= 8 * parallel else 1
                 found = Array(self.size, self.value_type)
@@ -702,7 +700,7 @@ class RefTrivialORAM(object):
 
     def find_first_empty(self):
         prefix_empty = [0] + \
-            floatingpoint.PreOR([empty for empty in self.ram.get_empty_bits()], \
+            AdvInteger.PreOR([empty for empty in self.ram.get_empty_bits()], \
                                                      Program.prog.security)
         return [prefix_empty[i+1] - prefix_empty[i] \
                     for i in range(len(self.ram))]
@@ -729,7 +727,7 @@ class RefTrivialORAM(object):
         self.last_index = None
         empty_entry = self.empty_entry(False)
         prefix_empty = [0] + \
-            floatingpoint.PreOR([1 - empty for empty in self.ram.get_empty_bits()], \
+            AdvInteger.PreOR([1 - empty for empty in self.ram.get_empty_bits()], \
                                     Program.prog.security)
         pop_here = [prefix_empty[i+1] - prefix_empty[i] \
                         for i in range(len(self.ram))]
@@ -1240,8 +1238,8 @@ class TreeORAM(AbstractORAM):
                 half = (empty_positions[i]+1 - parity) / 2
                 half_max = self.bucket_size / 2
                 
-                bits = floatingpoint.B2U(half, half_max, Program.prog.security)[0]
-                bits2 = floatingpoint.B2U(half+parity, half_max, Program.prog.security)[0]
+                bits = AdvInteger.B2U(half, half_max, Program.prog.security)[0]
+                bits2 = AdvInteger.B2U(half+parity, half_max, Program.prog.security)[0]
                 # (doesn't work)
                 #bits2 = [0] * half_max
                 ## second half with parity bit 
@@ -1250,7 +1248,7 @@ class TreeORAM(AbstractORAM):
                 #bits2[0] = (1 - bits[0]) * parity
                 bucket_bits = [b for sl in zip(bits2,bits) for b in sl]
             else:
-                bucket_bits = floatingpoint.B2U(empty_positions[i]+1, self.bucket_size, Program.prog.security)[0]
+                bucket_bits = AdvInteger.B2U(empty_positions[i]+1, self.bucket_size, Program.prog.security)[0]
             pos_bits += [[b, leaf] for b in bucket_bits]
         
         # sort to get empty positions first
@@ -1342,8 +1340,6 @@ def get_parallel(index_size, value_type, value_length):
         value_size *= 2
     res = max(1, min(50 * 32 / (value_length * value_size), \
                          800 * 32 / (value_length * index_size)))
-    if comparison.const_rounds:
-        res = max(1, res / 2)
     if 'Emulation' not in sys.path:
         print 'Reading %d buckets in parallel' % res
     return res

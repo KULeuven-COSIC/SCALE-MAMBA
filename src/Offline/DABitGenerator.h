@@ -143,11 +143,6 @@ class LargePrimeDABitGenerator : public AbstractDABitGenerator
   // XOR Machine for the n/2-party gf(p) xor
   XOR_Machine xor_machine;
 
-  void input_GF2_bits(vector<aBit> &out_sh2, const vector<bool> &bits);
-  void check_public_lsbs(const vector<Share> modp_bits, const vector<aBit> mod2_bits);
-  void split_shares(vector<gfp> &out_modp_shares, const vector<Share> &modp_bits);
-  void prepare_for_xor(vector<vector<Share>> &bit_rows, const vector<Share> &modp_bits);
-
 public:
   LargePrimeDABitGenerator(MaliciousDABitMachine &machine, Player &P, int thread_num);
   void run(daBitVector &dabs);

@@ -19,16 +19,15 @@ using namespace std;
  * for any FHE scheme etc
  */
 
-class gfp
+template<int L>
+class gfp_
 {
-  modp a;
+  modp_<L> a;
   thread_local static Zp_Data ZpD;
 
 public:
-  static void init_field(const bigint &p, bool mont= true)
-  {
-    ZpD.init(p, mont);
-  }
+  static void init_field(const bigint &p, bool mont= true);
+
   static bigint pr()
   {
     return ZpD.pr;
@@ -83,35 +82,33 @@ public:
     a.assign(buffer, ZpD.get_t());
   }
 
-  modp get() const
+  modp_<L> get() const
   {
     return a;
   }
 
   // Assumes prD behind x is equal to ZpD
-  void assign(modp &x)
+  void assign(modp_<L> &x)
   {
     a= x;
   }
 
-  gfp()
+  gfp_()
   {
     assignZero(a, ZpD);
   }
-  // Assumes prD behind x is equal to ZpD
-  gfp(const modp &g)
+  template<int LL> gfp_(const modp_<LL> &g)
   {
     a= g;
   }
-  gfp(const bigint &x)
+  gfp_(const bigint &x)
   {
     to_modp(a, x, ZpD);
   }
-  gfp(int x)
+  gfp_(int x)
   {
     assign(x);
   }
-
   bool is_zero() const
   {
     return isZero(a, ZpD);
@@ -125,86 +122,86 @@ public:
     return is_zero() or is_one();
   }
 
-  bool equal(const gfp &y) const
+  bool equal(const gfp_ &y) const
   {
     return areEqual(a, y.a, ZpD);
   }
-  bool operator==(const gfp &y) const
+  bool operator==(const gfp_ &y) const
   {
     return equal(y);
   }
-  bool operator!=(const gfp &y) const
+  bool operator!=(const gfp_ &y) const
   {
     return !equal(y);
   }
 
   // x+y
-  void add(const gfp &x, const gfp &y)
+  void add(const gfp_ &x, const gfp_ &y)
   {
-    Add(a, x.a, y.a, ZpD);
+    ZpD.Add<L>(a.x, x.a.x, y.a.x);
   }
-  void add(const gfp &x)
+  void add(const gfp_ &x)
   {
-    Add(a, a, x.a, ZpD);
+    ZpD.Add<L>(a.x, a.x, x.a.x);
   }
   void add(void *x)
   {
-    ZpD.Add(a.x, a.x, (mp_limb_t *) x);
+    ZpD.Add<L>(a.x, a.x, (mp_limb_t *) x);
   }
-  void sub(const gfp &x, const gfp &y)
+  void sub(const gfp_ &x, const gfp_ &y)
   {
-    Sub(a, x.a, y.a, ZpD);
+    ZpD.Sub<L>(a.x, x.a.x, y.a.x);
   }
-  void sub(const gfp &x)
+  void sub(const gfp_ &x)
   {
-    Sub(a, a, x.a, ZpD);
+    ZpD.Sub<L>(a.x, a.x, x.a.x);
   }
 
   // = x * y
-  void mul(const gfp &x, const gfp &y)
+  void mul(const gfp_ &x, const gfp_ &y)
   {
-    Mul(a, x.a, y.a, ZpD);
+    a.mul(x.a,y.a,ZpD); 
   }
-  void mul(const gfp &x)
+  void mul(const gfp_ &x)
   {
-    Mul(a, a, x.a, ZpD);
+    a.mul(a,x.a,ZpD); 
   }
 
-  gfp operator+(const gfp &x) const
+  gfp_ operator+(const gfp_ &x) const
   {
-    gfp res;
+    gfp_ res;
     res.add(*this, x);
     return res;
   }
-  gfp operator-(const gfp &x) const
+  gfp_ operator-(const gfp_ &x) const
   {
-    gfp res;
+    gfp_ res;
     res.sub(*this, x);
     return res;
   }
-  gfp operator*(const gfp &x) const
+  gfp_ operator*(const gfp_ &x) const
   {
-    gfp res;
+    gfp_ res;
     res.mul(*this, x);
     return res;
   }
-  gfp &operator+=(const gfp &x)
+  gfp_ &operator+=(const gfp_ &x)
   {
     add(x);
     return *this;
   }
-  gfp &operator-=(const gfp &x)
+  gfp_ &operator-=(const gfp_ &x)
   {
     sub(x);
     return *this;
   }
-  gfp &operator*=(const gfp &x)
+  gfp_ &operator*=(const gfp_ &x)
   {
     mul(x);
     return *this;
   }
 
-  void square(const gfp &aa)
+  void square(const gfp_ &aa)
   {
     Sqr(a, aa.a, ZpD);
   }
@@ -216,7 +213,7 @@ public:
   {
     Inv(a, a, ZpD);
   }
-  void invert(const gfp &aa)
+  void invert(const gfp_ &aa)
   {
     Inv(a, aa.a, ZpD);
   }
@@ -230,15 +227,12 @@ public:
   }
 
   // deterministic square root
-  gfp sqrRoot();
+  gfp_ sqrRoot();
 
   void randomize(PRNG &G)
   {
     a.randomize(G, ZpD);
   }
-
-  // faster randomization, see implementation for explanation
-  void almost_randomize(PRNG &G);
 
   void output(ostream &s, bool human) const
   {
@@ -249,71 +243,76 @@ public:
     a.input(s, ZpD, human);
   }
 
-  friend ostream &operator<<(ostream &s, const gfp &x)
+  friend ostream &operator<<(ostream &s, const gfp_ &x)
   {
     x.output(s, true);
     return s;
   }
-  friend istream &operator>>(istream &s, gfp &x)
+  friend istream &operator>>(istream &s, gfp_ &x)
   {
     x.input(s, true);
     return s;
   }
 
   /* Bitwise Ops
-   *   - Converts gfp args to bigints and then converts answer back to gfp
+   *   - Converts gfp_ args to bigints and then converts answer back to gfp_
    */
-  void AND(const gfp &x, const gfp &y);
-  void XOR(const gfp &x, const gfp &y);
-  void OR(const gfp &x, const gfp &y);
-  void AND(const gfp &x, const bigint &y);
-  void XOR(const gfp &x, const bigint &y);
-  void OR(const gfp &x, const bigint &y);
-  void SHL(const gfp &x, int n);
-  void SHR(const gfp &x, int n);
-  void SHL(const gfp &x, const bigint &n);
-  void SHR(const gfp &x, const bigint &n);
+  void AND(const gfp_ &x, const gfp_ &y);
+  void XOR(const gfp_ &x, const gfp_ &y);
+  void OR(const gfp_ &x, const gfp_ &y);
+  void AND(const gfp_ &x, const bigint &y);
+  void XOR(const gfp_ &x, const bigint &y);
+  void OR(const gfp_ &x, const bigint &y);
+  void SHL(const gfp_ &x, int n);
+  void SHR(const gfp_ &x, int n);
+  void SHL(const gfp_ &x, const bigint &n);
+  void SHR(const gfp_ &x, const bigint &n);
 
-  gfp operator&(const gfp &x)
+  gfp_ operator&(const gfp_ &x)
   {
-    gfp res;
+    gfp_ res;
     res.AND(*this, x);
     return res;
   }
-  gfp operator^(const gfp &x)
+  gfp_ operator^(const gfp_ &x)
   {
-    gfp res;
+    gfp_ res;
     res.XOR(*this, x);
     return res;
   }
-  gfp operator|(const gfp &x)
+  gfp_ operator|(const gfp_ &x)
   {
-    gfp res;
+    gfp_ res;
     res.OR(*this, x);
     return res;
   }
-  gfp operator<<(int i)
+  gfp_ operator<<(int i)
   {
-    gfp res;
+    gfp_ res;
     res.SHL(*this, i);
     return res;
   }
-  gfp operator>>(int i)
+  gfp_ operator>>(int i)
   {
-    gfp res;
+    gfp_ res;
     res.SHR(*this, i);
     return res;
   }
 
   // Convert representation to and from a bigint number
-  friend void to_bigint(bigint &ans, const gfp &x, bool reduce= true)
+  friend void to_bigint(bigint &ans, const gfp_ &x, bool reduce= true)
   {
     to_bigint(ans, x.a, x.ZpD, reduce);
   }
-  friend void to_gfp(gfp &ans, const bigint &x)
+  friend void to_gfp(gfp_ &ans, const bigint &x)
   {
     to_modp(ans.a, x, ans.ZpD);
   }
 };
+
+#include "gfp.hpp"
+
+typedef gfp_<MAX_GFP_SZ> gfp;
+
 
 #endif

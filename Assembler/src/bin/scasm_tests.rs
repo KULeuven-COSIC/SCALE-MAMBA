@@ -6,6 +6,7 @@ extern crate tracing;
 
 use scasm::lexer::Lexical;
 use scasm::span::Span;
+use std::convert::TryInto;
 
 #[derive(Debug)]
 enum Error {
@@ -47,10 +48,10 @@ fn main() -> std::io::Result<()> {
                 let mut parsed = cx.parse_asm(&file, std::fs::File::open(&file).unwrap());
                 let relexed = parsed.relex(&cx);
                 if cx.check_for_errors().is_ok() {
-                    let text = cx.files.get(&file).unwrap();
-                    let lexed = cx.lex(text);
+                    let file_id = cx.file_paths.iter().position(|f| *f == file).unwrap();
+                    let lexed = cx.lex(file_id.try_into().unwrap());
                     for (lex, relex) in lexed.iter().zip(relexed) {
-                        assert_eq!(lex.to_string(), relex.to_string());
+                        assert_eq!(lex.display(&cx).to_string(), relex.display(&cx).to_string());
                     }
 
                     info!("optimize");
@@ -72,7 +73,7 @@ fn main() -> std::io::Result<()> {
                     let relexed = reparsed.relex(&cx);
                     info!("cmp");
                     for (lex, relex) in lexed.iter().zip(relexed) {
-                        trace!("{} \t\t {}", lex, relex);
+                        trace!("{} \t\t {}", lex.display(&cx), relex.display(&cx));
                         let lex = Lexical {
                             comment: Span::DUMMY,
                             ..lex.clone()
@@ -81,19 +82,8 @@ fn main() -> std::io::Result<()> {
                         assert_eq!(lex.args.len(), relex.args.len());
                         for (a, b) in lex.args.iter().zip(relex.args.iter()) {
                             if a.elem != b.elem {
-                                panic!("{} != {}", lex.to_string(), relex.to_string());
+                                panic!("{} != {}", lex.display(&cx), relex.display(&cx));
                             }
-                        }
-                    }
-                }
-                if std::env::var("USE_CRANELIFT").is_ok() {
-                    let ir = cx.generate_ir(parsed);
-                    if cx.check_for_errors().is_ok() {
-                        let ir_file = file.with_extension(".clif");
-                        let ir_expected = std::fs::read_to_string(&ir_file).unwrap_or_default();
-                        if ir_expected != ir {
-                            std::fs::write(&ir_file, ir)?;
-                            //panic!("Generated IR differs from expected: {}", ir_file.display());
                         }
                     }
                 }

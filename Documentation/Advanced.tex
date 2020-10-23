@@ -75,9 +75,8 @@ $\abort$ if $x=0$.
 \end{enumerate}
 \paragraph{MAMBA Example:} To obtain the inverse of a \verb|sint| or a \verb|cint| can be done as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 d = sint(5)
-d_inv =  floatingpoint.Inv(d)
+d_inv =  AdvInteger.Inv(d)
 print_ln("inverse is correct if 1: %s", (d*d_inv).reveal())
 \end{lstlisting}
 
@@ -137,6 +136,7 @@ This computes the logical OR of two input shared bits:
 a= sint(1)
 b= sint(0)
 print_ln("or is correct if 1: %s", (a or b).reveal())
+print_ln("or is correct if 1: %s", AdvInteger.or_op(a, b).reveal())
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{XOR}(\sshare{a},\sshare{b})$:}
@@ -146,10 +146,9 @@ This computes the logical XOR of two input shared bits:
 \end{enumerate}
 \paragraph{MAMBA Example:} To obtain the \verb|xor| of two \verb|sint| or \verb|cint| numbers you can: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 a= sint(1)
 b= sint(0)
-print_ln("or is correct if 1: %s", floatingpoint.xor_op(a, b).reveal())
+print_ln("or is correct if 1: %s", AdvInteger.xor_op(a, b).reveal())
 \end{lstlisting}
 
 \iffalse
@@ -185,13 +184,11 @@ To compute this function we have the algorithm
 This computes the operation $\sshare{p}= \bigodot_{i=1}^k \sshare{a_i}$
 given a binary operator $\odot$.
 \begin{enumerate}
-\item If $k>1$ then
+\item If $k>1$ then (assuming $k$ is even, if not pad)
 \begin{enumerate}
-  \item For $i \in [1,\ldots,k/2]$ do
-  \begin{enumerate}
-     \item $\sshare{u_i} \asn \sshare{a_{2\cdot i}} \odot \sshare{a_{2 \cdot i-1}}$.
-  \end{enumerate}
-  \item $\sshare{p} \asn \mathsf{KOp}(\odot, \sshare{u_{k/2}},\ldots,\sshare{u_1},k/2)$.
+	\item $\sshare{t_1} \asn \mathsf{KOp}(\odot, \sshare{a_{k/2}},\ldots,\sshare{a_{k/2}},k/2)$.
+	\item $\sshare{t_2} \asn \mathsf{KOp}(\odot, \sshare{a_{k/2+1}},\ldots,\sshare{a_k},k/2)$.
+	\item Return $\sshare{t_1} \odot \sshare{t_2}$.
 \end{enumerate}
 \item Else
 \begin{enumerate}
@@ -202,16 +199,15 @@ given a binary operator $\odot$.
 
 \paragraph{MAMBA Example:} Note that we basically want to achieve a construction capable to call any function in an iterative fashion reducing computation time. In this sense a call to the function could be perform in the following way: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
-
 # addition
 def addition(a, b):
     return a + b
     
 ar=[1]*16
 # (k is exctracted from ar directly on the implementation)
-print_ln("KOpL is correct if 32: %s", (floatingpoint.KOpL(func,ar)).reveal())
+print_ln("KOpL is correct if 32: %s", (AdvInteger.KOpL(addition,ar)).reveal())
 \end{lstlisting}
+This runs in logarithmic rounds. 
 
 \msubsubsection{$\mathsf{PreOp}(\odot,\sshare{a_1},\ldots,\sshare{a_k},k)$:}
 This computes the prefix operator $\sshare{p_j} = \odot_{i=1}^j \sshare{a_i}$,
@@ -233,8 +229,6 @@ for $1 \le j \le k$.
 
 \paragraph{MAMBA Example:} Similarly, we basically want to achieve a construction capable to call any function in an iterative fashion reducing computation time. In this case, however, we return all the list of intermediate values. The function call could be performed in the following way: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
-
 def addition(a, b):
     return a + b
 
@@ -246,55 +240,73 @@ e = sint(2)
 
 ar = [e]*16
 # k is stracted from ar.
-print_ln("PreOpL is correct if 32: %s", (floatingpoint.PreOpL(addition_triple,ar))[15].reveal())
-print_ln("PreOpN is correct if 32: %s", (floatingpoint.PreOpN(addition,ar))[15].reveal())
+print_ln("PreOpL is correct if 32: %s", (AdvInteger.PreOpL(addition_triple,ar))[15].reveal())
+print_ln("PreOpN is correct if 32: %s", (AdvInteger.PreOpN(addition,ar))[15].reveal())
 \end{lstlisting}
 Note that both methods are implementations of the functionality with slightly different  communication and round complexity.
 With the \verb+PreOpL+ function corresponding to the pseudo-code above.
 
-\msubsubsection{$\mathsf{Solved\mhyphen Bits}(BitsList, k)$:}
+\msubsubsection{$\mathsf{Sum\mhyphen Bits}(\sshare{x}_B)$:}
 This outputs a shared integer $x$ in the range
-$[0,\ldots,2^k)$ with $2^k<p$ and the shared bits
-making up its binary representation.
+$[0,\ldots,2^k)$ with $2^k<p$ given the input $k$ bits 
+$\sshare{x}_B$ making up its binary representation.
 \begin{enumerate}
-\item Take $k$ shares $\{\sshare{x_i}\}_{i=0}^{k-1}$ from $\BList$.
 \item $\sshare{x} \asn \sum_{i=0}^{k-1} 2^i \cdot \sshare{x_i}$.
-\item Output $(\sshare{x}, \{\sshare{x_i}\}_{i=0}^{k-1})$.
+\item Output $\sshare{x}$.
 \end{enumerate}
-To ease notation in what follows we write
+To ease notation in what follows we will write
 $\sshare{x}_B = \{\sshare{x_i}\}_{i=0}^{k-1}$.
 
 \paragraph{MAMBA Example:}  We can reconstruct a number from its bits as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 a = [sint(0)]*program.bit_length
 # k is taken from a
-print_ln("solved_bits is correct if 0: %s", floatingpoint.SolvedBits(a, program.bit_length).reveal())
+print_ln("sum_bits is correct if 0: %s", AdvInteger.SumBits(a, program.bit_length).reveal())
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{PRandInt}(k)$:}
+This generates a random secret integer $r$ in the range $[0,\ldots,2^k-1]$.
+In the pseudo-code below we let $[\BList]\star k$ denote taking
+$k$ bits from $\BList$.
+\begin{enumerate}
+\item $\sshare{r}_B \asn [\BList]\star k$.
+\item $\sshare{r} \asn \mathsf{Sum\mhyphen Bits}(\sshare{r}_B)$.
+\item Return $\sshare{r}$.
+\end{enumerate}
+\paragraph{MAMBA Example:}  We obtain the value as follows: 
+\begin{lstlisting}[language={python}]
+# x is the returned value
+x = sint()
+
+# k are parameters
+k = 5
+AdvInteger.PRandInt(x, k)
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{PRandM}(k,m,\kappa)$:}
 This generates two random shares $r' \in [0,\ldots,2^{k+\kappa-m}-1]$
 and $r \in [0,\ldots,2^m-1]$, along with the shares the bits of $r$.
 \begin{enumerate}
-\item $\sshare{r}, \sshare{r}_B \asn \mathsf{Solved\mhyphen Bits}(m)$.
-\item $\sshare{r'}, \sshare{r'}_B \asn \mathsf{Solved\mhyphen Bits}(k+\kappa-m)$.
+\item $\sshare{r}_B \asn [\BList]\star k$.
+\item $\sshare{r} \asn \mathsf{Sum\mhyphen Bits}(\sshare{r}_B)$.
+\item $\sshare{r'} \asn \mathsf{PRandInt}(k+\kappa-m)$.
 \item Return $\sshare{r'}, \sshare{r}, \sshare{r}_B$.
 \end{enumerate}
 \paragraph{MAMBA Example:}  We obtain the randomness and its bits as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
 
 # x, y,z are returned values
 x = sint()
 y = sint()
-z = [sint() for i in range(3)]
+yB = [sint() for i in range(3)]
 
 # k, m, kappa are parameters
 k = 5
 m = 3
 kappa = 7
-comparison.PRandM(x, y, z, k, m, kappa)
+AdvInteger.PRandM(x, y, yB, k, m, kappa)
 \end{lstlisting}
+
 \msubsubsection{$\mathsf{CarryOut}(\sshare{a}_B,\sshare{b}_B,k)$:}
 This protocol computes the carry-out of a binary addition of
 two $k$ bit shared values, when presented via shared bits.
@@ -318,16 +330,14 @@ give below.
 \end{enumerate}
 \paragraph{MAMBA Example:}  The carry out operation is executed as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
-
 res = sint() # last carry bit in addition of a and b
 a = [cint(i) for i in [1,0]] # array of clear bits
 b = [sint(i) for i in [0,1]] # array of secret bits (same length as a)
 c = 0 # initial carry-in bit
-kappa = 16
-comparison.CarryOut(res, a, b, c, 16)
+AdvInteger.CarryOut(res, a, b, c)
 \end{lstlisting}
-\msubsubsection{$\mathsf{CarryOutAux}(\sshare{d_k}_B,\ldots,\sshare{d_1}_B,k, \kappa)$:}
+
+\msubsubsection{$\mathsf{CarryOutAux}(\sshare{d_k}_B,\ldots,\sshare{d_1}_B,k)$:}
 This function uses the $\circ$ operator for carry propagation on two
 bit inputs which is defined as
 \[  \circ:  \left\{ \begin{array}{ccc}
@@ -361,34 +371,12 @@ which is just a specialisation of the protocol $\mathsf{KOp}$ above,
 \end{enumerate}
 \paragraph{MAMBA Example:} This method is thought as a subroutine for \verb|CarryOut| and should not be used outside that context. the code is invoked in the following way: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
-# this is how it is invoked, where res, is the return, and 16 is the kappa
-# k can be extracted from the array size
-comparison.CarryOutAux(res, [::d -1], 16)
-# it could be interpreted as follows when called:
 kappa = 16
 x = [cint(i) for i in [1,0]]
 res = sint()
-comparison.CarryOut(z, x, 16)
+AdvInteger.CarryOutAux(res, x)
 \end{lstlisting}
 
-\iffalse
-\note{Nigel}{Does not seem to be used anywhere}
-\msubsubsection{$\mathsf{CarryOutCIn}(\sshare{a}_B,\sshare{b}_B,c,k)$:}
-A minor tweak allows us to also input a {\em clear} carry-in
-bit into the $\mathsf{CarryOut}$ function.
-\begin{enumerate}
-\item For $i \in [0,\ldots,k-1]$ do
-\begin{enumerate}
-	\item $\sshare{d_i}_B \asn (\mathsf{XOR}(\sshare{a_i}, \sshare{b_i}),
-	                    \sshare{a_i}\cdot \sshare{b_i})$.
-\end{enumerate}
-\item $\sshare{g_0} \asn \sshare{g_0}+c \cdot\sshare{p_0}$ [Where $\sshare{d_0}_B=(\sshare{p_0},\sshare{g_0})$].
-\item $\sshare{d}_B \asn \mathsf{CarryOutAux}(\sshare{d_{k-1}}_B,\ldots,\sshare{d_0}_B,k)$.
-\item $(\sshare{p},\sshare{g}) \asn \sshare{d}_B$.
-\item Return $\sshare{g}$.
-\end{enumerate}
-\fi
 
 \msubsubsection{$\mathsf{BitAdd}((\sshare{a_{k-1}},\ldots,\sshare{a_0}), (\sshare{b_{k-1}},\ldots,\sshare{b_0}),k)$:}
 This function also makes use of the operator $\circ$.
@@ -409,14 +397,33 @@ is obviously more simple, and we do not detail this here.
 \item $\sshare{s_k} \asn \sshare{c_{k-1}}$.
 \item Return $(\sshare{s_k},\ldots,\sshare{s_0})$.
 \end{enumerate}
+There is also a variant (requiring less operations) which does an increment
+by one, i.e. $x \asn x+1$.
 
 \paragraph{MAMBA Example:} The addition of two numbers expressed in bits, can be performed as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 a_bits = [sint(i) for i in [0,1,0,1,1]]
 b_bits = [sint(i) for i in [0,1,0,1,1]]
+# k is extracted from the array size
+b = AdvInteger.BitAdd(a_bits, b_bits)
+c = AdvInteger.BitIncrement(a_bits)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{BitLTFull}(\sshare{a}_B,\sshare{b}_B,k)$:}
+This computes the sharing of the bit $a<b$, where both $a$ and $b$ are
+assumed to be $k$ bit values presented in bit format, with
+$a=\sum_{i=0}^{k-1} a_i \cdot 2^i$ and
+$b=\sum_{i=0}^{k-1} b_i \cdot 2^i$.
+The method used is from \cite{DFKNT06}.
+\paragraph{MAMBA Example:} Comparing two secret shared numbers decomposed in bits can be achieved as follows:
+\begin{lstlisting}[language={python}]
+x = [sint(i) for i in [0,1,1]]
+y = [sint(i) for i in [1,0,1]]
+z = sint()
+kappa = 16
 # k can be extracted from the array size
-b = floatingpoint.BitAdd(a_bits, b_bits)
+# in this case the bit that is the answer is contained in z
+AdvInteger.BitLTFull(z, x, y)
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{BitLT}(a,\sshare{b}_B,k)$:}
@@ -435,23 +442,23 @@ $b=\sum_{i=0}^{k-1} b_i \cdot 2^i$.
 \end{enumerate}
 \paragraph{MAMBA Example:} Comparing an open register with a secret shared number decomposed in bits can be achieved as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
 x = cint(5)
 y = [sint(i) for i in [1,0,1]]
 z = sint()
 kappa = 16
 # k can be extracted from the array size
 # in this case the bit that is the answer is contained in z
-comparison.BitLTL(z, x, y, kappa)
+AdvInteger.BitLT(z, x, y, kappa)
 \end{lstlisting}
+
 
 \msubsubsection{$\mathsf{BitDecFull}(\sshare{a})$:}
 This produces the bit-decomposition of the shared value $a$ with
 respect to the prime \verb+program.P+.
-The method used is the one from \cite{DBLP:conf/pkc/NishideO07}, 
+The method used is the one from \cite{DBLP:conf/pkc/NishideO07},
 and thus it does not depend on any statistical security gap.
-In the next section a more efficient variant which only
-gives statistical security guarantees, but does not
+The next version is more efficient variant, but only
+gives statistical security guarantees, and does not
 work for all $a \in [0,\ldots,p)$ is given.
 When \verb+program.P+ is larger than $64$-bit the
 method from \cite{DFKNT06} is used; not because it is
@@ -459,44 +466,161 @@ faster but purely because SCALE is not so adapt at doing
 the other method for large primes.
 This routine has a side-effect of writing to memory locations in the
 \verb+sint+ memory in the first $0,\ldots,\log_2 p$ locations.
-\paragraph{MAMBA Example:} A secret shared value can be decomposed into bits as shown in the following snippet: 
+\paragraph{MAMBA Example:} A secret shared value can be decomposed into bits as shown in the following snippet:
 \begin{lstlisting}[language={python}]
 x = cint(23)
-bits = BitDecFull(a)
+bits = AdvInteger.BitDecFull(a)
 for i in range(program.P.bit_length()):
   print_str('%s',bits[i].reveal())
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{BitDec}(\sshare{a},k,m, \kappa)$:}
+This outputs the $m$ least significant bits in the $2$'s complement
+representation of $a \in \Zk$.
+It requires a statistical security `gap' of $\kappa$.
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^k+2^{k+\kappa}-\sshare{r}-2^m \cdot \sshare{r'})$.
+\item $(\sshare{a_{m-1}},\ldots,\sshare{a_0}) \asn
+        \mathsf{BitAdd}(c,(\sshare{r_{m-1}},\ldots,\sshare{r_0}))$.
+\item Return $(\sshare{a_{m-1}},\ldots,\sshare{a_0})$.
+\end{enumerate}
+\paragraph{MAMBA Example:} A secret shared value can be decomposed into bits as shown in the following snippet:
+\begin{lstlisting}[language={python}]
+a = sint(23)
+k = 5
+m = 5
+kappa = 20
+# where b is bit array of type sint
+b = AdvInteger.BitDec(a, k, m, kappa)
+# you can also vall via (where it selects m=k)
+b = a.bit_decompose(k, kappa)
 \end{lstlisting}
 
 \msubsection{Arithmetic with Signed Integers}
 In this section we define basic arithmetic on signed integers.
 We define $\Zk$ as the set of integers $\{x \in \Z: -2^{k-1} \le x \le 2^{k-1}-1\}$,
 which we embed into $\F_p$ via the map $x \mapsto x \pmod{p}$.
+Most algorithms require a statistical security gap of $\kappa$.
 
-\msubsubsection{$\mathsf{BitDec}(\sshare{a},k,m)$:}
-This outputs the $m$ least significant bits in the $2$'s complement
-representation of $a \in \Zk$.
+
+\msubsubsection{$\mathsf{Mod2m}(\sshare{a_{prime}}, \sshare{a},k,m, \kappa, signed)$:}
+Given $a \in \Zk$, $m \in [1,\ldots,k-1]$ this outputs $a' = a \pmod{2^m}$.
+Use this protocol when $m>1$, for $m=1$ use $\mathsf{Mod2}$ below.
 \begin{enumerate}
 \item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
-\item $c \asn \Open(\sshare{a}+2^k+2^{k+\kappa}-\sshare{r}-2^m \cdot \sshare{r'})$.
-\item $(\sshare{a_{m-1}},\ldots,\sshare{a_0}) \asn 
-	\mathsf{BitAdd}(c,(\sshare{r_{m-1}},\ldots,\sshare{r_0}))$.
-\item Return $(\sshare{a_{m-1}},\ldots,\sshare{a_0})$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2^m \cdot \sshare{r'})$.
+\item $c'\asn c \pmod{2^m}$.
+\item $\sshare{u} \asn \mathsf{BitLT}(c',(\sshare{r_{m-1}},\ldots,\sshare{r_0}),m)$.
+\item $\sshare{a'} \asn c'-\sshare{r}+2^m \cdot \sshare{u}$.
+\item Return $\sshare{a'}$.
 \end{enumerate}
-\paragraph{MAMBA Example:} A secret shared value can be decomposed into bits as shown in the following snippet: 
+
+\paragraph{MAMBA Example:} The \verb|mod| to a power of $2$ of a secret shared integer register can be obtain as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
-a = sint(23)
-k = 5
-m = 5
-kappa = 20
-# where b is bit array of type sint
-b = floatingpoint.BitDec(a, k, m, kappa)
+a_prime = sint(0) # a % 2 ^ m
+a = sint(100)
+k = 16 # bit length of a
+m = 2 # the power of two, i..e we want  ( a mod 2^m )
+kappa = 8 
+signed = True # True/False
+
+# where a is a register of type sint
+r_dprime, r_prime, c, c_prime, u, t, c2k1 = \
+    AdvInteger.Mod2m(a_prime, a, k, m, kappa, signed)
 \end{lstlisting}
 
 
-\msubsubsection{$\mathsf{TruncPR}(\sshare{a},k,m, \kappa)$:}
-An approximate truncation algorithm which is faster than 
-a fully accurate Trunc. 
+\msubsubsection{$\mathsf{Mod2}(\sshare{a},k, \kappa, signed)$:}
+\begin{enumerate}
+\item $\sshare{r'}, \sshare{r}, \sshare{r_0} \asn \mathsf{PRandM}(k,1,\kappa)$.
+\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2 \cdot \sshare{r'})$.
+\item $\sshare{a_0} \asn c_0+\sshare{r_0}-2 \cdot c_0 \cdot \sshare{r_0}$.
+\item Return $\sshare{a_0}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} You obtain the modulo two of a number as follows:
+\begin{lstlisting}[language={python}]
+a = sint(1)
+a_0 = sint()
+k = 1
+kappa = 8
+signed = False
+# y stores the result of X % 2
+AdvInteger.Mod2(a_0, A, k, kappa, signed)
+\end{lstlisting}
+
+\msubsubsection{Addition, Multiplication in $\Zk$}
+Addition and multiplication $\odot$ of two elements $\sshare{a}, \sshare{b}$
+to obtain $\sshare{c}$, where $a,b,c \in \Zk$ is then easy to define
+by performing
+\begin{enumerate}
+\item $\sshare{d} \asn \sshare{a} \odot \sshare{b}$.
+\item $\sshare{c} \asn \mathsf{Mod2m}(\sshare{d},k',k)$,
+        where $k'=k+1$ is $\odot=+$ and $k'=2\cdot k$ if $\odot=\cdot$.
+\item Return $\sshare{c}$.
+\end{enumerate}
+These functions are not directly callable from MAMBA, they are
+included here purely for documentation reasons.
+
+\msubsubsection{$\mathsf{Pow2}(\sshare{a},k, \kappa)$:}
+This computes $\sshare{2^a}$ where $a \in [0,\ldots,k)$
+\begin{enumerate}
+\item $m \asn \ceil{\log_2 k}$.
+\item $\sshare{a_{m-1}},\ldots,\sshare{a_0} \asn \mathsf{BitDec}(\sshare{a},m,m)$.
+\item For $i\in [0,\ldots,m-1]$ do
+\begin{enumerate}
+  \item $\sshare{v_i} \asn 2^{2^i} \cdot \sshare{a_i}+1-\sshare{a_i}$.
+\end{enumerate}
+\item $\sshare{x_0},\ldots,\sshare{x_{m-1}}
+        \asn \ \mathsf{PreMult}(\sshare{v_0},\ldots,\sshare{v_{m-1}}, \{(1,1),\ldots,(1,m)\})$
+\item Return $\sshare{x_{m-1}}$.
+\end{enumerate}
+\paragraph{MAMBA Example:} You can obtain the value of two raised to a secret shared number as follows:
+\begin{lstlisting}[language={python}]
+a = sint(23)
+l = 32
+kappa = 20
+# y stores the result of 2^23
+y = AdvInteger.Pow2(a, l, kappa)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{B2U}(\sshare{a},k, \kappa)$:}
+This converts the integer $a \in [0,\ldots,k)$ into unary form.
+It outputs $k$ bits, of which the last $a$ bits are zero to one,
+with the others set to zero.
+\begin{enumerate}
+\item $\sshare{2^a} \asn \mathsf{Pow2}(\sshare{a},k)$.
+\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
+\item $c \asn \Open(\sshare{2^a}+\sshare{r}+2^k \cdot \sshare{r'})$.
+\item Let $c_{k-1},\ldots,c_0$ be the bits of $c$.
+\item For $i \in [0,\ldots,k=1]$ do
+\begin{enumerate}
+        \item $\sshare{x_i} \asn c_i+\sshare{r_i}-2 \cdot c_i \cdot \sshare{r_i}$.
+\end{enumerate}
+\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
+\item For $i \in [0,\ldots,k=1]$ do
+\begin{enumerate}
+        \item $\sshare{a_i} \asn 1-\sshare{y_i}$.
+\end{enumerate}
+\item Return $\sshare{a_0},\ldots,\sshare{a_{k-1}}$.
+\end{enumerate}
+Note, in the function $\mathsf{Oblivious_Trunc}$ below we also require the
+value $\sshare{2^a}$ to be returned so as to avoid recomputing it.
+
+\paragraph{MAMBA Example:} You can transform a number into its unary form as follows:
+\begin{lstlisting}[language={python}]
+a = sint(3)
+l=5
+kappa=20
+b,c = AdvInteger.B2U(a, l, kappa)
+\end{lstlisting}
+
+
+\msubsubsection{$\mathsf{TruncPr}(\sshare{a},k,m, \kappa)$:}
+An approximate truncation algorithm which is faster than
+a fully accurate Trunc.
 Given $a \in \Zk$, $m \in [1,\ldots,k-1]$
 this outputs $\floor{a/2^m}+u$ where $u$ is a random
 (and unknown) bit.
@@ -511,45 +635,15 @@ between $a/2^m$ and that integer.
 \item $\sshare{d} \asn t \cdot (\sshare{a}-c'+\sshare{r})$.
 \item Return $\sshare{d}$.
 \end{enumerate}
-\paragraph{MAMBA Example:} A secret shared fractional register can be approximately truncated as follows: 
+\paragraph{MAMBA Example:} A secret shared fractional register can be approximately truncated as follows:
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 a = sint(23)
 k = 5
 m = 3
 kappa = 20
 # where b is a register of type sint
-b=floatingpoint.TruncPr(a, k, m, kappa)
+b=AdvInteger.TruncPr(a, k, m, kappa)
 \end{lstlisting}
-
-\msubsubsection{$\mathsf{Mod2m}(\sshare{a_{prime}}, \sshare{a},k,m, \kappa, signed)$:}
-Given $a \in \Zk$, $m \in [1,\ldots,k-1]$ this outputs $a \pmod{2^m}$.
-Use this protocol when $m>1$, for $m=1$ use $\mathsf{Mod2}$ below.
-\begin{enumerate}
-\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,m,\kappa)$.
-\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2^m \cdot \sshare{r'})$.
-\item $c'\asn c \pmod{2^m}$.
-\item $\sshare{u} \asn \mathsf{BitLT}(c',(\sshare{r_{m-1}},\ldots,\sshare{r_0}),m)$.
-\item $\sshare{a'} \asn c'-\sshare{r}+2^m \cdot \sshare{u}$.
-\item Return $\sshare{a'}$.
-\end{enumerate}
-
-\paragraph{MAMBA Example:} The \verb|mod| to a power of $2$ of a secret shared integer register can be obtain as follows: 
-\begin{lstlisting}[language={python}]
-from Compiler import comparison
-
-a_prime = sint(0) # a % 2 ^ m
-a = sint(100)
-k = 16 # bit length of a
-m = 2 # modulo of 2^m
-kappa = 8 
-signed = True # True/False
-
-# where a is a register of type sint
-r_dprime, r_prime, c, c_prime, u, t, c2k1 = \
-    comparison.Mod2m(a_prime, a, k, m, kappa, signed)
-\end{lstlisting}
-
 
 \msubsubsection{$\mathsf{Trunc}(\sshare{a},k,m, kappa)$:}
 An exact version of $\mathsf{Trunc}$ above
@@ -560,36 +654,47 @@ An exact version of $\mathsf{Trunc}$ above
 \item Return $\sshare{d}$.
 \end{enumerate}
 Below we will give a version of $\mathsf{Trunc}$ in which $m$ is kept secret shared.
+
 \paragraph{MAMBA Example:} You truncate a number as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 # a = sint(23)
 # k = 5
 # m = 3 
 # kappa = 20
 # where a is a register of type sint
-a= floatingpoint.Trunc(a, k, m, kappa)
+a= AdvInteger.Trunc(a, k, m, kappa)
+\end{lstlisting}
+There is also an exact version of $\mathsf{Trunc}$ called $\mathsf{TruncRoundNearest}$
+which rounds the value $a/2^m$ to the nearest integer.
+This is called as
+\begin{lstlisting}[language={python}]
+a= AdvInteger.TruncRoundNearest(a, k, m, kappa)
 \end{lstlisting}
 
-\msubsubsection{$\mathsf{Mod2}(\sshare{a},k, \kappa, signed)$:}
+
+\msubsubsection{$\mathsf{Oblivious\_Trunc}(\sshare{a},k,\sshare{m}, \kappa)$:}
+This does the same operation as $\mathsf{Trunc}$ above, but $m$ is now secret shared.
 \begin{enumerate}
-\item $\sshare{r'}, \sshare{r}, \sshare{r_0} \asn \mathsf{PRandM}(k,1,\kappa)$.
-\item $c \asn \Open(\sshare{a}+2^{k-1}+\sshare{r}+2 \cdot \sshare{r'})$.
-\item $\sshare{a_0} \asn c_0+\sshare{r_0}-2 \cdot c_0 \cdot \sshare{r_0}$.
-\item Return $\sshare{a_0}$.
+\item $\sshare{x_0},\ldots,\sshare{x_{k-1}}, \sshare{2^m} \asn \mathsf{B2U}(\sshare{m},k)$.
+\item $\sshare{2^{-m}} \asn \mathsf{Inv}(\sshare{2^m})$.
+\item $\sshare{r''}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
+\item $\sshare{r'} \asn \sum_{i=0}^{k-1} 2^i \cdot \sshare{x_i} \cdot \sshare{r_i}$
+\item $c \asn \Open(\sshare{a}+\sshare{r''}+\sshare{r})$.
+\item For $i \in [1,\ldots,k=1]$ do $c_i' \asn c \pmod{2^i}$.
+\item $\sshare{c''} \asn \sum_{i=1}^{k-1} c_i' \cdot (\sshare{x_{i-1}}-\sshare{x_i})$.
+\item $\sshare{d} \asn \mathsf{LT}(\sshare{c''},\sshare{r'},k)$.
+\item $\sshare{b} \asn (\sshare{a}-\sshare{c''}+\sshare{r'}) \cdot \sshare{2^{-m}} - \sshare{d}$.
+\item Return $\sshare{b}$.
 \end{enumerate}
 
-\paragraph{MAMBA Example:} You obtain the modulo two of a number as follows: 
+\paragraph{MAMBA Example:} You truncate a number as follows:
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
-
-a = sint(1)
-a_0 = sint()
-k = 1
-kappa = 8
-signed = False 
-# y stores the result of X % 2
-comparison.Mod2(a_0, A, k, kappa, signed)
+a = sint(23)
+k = 5
+m = sint(3)
+kappa = 20
+# where a is a register of type sint
+b= AdvInteger.Oblivious_Trunc(a, k, m, kappa)
 \end{lstlisting}
 
 \iffalse
@@ -618,13 +723,12 @@ resulting in a shared bit.
 
 \paragraph{MAMBA Example:} You determine whether a number is less than zero as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
 a = sint(1)
 b = sint()
 k=80
 kappa=40
 # b stores the result of x < 0
-comparison.LTZ(b, a, k, kappa)
+AdvInteger.LTZ(b, a, k, kappa)
 \end{lstlisting}
 Like many commands in this section this can be abbreviated to
 \begin{lstlisting}[language={python}]
@@ -662,13 +766,12 @@ resulting in a shared bit.
 
 \paragraph{MAMBA Example:} You determine whether a number is equal to zero as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 a = sint(1)
 b = sint()
 k = 80
 kappa = 40
 # b stores the result of x == 0
-floatingpoint.EQZ(b, a, k, kappa)
+AdvInteger.EQZ(b, a, k, kappa)
 \end{lstlisting}
 
 
@@ -692,103 +795,9 @@ $a\ge b$ & $\mathsf{GE(\sshare{a,\sshare{b}})}$ & $1-\mathsf{LTZ}(\sshare{a}-\ss
 \end{tabular}
 \end{center}
 
-\msubsubsection{Addition, Multiplication in $\Zk$}
-Addition and multiplication $\odot$ of two elements $\sshare{a}, \sshare{b}$
-to obtain $\sshare{c}$, where $a,b,c \in \Zk$ is then easy to define 
-by performing 
-\begin{enumerate}
-\item $\sshare{d} \asn \sshare{a} \odot \sshare{b}$.
-\item $\sshare{c} \asn \mathsf{Mod2m}(\sshare{d},k',k)$,
-	where $k'=k+1$ is $\odot=+$ and $k'=2\cdot k$ if $\odot=\cdot$.
-\item Return $\sshare{c}$.
-\end{enumerate}
-These functions are not directly callable from MAMBA, they are
-included here purely for documentation reasons.
 
-\msubsubsection{$\mathsf{Pow2}(\sshare{a},k, \kappa)$:}
-This computes $\sshare{2^a}$ where $a \in [0,\ldots,k)$
-\begin{enumerate}
-\item $m \asn \ceil{\log_2 k}$.
-\item $\sshare{a_{m-1}},\ldots,\sshare{a_0} \asn \mathsf{BitDec}(\sshare{a},m,m)$.
-\item For $i\in [0,\ldots,m-1]$ do 
-\begin{enumerate}
-  \item $\sshare{v_i} \asn 2^{2^i} \cdot \sshare{a_i}+1-\sshare{a_i}$.
-\end{enumerate}
-\item $\sshare{x_0},\ldots,\sshare{x_{m-1}}
-	\asn \ \mathsf{PreMult}(\sshare{v_0},\ldots,\sshare{v_{m-1}}, \{(1,1),\ldots,(1,m)\})$
-\item Return $\sshare{x_{m-1}}$.
-\end{enumerate}
-\paragraph{MAMBA Example:} You can obtain the value of two raised to a secret shared number as follows: 
-\begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
-a = sint(23)
-l = 32
-kappa = 20
-# y stores the result of 2^23
-y =floatingpoint.Pow2(a, l, kappa)
-\end{lstlisting}
-
-
-\msubsubsection{$\mathsf{B2U}(\sshare{a},k, \kappa)$:}
-This converts the integer $a \in [0,\ldots,k)$ into unary form.
-It outputs $k$ bits, of which the last $a$ bits are zero to one,
-with the others set to zero.
-\begin{enumerate}
-\item $\sshare{2^a} \asn \mathsf{Pow2}(\sshare{a},k)$.
-\item $\sshare{r'}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
-\item $c \asn \Open(\sshare{2^a}+\sshare{r}+2^k \cdot \sshare{r'})$.
-\item Let $c_{k-1},\ldots,c_0$ be the bits of $c$.
-\item For $i \in [0,\ldots,k=1]$ do
-\begin{enumerate}
-	\item $\sshare{x_i} \asn c_i+\sshare{r_i}-2 \cdot c_i \cdot \sshare{r_i}$.
-\end{enumerate}
-\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
-\item For $i \in [0,\ldots,k=1]$ do
-\begin{enumerate}
-	\item $\sshare{a_i} \asn 1-\sshare{y_i}$.
-\end{enumerate}
-\item Return $\sshare{a_0},\ldots,\sshare{a_{k-1}}$.
-\end{enumerate}
-Note, in the function $\mathsf{Trunc}$ below we also require the
-value $\sshare{2^a}$ to be returned so as to avoid recomputing it.
-
-\paragraph{MAMBA Example:} You can transform a number into its unary form as follows: 
-\begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
-a = sint(3)
-l=5
-kappa=20
-b,c = floatingpoint.B2U(a, l, kappa)
-\end{lstlisting}
-
-
-\msubsubsection{$\mathsf{Trunc}(\sshare{a},k,\sshare{m}, \kappa)$:}
-This does the same operation as $\mathsf{Trunc}$ above, but $m$ is now secret shared.
-\begin{enumerate}
-\item $\sshare{x_0},\ldots,\sshare{x_{k-1}}, \sshare{2^m} \asn \mathsf{B2U}(\sshare{m},k)$.
-\item $\sshare{2^{-m}} \asn \mathsf{Inv}(\sshare{2^m})$.
-\item $\sshare{r''}, \sshare{r}, \sshare{r}_B \asn \mathsf{PRandM}(k,k,\kappa)$.
-\item $\sshare{r'} \asn \sum_{i=0}^{k-1} 2^i \cdot \sshare{x_i} \cdot \sshare{r_i}$
-\item $c \asn \Open(\sshare{a}+\sshare{r''}+\sshare{r})$.
-\item For $i \in [1,\ldots,k=1]$ do $c_i' \asn c \pmod{2^i}$.
-\item $\sshare{c''} \asn \sum_{i=1}^{k-1} c_i' \cdot (\sshare{x_{i-1}}-\sshare{x_i})$.
-\item $\sshare{d} \asn \mathsf{LT}(\sshare{c''},\sshare{r'},k)$.
-\item $\sshare{b} \asn (\sshare{a}-\sshare{c''}+\sshare{r'}) \cdot \sshare{2^{-m}} - \sshare{d}$.
-\item Return $\sshare{b}$.
-\end{enumerate}
-
-\paragraph{MAMBA Example:} You truncate a number as follows: 
-\begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
-a = sint(23)
-k = 5
-m = sint(3)
-kappa = 20
-# where a is a register of type sint
-b= floatingpoint.Trunc(a, k, m, kappa)
-\end{lstlisting}
-
-
+\iffalse
+### NPS: This does not seem to be defined, or used
 \msubsubsection{$\mathsf{Mod2m}(a_{prime}, \sshare{a},k,\sshare{m}, \kappa)$:}
 This does the same operation as $\mathsf{Mod2m}$ above, but $m$ is now secret shared.
 \begin{enumerate}
@@ -803,11 +812,10 @@ This does the same operation as $\mathsf{Mod2m}$ above, but $m$ is now secret sh
 \item $\sshare{b} \asn \sshare{c''}-\sshare{r'}+\sshare{2^m} \cdot \sshare{d}$.
 \item Return $\sshare{b}$.
 \end{enumerate}
+\fi
 
 \paragraph{MAMBA Example:} The \verb|mod| to a secret shared power of $2$ of a secret shared integer register can be obtain as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import comparison
-
 a_prime = param_a_prime # a % 2^m
 a sint(2137)
 k = 16
@@ -837,23 +845,27 @@ where $e=k-f$.
 As we are working with fixed point numbers we assume that the
 parameters $f$ and $k$ are public.
 For our following algorithms to work (in particular fixed point
-multiplication and division) we require that $q>2^{2 \cdot k}$.
+multiplication and division) we require that 
+$f<k$ and $2 \cdot k + \kappa < \log_2 p$.
 By abuse of notation we write $\sshare{a}$ to mean $\sshare{\overline{a}}$,
 i.e. the secret sharing of the fixed point number $a$,
 is actually the secret sharing of the integer representative
 $\overline{a}$.
 
+\iffalse
+%NPS Does not seem to be used anywhere
 \msubsubsection{$\mathsf{Scale}(\sshare{a},k,f_1,f_2)$:}
 Sometimes we want to scale the input fixed point number $a$
 from $\Qk{f_1}$ to $\Qk{f_2}$.
 \begin{enumerate}
 \item $m \asn f_2-f_1$.
 \item If $m\ge 0$ then $\sshare{a'} \asn 2^m \cdot \sshare{a}$.
-\item Else $\sshare{a'} \asn \mathsf{TruncPR}(\sshare{a},k,-m)$.
+\item Else $\sshare{a'} \asn \mathsf{TruncPr}(\sshare{a},k,-m)$.
 \item Return $\sshare{a'}$.
 \end{enumerate}
 This is not directly callable from MAMBA it is here purely
 for documentation reasons.
+\fi
 
 \msubsubsection{$\mathsf{FxEQZ}, \mathsf{FxLTZ}, \mathsf{FxEQ}, \mathsf{FxLT}$, etc:}
 All of the comparison operators for integers given above carry
@@ -868,13 +880,27 @@ over to fixed point numbers (if the inputs have the same $f$-values).
 
 \paragraph{MAMBA Example:} To obtain the absolute value of a number as follows: 
 \begin{lstlisting}[language={python}]
-from Compiler import mpc_math
 b = -1.5
 sb = sfix(b)
 
 # k and f are extracted from b
 # returns unsigned b and receives signed b
-ub = mpc_math.abs_fx(sb)
+ub = FixedPt.abs_fx(sb)
+\end{lstlisting}
+
+\msubsubsection{$\mathsf{FxFloor}(\sshare{a},k,f)$}
+\begin{enumerate}
+\item $\sshare{s} \asn \mathsf{Trunc}(\sshare{a}, k-f, f, \kappa)$.
+\item Return $\sshare{s}$.
+\end{enumerate}
+
+\paragraph{MAMBA Example:} To obtain the floor of an \verb+sfix+ value
+as an \verb+sfix+value
+\begin{lstlisting}[language={python}]
+b = -1.5
+sb = sfix(b)
+
+ub = FixedPt.floor_fx(sb)
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{FxNeg}(\sshare{a},k,f)$}
@@ -928,7 +954,7 @@ a_mult_b = a*b
 We first give division for when $a, b \in \Qk{f}$ and $b$ is in the clear.
 \begin{enumerate}
 \item Compute $x \in \Qk{f}$ such that $x \approx 1/b$.
-\item $\sshare{y} \asn \mathsf{TruncPR}(\overline{x} \cdot \sshare{a},k,f)$.
+\item $\sshare{y} \asn \mathsf{TruncPr}(\overline{x} \cdot \sshare{a},k,f)$.
 \item Return $\sshare{y}$.
 \end{enumerate}
 
@@ -979,27 +1005,15 @@ a_div_b = a/b
 \item $(\sshare{c},\sshare{v}) \asn \mathsf{Norm}(\sshare{b},k,f)$.
 \item $\sshare{d} \asn \overline{\alpha} - 2 \cdot \sshare{c}$.
 \item $\sshare{w} \asn \sshare{d} \cdot \sshare{v}$.
-\item $\sshare{w} \asn \mathsf{TruncPR}(\sshare{w},2 \cdot k,2 \cdot (k-f))$.
+\item $\sshare{w} \asn \mathsf{TruncPr}(\sshare{w},2 \cdot k,2 \cdot (k-f))$.
 \item Return $\sshare{w}$.
 \end{enumerate}
-This is not callable from MAMBA, it is here purely for documentation reasons.
-
-\msubsubsection{$\mathsf{MSB}(\sshare{b},k):$}
-Returns index array $\sshare{z}$ of size $k$, such that it holds a $1$ in the position of the most significative bit of $\sshare{b}$ and $\sshare{0}$ otherwise. This function is used internally on \verb|NormSQ| and \verb|SimplifiedNormSQ|.
-\begin{enumerate}
-
-\item $\sshare{s} \asn 1-2 \cdot \mathsf{LTZ}(\sshare{b},k)$.
-\item $\sshare{x} \asn \sshare{s} \cdot \sshare{b}$.
-\item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{x},k,k)$.
-\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
-\item For $i \in [0,\ldots,k-1]$ do 
-\item $z \asn (\sshare(0_{1}),...,\sshare(0_{k + 1 - k \quad \% \quad 2}))$
-\begin{enumerate}
-  \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
-\end{enumerate}
-\item $\sshare{z_{k-1}} \asn \sshare{y_{k-1}}$.
-\item Return $\sshare{z}$.
-\end{enumerate}
+This is not mean to be called from MAMBA; but
+if you insist it is 
+\begin{lstlisting}[language={python}]
+a = sfix(3.5)
+b = FixedPt.AppRcr(a, k, f, kappa)
+\end{lstlisting}
 
 \msubsubsection{$\mathsf{Norm}(\sshare{b},k,f):$}
 This returns the value $c$ such that $2^{k-1} \le c <2^k$
@@ -1022,17 +1036,18 @@ and if $2^{m-1} \le |b| <2^m$ then $v'= \pm 2^{k-m}$.
 \end{enumerate}
 \paragraph{MAMBA Example:} To obtain the norm of a secret shared fix point register you can do as follows:
 \begin{lstlisting}[language={python}]
-from Compiler import library
 kappa = 40 
 b = sfix(1.5)
 #returns the norm
- c, v = library.Norm(b, b.k, b.f, kappa, True)
+c, v = FixedPt.Norm(b, b.k, b.f, kappa, True)
 \end{lstlisting}
 
 \msubsubsection{$\mathsf{NormSQ}(\sshare{b},k):$}
 As above, but now we assume $b \ge 0$, and we also
 output shares of $m$ and $w$ such that $w=2^{m/2}$
-if $m$ is even and $2^{(m-1)/2}$ if $m$ is odd. Furthermore $v = 2^{k-m}$. Note that we have introduced some adaptations from the original paper:
+if $m$ is even and $2^{(m-1)/2}$ if $m$ is odd. 
+This algorithm is used in the Fixed Point sqrt routine later.
+Furthermore $v = 2^{k-m}$. Note that we have introduced some adaptations from the original paper:
 \begin{enumerate}
 \item $z \asn \mathsf{MSB}(\sshare{b},k,f)$.
 \item $\sshare{v} \asn \sum_{i=0}^{k-1} 2^{k-i-1} \cdot \sshare{z_i}$.
@@ -1050,6 +1065,7 @@ if $m$ is even and $2^{(m-1)/2}$ if $m$ is odd. Furthermore $v = 2^{k-m}$. Note 
 
 \msubsubsection{$\mathsf{SimplifiedNormSQ}(\sshare{b},k):$}
 Same as above, but in this case we only return $m$, and $w$, together with a $\{0,1\}$ bit signaling whether m is odd. 
+This algorithm is used in the Fixed Point sqrt routine later.
 
 \begin{enumerate}
 \item $z \asn \mathsf{MSB}(\sshare{b},k,f)$.
@@ -1072,6 +1088,23 @@ Same as above, but in this case we only return $m$, and $w$, together with a $\{
 \item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
 
 \item Return $\sshare{m_{odd}}, \sshare{m}, \sshare{w}$.
+\end{enumerate}
+
+\msubsubsection{$\mathsf{MSB}(\sshare{b},k):$}
+Returns index array $\sshare{z}$ of size $k$, such that it holds a $1$ in the position of the most significative bit of $\sshare{b}$ and $\sshare{0}$ otherwise. This function is used internally in \verb|NormSQ| and \verb|SimplifiedNormSQ|.
+\begin{enumerate}
+
+\item $\sshare{s} \asn 1-2 \cdot \mathsf{LTZ}(\sshare{b},k)$.
+\item $\sshare{x} \asn \sshare{s} \cdot \sshare{b}$.
+\item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{x},k,k)$.
+\item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
+\item For $i \in [0,\ldots,k-1]$ do
+\item $z \asn (\sshare(0_{1}),...,\sshare(0_{k + 1 - k \quad \% \quad 2}))$
+\begin{enumerate}
+  \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
+\end{enumerate}
+\item $\sshare{z_{k-1}} \asn \sshare{y_{k-1}}$.
+\item Return $\sshare{z}$.
 \end{enumerate}
 
 
@@ -1099,7 +1132,7 @@ Floating point numbers are defined by two global, public integer parameters
 $(\ell,k)$ which define the size of the mantissa and the exponent respectively.
 Each floating point number is represented as a five tuple $(v,p,z,s,\err)$, where
 \begin{itemize}
-\item $v \in [2^{\ell-1},2^\ell)$ is an $\ell$-bit significand with it's most
+\item $v \in [2^{\ell-1},2^\ell)$ is an $\ell+1$-bit significand with it's most
 significant bit always set to one.
 \item $p \in \Zk$ is the signed exponent.
 \item $z$ is a bit to define whether the number is zero or not.
@@ -1109,7 +1142,7 @@ significant bit always set to one.
 Thus assuming $\err=0$ this tuple represents the value
 \[ u=(1- 2 \cdot s) \cdot (1-z) \cdot v \cdot 2^p. \]
 We adopt the conventions that when $u=0$ we also have $z=1, v=0$ and $p=0$,
-and when $\err=1$ then the values of $v,p,z$ and $s$ are meaningless.
+and when $\err \ne 0$ then the values of $v,p,z$ and $s$ are meaningless.
 
 The standard arithmetic operations of addition, multiplication and
 comparison (plus others) are then implemented in MAMBA for this datatype using
@@ -1359,7 +1392,7 @@ of the input floating point number.
 \item $\sshare{a} \asn \mathsf{LTZ}(\sshare{p_1},k)$.
 \item $\sshare{b} \asn \mathsf{LT}(\sshare{p_1},-\ell+1,k)$.
 \item $\sshare{a \cdot b} \asn \sshare{a} \cdot \sshare{b}$.
-\item $\sshare{v_2},\sshare{2^{-p_1}} \asn \mathsf{Mod2m}(\sshare{v_1},\ell,(\sshare{a \cdot b}-\sshare{a}) \cdot \sshare{p_1})$. 
+\item $\sshare{v_2},\sshare{2^{-p_1}} \asn \mathsf{Oblivious_Trunc}(\sshare{v_1},\ell,(\sshare{a \cdot b}-\sshare{a}) \cdot \sshare{p_1})$. 
 	[Note, we save the computation of $\sshare{2^{-p_1}}$ which this routine computes when $0 \le p_1 < -\ell$, otherwise the returned share is of $2^0$.]
 \item $\sshare{c} \asn \mathsf{EQZ}(\sshare{v_2},\ell)$.
 \item $\sshare{v} \asn \sshare{v_1}-\sshare{v_2}+(1-\sshare{c}) \cdot \sshare{2^{-p_1}} 
@@ -1449,10 +1482,9 @@ $\floor{\overline{a}/2^f}$.
 \paragraph{MAMBA Example:} To extract the integral component of a \verb|sfix| register, which is then encapsulated on a \verb|sint| register, 
 and taking into account what is currently implemented, you could execute the following: 
 \begin{lstlisting}[language={python}]
-from Compiler import floatingpoint
 x = sifx(5.5)
 # y stores 5 in a sint register
-y = floatingpoint.Trunc(x.v, x.k - x.f, x.f, x.kappa)
+y = AdvInteger.Trunc(x.v, x.k, x.f, x.kappa)
 \end{lstlisting}
 \msubsubsection{$\mathsf{FxFloor}(\sshare{a},k,f)$:}
 Given a value $a \in \Qk{f}$ this does the same, but
@@ -1860,9 +1892,7 @@ The above works, but we have found a little numerical
 instability due to the division operation. 
 \paragraph{MAMBA Example:} To obtain $2^y$ where $y$ is secret shared you could run the following: 
 \begin{lstlisting}[language={python}]
-
 from Compiler import mpc_math
-# import comparison
 sfloat.vlen = 15   # Length of mantissa in bits
 sfloat.plen = 10   # Length of exponent in bits
 sfloat.kappa = 4  # Statistical security parameter for floats
@@ -1966,9 +1996,7 @@ Q & 3 & 1  & +.1 \\
 
 \paragraph{MAMBA Example:} To obtain \verb|log2|$(x)$ where $y$ is secret shared you could run the following: 
 \begin{lstlisting}[language={python}]
-
 from Compiler import mpc_math
-# import comparison
 sfloat.vlen = 15   # Length of mantissa in bits
 sfloat.plen = 10   # Length of exponent in bits
 sfloat.kappa = 4  # Statistical security parameter for floats

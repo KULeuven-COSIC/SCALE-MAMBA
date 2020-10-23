@@ -14,7 +14,8 @@ All rights reserved
 #include "System/Player.h"
 #include "Tools/MMO.h"
 #include "cryptopp/randpool.h"
-//2015/472 Fig.15
+#include "LSSS/PRSS.h"
+// ePrint 2015/472 Fig.15
 
 /*
 
@@ -51,7 +52,10 @@ class exROT_Sender
   Receiver_COT COTR;
   gf2n Delta;
 
+  //MMO related stuff
   MMO mmo;
+  uint8_t base_key[AES_BLK_SIZE];
+  unsigned int counter;
 
 public:
   //ROT with player i, P is receiver
@@ -66,7 +70,12 @@ class exROT_Receiver
   int nb_sender;
   Sender_COT COTS;
 
+  //MMO related stuff
   MMO mmo;
+  uint8_t base_key[AES_BLK_SIZE];
+  unsigned int counter;
+
+
 
 public:
   //ROT with player i, P is receiver

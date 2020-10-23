@@ -123,7 +123,7 @@ print_char 10
 print_char4 10
 print_char_regint r1
 print_char4_regint r1
-print_float c1, c2, c3, c4
+print_float c1, c2, c3, c4, c5
 print_fix c1, 10, 5
 print_int r1
 eqzsint sb1, sr1
@@ -136,7 +136,6 @@ xorsint sr1, sr2, s3
 xorsintc sr1, sr2, r6
 invsint sr1, sr2
 mul2sint sr1, sr2, sr3, sr4
-gc 8
 bitsint sb1, sr1, 10
 sintbit sr1, sr2, sb6, 10
 rand r1, r2

@@ -23,6 +23,7 @@
   MOVC= 0xB,
   MOVS= 0xC,
   MOVINT= 0xD,
+  MOVSB = 0xE,
   LDMINT= 0xCA,
   STMINT= 0xCB,
   LDMINTI= 0xCC,
@@ -93,6 +94,14 @@
   SQUARE= 0x52,
   DABIT= 0x53,
 
+  # Bitwise logical operations on regints
+  ANDINT= 0x5A,
+  ORINT= 0x5B,
+  XORINT= 0x5C,
+  INVINT= 0x5D,
+  SHLINT= 0x5E,
+  SHRINT= 0x5F,
+
   # sregint/sbit instructions
   LDMSINT= 0x60,
   LDMSINTI= 0x61,
@@ -125,6 +134,7 @@
   ANDSB= 0x7A,
   ORSB= 0x7B,
   NEGB= 0x7C,
+  LDSBIT = 0x7C,
 
   # Bitwise shifts
   SHLC= 0x80,
@@ -156,6 +166,8 @@
   CONVREGSREG= 0xC3,
   CONVSREGSINT= 0xC4,
   CONVSUREGSINT= 0xC5,
+  CONVSINTSBIT= 0xC6,
+  CONVSBITSINT= 0xC7,
 
   # Debug Printing
   PRINT_MEM= 0xB0,
@@ -226,6 +238,18 @@
   PEEKS= 0x117,
   POKES= 0x118,
   GETSPS= 0x119,
+
+  # Relative peek and poke
+  RPEEKINT= 0x120,
+  RPOKEINT= 0x121,
+  RPEEKSINT= 0x122,
+  RPOKESINT= 0x123,
+  RPEEKSBIT= 0x124,
+  RPOKESBIT= 0x125,
+  RPEEKC= 0x126,
+  RPOKEC= 0x127,
+  RPEEKS= 0x128,
+  RPOKES= 0x129,
 
 
 Many instructions can be vectorized, this is done by taking the opcode
@@ -520,6 +544,68 @@ class sand(base.Instruction):
     arg_format = ['srw', 'sr', 'sb']
 
 @base.vectorize
+class andint(base.Instruction):
+    r""" ANDINT i j k
+         ANDs registers r_i= r_j & r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ANDINT']
+    arg_format = ['rw', 'r', 'r']
+
+
+@base.vectorize
+class orint(base.Instruction):
+    r""" ORINT i j k
+         ORs registers r_i= r_j | r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['ORINT']
+    arg_format = ['rw', 'r', 'r']
+
+@base.vectorize
+class xorint(base.Instruction):
+    r""" XORINT i j k
+         XORs registers r_i= r_j ^ r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['XORINT']
+    arg_format = ['rw', 'r', 'r']
+
+
+@base.vectorize
+class invint(base.Instruction):
+    r""" INVINT i j
+         Bitwise inversion of the register
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['INVINT']
+    arg_format = ['srw', 'sr']
+
+@base.vectorize
+class shlint(base.Instruction):
+    r""" SHLINT i j k
+         SHL register r_i= r_j << r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SHLINT']
+    arg_format = ['rw', 'r', 'r']
+
+@base.vectorize
+class shrint(base.Instruction):
+    r""" SHRINT i j k
+         SHR register r_i= r_j >> r_k.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['SHRINT']
+    arg_format = ['rw', 'r', 'r']
+
+@base.vectorize
 class andsint(base.Instruction):
     r""" ANDSINT i j k
          ANDs secret registers sr_i= sr_j & sr_k.
@@ -733,6 +819,28 @@ class convsuregsint(base.Instruction):
     code = base.opcodes['CONVSUREGSINT']
     arg_format = ['sw', 'sr']
 
+@base.vectorize
+class convsintsbit(base.Instruction):
+    """ CONVSINTSBIT i j
+         Convert from sint register s_j to sbit register s_i.
+         Assumes sr_j holds only a bit. If not all security
+         assumptions are invalid.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['CONVSINTSBIT']
+    arg_format = ['sbw', 's']
+
+
+@base.vectorize
+class convsbitsint(base.Instruction):
+    """ CONVSBITSINT i j
+         Convert from sbit register sb_j to sint register s_i.
+         This instruction is vectorizable
+     """
+    __slots__ = []
+    code = base.opcodes['CONVSBITSINT']
+    arg_format = ['sw', 'sb']
 
 
 # memory instructions
@@ -939,6 +1047,15 @@ class movint(base.Instruction):
     code = base.opcodes['MOVINT']
     arg_format = ['rw', 'r']
 
+@base.vectorize
+class movsb(base.Instruction):
+    r""" MOVSB i j
+         Assigns sbit register sb_i the value in the sbitint register sb_j.
+         This instruction is vectorizable
+     """
+    __slots__ = ["code"]
+    code = base.opcodes['MOVSB']
+    arg_format = ['sbw', 'sb']
 
 
 #
@@ -1155,7 +1272,7 @@ class mulc(base.Instruction):
 @base.vectorize
 class mulm(base.Instruction):
     r""" MULM i j k
-         Multiplication of clear and secret registers s_i=c_j \cdot s_k.
+         Multiplication of clear and secret registers s_i=s_j \cdot c_k.
          This instruction is vectorizable
      """
     __slots__ = []
@@ -1564,14 +1681,14 @@ class print_fix(base.IOInstruction):
 
 @base.vectorize
 class print_float(base.IOInstruction):
-    r""" PRINT_FLOAT i j k l
-         Prints the floating point number in cint registers (c_i, c_j, c_k, c_l) assuming they map to the representation (v,p,z,s)
+    r""" PRINT_FLOAT i j k l m
+         Prints the floating point number in cint registers (c_i, c_j, c_k, c_l, c_e) assuming they map to the representation (v,p,z,s,e)
          Can only be executed in thread zero.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['PRINT_FLOAT']
-    arg_format = ['c', 'c', 'c', 'c']
+    arg_format = ['c', 'c', 'c', 'c', 'c']
 
 @base.vectorize
 class print_int(base.IOInstruction):
@@ -2038,6 +2155,26 @@ class pokeint(base.StackInstruction):
     code = base.opcodes['POKEINT']
     arg_format = ['r', 'r']
 
+@base.vectorize
+class rpeekint(base.StackInstruction):
+    r""" RPEEKINT i j
+         Peeks at position pointed to by register stack_pointer - r_j from the thread-local
+         regint stack and assigns to regint register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPEEKINT']
+    arg_format = ['rw', 'r']
+
+@base.vectorize
+class rpokeint(base.StackInstruction):
+    r""" RPOKEINT i j
+         Replaces the data item pointed to by register stack_pointer - r_i on the thread-local regint
+         local stack with the contents of register r_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPOKEINT']
+    arg_format = ['r', 'r']
+
 class getspint(base.StackInstruction):
     r""" GETSPINT i
          Assigns the current stack pointer on the regint stack to register r_i
@@ -2077,11 +2214,31 @@ class peeksint(base.StackInstruction):
 @base.vectorize
 class pokesint(base.StackInstruction):
     r""" POKESINT i j
-         Replaces the data item pointed to by register r_i on the threa-local  sregint
+         Replaces the data item pointed to by register r_i on the thread-local  sregint
          local stack with the contents of register sr_j
          This instruction is vectorizable
      """
     code = base.opcodes['POKESINT']
+    arg_format = ['r', 'sr']
+
+@base.vectorize
+class rpeeksint(base.StackInstruction):
+    r""" RPEEKSINT i j
+         Peeks at position pointed to by register stack_pointer - r_j from the thread-local
+         sregint stack and assigns to sregint register sr_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPEEKSINT']
+    arg_format = ['srw', 'r']
+
+@base.vectorize
+class rpokesint(base.StackInstruction):
+    r""" RPOKESINT i j
+         Replaces the data item pointed to by register stack_pointer - r_i on the thread-local  sregint
+         local stack with the contents of register sr_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPOKESINT']
     arg_format = ['r', 'sr']
 
 class getspsint(base.StackInstruction):
@@ -2122,11 +2279,31 @@ class peeks(base.StackInstruction):
 @base.vectorize
 class pokes(base.StackInstruction):
     r""" POKES i j
-         Replaces the data item pointed to by register r_i on the threa-local  sint
+         Replaces the data item pointed to by register r_i on the thread-local  sint
          local stack with the contents of register s_j
          This instruction is vectorizable
      """
     code = base.opcodes['POKES']
+    arg_format = ['r', 's']
+
+@base.vectorize
+class rpeeks(base.StackInstruction):
+    r""" RPEEKS i j
+         Peeks at position pointed to by register stack_pointer - r_j from the thread-local
+         sint stack and assigns to sint register s_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPEEKS']
+    arg_format = ['sw', 'r']
+
+@base.vectorize
+class rpokes(base.StackInstruction):
+    r""" RPOKES i j
+         Replaces the data item pointed to by register stack_pointer - r_i on the thread-local  sint
+         local stack with the contents of register s_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPOKES']
     arg_format = ['r', 's']
 
 class getsps(base.StackInstruction):
@@ -2168,11 +2345,31 @@ class peekc(base.StackInstruction):
 @base.vectorize
 class pokec(base.StackInstruction):
     r""" POKEC i j
-         Replaces the data item pointed to by register r_i on the threa-local  cint
+         Replaces the data item pointed to by register r_i on the thread-local  cint
          local stack with the contents of register c_j
          This instruction is vectorizable
      """
     code = base.opcodes['POKEC']
+    arg_format = ['r', 'c']
+
+@base.vectorize
+class rpeekc(base.StackInstruction):
+    r""" RPEEKC i j
+         Peeks at position pointed to by register stack_pointer - r_j from the thread-local
+         cint stack and assigns to cint register c_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPEEKC']
+    arg_format = ['cw', 'r']
+
+@base.vectorize
+class rpokec(base.StackInstruction):
+    r""" RPOKEC i j
+         Replaces the data item pointed to by register stack_pointer - r_i on the thread-local  cint
+         local stack with the contents of register c_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPOKEC']
     arg_format = ['r', 'c']
 
 class getspc(base.StackInstruction):
@@ -2214,11 +2411,31 @@ class peeksbit(base.StackInstruction):
 @base.vectorize
 class pokesbit(base.StackInstruction):
     r""" POKESBIT i j
-         Replaces the data item pointed to by register r_i on the threa-local  sbit
+         Replaces the data item pointed to by register r_i on the thread-local  sbit
          local stack with the contents of register sb_j
          This instruction is vectorizable
      """
     code = base.opcodes['POKESBIT']
+    arg_format = ['r', 'sb']
+
+@base.vectorize
+class rpeeksbit(base.StackInstruction):
+    r""" RPEEKSBIT i j
+         Peeks at position pointed to by register stack_pointer - r_j from the thread-local
+         sbit stack and assigns to sbit register sb_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPEEKSBIT']
+    arg_format = ['sbw', 'r']
+
+@base.vectorize
+class rpokesbit(base.StackInstruction):
+    r""" RPOKESBIT i j
+         Replaces the data item pointed to by register stack_pointer - r_i on the thread-local  sbit
+         local stack with the contents of register sb_j
+         This instruction is vectorizable
+     """
+    code = base.opcodes['RPOKESBIT']
     arg_format = ['r', 'sb']
 
 class getspsbit(base.StackInstruction):
@@ -2301,9 +2518,8 @@ class lts(base.CISC):
     arg_format = ['sw', 's', 's', 'int', 'int']
 
     def expand(self):
+        from AdvInteger import LTZ
         a = program.curr_block.new_reg('s')
         subs(a, self.args[1], self.args[2])
-        comparison.LTZ(self.args[0], a, self.args[3], self.args[4])
+        LTZ(self.args[0], a, self.args[3], self.args[4])
 
-# hack for circular dependency
-from Compiler import comparison

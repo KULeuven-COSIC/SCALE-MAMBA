@@ -22,6 +22,12 @@ error: unknown or unimplemented instruction: close_chan
 64 | close_chan 10
    | ^^^^^^^^^^^^^
    |
+error: invalid number of arguments
+   --> tests/optimizations/a.asm:143:1
+    |
+143 | gc 8, 10, 3, 2, sr1, sr2, sr3, sr10, sr11
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ The number of arguments given did not match what the assembly instruction requires
+    |
 error: unknown or unimplemented instruction: lf_cint
    --> tests/optimizations/a.asm:149:1
     |
@@ -255,12 +261,6 @@ warning: Write to register is never read
    --> tests/optimizations/a.asm:168:1
     |
 168 | peeks s5, r3000 # 8
-    | ------------------- register 5 written to but will never be read from again
-    |
-warning: Write to register is never read
-   --> tests/optimizations/a.asm:173:1
-    |
-173 | peekc c5, r3000 # 8
     | ------------------- register 5 written to but will never be read from again
     |
 error: read from uninitialized register

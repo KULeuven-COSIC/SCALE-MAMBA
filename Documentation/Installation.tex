@@ -20,6 +20,27 @@ Developers will also require
 \item clang-format as to apply the standard C++ format to files. Tested with clang-format version 6.0.0.
 \end{itemize}
 
+\subsubsection{Installing and running using nix-shell}
+To make things easy we have a quick build system via \verb|nix-shell| which may help you
+if you do not want to install all the above yourself.
+First you need to install \verb|nix-shell| if you don't already have it (may need a re-login to update env vars).
+\begin{verbatim}
+    curl -L https://nixos.org/nix/install | sh
+\end{verbatim}
+Then invoke \verb|nix-shell| to get a fully ready development environment with all libraries installed.
+This will automatically download all the dependencies and tools you need.
+
+Due to this setup, you also don't need any custom configuration in \verb+CONFIG.mine+, instead
+you just copy \verb+CONFIG+ to \verb+CONFIG.mine+ and remove the \verb+OSSL+ variable entirely and 
+replace the \verb+ROOT = something+ with \verb+ROOT = ..+ (yes the two dots are on purpose).
+
+Inside that shell, you can compile a program in the \verb+Programs+ directory by invoking
+\begin{verbatim}
+    ./compile.sh Programs/test_fix_array
+\end{verbatim}
+You can now jump to Section \ref{sec:compilesh} (although you might want to read \ref{sec:CONFIG}
+as well for other compilation tweaks).
+
 \subsubsection{Installing Rustc}
 
 Go to \url{https//rustup.rs} to find the best installation command for your platform.
@@ -92,6 +113,7 @@ lines at the end of your \verb+$HOME/.bashrc+ configuration file.
 \end{verbatim}
 
 \subsubsection{Change CONFIG.mine}
+\label{sec:CONFIG}
 We now need to copy the file \verb+CONFIG+ in the main directory to the file
 \verb+CONFIG.mine+.
 Then we need to edit \verb+CONFIG.mine+, so as to place the correct
@@ -123,8 +145,11 @@ needs to be set large enough to deal with the sizes of the FHE
 keys. Otherwise this can be set to just above the word size of your
 secret-sharing modulus to obtain better performance.
 As default we have set it for use with full threshold.
+The value \verb+MAX_GFP+ corresponds to the size of the
+prime used for the secret sharing scheme (in $64$-bit words).
 
 \subsubsection{Change compile.sh}
+\label{sec:compilesh}
 You may want to edit \verb+compile.sh+ to change from
 the default new compilation pipeline to the old one.
 
@@ -183,7 +208,7 @@ Use the \verb+-D+ flag to configure the dependencies.
 For example, if the MPIR library is in \verb+$HOME/mpir/lib+ and its include files are in \verb+$HOME/mpir/include+,
 then \verb+-DMPIR_ROOT_DIR+ should be set to \verb+$HOME/mpir+.
 If the dependencies are installed in the default directories,
-e.g., \verb+/usr/{lib64,include}+ or \verb+/usr/local/{lib64,include}+,
+for example in the directory \verb+/usr/{lib64,include}+ or in the directory \verb+/usr/local/{lib64,include}+,
 then the \verb+-D+ flags are not needed.
 Finally, run \verb+make+ to create the binaries, or \verb+make target+ to build a specific target (e.g., \verb+make Player.x+).
 The resulting binaries (\verb+Player.x+ and \verb+Setup.x+) will be in the \verb+build+ directory,
@@ -193,6 +218,7 @@ For more information on CMake, we recommend this excellent wiki\footnote{\url{ht
 
 
 \subsection{Creating and Installing Certificates}
+\label{sec:certs}
 For a proper configuration you need to worry about the rest
 of this section.
 However, for a quick idiotic test installation jump down to the ``Idiot

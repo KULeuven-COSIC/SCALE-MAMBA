@@ -19,10 +19,19 @@ All rights reserved
  *
  *   M = m xor (k1*x) xor (k2*x^2)
  *   c = AES_k(sigma(M)) xor sigma(M)
+ *
+ * where sigma(s) = (_mm_shuffle_epi32 ( a , 78)) xor (_mm_and_si128 ( a , mask))
+ * with mask = 1^64 || 0^64.
+ *
+ * For the MMO key we use a per circuit agreed random key
+ *   - This is secure only because we garble SMALL circuits in
+ *     SCALE, and build bigger circuits out of sequential
+ *     execution of small circuits.
  */
 
 #include "Circuit.h"
 #include "OT/aAND_Thread.h"
+#include "Tools/MMO.h"
 
 /* The Base_Garbled_Circuit operates on inputs which are secret
  * shared. The derived class operates on inputs which are given
@@ -31,7 +40,13 @@ All rights reserved
 
 class Base_Garbled_Circuit
 {
+
+  MMO mmo;
+
 protected:
+  void apply_PRF(vector<gf2n> &ans,
+                 const gf2n &k1, const gf2n &k2, unsigned int g);
+
   // Shared signal bits
   vector<aBit> lambda;
 

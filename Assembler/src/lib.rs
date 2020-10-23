@@ -15,12 +15,12 @@ macro_rules! check_type_size {
 
 pub mod asm;
 mod compiler;
-pub mod cranelift;
 mod errors;
 #[macro_use]
 pub mod lexer;
 pub mod span;
 pub mod transforms;
+pub mod visitor;
 
 pub mod binary;
 
