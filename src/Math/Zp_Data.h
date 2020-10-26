@@ -46,7 +46,7 @@ class Zp_Data
 {
   bool montgomery; // True if we are using Montgomery arithmetic
   mp_limb_t R[MAX_MOD_SZ], R2[MAX_MOD_SZ], R3[MAX_MOD_SZ], pi;
-  mp_limb_t prA[MAX_MOD_SZ];
+  mp_limb_t prA[MAX_MOD_SZ+1];
   int t; // More Montgomery data
 
   // Marcel's trick for MontMult...
