@@ -1,6 +1,5 @@
 [workspace]
-members = ["Assembler", "WebAssembly", "Documentation"]
-exclude = ["WebAssembly/demos/*"]
+members = ["Assembler", "Documentation"]
 
 [patch.crates-io]
 # waiting for https://github.com/Storyyeller/stable_deref_trait/pull/13 to get a published version
