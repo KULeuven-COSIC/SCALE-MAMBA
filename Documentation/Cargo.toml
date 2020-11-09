@@ -1,0 +1,19 @@
+[package]
+name = "documentation"
+version = "0.1.0"
+authors = ["Oliver Scherer <oliver.scherer@cosmian.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "instructions.rs"
+
+[[bin]]
+name = "documentation"
+path = "documentation.rs"
+
+[dependencies]
+lazy_static = "1.4.0"
+documentation_parser = { path = "documentation_parser" }
+eyre = "0.6.0"
