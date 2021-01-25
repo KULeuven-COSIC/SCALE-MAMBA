@@ -16,7 +16,7 @@ make doc
 Then *read* the documentation!
 
 In the documentation you will see quick install information using `nix-shell' for installing
-the depdencies. If you want to use this then install `nix-shell' if you don't already have it 
+the dependencies. If you want to use this then install `nix-shell' if you don't already have it 
 (you may need a re-login to update environment variables).
 
 ```

@@ -75,7 +75,7 @@ void aAND_Thread(Player &P, unsigned int no_online_threads,
       int decide= make_aAND_Thread_decision(P);
       if (decide == 0)
         {
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
       else
         {
@@ -110,7 +110,7 @@ aTriple aAND_Data::get_aAND(unsigned int q)
         {
           wait= true;
           aAD_mutex.unlock();
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
     }
   // At this point the mutex is locked
@@ -137,7 +137,7 @@ list<aTriple> aAND_Data::get_aANDs(unsigned int q, unsigned int num)
         {
           wait= true;
           aAD_mutex.unlock();
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
     }
   // At this point the mutex is locked

@@ -4,7 +4,7 @@ mulci c2, c1, 4 # 2
 mulc c0, c2, c1 # 3
 bit s658 # 4
 bit s643 # 5
-jmpnz r42, 1
+jmpne r42, 0, 1
 bit s658 # 4
 bit s632 # 6
 bit s622 # 7

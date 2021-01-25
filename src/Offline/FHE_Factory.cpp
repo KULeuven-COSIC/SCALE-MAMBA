@@ -62,7 +62,7 @@ void FHE_Industry::Update_If_Empty(unsigned int num)
           Factory_List_Lock[num].unlock();
           if (wait)
             {
-              sleep(1);
+              nanosleep(&time_s, NULL);
             }
         }
       Factory_List_Lock[num].lock();
@@ -171,7 +171,7 @@ int FHE_Industry::Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
           Factory_List_Lock[num].unlock();
           if (wait)
             {
-              sleep(1);
+              nanosleep(&time_s, NULL);
               Current_Factory_Lock[num].lock();
               Update_If_Empty(num);
               Current_Factory_Lock[num].unlock();
@@ -187,7 +187,7 @@ int FHE_Industry::Next_Off_Production_Line(Plaintext &mess, Ciphertext &ctx,
 }
 
 /* If one party says every thread is finished then finish */
-bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_control_data &OCD,bool main)
+bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_control_data &OCD, bool main)
 {
   bool finished= false, wait= true;
   // Loop if we are waiting and not finished
@@ -241,7 +241,7 @@ bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_contro
       P.Broadcast_Receive(o, false, 0);
       for (unsigned int p= 0; p < P.nplayers(); p++)
         {
-	  /*
+          /*
 	  if (main && p!=P.whoami())
             { printf("\tis_finished R : %d %d %s\n",num,p,o[p].c_str()); }
 	  */
@@ -256,14 +256,18 @@ bool FHE_Industry::is_finished(unsigned int num, Player &P, const offline_contro
         }
       if (wait && !finished)
         {
-	  /*
+          /*
 	  if (main)
             { printf("\tSleeping\n"); }
 	  */
           if (main)
-	    { sleep(15); }
-	  else
-	    { sleep(5);  }
+            {
+              sleep(15);
+            }
+          else
+            {
+              sleep(5);
+            }
         }
     }
   return finished;
@@ -280,9 +284,10 @@ void Do_Step0_Step(ZKPoK &ZK, Player &P, const FHE_PK &pk,
       printf("Transmitting ZKPoK %d Stage 0  \n", num);
     }
   vector<string> vsE(nplayers);
-  stringstream osE;
-  ZK.get_vE(osE);
-  vsE[whoami]= osE.str();
+  unsigned int len;
+  const uint8_t *buff= ZK.get_vE(len);
+  vsE[whoami]= string((char *) buff, len);
+
   //printf("\n Do_Step0 : B %d\n",P.whoami());
 
   // Do commit and open to avoid the attack of Ivan
@@ -293,8 +298,7 @@ void Do_Step0_Step(ZKPoK &ZK, Player &P, const FHE_PK &pk,
     {
       if (i != whoami)
         {
-          istringstream isE(vsE[i]);
-          ZK.Step0_Step(isE, pk);
+          ZK.Step0_Step((uint8_t *) vsE[i].c_str(), pk);
         }
     }
 }
@@ -332,9 +336,10 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
     }
   {
     vector<string> vsA(nplayers);
-    stringstream osA;
-    ZK.get_vA(osA);
-    vsA[whoami]= osA.str();
+    unsigned int len;
+    const uint8_t *buff= ZK.get_vA(len);
+    vsA[whoami]= string((char *) buff, len);
+
     //printf("\n Do_ZKPoK : B vsA %d\n",P.whoami());
     P.Broadcast_Receive(vsA, false, 0);
     //printf("\n Do_ZKPoK : R vsA %d\n",P.whoami());
@@ -342,8 +347,7 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
       {
         if (i != whoami)
           {
-            istringstream isA(vsA[i]);
-            ZK.Step1_Step(isA, pk);
+            ZK.Step1_Step((uint8_t *) vsA[i].c_str(), pk);
           }
       }
   }
@@ -387,24 +391,22 @@ bool Do_ZKPoK(ZKPoK &ZK, Player &P,
       //printf("Time : %d %f \n",num,global_time.elapsed());
     }
   {
-    vector<string> vsT(nplayers), vsZ(nplayers);
-    stringstream osT, osZ;
-    ZK.get_vT(osT);
-    ZK.get_vZ(osZ);
-    vsT[whoami]= osT.str();
-    vsZ[whoami]= osZ.str();
+    vector<string> vsTZ(nplayers);
+    unsigned int len;
+    const uint8_t *buff;
+
+    buff= ZK.get_vT_vZ(len);
+    vsTZ[whoami]= string((char *) buff, len);
     //printf("\n Do_ZKPoK : B vsT %d\n",P.whoami());
-    P.Broadcast_Receive(vsT, false, 0);
+    //
+    P.Broadcast_Receive(vsTZ, false, 0);
     //printf("\n Do_ZKPoK : R vsT %d\n",P.whoami());
-    //printf("\n Do_ZKPoK : B vzZ %d\n",P.whoami());
-    P.Broadcast_Receive(vsZ, false, 0);
-    //printf("\n Do_ZKPoK : R vzZ %d\n",P.whoami());
+    //
     for (unsigned int i= 0; i < nplayers; i++)
       {
         if (i != whoami)
           {
-            istringstream isT(vsT[i]), isZ(vsZ[i]);
-            ZK.Step2_Step(isT, isZ, pk);
+            ZK.Step2_Step((uint8_t *) vsTZ[i].c_str(), pk);
           }
       }
   }

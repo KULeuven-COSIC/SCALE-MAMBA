@@ -1,10 +1,11 @@
-use std::io::Write;
 use eyre::Context;
+use std::io::Write;
 
 #[allow(clippy::write_literal)]
 fn main() -> eyre::Result<()> {
-    let mut file = std::fs::File::create("Instructions.tex").context("writing to Instructions.tex")?;
-    for group in documentation::INSTRUCTIONS {
+    let mut file =
+        std::fs::File::create("Instructions.tex").context("writing to Instructions.tex")?;
+    for group in scale_documentation::INSTRUCTIONS {
         writeln!(file, r"\subsubsection{{{}}}", group.name.trim())?;
 
         writeln!(file, "{}", r"\begin{longtable}{|l|c|p{1in}|c|p{2.27in}|c|}")?;

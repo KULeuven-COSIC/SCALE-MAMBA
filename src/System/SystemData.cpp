@@ -12,11 +12,21 @@ All rights reserved
 #include <iostream>
 SystemData::SystemData(const string &NetworkDataFileName)
 {
-  unsigned int i, j;
   ifstream inp(NetworkDataFileName.c_str());
+  init_from_stream(inp, NetworkDataFileName);
+}
+
+SystemData::SystemData(istream &inp, const string &resource_name)
+{
+  init_from_stream(inp, resource_name);
+}
+
+void SystemData::init_from_stream(istream &inp, const string &resource_name)
+{
+  unsigned int i, j;
   if (inp.fail())
     {
-      throw file_error(NetworkDataFileName.c_str());
+      throw file_error(resource_name.c_str());
     }
 
   unsigned int numplayers;

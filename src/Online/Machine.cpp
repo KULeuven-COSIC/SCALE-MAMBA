@@ -10,14 +10,19 @@ using namespace std;
 
 #include "Machine.h"
 
-void Machine::SetUp_Memory(unsigned int whoami, const string &memtype)
+#include "LSSS/Share.h"
+#include "Mod2Engine/aBitVector2.h"
+#include "OT/aBitVector.h"
+
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::SetUp_Memory(unsigned int whoami, const string &memtype)
 {
   char filename[2048];
 
   Mc.set_default(gfp(0));
   Ms.set_default(Share(whoami));
   Mr.set_default(Integer(0));
-  Msr.set_default(aBitVector(0));
+  Msr.set_default(SRegint(0));
 
   Mc.minimum_size(8192, "init", verbose);
   Ms.minimum_size(8192, "init", verbose);
@@ -44,7 +49,8 @@ void Machine::SetUp_Memory(unsigned int whoami, const string &memtype)
     }
 }
 
-void Machine::Dump_Memory(unsigned int whoami)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Dump_Memory(unsigned int whoami)
 {
   // Reduce memory size to speed up
   int max_size= 1 << 20;
@@ -75,7 +81,8 @@ void Machine::Dump_Memory(unsigned int whoami)
   outf.close();
 }
 
-void Machine::Load_Schedule_Into_Memory()
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Load_Schedule_Into_Memory()
 {
   unsigned int nprogs= schedule.progs.size();
 
@@ -87,23 +94,32 @@ void Machine::Load_Schedule_Into_Memory()
     }
 }
 
-void Machine::Init_OTI(unsigned int nthreads)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Init_OTI(unsigned int nthreads)
 {
   for (unsigned int i= 0; i < nthreads; i++)
     {
       pthread_mutex_init(&online_mutex[i], NULL);
-      pthread_cond_init(&machine_ready[i], NULL);
-      pthread_cond_init(&online_thread_ready[i], NULL);
+      if (pthread_cond_init(&machine_ready[i], NULL) != 0)
+        {
+          throw thread_error("cond_init: machine_ready");
+        }
+      if (pthread_cond_init(&online_thread_ready[i], NULL) != 0)
+        {
+          throw thread_error("cond_init: thread_ready");
+        }
       OTI[i].prognum= -2; // Dont do anything until we are ready
       OTI[i].finished= true;
       OTI[i].ready= false;
       OTI[i].arg= 0;
+      OTI[i].pc= 0;
       // lock online thread for synchronization
       pthread_mutex_lock(&online_mutex[i]);
     }
 }
 
-void Machine::SetUp_Threads(unsigned int nthreads)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::SetUp_Threads(unsigned int nthreads)
 {
   // Set up the thread data
   OTI.resize(nthreads);
@@ -115,49 +131,70 @@ void Machine::SetUp_Threads(unsigned int nthreads)
   Init_OTI(nthreads);
 }
 
-void Machine::Synchronize()
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Synchronize()
 {
   for (unsigned int i= 0; i < OTI.size(); i++)
     {
       while (!OTI[i].ready)
         {
           fprintf(stderr, "Waiting for thread %d to be ready\n", i);
-          pthread_cond_wait(&online_thread_ready[i], &online_mutex[i]);
+          if (pthread_cond_wait(&online_thread_ready[i], &online_mutex[i]) != 0)
+            {
+              throw thread_error("cond_wait: thread_ready");
+            }
         }
       pthread_mutex_unlock(&online_mutex[i]);
     }
 }
 
-void Machine::Signal_Ready(unsigned int num, bool flag)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Signal_Ready(unsigned int num, bool flag)
 {
   pthread_mutex_lock(&online_mutex[num]);
   OTI[num].ready= flag;
   if (flag)
     {
-      pthread_cond_signal(&online_thread_ready[num]);
+      if (pthread_cond_signal(&online_thread_ready[num]) != 0)
+        {
+          throw thread_error("cond_signal: thread_ready");
+        }
     }
   else
     {
       OTI[num].prognum= -1;
-      pthread_cond_signal(&machine_ready[num]);
+      if (pthread_cond_signal(&machine_ready[num]) != 0)
+        {
+          throw thread_error("cond_signal: machine_ready");
+        }
     }
   pthread_mutex_unlock(&online_mutex[num]);
 }
 
-void Machine::Lock_Until_Ready(unsigned int num)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Lock_Until_Ready(unsigned int num)
 {
   pthread_mutex_lock(&online_mutex[num]);
   if (!OTI[num].ready)
-    pthread_cond_wait(&machine_ready[num], &online_mutex[num]);
+    {
+      if (pthread_cond_wait(&machine_ready[num], &online_mutex[num]) != 0)
+        {
+          throw thread_error("cond_wait: machine_ready");
+        }
+    }
   pthread_mutex_unlock(&online_mutex[num]);
 }
 
-int Machine::Pause_While_Nothing_To_Do(unsigned int num)
+template<class SRegint, class SBit>
+int Machine<SRegint, SBit>::Pause_While_Nothing_To_Do(unsigned int num)
 {
   pthread_mutex_lock(&online_mutex[num]);
   if (OTI[num].prognum == -2)
     {
-      pthread_cond_wait(&machine_ready[num], &online_mutex[num]);
+      if (pthread_cond_wait(&machine_ready[num], &online_mutex[num]) != 0)
+        {
+          throw thread_error("cond_wait: machine_ready");
+        }
     }
   int program= OTI[num].prognum;
   OTI[num].prognum= -2; // Reset it to run nothing next
@@ -165,25 +202,38 @@ int Machine::Pause_While_Nothing_To_Do(unsigned int num)
   return program;
 }
 
-void Machine::Signal_Finished_Tape(unsigned int num)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Signal_Finished_Tape(unsigned int num)
 {
   pthread_mutex_lock(&online_mutex[num]);
   OTI[num].finished= true;
-  pthread_cond_signal(&online_thread_ready[num]);
+  if (pthread_cond_signal(&online_thread_ready[num]) != 0)
+    {
+      throw thread_error("cond_signal: thread_ready");
+    }
   pthread_mutex_unlock(&online_mutex[num]);
 }
 
-void Machine::Lock_Until_Finished_Tape(unsigned int num)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::Lock_Until_Finished_Tape(unsigned int num)
 {
   pthread_mutex_lock(&online_mutex[num]);
   if (!OTI[num].finished)
-    pthread_cond_wait(&online_thread_ready[num], &online_mutex[num]);
+    {
+      if (pthread_cond_wait(&online_thread_ready[num], &online_mutex[num]) != 0)
+        {
+          throw thread_error("cond_wait: thread_ready");
+        }
+    }
   pthread_mutex_unlock(&online_mutex[num]);
 }
 
 // This runs tape tape_number on thread thread_number with argument arg
-void Machine::run_tape(unsigned int thread_number, unsigned int tape_number,
-                       int arg)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::run_tape(unsigned int thread_number,
+                                      unsigned int tape_number,
+                                      int arg,
+                                      unsigned int pc)
 {
   if (thread_number >= OTI.size())
     {
@@ -199,12 +249,17 @@ void Machine::run_tape(unsigned int thread_number, unsigned int tape_number,
   pthread_mutex_lock(&online_mutex[thread_number]);
   OTI[thread_number].prognum= tape_number;
   OTI[thread_number].arg= arg;
+  OTI[thread_number].pc= pc;
   OTI[thread_number].finished= false;
-  pthread_cond_signal(&machine_ready[thread_number]);
+  if (pthread_cond_signal(&machine_ready[thread_number]) != 0)
+    {
+      throw thread_error("cond_signal: machine_ready");
+    }
   pthread_mutex_unlock(&online_mutex[thread_number]);
 }
 
-void Machine::run()
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::run()
 {
   // Initialise the timers
   timers.resize(N_TIMERS);
@@ -262,7 +317,10 @@ void Machine::run()
     {
       pthread_mutex_lock(&online_mutex[i]);
       OTI[i].ready= true;
-      pthread_cond_signal(&machine_ready[i]);
+      if (pthread_cond_signal(&machine_ready[i]) != 0)
+        {
+          throw thread_error("cond_signal: machine_ready");
+        }
       pthread_mutex_unlock(&online_mutex[i]);
 
       pthread_mutex_destroy(&online_mutex[i]);
@@ -271,7 +329,8 @@ void Machine::run()
     }
 }
 
-void Machine::start_timer(unsigned int i)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::start_timer(unsigned int i)
 {
   if (i >= N_TIMERS)
     {
@@ -280,7 +339,8 @@ void Machine::start_timer(unsigned int i)
   timers[i].reset();
 }
 
-void Machine::stop_timer(unsigned int i)
+template<class SRegint, class SBit>
+void Machine<SRegint, SBit>::stop_timer(unsigned int i)
 {
   if (i >= N_TIMERS)
     {
@@ -293,3 +353,6 @@ void Machine::stop_timer(unsigned int i)
          "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
          i, time, (time * 1000));
 }
+
+template class Machine<aBitVector, aBit>;
+template class Machine<aBitVector2, Share2>;

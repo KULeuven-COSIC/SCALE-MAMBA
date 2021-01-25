@@ -18,11 +18,13 @@ All rights reserved
 #include "Online/Machine.h"
 #include "System/SystemData.h"
 
+template<class SRegint, class SBit>
 void Run_Scale(unsigned int my_number, unsigned int no_online_threads,
                const FFT_Data &PTD, const FHE_PK &pk, const FHE_SK &sk, const vector<gfp> &MacK,
                SSL_CTX *ctx, const vector<unsigned int> &portnum,
                const SystemData &SD,
-               Machine &machine, offline_control_data &OCD,
+               Machine<SRegint, SBit> &machine,
+               offline_control_data &OCD,
                unsigned int number_FHE_threads,
                bool OT_disable,
                int verbose);

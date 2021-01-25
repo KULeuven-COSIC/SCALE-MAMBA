@@ -128,20 +128,28 @@ bigint randomBnd(PRNG &G, const bigint &B)
 {
   bigint x;
   // Hash the seed again and again until we have enough bytes
-
   unsigned int len= numBytes(B) + modp_stat_sec / 8;
-  uint8_t *bytes= new uint8_t[len];
+  if (len >= 1024)
+    {
+      throw invalid_length();
+    }
+  // Fixed length array to avoid memory allocation
+  uint8_t bytes[1024];
   G.get_random_bytes(bytes, len);
   bigintFromBytes(x, bytes, len);
   x= x % B;
-  delete[] bytes;
   return x;
 }
 
 void outputBigint(string &s, const bigint &x)
 {
   int num= numBytes(x);
-  uint8_t *buff= new uint8_t[num + 5];
+  if ((num + 5) >= 1024)
+    {
+      throw invalid_length();
+    }
+  // Fixed length array to avoid memory allocation
+  uint8_t buff[1024];
 
   // Encode the sign
   buff[0]= 0;
@@ -154,7 +162,6 @@ void outputBigint(string &s, const bigint &x)
 
   bytesFromBigint(buff + 5, x, num);
   s.append((char *) buff, num + 5);
-  delete[] buff;
 }
 
 void inputBigint(string &s, bigint &x)

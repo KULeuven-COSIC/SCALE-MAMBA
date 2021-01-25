@@ -12,6 +12,7 @@ void ShareData::assign(const ShareData &SD)
 {
   type= SD.type;
   Otype= SD.Otype;
+  Etype= SD.Etype;
   M= SD.M;
   nmacs= SD.nmacs;
   threshold= SD.threshold;
@@ -49,6 +50,7 @@ void ShareData::Initialize_Full_Threshold(unsigned int nn)
 {
   type= Full;
   Otype= SPDZ;
+  Etype= HSS;
   M.Initialize_Full_Threshold(nn);
   nmacs= macs_stat_sec / numBits(gfp::pr()) + 1;
 
@@ -129,11 +131,16 @@ void ShareData::Initialize_Shamir(unsigned int nn, unsigned int t)
 {
   type= Shamir;
   Otype= Maurer;
+  Etype= notHSS;
   threshold= t;
   nmacs= 0;
   M.Initialize_Shamir(nn, t);
   AS.assign(nn, t);
-  Schur.initialize(M);
+  bool flag= Schur.initialize(M);
+  if (!flag)
+    {
+      throw bad_value();
+    }
 
   unsigned int n= M.nplayers();
 
@@ -152,6 +159,12 @@ void ShareData::Initialize_Shamir(unsigned int nn, unsigned int t)
     }
 
   Initialize_Sub();
+
+  // Access structure is too big to use replicated for nonHSS style Mod2Engine
+  if (AS.delta_plus.size() == 0)
+    {
+      Etype= HSS;
+    }
 }
 
 /* Replicated SS Helper Routines */
@@ -366,6 +379,7 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
 {
   type= Replicated;
   Otype= offline_type;
+  Etype= notHSS;
   M.Initialize_Replicated(AccStr);
   unsigned int m= M.row_dim();
   AS= AccStr;
@@ -379,9 +393,10 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
 
   int k= 0;
   unsigned int szk= AS.delta_plus.size();
-  vector<int> Gen_to_delta_plus(m); // Map of row of Gen to set in Delta_plus
-  vector<vector<int>> Gen_to_player_share(
-      m, vector<int>(2)); // Map of row of Gen to player/share number
+  // Map of row of Gen to set in Delta_plus
+  vector<int> Gen_to_delta_plus(m);
+  // Map of row of Gen to player/share number
+  vector<vector<int>> Gen_to_player_share(m, vector<int>(2));
   for (unsigned int i= 0; i < AS.n; i++)
     {
       unsigned int nst= 0;
@@ -404,12 +419,6 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
   vector<int> sets_to_parties(AS.delta_plus.size());
 
   set_sets_to_parties(AS, poss_maps, sets_to_parties);
-  string new_string= "";
-  for (unsigned int j= 0; j < AS.delta_plus.size(); j++)
-    {
-      new_string+= to_string(sets_to_parties[j]) + " ";
-    }
-  cout << "Map of sets to parties: " << new_string << endl;
 
   int int_n= AS.n;
 
@@ -446,7 +455,11 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
   Initialize_Sub();
 
   /* Now construct the local Schur matrices */
-  Schur.initialize(M);
+  bool flag= Schur.initialize(M);
+  if (!flag)
+    {
+      throw bad_value();
+    }
 
   /* Now deal with the data for the Reduced Mult Protocol */
   if (Otype == Reduced)
@@ -523,10 +536,11 @@ void ShareData::Initialize_Replicated(const CAS &AccStr,
     }
 }
 
-void ShareData::Initialize_Q2(const MSP &MM)
+void ShareData::Initialize_Q2(const MSP<gfp> &MM)
 {
   type= Q2MSP;
   Otype= Maurer;
+  Etype= HSS;
 
   M= MM.make_multiplicative(Schur);
   nmacs= 0;
@@ -578,7 +592,7 @@ void ShareData::Initialize_Q2(const MSP &MM)
       // Progressively add rows to Test, only add into RCt when
       // this gives us an increase in rank
       // First add player j's into Test
-      gfp_matrix Test(ns[j], vector<gfp>(M.col_dim()));
+      vector<vector<gfp>> Test(ns[j], vector<gfp>(M.col_dim()));
       int c= 0;
       for (unsigned int i= 0; i < j; i++)
         {
@@ -603,7 +617,7 @@ void ShareData::Initialize_Q2(const MSP &MM)
                    k++)
                 { /* Test whether adding this row to the matrix gives us
                              anything */
-                  gfp_matrix nTest= Test;
+                  vector<vector<gfp>> nTest= Test;
                   nTest.resize(nr + 1, vector<gfp>(M.col_dim()));
                   for (unsigned int t= 0; t < M.col_dim(); t++)
                     {
@@ -636,7 +650,7 @@ void ShareData::Initialize_Q2(const MSP &MM)
                        k++)
                     { /* Test whether adding this row to the matrix gives us
                          anything */
-                      gfp_matrix nTest= Test;
+                      vector<vector<gfp>> nTest= Test;
                       nTest.resize(nr + 1, vector<gfp>(M.col_dim()));
                       for (unsigned int t= 0; t < M.col_dim(); t++)
                         {
@@ -668,6 +682,7 @@ ostream &operator<<(ostream &s, const ShareData &SD)
 {
   s << (int) SD.type << endl;
   s << (int) SD.Otype << endl;
+  s << (int) SD.Etype << endl;
   s << SD.M;
   s << SD.nmacs << " " << SD.threshold << endl;
   if (SD.type != Full)
@@ -749,6 +764,8 @@ istream &operator>>(istream &s, ShareData &SD)
   SD.type= (ShareType) l;
   s >> l;
   SD.Otype= (OfflineType) l;
+  s >> l;
+  SD.Etype= (Mod2Engine) l;
   s >> SD.M;
   s >> SD.nmacs >> SD.threshold;
   if (SD.type != Full)

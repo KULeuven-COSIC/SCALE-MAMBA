@@ -63,7 +63,8 @@ void Wait_For_Preproc(int type, unsigned int size, int thread,
         }
       if (wait)
         {
-          sleep(1);
+          //cout << "Waiting to produce " << size << " values of type " << (int) type << endl;
+          nanosleep(&time_s, NULL);
         }
     }
 }

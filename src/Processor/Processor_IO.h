@@ -8,15 +8,19 @@ All rights reserved
 #ifndef _Processor_IO
 #define _Processor_IO
 
-#include "Online/Machine.h"
-
 /* Class for handling private input and output from parties */
+#include "Offline/offline_data.h"
+#include "System/Player.h"
 
+template<class SRegint, class SBit>
 class Processor;
+template<class SRegint, class SBit>
+class Machine;
 
 #include <deque>
 using namespace std;
 
+template<class SRegint, class SBit>
 class Processor_IO
 {
   vector<vector<Share>> rshares;
@@ -30,12 +34,14 @@ public:
 
   // Get a private input values from a player on a given channel
   void private_input(unsigned int player, int target, unsigned int channel,
-                     Processor &Proc, Player &P, Machine &machine, offline_control_data &OCD,
+                     Processor<SRegint, SBit> &Proc, Player &P,
+                     Machine<SRegint, SBit> &machine, offline_control_data &OCD,
                      unsigned int vectorize= 1);
 
   // Output a private value to a player on a channel
   void private_output(unsigned int player, int source, unsigned int channel,
-                      Processor &Proc, Player &P, Machine &machine,
+                      Processor<SRegint, SBit> &Proc, Player &P,
+                      Machine<SRegint, SBit> &machine,
                       offline_control_data &OCD,
                       unsigned int vectorize= 1);
 };

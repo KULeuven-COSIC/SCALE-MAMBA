@@ -7,7 +7,6 @@ All rights reserved
 
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 using namespace std;
 
 #include "Math/Matrix.h"
@@ -65,19 +64,23 @@ void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
                                       bool verbose)
 {
   values.resize(S.size()); // Get rid of tiresome segfault errors
+  unsigned long max_len= S.size() * gfp::size() * Share::SD.M.row_dim();
+
+  buff.resize(max_len);
+
   if (verbose)
     {
       cout << "Size: " << S.size() << " " << S[0].a.size() << endl;
     }
   if (Share::SD.type == Full)
     {
-      stringstream ss;
+      unsigned int length= 0;
       for (unsigned int i= 0; i < S.size(); i++)
         {
           values[i]= S[i].a[0];
-          values[i].output(ss, false);
+          length+= values[i].output(buff.get_buffer() + length);
         }
-      P.send_all(ss.str(), connection);
+      P.send_all(buff.get_buffer(), length, connection);
     }
   else
     {
@@ -85,35 +88,22 @@ void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
         {
           if (Share::SD.OpenC[P.whoami()][p] == 1 && p != P.whoami())
             {
-              stringstream ss;
-              for (unsigned int i= 0; i < S.size(); i++)
+              unsigned int length= 0;
+              for (unsigned int k= 0; k < S[0].a.size(); k++)
                 {
-                  for (unsigned int k= 0; k < S[0].a.size(); k++)
+                  for (unsigned int i= 0; i < S.size(); i++)
                     {
                       if (Share::SD.RCt[P.whoami()][p][k] == 1)
                         {
-                          if (!verbose)
-                            {
-                              S[i].a[k].output(ss, false);
-                            }
-                          else
-                            {
-                              S[i].a[k].output(ss, true);
-                              ss << " ";
-                            }
+                          length+= S[i].a[k].output(buff.get_buffer() + length);
                         }
                     }
                 }
-              if (verbose)
-                {
-                  printf("Sending from %d to %d : %s\n", P.whoami(), p,
-                         ss.str().c_str());
-                }
-              P.send_to_player(p, ss.str(), connection);
+              P.send_to_player(p, buff.get_buffer(), length, connection);
             }
         }
-      counter[connection]+= S.size();
     }
+  counter[connection]+= S.size();
 }
 
 /* All data for the checkig is processed here to ensure 
@@ -123,91 +113,84 @@ void Open_Protocol::Open_To_All_Begin(vector<gfp> &values,
 void Open_Protocol::Open_To_All_End(vector<gfp> &values, const vector<Share> &S,
                                     Player &P, int connection, bool verbose)
 {
+  /* No need to resize buff, as Open_To_All_Begin did that */
+
+  if (verbose)
+    {
+      cout << "Size: " << S.size() << " " << S[0].a.size() << endl;
+    }
+
+  const uint8_t *P_sbuff= 0;
+  unsigned int length, p= P.whoami();
   if (Share::SD.type == Full)
     {
-      istringstream is;
-      string ss;
       gfp a;
       for (unsigned int j= 0; j < P.nplayers(); j++)
         {
-          if (j != P.whoami())
+          if (j != p)
             {
-              P.receive_from_player(j, ss, connection);
-              istringstream is(ss);
+              P_sbuff= P.receive_from_player(j, length, connection);
+              length= 0;
               for (unsigned int i= 0; i < S.size(); i++)
                 {
-                  a.input(is, false);
+                  length+= a.input(P_sbuff + length);
                   values[i].add(a);
                 }
             }
         }
       AddToMacs(S, connection);
       AddToValues(values, connection);
-      if (open_cnt[connection] > open_check_gap)
-        {
-          RunOpenCheck(P, "", connection);
-        }
     }
   else
     {
-      unsigned int p= P.whoami();
-      vector<stringstream> is(P.nplayers());
-      string ss;
-      for (unsigned int i= 0; i < P.nplayers(); i++)
+      vector<vector<gfp>> vs(Share::SD.ReconS[p].size(), vector<gfp>(S.size()));
+      int c= 0;
+      for (unsigned int j= 0; j < P.nplayers(); j++)
         {
-          if (Share::SD.OpenC[i][p] == 1 && i != p)
+          if (Share::SD.OpenC[j][p] == 1 && j != p)
             {
-              P.receive_from_player(i, ss, connection, verbose);
-              is[i] << ss;
-              if (verbose)
+              P_sbuff= P.receive_from_player(j, length, connection);
+            }
+
+          length= 0;
+          for (unsigned int k= 0; k < Share::SD.M.shares_per_player(j); k++)
+            {
+              if (j == p)
                 {
-                  printf("Received from %d to %d : %s\n", i, P.whoami(), ss.c_str());
+                  for (unsigned int i= 0; i < S.size(); i++)
+                    {
+                      vs[c][i]= S[i].a[k];
+                    }
+                  c++;
+                }
+              else if (Share::SD.RCt[j][p][k] == 1)
+                {
+                  for (unsigned int i= 0; i < S.size(); i++)
+                    {
+                      length+= vs[c][i].input(P_sbuff + length);
+                    }
+                  c++;
                 }
             }
         }
 
-      vector<gfp> vs(Share::SD.ReconS[p].size());
-      gfp t;
-      stringstream hss;
+      dot_product(values, Share::SD.ReconS[p], vs);
+      vector<vector<gfp>> ssv(Share::SD.ReconSS[p].size(), vector<gfp>(vs[0].size()));
+      Mul(ssv, Share::SD.ReconSS[p], vs);
+
+      // Prepare to hash into the state
+      length= 0;
       for (unsigned int i= 0; i < S.size(); i++)
         {
-          int c= 0;
-          for (unsigned int j= 0; j < Share::SD.M.nplayers(); j++)
-            {
-              for (unsigned int k= 0; k < Share::SD.M.shares_per_player(j); k++)
-                {
-                  if (j == p)
-                    {
-                      vs[c]= S[i].a[k];
-                      c++;
-                    }
-                  else if (Share::SD.RCt[j][p][k] == 1)
-                    {
-                      if (!verbose)
-                        {
-                          vs[c].input(is[j], false);
-                        }
-                      else
-                        {
-                          vs[c].input(is[j], true);
-                        }
-                      c++;
-                    }
-                }
-            }
-          values[i]= dot_product(vs, Share::SD.ReconS[p]);
-          vector<gfp> ssv= Mul(Share::SD.ReconSS[p], vs);
-
-          // Prepare to hash into the state
           for (unsigned int j= 0; j < ssv.size(); j++)
             {
-              ssv[j].output(hss, false);
+              length+= ssv[j][i].output(buff.get_buffer() + length);
             }
         }
       // Hash into the state
-      SHA256_Update(&sha256[connection], hss.str().c_str(), hss.str().size());
-      counter[connection]-= S.size();
+      SHA256_Update(&sha256[connection], buff.get_buffer(), length);
     }
+  counter[connection]-= S.size();
   open_cnt[connection]+= values.size();
   if (open_cnt[connection] > open_check_gap && counter[connection] == 0)
     {
@@ -368,46 +351,45 @@ void Open_Protocol::Open_To_One_Begin(unsigned int player_num,
     {
       throw sending_error();
     }
-  stringstream ss;
-  for (unsigned int i= 0; i < S.size(); i++)
+
+  unsigned long max_len= S.size() * gfp::size() * Share::SD.M.row_dim();
+
+  buff.resize(max_len);
+
+  unsigned int length= 0;
+  for (unsigned int k= 0; k < Share::SD.M.shares_per_player(P.whoami()); k++)
     {
-      for (unsigned int k= 0; k < Share::SD.M.shares_per_player(P.whoami());
-           k++)
+      for (unsigned int i= 0; i < S.size(); i++)
         {
-          S[i].a[k].output(ss, false);
+          length+= S[i].a[k].output(buff.get_buffer() + length);
         }
     }
-  P.send_to_player(player_num, ss.str(), 0);
+  P.send_to_player(player_num, buff.get_buffer(), length, 0);
 }
 
 void Open_Protocol::Open_To_One_End(vector<gfp> &values, const vector<Share> &S,
                                     Player &P)
 {
-  vector<istringstream> is(P.nplayers());
-  for (unsigned int i= 0; i < P.nplayers(); i++)
-    {
-      if (i != P.whoami())
-        {
-          string ss;
-          P.receive_from_player(i, ss, 0);
-          is[i].str(ss);
-        }
-    }
+  const uint8_t *P_sbuff= 0;
+  unsigned int length, p= P.whoami();
   if (Share::SD.type == Full)
     {
+      // Assign own shares
       for (unsigned int i= 0; i < S.size(); i++)
         {
-          values[i].assign_zero();
-          gfp temp;
-          for (unsigned int p= 0; p < P.nplayers(); p++)
+          values[i]= S[i].a[0];
+        }
+      // Do the rest
+      gfp temp;
+      for (unsigned int j= 0; j < P.nplayers(); j++)
+        {
+          if (j != p)
             {
-              if (p == P.whoami())
+              P_sbuff= P.receive_from_player(j, length, 0);
+              length= 0;
+              for (unsigned int i= 0; i < S.size(); i++)
                 {
-                  values[i].add(S[i].a[0]);
-                }
-              else
-                {
-                  temp.input(is[p], false);
+                  length+= temp.input(P_sbuff + length);
                   values[i].add(temp);
                 }
             }
@@ -415,35 +397,42 @@ void Open_Protocol::Open_To_One_End(vector<gfp> &values, const vector<Share> &S,
     }
   else
     {
-      vector<gfp> shares(Share::SD.Parity[0].size());
-      for (unsigned int i= 0; i < S.size(); i++)
+      vector<vector<gfp>> vs(Share::SD.Parity[0].size(), vector<gfp>(S.size()));
+      int c= 0;
+      for (unsigned int j= 0; j < P.nplayers(); j++)
         {
-          int c= 0;
-          for (unsigned int p= 0; p < P.nplayers(); p++)
+          if (j != p)
             {
-              if (p == P.whoami())
+              P_sbuff= P.receive_from_player(j, length, 0);
+            }
+          length= 0;
+          for (unsigned int k= 0; k < Share::SD.M.shares_per_player(j); k++)
+            {
+              if (j == p)
                 {
-                  for (unsigned int k= 0; k < Share::SD.M.shares_per_player(p); k++)
+                  for (unsigned int i= 0; i < S.size(); i++)
                     {
-                      shares[c]= S[i].a[k];
-                      c++;
+                      vs[c][i]= S[i].a[k];
                     }
                 }
               else
                 {
-                  for (unsigned int k= 0; k < Share::SD.M.shares_per_player(p); k++)
+                  for (unsigned int i= 0; i < S.size(); i++)
                     {
-                      shares[c].input(is[p], false);
-                      c++;
+                      length+= vs[c][i].input(P_sbuff + length);
                     }
                 }
+              c++;
             }
-          // We now have the vector of shares. So check parity and reconstruct the secret
-          vector<gfp> check= Mul(Share::SD.Parity, shares);
-
+        }
+      // We now have the matrix of shares. So check parity and reconstruct the secret
+      vector<vector<gfp>> check(Share::SD.Parity.size(), vector<gfp>(vs[0].size()));
+      Mul(check, Share::SD.Parity, vs);
+      for (unsigned int i= 0; i < S.size(); i++)
+        {
           for (unsigned int j= Share::SD.M.col_dim(); j < check.size(); j++)
             {
-              if (!check[j].is_zero())
+              if (!check[j][i].is_zero())
                 {
                   throw receiving_error();
                 }
@@ -451,7 +440,7 @@ void Open_Protocol::Open_To_One_End(vector<gfp> &values, const vector<Share> &S,
           values[i].assign_zero();
           for (unsigned int j= 0; j < Share::SD.M.col_dim(); j++)
             {
-              values[i].add(check[j]);
+              values[i].add(check[j][i]);
             }
         }
     }

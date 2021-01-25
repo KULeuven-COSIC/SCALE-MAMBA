@@ -12,17 +12,19 @@ All rights reserved
  * signatures of your local functions
  */
 
-Local_Functions Global_LF;
-
-Local_Functions::Local_Functions()
+template<class SRegint, class SBit>
+Local_Functions<SRegint, SBit>::Local_Functions()
 {
   // System functions are numbers up to 65536
-  functions.insert(make_pair(0, &matrix_mult_CC));
-  functions.insert(make_pair(1, &matrix_mult_SC));
-  functions.insert(make_pair(2, &matrix_mult_CS));
-  functions.insert(make_pair(3, &Gaussian_Elimination));
+  functions.insert(make_pair(0, &matrix_mult_CC<SRegint, SBit>));
+  functions.insert(make_pair(1, &matrix_mult_SC<SRegint, SBit>));
+  functions.insert(make_pair(2, &matrix_mult_CS<SRegint, SBit>));
+  functions.insert(make_pair(3, &Gaussian_Elimination<SRegint, SBit>));
 
   // User functions are numbers above 65536
   //
   //  Put your functions here
 }
+
+template class Local_Functions<aBitVector, aBit>;
+template class Local_Functions<aBitVector2, Share2>;

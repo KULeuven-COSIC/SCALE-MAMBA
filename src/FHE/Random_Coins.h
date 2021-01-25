@@ -105,6 +105,40 @@ public:
 
   // Input always in non-human form
   void input(istream &s);
+
+  // Direct IO to a buffer
+  unsigned int output(uint8_t *buff) const
+  {
+    unsigned int pos= uu.output(buff);
+    pos+= vv.output(buff + pos);
+    pos+= ww.output(buff + pos);
+    return pos;
+  }
+  unsigned int input(const uint8_t *buff)
+  {
+    unsigned int pos= uu.input(buff);
+    pos+= vv.input(buff + pos);
+    pos+= ww.input(buff + pos);
+    return pos;
+  }
+
+  /* Input/Output to a string at position pos.
+   * String is already assigned of enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
+
+  unsigned int size() const
+  {
+    return uu.size() + vv.size() + ww.size();
+  }
 };
 
 #endif

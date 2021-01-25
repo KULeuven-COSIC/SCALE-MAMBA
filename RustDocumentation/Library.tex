@@ -1,0 +1,514 @@
+\mainsection{Standard Library}
+
+
+\subsection{Boxes}
+A box is essentially an array of size one. It is a `safe' way for users
+to write/read from the SCALE memory one element at a time.
+To load the standard library version of a Box use
+\begin{lstlisting}
+     use scale_std::heap::Box;
+\end{lstlisting}
+As it is tied to the SCALE memory it only comes in the
+types  $\ints$, $\SecretI$, $\ClearModp$ and $\SecretModp$.
+
+\func{Box::uninitialized()}
+To initialise a box with no pre-defined value use
+\begin{lstlisting}
+    let mut a= Box<SecretI64>::uninitialized();
+\end{lstlisting}
+\warning{This will consume one storage locations in the user memory.}
+
+\func{a.set(x)}
+Does the obvious.
+
+\func{a.get(i)}
+Again does the obvious.
+
+
+\subsection{Arrays}
+This data type is implemented using the SCALE memory and not
+via the vectorized instructions.
+It is thus only available for $\ints$, $\SecretI$, $\ClearModp$
+and $\SecretModp$ data types.
+You can always use simple arrays of the form
+\begin{lstlisting}
+    let key128: [SecretI64; 2] = [zero, none];
+\end{lstlisting}
+as in the earlier AES example. But these will not compile as
+soon as the size becomes too large. The simple arrays will
+compile to registers, and thus be more efficient than arrays
+stored in memory. But arrays stores in memory are more flexible.
+To load the standard library version of Arrays use
+\begin{lstlisting}
+     use scale_std::array::Array;
+\end{lstlisting}
+
+\func{Array::uninitialized()}
+To initialise an array with no pre-defined values use
+\begin{lstlisting}
+    let mut a= Array<SecretI64, 25>::uninitialized();
+\end{lstlisting}
+\warning{This will consume $25$ storage locations in the user memory.}
+
+
+\func{a.fill(x)}
+Fills an array, used with initialization
+\begin{lstlisting}
+    let a: Array<SecretI64, 25> = Array::fill(zero);
+\end{lstlisting}
+
+
+\func{a.set(i,x)}
+Does the obvious, but has no bound checks, i.e. you can access the 50th element of a 25 element array.
+
+\func{a.get(i)}
+Again does the obvious, but also has no bound checks.
+
+\func{a.iter()}
+Iterator over an \verb|Array|,
+\begin{lstlisting}
+    for (i, val) in a.iter().enumerate() {
+        ....
+    }
+\end{lstlisting}
+To iterate backwards use
+\begin{lstlisting}
+    for (i, val) in a.iter().rev().enumerate() {
+        ....
+    }
+\end{lstlisting}
+
+\func{a.reveal()}
+For the secret types this creates a non-secret version, as in.
+\begin{lstlisting}
+     let cint_array = sint_array.reveal();
+\end{lstlisting}
+
+\func{a.slice(range)}
+Converts (part of) an array to a slice, of which the length is only known at runtime.
+\begin{lstlisting}
+    let a_slice: Slice<SecretI64> = a.slice(3..);
+\end{lstlisting}
+
+\subsubsection{Stack Operations on Arrays}
+One can also apply the stack operations on an array, which
+applies to all the elements in the array.
+Note the pop operation works in reverse, so that pushing and
+then popping gives the same array.
+The stack read operations (pop, peek etc) will pop and peek
+the entire array, so you need to ensure the stack really has
+that many elements on it; i.e. no access is performed outside
+the stack, otherwise a runtime crash will occur.
+
+\func{push(x), pop()}
+\func{peek(i), poke(i, x)}
+\func{peek_from_top(i), poke_from_top(i, x)}
+These are called using the following convention
+\begin{lstlisting}
+    unsafe { Array::push(&a) }
+    let a = unsafe { Array::<SecretI64, 25>::pop() };
+\end{lstlisting}
+
+\subsection{Slices}
+\label{sec:slices}
+This data type is equal to Arrays, the only difference being that the length of a slice is not known at compile time.
+Just like Arrays, this data type is implemented using the SCALE memory and not
+via the vectorized instructions.
+As such it is only available for $\ints$, $\SecretI$, $\ClearModp$
+and $\SecretModp$ data types.
+To load the standard library version of slices use
+\begin{lstlisting}
+     use scale_std::slice::Slice;
+\end{lstlisting}
+\warning{In general using slices will consume more user memory than Arrays.}
+
+\func{Slice::uninitialized()}
+To initialise a slice with no pre-defined values use
+\begin{lstlisting}
+    let mut a= Slice<SecretI64>::uninitialized();
+\end{lstlisting}
+
+\func{s.set(i,x)}
+Does the obvious.
+
+\func{s.get(i)}
+Again does the obvious
+
+\func{s.iter()}
+Iterator over an \verb|Slice|,
+\begin{lstlisting}
+    for (i, val) in s.iter().enumerate() {
+        ....
+    }
+\end{lstlisting}
+To iterate backwards use
+\begin{lstlisting}
+    for (i, val) in a.iter().rev().enumerate() {
+        ....
+    }
+\end{lstlisting}
+
+\func{s.reveal()}
+For the secret types this creates a non-secret version, as in.
+\begin{lstlisting}
+     let cint_slice = sint_slice.reveal();
+\end{lstlisting}
+
+\func{s.slice(range)}
+Returns part of the original slice.
+\begin{lstlisting}
+    let s_slice: Slice<SecretI64> = s.slice(3..);
+\end{lstlisting}
+
+\func{s.len()}
+Returns the length of the slice as a u64-number.
+\begin{lstlisting}
+    let length: u64 = s.len();
+\end{lstlisting}
+
+\subsection{Matrices}
+\label{sec:matrices}
+Again this data type is implemented using the SCALE memory and not
+via the vectorized instructions.
+It is thus only available for $\ints$, $\SecretI$, $\ClearModp$
+and $\SecretModp$ data types.
+To load the standard library version of Matrices use
+\begin{lstlisting}
+     use scale_std::matrix::Matrix;
+\end{lstlisting}
+There are a similar set of functions as for the Array type.
+
+\func{Matrix::unitialized()}
+To initialise a matrix with no pre-defined values, with
+fives rows and four columns, use
+\begin{lstlisting}
+    let mut a= Matrix<SecretI64, 5, 4>::unitialized();
+\end{lstlisting}
+
+
+\func{a.fill(x)}
+Fills an array, used with initialization
+\begin{lstlisting}
+    let a: Matrix<SecretI64, 5, 4> = Matrix::fill(zero);
+\end{lstlisting}
+
+
+\func{a.set(i,j,x)}
+Does the obvious.
+
+\func{a.get(i,j)}
+Again does the obvious
+
+\func{a.get_row(i)}
+Does the obvious, returning the result as an \verb|Array|.
+
+\func{a.get_column(i)}
+Again does the obvious
+
+
+\func{a.iter()}
+Iterator over a \verb|Matrix|,
+\begin{lstlisting}
+    for (i, val) in a.iter().enumerate() {
+        ....
+    }
+\end{lstlisting}
+The iterator works in the order
+$a_{0,0}, a_{0,1}, a_{0,2}, \ldots, a_{0,c-1}, a_{1,0}, a_{1,1}, \ldots, a_{r-1,c-1}$.
+
+\noindent
+To iterate backwards use
+\begin{lstlisting}
+    for (i, val) in a.iter().rev().enumerate() {
+        ....
+    }
+\end{lstlisting}
+
+\func{a.reveal()}
+For the secret types this creates a non-secret version, as in.
+\begin{lstlisting}
+     let cint_matrix = sint_matrix.reveal();
+\end{lstlisting}
+
+\subsubsection{Stack Operations on Matrices}
+One can also apply the stack operations on a matrix, which
+applies to all the elements in the matrix.
+The push operation works in the same order as the above
+iterator, with the pop operations working in reverse.
+The stack read operations (pop, peek etc) will pop and peek
+the entire matrix, so you need to ensure the stack really has
+that many elements on it; i.e. no access is performed outside
+the stack, otherwise a runtime crash will occur.
+
+\func{push(x), pop()}
+\func{peek(i), poke(i, x)}
+\func{peek_from_top(i), poke_from_top(i, x)}
+These are called using the following convention
+\begin{lstlisting}
+    unsafe { Matrix::push(&a) }
+    let a = unsafe { Matrix::<SecretI64, 5, 4>::pop() };
+\end{lstlisting}
+
+\subsection{ClearIEEE}
+This class enables one to load and print IEEE floating point values.
+It is mainly a helper class for the \verb|SecretIEEE| class below.
+The usage is demonstrated in the example below:
+\begin{lstlisting}
+    use scale_std::secret_ieee::*;
+    #[inline(always)]
+    fn main() {
+      let c= ClearIEEE::from(3.141592);
+      print!(c,"\n");
+    }
+\end{lstlisting}
+
+\subsection{SecretIEEE}
+This class gives direct access to the IEEE-754 compliant implementation
+of floating point numbers in SCALE. Recall these are implemented using
+evaluations of binary circuits, so are not as fast as the \verb|sfloat|
+and \verb|sfix| types implemented in MAMBA (which are not currently available
+in the Rust interface, but we hope to fix this soon).
+
+\func{SecretIEEE::from(x)}
+You can convert a $\SecretI$ or a \verb|ClearIEEE| to a \verb|SecretIEEE|
+as follows:
+\begin{lstlisting}
+    let c= ClearIEEE::from(3.141592);
+    let sc=SecretIEEE::from(c);
+
+    let i: i64= 1677216;
+    let si= SecretI64::from(i);
+    let sfi=SecretIEEE::from(si);
+\end{lstlisting}
+You can also convert a  \verb|SecretIEEE| to a $\SecretI$, which rounds the
+floating point value to a 64-bit integer (if possible).
+\begin{lstlisting}
+     let ic=SecretI64::from(sc);
+\end{lstlisting}
+
+\func{s.reveal()}
+For the \verb|SecretIIEEE| type this creates a \verb|ClearIEEE| version, as in.
+\begin{lstlisting}
+     let ci = si.reveal();
+\end{lstlisting}
+
+
+\subsubsection{Arithmetic}
+The following operations are allowed between two elements of type  \verb|SecretIEEE|:
+\begin{verbatim}
+     +   -   *   /
+\end{verbatim}
+
+\subsubsection{Comparisons}
+The following `operators' can be applied between two \verb|SecretIEEE| values
+The output is a $\SecretBit$ value.
+As the result of the operator cannot be used in a conditional branch,
+we use the member function notation for such `operators', as opposed
+to the operator notation. Thus syntactically the programmer is less
+likely to make a mistake.
+\func{a.gt(x), a.ge(x), a.lt(x), a.le(x), a.gt(x), a.eq(x), a.ne(x)}
+
+\noindent
+The following give variants which compare just to zero.
+\func{a.gtz(), a.gez(), a.ltz(), a.lez(), a.gtz(), a.eqz(), a.nez(x)}
+
+
+\subsection{ClearInteger}
+We define $\Zk$ as the set of integers $\{x \in \Z: -2^{k-1} \le x \le 2^{k-1}-1\}$,
+which we embed into $\F_p$ via the map $x \mapsto x \pmod{p}$.
+In MAMBA the user had to manually think of elements in $\F_p$
+as representing values in $\Zk$, and manually keep track of their
+sizes for all the `advanced' integer operations.
+This was efficient, but prone to errors and misunderstandings.
+In Rust we have a seperate type to represent elements in $\Zk$,
+both in clear and secret form.
+This is strongly typed in the sense that a
+\verb|ClearInteger<3>|  is a different type from a
+\verb|ClearInteger<4>|.
+
+This class enables one to load and print clear integers, and acts
+mainly as a helper class for the \verb|SecretInteger| class below.
+The usage is demonstrated in the example below:
+\begin{lstlisting}
+    use scale_std::integer::*;
+    #[inline(always)]
+    fn main() {
+      let c: ClearInteger<3>= ClearInteger::from(2 as i64);
+      print!(c,"\n");
+    }
+\end{lstlisting}
+
+\func{ClearInteger::from(x)}
+You can convert a $\cint$ or a $\ints$ to a \verb|ClearInteger<K>| as follows:
+\begin{lstlisting}
+    let c = ClearModp::from(2);
+    let ci: ClearInteger<3>= ClearInteger::from(c);
+    let ci1: ClearInteger<3>= ClearInteger::from(2 as i64);
+\end{lstlisting}
+
+\func{a.recast()}
+A value of one size can be recast to another using the \verb|recast|
+member function. It is assumed the user knows what they are doing here
+and that such recasting will not result in an invalid representation
+being created.
+\begin{lstlisting}
+    let c = ClearModp::from(2);
+    let ci: ClearInteger<3>= ClearInteger::from(c);
+    let ci1: ClearInteger<5>= a.recast();
+\end{lstlisting}
+
+\func{a.rep()}
+Returns the internal representation as a \verb|ClearModp| value.
+
+\func{a.Mod2m(M,S)}
+This computes the value of $a$ modulo $2^M$.
+When $S=\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
+Mathematically this computes the expression
+\[  \left( a + S \cdot 2^{K-1} \right) \pmod 2^M. \]
+Implicitly this assumes that $M < K$.
+\begin{lstlisting}
+    let a: ClearInteger<10> = ClearInteger::from(-24);
+    let b = a.Mod2m(ConstU64::<5>, ConstBool::<true>);
+\end{lstlisting}
+
+\func{a.Mod2(S)}
+As above but takes $M=1$.
+
+
+
+\subsection{SecretInteger}
+Many operations on \verb|SecretInteger|s make use of the statistical
+security gap \verb|KAPPA| defined in the pre-amble.
+
+\func{SecretInteger::from(x)}
+You can convert a $\cint$ or a \verb|ClearInteger<K>| to a
+\verb|SecretInteger<K>|
+as follows:
+\begin{lstlisting}
+    let c = ClearModp::from(2);
+    let ci: ClearInteger<3>= ClearInteger::from(c);
+    let si1: SecretInteger<3>= SecretInteger::from(c);
+    let si2: SecretInteger<3>= SecretInteger::from(ci);
+\end{lstlisting}
+
+\func{a.recast()}
+A value of one size can be recast to another using the \verb|recast|
+member function. It is assumed the user knows what they are doing here
+and that such recasting will not result in an invalid representation
+being created.
+\begin{lstlisting}
+    let c = ClearModp::from(2);
+    let si: SecretInteger<3>= SecretInteger::from(c);
+    let si1: SecretInteger<5>= a.recast();
+\end{lstlisting}
+
+\func{a.rep()}
+Returns the internal representation as a \verb|SecretModp| value.
+
+\func{a.reveal()}
+For the \verb|SecretInteger| typs this creates a \verb|ClearInteger| version, as in.
+\begin{lstlisting}
+     let ci = si.reveal();
+\end{lstlisting}
+
+\func{a.Mod2m(M,S)}
+This computes the value of $a$ modulo $2^M$.
+When $S=\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
+Mathematically this computes the expression
+\[  \left( a + S \cdot 2^{K-1} \right) \pmod 2^M. \]
+Implicitly this assumes that $M < K$.
+\begin{lstlisting}
+    let a: SecretInteger<10> = SecretInteger::from(-24);
+    let b = b.Mod2m(ConstU64::<5>, ConstBool::<true>);
+\end{lstlisting}
+
+\func{a.Mod2(S)}
+As above but takes $M=1$.
+
+\func{Pow2::<K,KAPPA>(b)}
+If $b$ is a $\sint$ in the range $[0,\ldots,K)$ this computes
+the value $2^b$ as a \verb|SecretInteger<K>|
+\begin{lstlisting}
+    let b = SecretModp::from(28);
+    let d = Pow2::<32,40>(b);
+\end{lstlisting}
+
+\func{a.TruncPr(M,S)}
+Implements the probabilistic trunction operation of rounding $a/2^M$.
+\begin{lstlisting}
+    let a = SecretModp::from(23);
+    let b: SecretInteger::<6> = SecretInteger::from(a);
+    let c = b.TruncPr(ConstU64::<3>, ConstBool::<true>);
+\end{lstlisting}
+
+\func{a.Trunc(M,S)}
+Implements the deterministic trunction operation of rounding $a/2^M$.
+\begin{lstlisting}
+    let a = SecretModp::from(23);
+    let b: SecretInteger::<6> = SecretInteger::from(a);
+    let c = b.Trunc(ConstU64::<3>, ConstBool::<true>);
+\end{lstlisting}
+
+\func{a.TruncRoundNearest(M,S)}
+Implements the deterministic rounding to the nearest integer operation
+of rounding $\lceil a/2^M \rfloor$.
+\begin{lstlisting}
+    let a = SecretModp::from(23);
+    let b: SecretInteger::<6> = SecretInteger::from(a);
+    let c = b.TruncRoundNearest(ConstU64::<3>, ConstBool::<true>);
+\end{lstlisting}
+
+\func{a.ObliviousTrunc(m)}
+Implements \verb|Trunc| operation where $m$ is a $\sint$ value
+which lies in the range $[0,\ldots,K)$.
+\begin{lstlisting}
+    let a = SecretModp::from(23);
+    let b: SecretInteger::<6> = SecretInteger::from(a);
+    let m = SecretModp::from(3);
+    let c = b.ObliviousTrunc(m);
+\end{lstlisting}
+
+\subsubsection{Comparisons}
+The following `operators' can be applied between two \verb|SecretInteger<K>| 
+values,the output being a $\SecretBit$ value.
+As the result of the operator cannot be used in a conditional branch,
+we use the member function notation for such `operators', as opposed
+to the operator notation. Thus syntactically the programmer is less
+likely to make a mistake.
+\func{a.gt(x), a.ge(x), a.lt(x), a.le(x), a.gt(x), a.eq(x), a.ne(x)}
+
+\noindent
+The following give variants which compare just to zero.
+\func{a.gtz(), a.gez(), a.ltz(), a.lez(), a.gtz(), a.eqz(), a.nez(x)}
+
+\subsection{Arithmetic of ClearInteger and SecretInteger}
+Since a reduction operation (to ensure the value really lies in
+$\Zk$) is expensive we give function and operator versions of arithmetic.
+\warning{In the member function versions no reduction occurs, thus 
+these can be used when the user knows that no wrap around will occur.
+We thus mark them as {\bf unsafe}}.
+The operator versions allow for ease of use, and guarantee correctness,
+but will be slower than the function versions.
+
+The operators unarray minus (i.e. negation), addition, subtraction
+and multiplication are supported. If a clear and secret value are
+combined then the result is secret.
+The equivalent function versions for arithmetic have the following signatures:
+\begin{lstlisting}
+  ClearInteger<K>::negate()                          -> ClearInteger<K>;
+  ClearInteger<K>::add(ClearInteger<K>)              -> ClearInteger<K>;
+  ClearInteger<K>::sub(ClearInteger<K>)              -> ClearInteger<K>;
+  ClearInteger<K>::mul(ClearInteger<K>)              -> ClearInteger<K>;
+  ClearInteger<K>::add_secret(SecretInteger<K>)      -> SecretInteger<K>;
+  ClearInteger<K>::sub_secret(SecretClearInteger<K>) -> SecretInteger<K>;
+  ClearInteger<K>::mul_secret(SecretInteger<K>)      -> SecretInteger<K>;
+  SecretInteger<K>::negate()                         -> SecretInteger<K>;
+  SecretInteger<K>::add(SecretInteger<K>)            -> SecretInteger<K>;
+  SecretInteger<K>::sub(SecretInteger<K>)            -> SecretInteger<K>;
+  SecretInteger<K>::mul(SecretInteger<K>)            -> SecretInteger<K>;
+  SecretInteger<K>::add_clear(ClearInteger<K>)       -> SecretInteger<K>;
+  SecretInteger<K>::sub_clear(ClearInteger<K>)       -> SecretInteger<K>;
+  SecretInteger<K>::mul_clear(ClearInteger<K>)       -> SecretInteger<K>;
+\end{lstlisting}

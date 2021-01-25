@@ -37,7 +37,7 @@ pub fn augment_block<'a>(
             blck: 0,
             stmt: Statement {
                 instr: Instruction::Nop,
-                vectorized: Span::DUMMY.with(std::num::NonZeroU32::new(1).unwrap()),
+                vectorized: std::num::NonZeroU32::new(1).unwrap().into(),
                 span: Span::DUMMY,
                 comment: Span::DUMMY,
             },
@@ -119,11 +119,7 @@ pub fn augment_block<'a>(
                             trace!("    # {}", &x.to_string());
                             return Err(());
                         } else {
-                            cx.report(ExpectedGot {
-                                expected: "!do_loop",
-                                got: stmt.span.with("not ssa form"),
-                            });
-                            trace!("    # {}", &x.to_string());
+                            info!(%x, ?register_instr_depth, "skipping start/stop open optimization since code is not in ssa form");
                             return Err(());
                         }
                     }
@@ -244,7 +240,7 @@ pub fn augment_block<'a>(
     if !trace_span!("").is_disabled() {
         for i in 0..new_block.stmts.len() {
             let relexed = new_block.stmts[i].stmt.relex(cx);
-            trace!("    # {}", relexed.display(cx));
+            trace!("    # {}", relexed.0.display(cx));
             trace!(
                 "    #  instruction_depth: {}",
                 new_block.stmts[i].instruction_depth
@@ -282,7 +278,7 @@ impl super::Pass for Pass {
         if cx.optimization_level < 2 {
             return;
         }
-        for (block_id, block) in body.blocks.iter_mut().enumerate() {
+        'blocks: for (block_id, block) in body.blocks.iter_mut().enumerate() {
             // don't panic on subnormal assembly
             if block.stmts.is_empty() {
                 continue;
@@ -292,7 +288,7 @@ impl super::Pass for Pass {
             let (mut augmented_block, new_init) = match augment_block(block, cx, &init, true, false)
             {
                 Ok(data) => data,
-                Err(()) => return,
+                Err(()) => continue 'blocks,
             };
             // We go through the AugmentedBlock and merge start/stop open instructions
             // which have the same round depth and are not seperated by a barrier
@@ -362,7 +358,7 @@ impl super::Pass for Pass {
             let (mut augmented_block1, _) = match augment_block(block, cx, &new_init, false, false)
             {
                 Ok(data) => data,
-                Err(()) => return,
+                Err(()) => continue 'blocks,
             };
             debug!("\tDone new augmentation: Now sorting");
 
@@ -387,16 +383,16 @@ impl super::Pass for Pass {
             // Double check now
             let (augmented_block2, _) = match augment_block(block, cx, &new_init, false, true) {
                 Ok(data) => data,
-                Err(()) => return,
+                Err(()) => continue 'blocks,
             };
 
             if cx.optimization_level < 3 {
-                return;
+                continue 'blocks;
             }
 
             let dummy = Statement {
                 instr: Instruction::Nop,
-                vectorized: Span::DUMMY.with(std::num::NonZeroU32::new(1).unwrap()),
+                vectorized: std::num::NonZeroU32::new(1).unwrap().into(),
                 span: Span::DUMMY,
                 comment: Span::DUMMY,
             };
@@ -434,7 +430,7 @@ impl super::Pass for Pass {
                             trace!(
                                 "  {} # {} : {} {}",
                                 i,
-                                block.stmts[i].relex(cx).display(cx),
+                                block.stmts[i].relex(cx).0.display(cx),
                                 augmented_block2.stmts[i].round_depth,
                                 augmented_block2.stmts[i].instruction_depth
                             );
@@ -452,7 +448,7 @@ impl super::Pass for Pass {
                     }
                     if nstart > 1 {
                         println!("Something wrongXXXXX");
-                        return;
+                        continue 'blocks;
                     };
                     if nstart == 0 {
                         continue;
@@ -514,7 +510,7 @@ impl super::Pass for Pass {
                     let mut start_free = None;
                     for i in start..=startopen_pos {
                         if instructions_keep.contains(&i) {
-                            trace!("\t\treserving {}", block.stmts[i].relex(cx).display(cx));
+                            trace!("\t\treserving {}", block.stmts[i].relex(cx).0.display(cx));
                             cache.push(std::mem::replace(&mut block.stmts[i], dummy.clone()));
                             if start_free.is_none() {
                                 start_free = Some(i);
@@ -535,7 +531,7 @@ impl super::Pass for Pass {
                                 && augmented_block2.stmts[i].blck == blck
                             {
                                 let relexed = block.stmts[i].relex(cx);
-                                trace!("  {} # {}", i, relexed.display(cx));
+                                trace!("  {} # {}", i, relexed.0.display(cx));
                             }
                         }
                     }

@@ -53,6 +53,7 @@ enum Circ_Type {
  *   124 FP-f2i
  *   125 FP-i2f
  *   126 FP-sqrt
+ *   127 FP-lt
  *
  */
 class Base_Circuits

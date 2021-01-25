@@ -21,7 +21,8 @@ impl super::Pass for Pass {
 
         let mut to_move = Vec::new();
         for (i, block) in body.blocks.drain(..).enumerate() {
-            let move_it = matches!(block.terminator.elem, Terminator::Done);
+            // Never move the start block, and only move blocks with done terminators
+            let move_it = i != 0 && matches!(block.terminator.elem, Terminator::Done);
             to_move.push((i, move_it, block));
         }
         for (i, b, _) in &to_move {

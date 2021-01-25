@@ -58,7 +58,8 @@ public:
     return state;
   }
 
-  void message(string &output, const string &input, CryptoPP::RandomPool &RNG);
+  void message(string &output, const string &input,
+               unsigned int domain, CryptoPP::RandomPool &RNG);
 
   void output(ostream &o, int i) const
   {
@@ -98,7 +99,7 @@ public:
     return state;
   }
 
-  void message(string &output, const string &input);
+  void message(string &output, const string &input, unsigned int domain);
 
   void output(ostream &o) const
   {

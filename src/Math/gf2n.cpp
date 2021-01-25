@@ -116,7 +116,7 @@ void gf2n::reduce_trinomial(int128 xh, int128 xl)
 
   // Now deal with last int128
   int128 hi= a >> n;
-  while (hi == 0)
+  while (hi != 0)
     {
       a&= mask;
 

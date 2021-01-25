@@ -44,7 +44,8 @@ void SimpleOT_Receiver::init(const string &input, int choicebit)
     }
 }
 
-void SimpleOT_Receiver::message(string &output, CryptoPP::RandomPool &RNG)
+void SimpleOT_Receiver::message(string &output, unsigned int domain,
+                                CryptoPP::RandomPool &RNG)
 {
   if (complete)
     {
@@ -61,7 +62,7 @@ void SimpleOT_Receiver::message(string &output, CryptoPP::RandomPool &RNG)
     }
 
   int len= crs.EncodedPointSize();
-  unsigned char *data= new unsigned char[3 * len];
+  unsigned char *data= new unsigned char[3 * len + 4];
   crs.EncodePoint(data, R);
   output.assign((char *) data, len);
 
@@ -71,11 +72,12 @@ void SimpleOT_Receiver::message(string &output, CryptoPP::RandomPool &RNG)
   crs.EncodePoint(data, S);
   crs.EncodePoint(data + len, R);
   crs.EncodePoint(data + 2 * len, V);
-  PRG.SetSeed(data, 3 * len);
+  INT_TO_BYTES(data + 3 * len, domain);
+  PRG.SetSeed(data, 3 * len + 4);
   delete[] data;
 }
 
-void SimpleOT_Sender::message(const string &input)
+void SimpleOT_Sender::message(const string &input, unsigned int domain)
 {
   if (complete)
     {
@@ -99,16 +101,17 @@ void SimpleOT_Sender::message(const string &input)
   Tm= crs.Inverse(T);
   V1= crs.Add(V0, Tm);
 
-  unsigned char *data= new unsigned char[3 * len];
+  unsigned char *data= new unsigned char[3 * len + 4];
+  INT_TO_BYTES(data + 3 * len, domain);
   crs.EncodePoint(data, S);
   crs.EncodePoint(data + len, R);
   crs.EncodePoint(data + 2 * len, V0);
-  PRG[0].SetSeed(data, 3 * len);
+  PRG[0].SetSeed(data, 3 * len + 4);
 
   crs.EncodePoint(data, S);
   crs.EncodePoint(data + len, R);
   crs.EncodePoint(data + 2 * len, V1);
-  PRG[1].SetSeed(data, 3 * len);
+  PRG[1].SetSeed(data, 3 * len + 4);
   delete[] data;
 }
 

@@ -18,7 +18,7 @@ impl super::Pass for Pass {
                 if let JumpMode::Conditional(cnd) = &mut jmp.mode {
                     if jmp.target_block == i + 1 {
                         std::mem::swap(&mut jmp.target_block, &mut cnd.fallthrough_block);
-                        cnd.jump_if_zero = !cnd.jump_if_zero;
+                        cnd.jump_if_equal = !cnd.jump_if_equal;
                     }
                 }
             }

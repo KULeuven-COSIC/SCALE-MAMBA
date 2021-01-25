@@ -55,9 +55,12 @@ Each online thread is supported by four other threads
 performing the offline phase, each again with pairwise
 TLS secured point-to-point channels. Currently the offline
 threads only communicate on ``connection'' zero.
-A single offline thread produces authenticated bits, aBits,
+When using an HSS based online phase for processing binary circuits
+a single offline thread produces authenticated bits, aBits,
 by OT-extension, whilst another produced authenticated
 triples for GC operations, so called aANDs.
+When using a non-HSS based online phase for processing binary circuits
+there is a single thread producing triples modulo two.
 
 \begin{figure}[htb!]
 \begin{center}
@@ -105,7 +108,7 @@ triples for GC operations, so called aANDs.
 \put(170,275){\vector(3,-1){83}}
 \put(120,220){\framebox(50,30){Bits Pairs}}
 \put(170,235){\vector(1,0){87}}
-\put(120,180){\framebox(70,30){Sacrifice/Inputs}}
+\put(120,180){\framebox(70,30){Inputs}}
 \put(190,185){\vector(2,1){65}}
 
 \put(260,220){\framebox(50,30){Online Two}}
@@ -117,7 +120,7 @@ triples for GC operations, so called aANDs.
 \put(170,95){\vector(1,0){83}}
 \put(120,40){\framebox(50,30){Bits Pairs}}
 \put(170,55){\vector(3,1){88}}
-\put(120,0){\framebox(70,30){Sacrifice/Inputs}}
+\put(120,0){\framebox(70,30){Inputs}}
 \put(190,15){\vector(1,1){67}}
 
 \put(260,80){\framebox(50,30){Online One}}
@@ -136,7 +139,8 @@ zero-knowledge proofs (see Section \ref{sec:fhe}). Thus
 the FHE-Factory threads locates this production into a
 single location. The number of FHE Factory threads can be
 controlled at run-time by the user.
-See Figure \ref{fig:threads} for an pictorial overview.
+See Figure \ref{fig:threads} for a pictorial overview in the
+case of full-threshold execution (which is the most complex).
 
 In addition to byte-code files, each program to be run must
 have a \emph{schedule}. This is a file detailing the execution
@@ -389,7 +393,8 @@ These are needed as the internal mod $p$ representation
 of clear data is in Montgomery representation.
 To convert between $\modp$ and $\modn$ types, we have the following instructions:
 \verb+CONVSINTSREG+, \verb+CONVREGSREG+, \verb+CONVSREGSINT+ and \verb+CONVSUREGSINT+
-These conversions are necessary to allow a smooth transition between the secret sharing and the GC engines.
+These conversions are necessary to allow a smooth transition between the secret sharing 
+and the modulo-two engines.
 These execute the conversion routines using \verb+daBits+ from \cite{daBitPaper}.
 
 \subsubsection{Preprocessing loading instructions}
@@ -586,13 +591,14 @@ The associated byte-codes are
 \subsubsection{Branching}
 Branching is supported by the following instructions
  \verb+JMP+,
-    \verb+JMPNZ+,
-    \verb+JMPEQZ+,
+    \verb+JMPNE+,
+    \verb+JMPEQ+, and
+    \verb+JMPR+.
 
 \subsubsection{Call/Return}
 Call and return to subroutines is supported by the following
 instructions
-\verb+CALL+ and \verb+RETURN+.
+\verb+CALL+, \verb+CALLR+ and \verb+RETURN+.
 These push and pop the program counter onto the stack of
 $\modn$ clear registers.
 
@@ -607,7 +613,9 @@ secret $\mod \; 2$ registers (\verb+sbit+), and can be used in conjunction with 
 
 \subsubsection{User Defined RunTime Extensions}
 The instruction \verb+GC+ allows the running of user defined
-circuits via the Garbled Circuit engine.
+circuits via what we call the `Garbled Circuit' engine. However,
+this only executes a constant round protocol in the case
+of full-threshold or generic Q2 MSP access structures.
 See Section \ref{sec:GC} for more details.
 
 The instruction \verb|LF| allows one to execute user defined

@@ -18,8 +18,18 @@ All rights reserved
 #include "LSSS/MSP.h"
 #include "Math/Matrix.h"
 
+template<class T>
 class MSP;
 
+// Forward declaration as apparently this is needed for friends in templates
+template<class T>
+class Schur_Matrices;
+template<class T>
+ostream &operator<<(ostream &s, const Schur_Matrices<T> &M);
+template<class T>
+istream &operator>>(istream &s, Schur_Matrices<T> &M);
+
+template<class T>
 class Schur_Matrices
 {
   /* Vector of Schur product matrices per party
@@ -27,7 +37,7 @@ class Schur_Matrices
                          added into product by party i, where
                              0 <= j,k < ns[i]
   */
-  vector<gfp_matrix> Schur;
+  vector<vector<vector<T>>> Schur;
 
   /* Same but just 0/1 to signal if entry is non zero or not */
   vector<imatrix> iSchur;
@@ -36,15 +46,15 @@ public:
   /* Initialize the Schur matrices given the MSP
    *  - Returns false is MSP is not multiplicative
    */
-  bool initialize(const MSP &M);
+  bool initialize(const MSP<T> &M);
 
-  void assign(const Schur_Matrices &S)
+  void assign(const Schur_Matrices<T> &S)
   {
     Schur= S.Schur;
     iSchur= S.iSchur;
   }
 
-  Schur_Matrices(const Schur_Matrices &S)
+  Schur_Matrices(const Schur_Matrices<T> &S)
   {
     assign(S);
   }
@@ -52,7 +62,7 @@ public:
   {
     ;
   }
-  Schur_Matrices &operator=(const Schur_Matrices &S)
+  Schur_Matrices<T> &operator=(const Schur_Matrices &S)
   {
     if (&S != this)
       {
@@ -65,7 +75,7 @@ public:
     ;
   }
 
-  gfp get_schur(int i, int j, int k) const
+  T get_schur(int i, int j, int k) const
   {
     return Schur[i][j][k];
   }
@@ -74,8 +84,8 @@ public:
     return iSchur[i][j][k];
   }
 
-  friend ostream &operator<<(ostream &s, const Schur_Matrices &S);
-  friend istream &operator>>(istream &s, Schur_Matrices &S);
+  friend ostream &operator<<<>(ostream &s, const Schur_Matrices<T> &S);
+  friend istream &operator>><>(istream &s, Schur_Matrices<T> &S);
 };
 
 #endif

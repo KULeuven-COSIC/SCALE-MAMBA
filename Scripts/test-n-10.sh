@@ -32,7 +32,7 @@ if test "$1"; then
     # Needed for 10 players...
     run_test $test $*
 else
-    for test in test_array test_stacks test_branch test_branching test_comparison test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_function test_idle_threads test_lib test_loop test_mem_order test_sregint test_vector test_sfix test_sqrt test_custom_array test_all test_sbit; do
+    for test in test_array test_stacks test_branch test_branching test_comparison test_empty_tape test_flex test_float test_floatingpoint test_float_sorting test_float_vector test_function test_lib test_loop test_mem_order test_sregint test_vector test_sfix test_sqrt test_custom_array test_all test_sbit; do
 	run_test $test 
     done
     run_test test_math -O1

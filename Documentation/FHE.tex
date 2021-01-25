@@ -8,73 +8,73 @@ Before proceeding it is perhaps worth detailing how
 different security parameters are used within the code.
 
 \begin{itemize}
-\item $\Sacsecp$ (default $80$): 
-This defined how many sacrifices we do per triple, 
-to get the precise number you compute $\ceil{\Sacsecp/\log_2 p}$.
-Thus this statistical security parameter is effectively
-$\log_2 p$ unless $p$ is very small.
-\item $\Macsecp$ (default $80$):
-For the full threshold case this defines how many MACs are held
-per data item, again to get the precise number you compute 
-$\ceil{\Macsecp/\log_2 p}$.
-Thus, again, this statistical security parameter is effectively
-$\log_2 p$ unless $p$ is very small.
-\item $\Soundsecp$ (default $128$):
-This defines the soundness error of the ZKPoKs below,
-the value of $2^{-\Soundsecp}$ defines the probability
-that an adversary can cheat in a single ZKPoK.
-\item $\ZKsecp$ (default $80$): 
-This defines the statistical distance between the 
-coefficients of the ring elements in an honest ZKPoK
-transcript and one produced by a simulation.
-\item $\DDsecp$ (default $80$):
-This defines the statistical distance between the 
-coefficients of the ring elements in the distribution produced
-in the distributed decryption protocol below to the uniform
-distribution.
-\item \verb+comp_sec+ (default $128$):
-This defines the computational security parameter for the
-FHE scheme. 
-\item $\epsilon$ (default $55$):
-This defines the noise bounds for the FHE scheme below in
-the following sense.
-A FHE ciphertext in the protocol is gauranteed to decrypt
-correctly, even under adversarial inputs assuming the
-ZKPoKs are applied correctly, with probability $1-\phi(m) \cdot 2^{-\epsilon}$.
-In fact this is an under-estimate of the probability.
-From $\epsilon$ we define $e_i$ such that 
-$\mathsf{erfc}(e_i)^i \approx 2^{-\epsilon}$ and then we set $\gc_i = e_i^i$.
-\item \verb+NewHopeB+ (default $1$):
-This defines how Gaussians are selected in the FHE system for
-Full Threshold. We use the NewHope approximation of
-$\sum b_i - b_i'$, where $b_i, b_i' \in \{0,1\}$,
-with the sum being over \verb+NewHopeB+ values of $i$.
-This gives an approximation to a discrete Gaussian with
-standard deviation $\sigma = \sqrt{\texttt{NewHopeB}/2}$.
-\item \verb+HwtSK+ (default $64$):
-The Hamming weight of the secret key. If this zero
-then the discrete Gaussian is used for the secret key.
+  \item $\Sacsecp$ (default $80$):
+        This defined how many sacrifices we do per triple,
+        to get the precise number you compute $\ceil{\Sacsecp/\log_2 p}$.
+        Thus this statistical security parameter is effectively
+        $\log_2 p$ unless $p$ is very small.
+  \item $\Macsecp$ (default $80$):
+        For the full threshold case this defines how many MACs are held
+        per data item, again to get the precise number you compute
+        $\ceil{\Macsecp/\log_2 p}$.
+        Thus, again, this statistical security parameter is effectively
+        $\log_2 p$ unless $p$ is very small.
+  \item $\Soundsecp$ (default $128$):
+        This defines the soundness error of the ZKPoKs below,
+        the value of $2^{-\Soundsecp}$ defines the probability
+        that an adversary can cheat in a single ZKPoK.
+  \item $\ZKsecp$ (default $80$):
+        This defines the statistical distance between the
+        coefficients of the ring elements in an honest ZKPoK
+        transcript and one produced by a simulation.
+  \item $\DDsecp$ (default $80$):
+        This defines the statistical distance between the
+        coefficients of the ring elements in the distribution produced
+        in the distributed decryption protocol below to the uniform
+        distribution.
+  \item \verb+comp_sec+ (default $128$):
+        This defines the computational security parameter for the
+        FHE scheme.
+  \item $\epsilon$ (default $55$):
+        This defines the noise bounds for the FHE scheme below in
+        the following sense.
+        A FHE ciphertext in the protocol is guaranteed to decrypt
+        correctly, even under adversarial inputs assuming the
+        ZKPoKs are applied correctly, with probability $1-\phi(m) \cdot 2^{-\epsilon}$.
+        In fact this is an under-estimate of the probability.
+        From $\epsilon$ we define $e_i$ such that
+        $\mathsf{erfc}(e_i)^i \approx 2^{-\epsilon}$ and then we set $\gc_i = e_i^i$.
+  \item \verb+NewHopeB+ (default $1$):
+        This defines how Gaussians are selected in the FHE system for
+        Full Threshold. We use the NewHope approximation of
+        $\sum b_i - b_i'$, where $b_i, b_i' \in \{0,1\}$,
+        with the sum being over \verb+NewHopeB+ values of $i$.
+        This gives an approximation to a discrete Gaussian with
+        standard deviation $\sigma = \sqrt{\texttt{NewHopeB}/2}$.
+  \item \verb+HwtSK+ (default $64$):
+        The Hamming weight of the secret key. If this zero
+        then the discrete Gaussian is used for the secret key.
 \end{itemize}
 All of these parameters can be tweaked in the file
 \verb+config.h+.
 
 \subsection{Main Security Parameters}
 Our Ring-LWE samples are (essentially) always from an
-approximate Gaussian distribution with standard deviation 
+approximate Gaussian distribution with standard deviation
 $\sigma=\sqrt{\texttt{NewHopeB}/2}$
 and from a ring with a two-power degree of $N$.
 This is not strictly true as some noise samples come
 from (possibly) small Hamming Weight distributions, and some come
-from distributions over $\{-1,0,1\}$. 
+from distributions over $\{-1,0,1\}$.
 But the above are the main parameters, and have been used in prior works to
 estimate Ring-LWE security in SHE settings.
 
-Given these settings we need to determine the maximum 
+Given these settings we need to determine the maximum
 (ciphertext) ring modulus $q$ that still gives us security.
 For this we use Martin Albrecht's estimator which can
 be found at
 \begin{center}
-\url{https://bitbucket.org/malb/lwe-estimator}
+  \url{https://bitbucket.org/malb/lwe-estimator}
 \end{center}
 For various values of $n$ and (symmetric equivalent)
 security levels \verb+comp_sec+, we then find the maximum secure
@@ -130,16 +130,16 @@ for n in range(10,17):
     print N,"&",B,"&",sigma,"&",ans[0],"&",ans[1],"&",ans[2],"\\\\"
     sys.stdout.flush()
 \end{verbatim}
-When run via 
+When run via
 \begin{center}
   \verb+sage < SCALE-Est.py > Res.txt+
 \end{center}
 this will produce lines of the form
 \begin{center}
-\verb+1024 & 1 & 0.707106781186548 & 40 & 25 & 12 \\+
+  \verb+1024 & 1 & 0.707106781186548 & 40 & 25 & 12 \\+
 \end{center}
 This that for ring dimension $1024$, with \verb+NewHopeB+ equal to
-one, and so $\sigma=0.707$, that at the 80-bit security level any $q < 2^{40}$ will 
+one, and so $\sigma=0.707$, that at the 80-bit security level any $q < 2^{40}$ will
 be ``secure'' by the above definition of secure.
 Note that producing the table for \verb+NewHopeB+ equal to one produces
 values which remain secure when a higher value of \verb+NewHopeB+ is selected.
@@ -147,21 +147,21 @@ values which remain secure when a higher value of \verb+NewHopeB+ is selected.
 We did this in Oct 2019 and obtained the following table of values, giving maximum
 values of $q$ in the form of $2^x$ for the value $x$ from the following table.
 \begin{center}
-\begin{tabular}{|c|c|c|c||c|c|}
-\hline
-$N$   & \verb+NewHopeB+ & $\sigma$ &  \verb+comp_sec+=80 & \verb+comp_sec+=128 & \verb+comp_sec+=256 \\
-\hline
-1024 & 1 & 0.707106781186548 & 40 & 25 & 12 \\
-2048 & 1 & 0.707106781186548 & 82 & 52 & 26 \\
-4096 & 1 & 0.707106781186548 & 167 & 106 & 56 \\
-8192 & 1 & 0.707106781186548 & 340 & 215 & 115 \\
-16384 & 1 & 0.707106781186548 & 686 & 436 & 235 \\
-32768 & 1 & 0.707106781186548 & 1392 & 879 & 473 \\
-65536 & 1 & 0.707106781186548 & 2830 & 1778 & 953 \\
-\hline
-\end{tabular}
+  \begin{tabular}{|c|c|c|c||c|c|}
+    \hline
+    $N$   & \verb+NewHopeB+ & $\sigma$          & \verb+comp_sec+=80 & \verb+comp_sec+=128 & \verb+comp_sec+=256 \\
+    \hline
+    1024  & 1                       & 0.707106781186548 & 40                         & 25                          & 12                          \\
+    2048  & 1                       & 0.707106781186548 & 82                         & 52                          & 26                          \\
+    4096  & 1                       & 0.707106781186548 & 167                        & 106                         & 56                          \\
+    8192  & 1                       & 0.707106781186548 & 340                        & 215                         & 115                         \\
+    16384 & 1                       & 0.707106781186548 & 686                        & 436                         & 235                         \\
+    32768 & 1                       & 0.707106781186548 & 1392                       & 879                         & 473                         \\
+    65536 & 1                       & 0.707106781186548 & 2830                       & 1778                        & 953                         \\
+    \hline
+  \end{tabular}
 \end{center}
-Any updates to this table needs to be duplicated in 
+Any updates to this table needs to be duplicated in
 the file \verb+FHE_Params.cpp+ in the code base.
 
 \subsection{Distributions and Norms}
@@ -170,53 +170,53 @@ where $X^N+1$ is the $m=2 \cdot N$-th cyclotomic polynomial
 (recall $N$ is always a power of two).
 We define $\norm{a}_p$ to be the standard $p$-norm
 of the coefficient vector (usually for $p=1, 2$ or $\infty$).
-We also define $\norm{a}_p^\can$ to be the $p$-norm 
+We also define $\norm{a}_p^\can$ to be the $p$-norm
 of the same element when mapped into the canonical embedding
 i.e.
 \[  \norm{a}_p^\can = \norm{\kappa(a)}_p \]
 where $\kappa(a): R \longrightarrow \C^{\phi(m)}$ is the
 canonical embedding.
-The key three relationships are that 
+The key three relationships are that
 \[ \norm{a}_\infty \le c_m \cdot \norm{a}_\infty^\can \quad
-   \mbox{  and  } \quad
-   \norm{a}_\infty^\can \le \norm{a}_1  \quad
-   \mbox{  and  } \quad
-   \norm{a}_1 \le \phi(m) \cdot \norm{a}_\infty.
+  \mbox{  and  } \quad
+  \norm{a}_\infty^\can \le \norm{a}_1  \quad
+  \mbox{  and  } \quad
+  \norm{a}_1 \le \phi(m) \cdot \norm{a}_\infty.
 \]
 for some constant $c_m$ depending on $m$.
 Since in our protocol we select $m$ to be a power of two, we have $c_m=1$.
 In particular (which will be important later in measuring the
 noise of potentially dishonestly generated ciphertexts) we have
 \[ \norm{a}_{\infty}^{\can} \le \phi(m) \cdot \norm{a}_{\infty}. \]
-We also define the \emph{canonical embedding norm reduced modulo~$q$} 
+We also define the \emph{canonical embedding norm reduced modulo~$q$}
 of an element $a\in R$ as the smallest canonical embedding norm of any
 $a'$ which is congruent to $a$ modulo~$q$. We denote it as
 \[
-|a|_q^{can} = \min
+  |a|_q^{can} = \min
   \{~\norm{a'}_\infty^\can :~ a'\in R,~ a' \equiv a \pmod{q}~\}.
 \]
 We sometimes also denote the polynomial where the minimum is obtained
 by $[a]_q^{\can}$, and call it the {\em canonical reduction} of
-$a$ modulo $q$. 
+$a$ modulo $q$.
 
 Following \cite{GHS12c}[Appendix A.5] we examine the variances
 of the different distributions utilized in our protocol.
 \begin{itemize}
-\item $\HWT(h,N)$: This generates a vector of length $N$
-      with elements chosen at random from $\{-1,0,1\}$ subject to
-      the condition that the number of non-zero elements is equal to $h$.
-\item $\ZO(0.5,N)$:  This generates a vector of length $N$
-      with elements chosen from $\{-1,0$, $1\}$ such that the
-      probability of coefficient is $p_{-1}=1/4$, $p_0=1/2$
-      and $p_1=1/4$.
-\item $\dN(\sigma^2,N)$: This generates a vector of
-      length $N$ with elements chosen according to the NewHope 
-      approximation to the discrete Gaussian distribution with variance $\sigma^2$.
-\item $\RC(0.5,\sigma^2,N)$: This generates a triple of
-      elements $(v,e_0,e_1)$ where $v$ is sampled from $\ZO_s(0.5,N)$
-      and $e_0$ and $e_1$ are sampled from $\dN_s(\sigma^2,N)$.
-\item $\calU(q,N)$: This generates a vector of length $N$ 
-      with elements generated uniformly modulo $q$.
+  \item $\HWT(h,N)$: This generates a vector of length $N$
+        with elements chosen at random from $\{-1,0,1\}$ subject to
+        the condition that the number of non-zero elements is equal to $h$.
+  \item $\ZO(0.5,N)$:  This generates a vector of length $N$
+        with elements chosen from $\{-1,0$, $1\}$ such that the
+        probability of coefficient is $p_{-1}=1/4$, $p_0=1/2$
+        and $p_1=1/4$.
+  \item $\dN(\sigma^2,N)$: This generates a vector of
+        length $N$ with elements chosen according to the NewHope
+        approximation to the discrete Gaussian distribution with variance $\sigma^2$.
+  \item $\RC(0.5,\sigma^2,N)$: This generates a triple of
+        elements $(v,e_0,e_1)$ where $v$ is sampled from $\ZO_s(0.5,N)$
+        and $e_0$ and $e_1$ are sampled from $\dN_s(\sigma^2,N)$.
+  \item $\calU(q,N)$: This generates a vector of length $N$
+        with elements generated uniformly modulo $q$.
 \end{itemize}
 Let $\zeta_m$ denote any complex primitive $m$-th root of unity.
 Sampling $a \in R$ from $\HWT(h,\phi(m))$ and looking at $a(\zeta_m)$
@@ -225,11 +225,11 @@ from $\ZO(0.5,\phi(m))$ we obtain variance $\phi(m)/2$,
 when sampled from $\dN(\sigma^2,\phi(m))$ we obtain variance
 $\sigma^2 \cdot \phi(m)$ and when sampled from $\calU(q,\phi(m))$
 we obtain variance $q^2 \cdot \phi(m)/12$.
-We let in what follows $V_\sk$ denote $\sqrt{\texttt{HwtSK}}$ in the case 
+We let in what follows $V_\sk$ denote $\sqrt{\texttt{HwtSK}}$ in the case
 when \verb|HwtSK| is positive, and $\sigma \cdot \sqrt{\phi(m)}$ otherwise.
 By the law of large numbers we can use $\gc_1 \cdot \sqrt{V}$,
 where $V$ is the above variance, as a high probability bound
-on the size of $a(\zeta_m)$ (the probability is $1-2^{-\epsilon}$), 
+on the size of $a(\zeta_m)$ (the probability is $1-2^{-\epsilon}$),
 and this provides the same bound on the canonical embedding norm of $a$
 with probability $1- \phi(m) \cdot 2^{-\epsilon}$.
 
@@ -245,16 +245,16 @@ infinity norm bounded by \verb+NewHopeB+.
 
 \subsection{The FHE Scheme and Noise Analysis}
 Note that whilst the scheme is ``standard'' some of the
-analysis is slightly different from that presented in the \cite{SPDZ2} paper 
+analysis is slightly different from that presented in the \cite{SPDZ2} paper
 and that presented in the \cite{GHS12c} paper.
 We use the notation of the \cite{SPDZ2} paper in this section,
 and assume the reader is familiar with prior work.
 The key differences are:
 \begin{itemize}
-\item Unlike in SPDZ-2 we assume a perfect distributed key generation method
-amongst the $n$ players.
-\item Unlike in SPDZ-2 we are going to use an actively secure ZKPoK (see later),
-which will make the actual noise analysis much more complex.
+  \item Unlike in SPDZ-2 we assume a perfect distributed key generation method
+        amongst the $n$ players.
+  \item Unlike in SPDZ-2 we are going to use an actively secure ZKPoK (see later),
+        which will make the actual noise analysis much more complex.
 \end{itemize}
 The TopGear zero-knowledge proof is parametrized by two
 parameters $U$ and $V$.
@@ -268,59 +268,59 @@ MAC keys being used, and $V=16$.
 
 
 \subsubsection{Key Generation:}
-The main distinction between the assumptions here and those used in 
-the \cite{SPDZ2} paper, is that in the latter a specific distributed 
+The main distinction between the assumptions here and those used in
+the \cite{SPDZ2} paper, is that in the latter a specific distributed
 key generation protocol for the underlying threshold FHE keys was
 assumed. In SCALE we assume a `magic black box' which distributes
 these keys, which we leave to the application developer to create.
 The secret key $\sk$ is either selected from a distribution with
 Hamming weight $h$, i.e. $\HWT(h,\phi(m))$ or from
 $\dN(\sigma^2,N)$ (depending on what was selected in \verb|config.h|).
-Then the secret key is distributed amongst the $n$ parties by simply producing a random 
+Then the secret key is distributed amongst the $n$ parties by simply producing a random
 linear combination, and assigning each party one of the sums.
 The switching key data is produced in the standard way, i.e.
 in a non-distributed trusted manner.
 We assume a two-leveled scheme with moduli $p_0$ and $p_1$ with $q_1=p_0 \cdot p_1$
 and $q_0=p_0$.
-We require 
+We require
 \begin{align*}
-   p_1 & \equiv 1 \pmod{p}, \\
-   p_0 - 1 & \equiv p_1-1 \equiv p-1 \equiv 0 \pmod{\phi(m)}.
+  p_1     & \equiv 1 \pmod{p},                               \\
+  p_0 - 1 & \equiv p_1-1 \equiv p-1 \equiv 0 \pmod{\phi(m)}.
 \end{align*}
 In particular the public key is of the form $(a,b)$ where
 \[ a \asn \calU(q,\phi(m)) \quad \mbox{ and } \quad b = a \cdot \sk + p \cdot e_{sk} \]
-where $e_{sk} \asn \dN(\sigma^2,\phi(m))$ 
+where $e_{sk} \asn \dN(\sigma^2,\phi(m))$
 and the switching key data $(a_{\sk,\sk^2},b_{\sk,\sk^2})$ is of the form
-\[ a_{\sk,\sk^2} \asn \calU(q,\phi(m)) \quad \mbox{ and } \quad 
-   b_{\sk,\sk^2} =   a_{\sk,\sk^2} \cdot \sk + p \cdot e_{\sk,\sk^2} - p_1 \cdot \sk^2 \]
+\[ a_{\sk,\sk^2} \asn \calU(q,\phi(m)) \quad \mbox{ and } \quad
+  b_{\sk,\sk^2} =   a_{\sk,\sk^2} \cdot \sk + p \cdot e_{\sk,\sk^2} - p_1 \cdot \sk^2 \]
 where $e_{\sk,\sk^2} \asn \dN(\sigma^2,\phi(m))$.
 
 
 \subsubsection{Encryption:}
 To encrypt an element $m\in R$, we choose $v, e_0, e_1 \asn \RC(0.5,\sigma^2,n)$, i.e.
 \[
-v \asn \ZO(0.5, \phi(m)) ~~~\mbox{and}~~ e_0,e_1 \asn \dN(\sigma^2,\phi(m)) 
+  v \asn \ZO(0.5, \phi(m)) ~~~\mbox{and}~~ e_0,e_1 \asn \dN(\sigma^2,\phi(m))
 \]
 Then we set $c_0 = b \cdot v + p \cdot e_0+m$,~ $c_1=a\cdot v+p\cdot
-e_1$, and set the initial ciphertext as $\ct'=(c_0,c_1)$.
+  e_1$, and set the initial ciphertext as $\ct'=(c_0,c_1)$.
 We calculate a bound (which holds with high probability) on the output noise of
 an honestly generated ciphertext to be
 \begin{align*}
-  \norm{c_0 - \sk \cdot c_1}_\infty^\can 
-     &= \norm{((a \cdot \sk+ p \cdot e_{sk}) \cdot v +p \cdot e_0 +m
-                - (a \cdot v+ p \cdot e_1) \cdot \sk }_\infty^\can \\
-     &= \norm{m + p \cdot (e_{sk} \cdot v +e_0 - e_1 \cdot \sk)}_\infty^\can \\
-     &\le \norm{m}_\infty^\can 
-         +p \cdot \left( \norm{e_{sk} \cdot v}_\infty^\can
-                       + \norm{e_0}_\infty^\can
-                       + \norm{e_1 \cdot \sk}_\infty^\can
-                  \right) \\
-     &\le \phi(m) \cdot p/2
-	  + p \cdot \sigma \cdot 
-             \left( \gc_2 \cdot \phi(m) / \sqrt{2}
-			  + \gc_1 \cdot \sqrt{\phi(m)}
-			  + \gc_2 \cdot \sqrt{\phi(m)} \cdot V_\sk
-		    \right) = B_\clean.
+  \norm{c_0 - \sk \cdot c_1}_\infty^\can
+   & = \norm{((a \cdot \sk+ p \cdot e_{sk}) \cdot v +p \cdot e_0 +m
+    - (a \cdot v+ p \cdot e_1) \cdot \sk }_\infty^\can                      \\
+   & = \norm{m + p \cdot (e_{sk} \cdot v +e_0 - e_1 \cdot \sk)}_\infty^\can \\
+   & \le \norm{m}_\infty^\can
+  +p \cdot \left( \norm{e_{sk} \cdot v}_\infty^\can
+  + \norm{e_0}_\infty^\can
+  + \norm{e_1 \cdot \sk}_\infty^\can
+  \right)                                                                   \\
+   & \le \phi(m) \cdot p/2
+  + p \cdot \sigma \cdot
+  \left( \gc_2 \cdot \phi(m) / \sqrt{2}
+  + \gc_1 \cdot \sqrt{\phi(m)}
+  + \gc_2 \cdot \sqrt{\phi(m)} \cdot V_\sk
+  \right) = B_\clean.
 \end{align*}
 Note this is a probablistic bound and not an absolute bound.
 
@@ -328,45 +328,45 @@ Note this is a probablistic bound and not an absolute bound.
 
 \noindent
 However, below (using the TopGear protocol)
-we will only be able to guarantee the $m, v, e_0$ and $e_1$ 
+we will only be able to guarantee the $m, v, e_0$ and $e_1$
 values of a {\bf sum} of $n$ fresh ciphertexts
 (one from each party) are selected subject to
-\[ \norm{2 \cdot v}_\infty \le 2^{\ZKsecp + 3} \cdot n \quad 
-    \mbox{  and  } \quad
-   \norm{2 \cdot e_0}_\infty, \norm{2 \cdot e_1}_\infty \le \texttt{NewHopeB} \cdot 2^{\ZKsecp + 2} \cdot n \quad
-    \mbox{  and  } \quad
-   \norm{2 \cdot m}_\infty \le 2^{\ZKsecp + 1} \cdot n \cdot p,
+\[ \norm{2 \cdot v}_\infty \le 2^{\ZKsecp + 3} \cdot n \quad
+  \mbox{  and  } \quad
+  \norm{2 \cdot e_0}_\infty, \norm{2 \cdot e_1}_\infty \le \texttt{NewHopeB} \cdot 2^{\ZKsecp + 2} \cdot n \quad
+  \mbox{  and  } \quad
+  \norm{2 \cdot m}_\infty \le 2^{\ZKsecp + 1} \cdot n \cdot p,
 \]
-where $\ZKsecp$ is our soundness parameter for the 
-zero-knowledge proofs and $U$ is selected so that 
+where $\ZKsecp$ is our soundness parameter for the
+zero-knowledge proofs and $U$ is selected so that
 $(2 \cdot \phi(m))^U > 2^\Soundsecp$.
-Thus in TopGear we double the generated ciphertext 
+Thus in TopGear we double the generated ciphertext
 (which is the sum of the input players ciphertext)
 to obtain a ciphertext $(c_0,c_1)$ which even in the
 case of dishonest players has a noise bound in the
 infinity norm in the canonical embedding of,
 \begin{align*}
   \norm{c_0 - \sk \cdot c_1}_\infty^\can
-  &\le \sum_{i=1}^n
-  	\norm{2 \cdot m_i}_\infty^\can
-	+ p \cdot \Big(\norm{e_{sk}}_\infty^\can \cdot \norm{2 \cdot v_i}_\infty^\can 
-	+ \norm{2 \cdot e_{0,i}}_\infty^\can \\
-  &\hspace{3.5cm}
-	+ \norm{\sk}_\infty^\can \cdot \norm{2 \cdot e_{1,i}}_\infty^\can \Big) \\
-   &\le 2 \cdot \phi(m) \cdot 2^{\ZKsecp+1} \cdot n \cdot p  \\
+   & \le \sum_{i=1}^n
+  \norm{2 \cdot m_i}_\infty^\can
+  + p \cdot \Big(\norm{e_{sk}}_\infty^\can \cdot \norm{2 \cdot v_i}_\infty^\can
+  + \norm{2 \cdot e_{0,i}}_\infty^\can                                       \\
+   & \hspace{3.5cm}
+  + \norm{\sk}_\infty^\can \cdot \norm{2 \cdot e_{1,i}}_\infty^\can \Big)    \\
+   & \le 2 \cdot \phi(m) \cdot 2^{\ZKsecp+1} \cdot n \cdot p                 \\
    & \hspace{2cm}
-	+ p \cdot \Big(
-	 \gc_1 \cdot \sigma \cdot \phi(m)^{3/2} \cdot 2 \cdot 2^{\ZKsecp+2} \cdot n\\
-  &\hspace{3cm}
-	  + \phi(m) \cdot 2 \cdot  2^{\ZKsecp+2} \cdot n \cdot \texttt{NewHopeB}  \\
-  &\hspace{3cm}
-	  +  \gc_1 \cdot V_\sk \cdot \phi(m) \cdot 2 \cdot 2^{\ZKsecp+2} \cdot n \cdot \texttt{NewHopeB} 
-	\Big)  \\
-  &=\phi(m) \cdot 2^{\ZKsecp+2} \cdot n \cdot p
-	\cdot \Big( \frac{41}{2} + \gc_1 \cdot \sigma \cdot \phi(m)^{1/2}  
-	           +  \texttt{NewHopeB} \cdot \gc_1 \cdot V_\sk
-	\Big)   \\
-  & = B_\clean^\dishonest.
+  + p \cdot \Big(
+  \gc_1 \cdot \sigma \cdot \phi(m)^{3/2} \cdot 2 \cdot 2^{\ZKsecp+2} \cdot n \\
+   & \hspace{3cm}
+  + \phi(m) \cdot 2 \cdot  2^{\ZKsecp+2} \cdot n \cdot \texttt{NewHopeB}     \\
+   & \hspace{3cm}
+  +  \gc_1 \cdot V_\sk \cdot \phi(m) \cdot 2 \cdot 2^{\ZKsecp+2} \cdot n \cdot \texttt{NewHopeB}
+  \Big)                                                                      \\
+   & =\phi(m) \cdot 2^{\ZKsecp+2} \cdot n \cdot p
+  \cdot \Big( \frac{41}{2} + \gc_1 \cdot \sigma \cdot \phi(m)^{1/2}
+  +  \texttt{NewHopeB} \cdot \gc_1 \cdot V_\sk
+  \Big)                                                                      \\
+   & = B_\clean^\dishonest.
 \end{align*}
 Again this is a probabilistic bound (assuming validly
 distributed key generation), but assumes the {\em worst case}
@@ -387,15 +387,15 @@ which is close to a complex Gaussian with variance $\phi(m)\cdot p^2/12$.
 We therefore, we can (with high probability) take the upper
 bound to be
 \begin{align*}
-    B_\scale 
-	&= \gc_1 \cdot p \cdot \sqrt{ \phi(m)/12}
-	+  \gc_2 \cdot p \cdot \sqrt{ \phi(m)/12} \cdot V_\sk, \\
+  B_\scale
+   & = \gc_1 \cdot p \cdot \sqrt{ \phi(m)/12}
+  +  \gc_2 \cdot p \cdot \sqrt{ \phi(m)/12} \cdot V_\sk, \\
 \end{align*}
 This is again a probabilistic analysis, assuming validly generated
 public keys.
 
 \subsubsection{$\Dec_{\sk}(\ct)$:}
-As explained in \cite{SPDZ2,GHS12c} this procedure works when the noise 
+As explained in \cite{SPDZ2,GHS12c} this procedure works when the noise
 $\nu$ (in the canonical embedding) associated with a ciphertext satisfies $c_m \cdot \nu  < q_{0}/2$.
 However, as we always take power of two cyclotomics we have $c_m=1$
 
@@ -408,34 +408,34 @@ obtain a fresh encryption of the value being reshared.
 
 
 \begin{Boxfig}{The sub-protocol for additively secret sharing a plaintext $\vm \in (\F_{p^k})^s$ on input a ciphertext $e_\vm=\Enc_\pk(\vm)$.}{reshare}{$\mathsf{Reshare-1}$}
-Input is $e_\vm$, where $e_\vm=\Enc_\pk(\vm)$ is a public ciphertext.
+  Input is $e_\vm$, where $e_\vm=\Enc_\pk(\vm)$ is a public ciphertext.
 
-Output is a share $\vm_i$ of $\vm$ to each player $P_i$; and a ciphertext $e'_\vm$. 
+  Output is a share $\vm_i$ of $\vm$ to each player $P_i$; and a ciphertext $e'_\vm$.
 
-The idea is that $e_\vm$ could be a product of two ciphertexts, which
-$\mathsf{Reshare}$ converts to a ``fresh'' ciphertext $e'_\vm$. Since $\mathsf{Reshare}$ uses distributed decryption (that may return an incorrect result), it is not guaranteed that $e_\vm$ and $e'_\vm$ contain the same value, but it
-{\em is} guaranteed that $\sum_i \vm_i$ is the value contained in $e'_\vm$.
-\begin{enumerate}
-\item Each player $P_i$ samples a uniform $\vf_i\in (\F_p)^N$. Define $\vf:=\sum_{i=1}^{n}\vf_i$.
-\item Each player $P_i$ computes and broadcasts $e_{\vf_i}\asn\Enc_\pk(\vf_i)$.\label{reshare:enc}
-\item Each player $P_i$ runs the proof below as a prover on $e_{\vf_i}$. The protocol aborts if any proof fails
-and if successful each player obtains $e_\vf\asn e_{\vf_1}\boxplus\dots\boxplus e_{\vf_n}$.
-\item The players compute $e_{\vm+\vf}\asn e_\vm\boxplus e_\vf$.
-\item The players decrypt $e_{\vm+\vf}$ as follows:
-\begin{enumerate}
-\item Player one computes $\vv_1 = e_{\vm+\vf}^{(0)}-\sk_1 \cdot e_{\vm+\vf}^{(1)}$ and player $i \ne 1$ computes.
-$\vv_i = -\sk_i \cdot e_{\vm+\vf}^{(1)}$.
-\item All players compute $\vt_i = \vv_i + p \cdot \vr_i$ for some random element
-with infinity norm given by $2^\DDsecp \cdot B_\dec/p$, where $\DDsecp$ is the parameter defining statistical distance for the distributed decryption.
-\item The parties broadcast $\vt_i$.
-\item The parties compute $\vm+\vf = \sum \vt_i \pmod{p}$.
-\end{enumerate}
-\item $P_1$ sets $\vm_1\asn \vm+\vf-\vf_1$, and
-each player $P_i$ ($i\neq 1$) sets $\vm_i\asn -\vf_i$.
-%\item Each player $P_i$ now holds a share $m_i$ of the secret value $m$.
-\item All players set $e'_\vm \asn \Enc_{pk}(\vm+\vf)\boxminus e_{\vf}$,
-where a default value for the randomness is used when computing $\Enc_{pk}(\vm+\vf)$.
-\end{enumerate}
+  The idea is that $e_\vm$ could be a product of two ciphertexts, which
+  $\mathsf{Reshare}$ converts to a ``fresh'' ciphertext $e'_\vm$. Since $\mathsf{Reshare}$ uses distributed decryption (that may return an incorrect result), it is not guaranteed that $e_\vm$ and $e'_\vm$ contain the same value, but it
+    {\em is} guaranteed that $\sum_i \vm_i$ is the value contained in $e'_\vm$.
+  \begin{enumerate}
+    \item Each player $P_i$ samples a uniform $\vf_i\in (\F_p)^N$. Define $\vf:=\sum_{i=1}^{n}\vf_i$.
+    \item Each player $P_i$ computes and broadcasts $e_{\vf_i}\asn\Enc_\pk(\vf_i)$.\label{reshare:enc}
+    \item Each player $P_i$ runs the proof below as a prover on $e_{\vf_i}$. The protocol aborts if any proof fails
+          and if successful each player obtains $e_\vf\asn e_{\vf_1}\boxplus\dots\boxplus e_{\vf_n}$.
+    \item The players compute $e_{\vm+\vf}\asn e_\vm\boxplus e_\vf$.
+    \item The players decrypt $e_{\vm+\vf}$ as follows:
+          \begin{enumerate}
+            \item Player one computes $\vv_1 = e_{\vm+\vf}^{(0)}-\sk_1 \cdot e_{\vm+\vf}^{(1)}$ and player $i \ne 1$ computes.
+                  $\vv_i = -\sk_i \cdot e_{\vm+\vf}^{(1)}$.
+            \item All players compute $\vt_i = \vv_i + p \cdot \vr_i$ for some random element
+                  with infinity norm given by $2^\DDsecp \cdot B_\dec/p$, where $\DDsecp$ is the parameter defining statistical distance for the distributed decryption.
+            \item The parties broadcast $\vt_i$.
+            \item The parties compute $\vm+\vf = \sum \vt_i \pmod{p}$.
+          \end{enumerate}
+    \item $P_1$ sets $\vm_1\asn \vm+\vf-\vf_1$, and
+          each player $P_i$ ($i\neq 1$) sets $\vm_i\asn -\vf_i$.
+          %\item Each player $P_i$ now holds a share $m_i$ of the secret value $m$.
+    \item All players set $e'_\vm \asn \Enc_{pk}(\vm+\vf)\boxminus e_{\vf}$,
+          where a default value for the randomness is used when computing $\Enc_{pk}(\vm+\vf)$.
+  \end{enumerate}
 \end{Boxfig}
 
 
@@ -455,16 +455,16 @@ $\vt_1+\cdots+\vt_n$ are statistically indistinguishable from
 random, with probability $2^{-\DDsecp}$.
 This does not imply that the adversary has this probability of
 distinguishing the simulated execution in \cite{SPDZ} from the
-real execution; since each run consists of the exchange of 
+real execution; since each run consists of the exchange of
 $\phi(m)$ coefficients, and the protocol is executed many times
 over the execution of the whole protocol.
 We however feel that setting concentrating solely on the
-statistical indistinguishability of the coefficients is valid 
+statistical indistinguishability of the coefficients is valid
 in a practical context.
 
 \paragraph{Reshare Version 2:}
 This is given in \figref{distdec}.
-This protocol is simpler as it does not require the resharing to a 
+This protocol is simpler as it does not require the resharing to a
 new ciphertext.
 So in particular players do not need to provide encryptions of
 their $\vf_i$ values, and hence there is no need
@@ -472,17 +472,17 @@ to execute the ZKPoK needed in the previous protocol.
 
 \begin{Boxfig}{Distributed decryption to secret
     sharing}{distdec}{$\mathsf{Reshare-2}$}
-Furthermore, let $B_\dec$ denote a bound on the noise, that is $\norm{c_0 - s \cdot c_1}_\infty$.
-\begin{enumerate}
-\item Party $i$ samples $\vf_i \asn [0,B_\dec \cdot 2^\DDsecp]^N$.
-\item Party $1$ computes
-  $\vv_i := (c_0 - s_1 \cdot c_1) - \vf_1 \bmod q$, and every other
-  party $i$ computes $\vv_i :=  -s_i \cdot c_1- \vf_i$.
-\item Party $i$ broadcasts $\vv_i$.
-\item Party 1 outputs
-  $\vm_1 := (\sum_{i=1}^n \vv_i \bmod q + \vf_1) \bmod p$, and
-  every other party $i$ outputs $\vm_i := \vf_i \bmod p$.
-\end{enumerate}
+  Furthermore, let $B_\dec$ denote a bound on the noise, that is $\norm{c_0 - s \cdot c_1}_\infty$.
+  \begin{enumerate}
+    \item Party $i$ samples $\vf_i \asn [0,B_\dec \cdot 2^\DDsecp]^N$.
+    \item Party $1$ computes
+          $\vv_i := (c_0 - s_1 \cdot c_1) - \vf_1 \bmod q$, and every other
+          party $i$ computes $\vv_i :=  -s_i \cdot c_1- \vf_i$.
+    \item Party $i$ broadcasts $\vv_i$.
+    \item Party 1 outputs
+          $\vm_1 := (\sum_{i=1}^n \vv_i \bmod q + \vf_1) \bmod p$, and
+          every other party $i$ outputs $\vm_i := \vf_i \bmod p$.
+  \end{enumerate}
 \end{Boxfig}
 
 
@@ -490,7 +490,7 @@ Furthermore, let $B_\dec$ denote a bound on the noise, that is $\norm{c_0 - s \c
 
 
 \subsubsection{$\SwitchKey(d_0,d_1,d_2)$:}
-In order to estimate the size of the output noise term 
+In order to estimate the size of the output noise term
 in the canonical embedding we need first to estimate the size of the term
 (again probabilistically assuming validly generated public
 keys)
@@ -501,57 +501,57 @@ $[-q_0/2,\ldots,q_0/2]$ (remember we apply $\SwitchKey$ at level
 zero).
 So we expect
 \begin{align*}
- \norm{ p \cdot d_2 \cdot e_{\sk,\sk^2}}_\infty^\can 
-     &\le p \cdot \gc_2 \cdot \sqrt{q_0^2/12 \cdot \sigma^2 \cdot \phi(m)^2} \\
-     & = p \cdot \gc_2 \cdot q_0 \cdot \sigma \cdot \phi(m)/\sqrt{12} \\
-     & = B_\KS \cdot q_0.
+  \norm{ p \cdot d_2 \cdot e_{\sk,\sk^2}}_\infty^\can
+   & \le p \cdot \gc_2 \cdot \sqrt{q_0^2/12 \cdot \sigma^2 \cdot \phi(m)^2} \\
+   & = p \cdot \gc_2 \cdot q_0 \cdot \sigma \cdot \phi(m)/\sqrt{12}         \\
+   & = B_\KS \cdot q_0.
 \end{align*}
 Thus
 \[ B_\KS = p \cdot \gc_2 \cdot \sigma \cdot \phi(m)/\sqrt{12}. \]
-Then if the input to $\SwitchKey$ has noise bounded by $\nu$ then the output 
+Then if the input to $\SwitchKey$ has noise bounded by $\nu$ then the output
 noise value in the canonical embedding will be bounded by
 \[ \nu+\frac{B_\KS \cdot p_0}{p_1} + B_\scale. \]
 
 
 \subsubsection{$\Mult(\ct,\ct')$:}
 Combining the all the above, if we take two ciphertexts of level one
-with input noise in the canonical embedding bounded by $\nu$ and $\nu'$, the output noise level 
+with input noise in the canonical embedding bounded by $\nu$ and $\nu'$, the output noise level
 from multiplication will be bounded by
 \[ \nu'' =      \left( \frac{\nu}{p_1} + B_\scale \right)
-	  \cdot 
-                \left( \frac{\nu'}{p_1} + B_\scale \right)
-		+ \frac{B_\KS \cdot p_0}{p_1}+B_\scale.
+  \cdot
+  \left( \frac{\nu'}{p_1} + B_\scale \right)
+  + \frac{B_\KS \cdot p_0}{p_1}+B_\scale.
 \]
 
 \subsubsection{Application to the Offline Phase:}
-In all of our protocols the most complext circuit we will be evaluating 
-is the following one: 
-We first add $n$ ciphertexts together and perform a multiplication, giving a 
+In all of our protocols the most complext circuit we will be evaluating
+is the following one:
+We first add $n$ ciphertexts together and perform a multiplication, giving a
 ciphertext with respect to modulus $p_0$ with noise in the canonical
 embedding bounded by
 \[
   U_1 = \left( \frac{B_\clean^\dishonest}{p_1}+B_\scale \right)^2
-		+ \frac{B_{\KS} \cdot p_0}{p_1} + B_\scale.
+  + \frac{B_{\KS} \cdot p_0}{p_1} + B_\scale.
 \]
-Recall that $B_\clean^\dishonest$ is the bound for a sum of 
+Recall that $B_\clean^\dishonest$ is the bound for a sum of
 $n$ ciphertexts, one from each party.
-We then add on another $n$ ciphertexts, which are added at 
+We then add on another $n$ ciphertexts, which are added at
 level one and then reduced to level zero.
-We therefore obtain a final upper bound on the noise 
+We therefore obtain a final upper bound on the noise
 in the canonical embedding for our adversarially generated ciphertexts of
 \[ U_2 = U_1 +  \frac{B_\clean^\dishonest}{p_1} + B_\scale. \]
 To ensure valid (distributed) decryption, we require
 \[ 2 \cdot U_2 \cdot (1+n \cdot 2^\DDsecp) < p_0, \]
 i.e. we take $B_\dec=U_2$ in our distributed decryption protocol.
 Note, that here we take the worst case bound for the ciphertext
-noise, but probabilistic analysis everywhere else. Since 
+noise, but probabilistic analysis everywhere else. Since
 the key generation is assumed to be honestly performed.
 
 This lower bound on $p_0$ ensure valid decryption in our offline phase.
 To obtain a valid and secure set of parameters, we search over
 all tuples $(N,p_0,p_1)$ satisfying our various constraints for
 a given ``size'' of plaintext modulus $p$; including the upper bound
-on $q_1=p_0 \cdot p_1$ obtained from the Albrecht's tool via 
+on $q_1=p_0 \cdot p_1$ obtained from the Albrecht's tool via
 the table above.
 
 The above circuit is needed for obtaining the sharings of the $c$
@@ -583,4 +583,3 @@ However, by repeating the ZKPoK a number of times we obtain
 the desired soundness security. As this is only done for
 the ciphertexts encrypting the MAC keys this is not a problem in
 practice.
-

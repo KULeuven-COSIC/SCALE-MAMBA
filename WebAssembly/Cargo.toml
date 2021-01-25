@@ -1,0 +1,20 @@
+[package]
+name = "wasca"
+version = "0.1.0"
+authors = ["Oliver Scherer <oliver.scherer@cosmian.com>"]
+edition = "2018"
+publish = false
+license = "MIT AND Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walrus = "0.17.0"
+tracing = "0.1.15"
+tracing-log = "0.1.1"
+tracing-subscriber = "0.2.7"
+paw = "1.0.0"
+structopt = { version = "0.3", features = [ "paw" ] }
+parse-display = "0.1.2"
+scasm = { path = "../Assembler" }
+anyhow = "1.0.31"

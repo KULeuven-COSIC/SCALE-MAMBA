@@ -1,0 +1,113 @@
+\subsection{i64}
+The Rust type $\ints$ corresponds to the $\regint$ type in the underlying SCALE virtual machine.
+You create a value of type $\ints$ (everything in this document also applies to \verb|u64|)
+by appending \verb|_i64| to a number, like in \verb|42_i64|. Mostly you
+do not need this postfix, but sometimes the compiler cannot figure out that you meant to use an
+$\ints$ and may thus give you type mismatch errors because it used a fallback to \verb|i32|.
+
+\subsubsection{Conversion of Data}
+\func{i64::from(x)}
+You can convert from a $\ClearModp$ value to an $\ints$.
+\begin{lstlisting}
+    let ca = ClearModp::from(10);
+    let a=i64::from(ca);
+\end{lstlisting}
+
+\subsubsection{IO}
+The IO class functions for $\ints$ datatypes can be access via the following commands:
+
+\func{i64::input(x)}
+Loads an $\ints$ from the channel $x$.
+\begin{lstlisting}
+    let a=i64::input(Channel::<10>);
+\end{lstlisting}
+
+\func{a.output(x)}
+Writes an $\ints$ to channel $x$.
+\begin{lstlisting}
+   let v: i64 = 1;
+   v.output(Channel::<10>);
+\end{lstlisting}
+
+\subsubsection{Comparisons}
+The following `operators' can be applied between two $\ints$ values
+or a $\ints$ value and a $\SecretI$ value. The output being an $\ints$
+value if the two arguments are $\ints$, and a $\SecretBit$ value otherwise.
+As the result of the operator (when a $\SecretBit$) cannot be used in a
+conditional branch, we use the member function notation for such `operators', as opposed
+to the operator notation. Thus syntactically the programmer is less
+likely to make a mistake.
+\func{a.gt(x), a.ge(x), a.lt(x), a.le(x), a.gt(x), a.eq(x), a.ne(x)}
+
+\subsubsection{Other Functions}
+
+\func{x.rand()}
+Produces a pseudo-random number in the range $[0,\ldots,x-1]$.
+Note, every player gets the same value; this is used for randomized
+algorithms where the algorithm needs to make a random choice.
+\begin{lstlisting}
+   let r = x.rand();
+\end{lstlisting}
+
+
+\subsubsection{Memory Access}
+\func{a.store_in_mem(x)}
+To store data into memory location $50$ say you need to execute,
+recalling that memory is accessed by $32$ bit values.
+\begin{lstlisting}
+    unsafe{ a.store_in_mem(50_u32); }
+\end{lstlisting}
+To store to a variable location you need to ensure the $x$ really
+is an $\ints$ by doing:
+\begin{lstlisting}
+    let x: i64 = 50;
+    unsafe{ a.store_in_mem(x); }
+\end{lstlisting}
+
+\func{i64::load_from_mem(x)}
+To load data from memory you do
+\begin{lstlisting}
+    let a=i64::load_from_mem(50_u32);
+    let x: i64 = 50;
+    let b=i64::load_from_mem(x);
+\end{lstlisting}
+
+
+\subsubsection{Testing Data}
+
+\func{black_box(x)}
+If you just use \verb|let a = 1| then the Rust compiler can optimize
+the variable away. If you really want to treat $a$ as a \verb|regint|
+value in the SCALE runtime then use
+\begin{lstlisting}
+  let a = black_box(1);
+\end{lstlisting}
+
+
+\func{x.test()}
+In the SCALE target this writes the $\regint$ value $x$
+into memory at the address equivalent to the line number in
+which \verb|test| was invoked.
+
+In the Test target this takes a value stored in the $\regint$
+memory saved on the last SCALE invocation, and compares it to
+$x$. If the two values are the same it prints the value, and the
+line number in the rust file where this was executed.
+Otherwise it aborts.
+
+\func{x.test_mem(loc)}
+This compares the value held in variable $x$ to the memory location
+at position $loc$, a simple example being
+\begin{lstlisting}
+    let c: i64 = 8;
+    unsafe{ c.store_in_mem(3_u32); }
+    let d: i64 = 8;
+    d.test_mem(3_u32);
+\end{lstlisting}
+On the SCALE target this is basically a no-op, on the Test target
+it does this comparison.
+
+\func{x.test_value(y)}
+Test whether the value held in $x$ is the same as the value held in $y$.
+This is the same as \verb|x.test()| except the value is compared to
+$y$ and not the value emulated in the test environment.

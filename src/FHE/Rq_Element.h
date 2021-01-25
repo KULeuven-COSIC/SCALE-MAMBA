@@ -168,6 +168,34 @@ public:
   void output(ostream &s, bool human= false) const;
   void input(istream &s);
 
+  // Direct IO to a buffer
+  unsigned int output(uint8_t *buff) const;
+  unsigned int input(const uint8_t *buff);
+
+  /* Input/Output to a string at position pos.
+   * String is already assigned to enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
+
+  // Size of string needed to input/output
+  unsigned int size() const
+  {
+    unsigned int sz= sizeof(lev);
+    for (int i= 0; i <= lev; i++)
+      {
+        sz+= a[i].size();
+      }
+    return sz;
+  }
+
   bool is_zero() const;
 };
 

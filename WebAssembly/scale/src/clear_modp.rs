@@ -1,0 +1,85 @@
+use super::*;
+
+impl From<ClearModp> for i64 {
+    #[inline(always)]
+    fn from(s: ClearModp) -> i64 {
+        unsafe { __convmodp(s, 64) }
+    }
+}
+
+impl<const I: i32> core::ops::Sub<ClearModp> for ConstI32<I> {
+    type Output = ClearModp;
+    #[inline(always)]
+    fn sub(self, c: ClearModp) -> ClearModp {
+        unsafe { __subcfi(c, I) }
+    }
+}
+
+impl<const I: i32> core::ops::Div<ClearModp> for ConstI32<I> {
+    type Output = ClearModp;
+    #[inline(always)]
+    fn div(self, c: ClearModp) -> ClearModp {
+        ClearModp::from(self) / c
+    }
+}
+
+impl<const I: i32> core::ops::Rem<ClearModp> for ConstI32<I> {
+    type Output = ClearModp;
+    #[inline(always)]
+    fn rem(self, c: ClearModp) -> ClearModp {
+        ClearModp::from(self) % c
+    }
+}
+
+impl Output for ClearModp {
+    #[inline(always)]
+    fn output<const C: u32>(self, _: Channel<C>) {
+        unsafe {
+            __output_clear(self, C);
+        }
+    }
+}
+
+impl Input for ClearModp {
+    #[inline(always)]
+    fn input<const C: u32>(_: Channel<C>) -> Self {
+        unsafe { __input_clear(C) }
+    }
+}
+
+impl Print for ClearModp {
+    #[inline(always)]
+    fn print(self) {
+        unsafe { __print_reg(self) }
+    }
+}
+
+impl ClearModp {
+    #[inline(always)]
+    pub fn legendre(self) -> ClearModp {
+        unsafe { __legendrec(self) }
+    }
+}
+
+impl ClearModp {
+    #[inline(always)]
+    pub fn digest(self) -> ClearModp {
+        unsafe { __digestc(self) }
+    }
+}
+
+impl RevealIfSecret for ClearModp {
+    type Output = Self;
+    fn reveal_if_secret(&self) -> Self {
+        *self
+    }
+}
+
+
+impl core::ops::Neg for ClearModp {
+    type Output = ClearModp;
+    #[inline]
+    fn neg(self) -> ClearModp {
+        ClearModp::from(0) - self
+    }
+}

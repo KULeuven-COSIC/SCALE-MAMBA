@@ -1,0 +1,166 @@
+import sys
+import floatingpoint
+
+# Need to test values s.t.
+#   vlen<53
+#   vlen=52
+#   vlen=53
+#   vlen=54
+#   vlen>64
+#   vlen=64
+#   vlen=63
+# to ensure correctness
+
+sfloat.vlen=43
+sfloat.plen=11
+sfloat.kappa=40
+
+cfloat.vlen=sfloat.vlen
+cfloat.plen=sfloat.plen
+cfloat.kappa=sfloat.kappa
+
+
+### Do some testing to ensure nothing is broken ###
+a = sfloat(0.0)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+a = sfloat(-5.125)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+a = sfloat(5.125)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+a = sfloat(-0.125)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+a = sfloat(0.125)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+
+c = sfloat(5.125)
+d = sfloat(0)
+a= c/d
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+c = sfloat(-5.125)
+d = sfloat(0)
+a= c/d
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+a = sfloat(-3.1415926535897932384626433832795028841971693993751)
+b = floatingpoint.sfloat_to_ieee(a)
+c = floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ")
+a.reveal().print_float()
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+
+
+# x below can only exist if plen>10
+if (sfloat.plen>10):
+  x = sfloat(1.7*10**308)
+  y = x*x
+
+  a = x
+  b = floatingpoint.sfloat_to_ieee(a)
+  c = floatingpoint.ieee_to_sfloat(b)
+  print_str("Testing \t: ")
+  a.reveal().print_float()
+  print_str("\t")
+  print_ieee_float(b.reveal())
+  print_str("\t")
+  c.reveal().print_float()
+  print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+  print_ln("")
+
+  a = y
+  b = floatingpoint.sfloat_to_ieee(a)
+  c = floatingpoint.ieee_to_sfloat(b)
+  print_str("Testing \t: ")
+  a.reveal().print_float()
+  print_str("\t")
+  print_ieee_float(b.reveal())
+  print_str("\t")
+  c.reveal().print_float()
+  print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+  print_ln("")
+
+# Now test for small plen when converting a big IEEE float
+r=convert_to_float("1.7e300")
+b=sregint(r)
+c=floatingpoint.ieee_to_sfloat(b)
+print_str("Testing \t: ----- ")
+print_str("\t")
+print_ieee_float(b.reveal())
+print_str("\t")
+c.reveal().print_float()
+print_ln("\nXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print_ln("")
+

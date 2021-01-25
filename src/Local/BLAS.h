@@ -24,7 +24,8 @@ All rights reserved
  * See the main BLAS.cpp file for how data is pushed/poped
  * and which order it is done in.
  */
-void matrix_mult_CC(Processor &Proc);
+template<class SRegint, class SBit>
+void matrix_mult_CC(Processor<SRegint, SBit> &Proc);
 
 /* This does sint n-by-k matrix A by cint k-by-m matrix B
  * result in sint n-by-m matrix C
@@ -32,7 +33,8 @@ void matrix_mult_CC(Processor &Proc);
  * See the main BLAS.cpp file for how data is pushed/poped
  * and which order it is done in.
  */
-void matrix_mult_SC(Processor &Proc);
+template<class SRegint, class SBit>
+void matrix_mult_SC(Processor<SRegint, SBit> &Proc);
 
 /* This does cint n-by-k matrix A by sint k-by-m matrix B
  * result in sint n-by-m matrix C
@@ -40,7 +42,8 @@ void matrix_mult_SC(Processor &Proc);
  * See the main BLAS.cpp file for how data is pushed/poped
  * and which order it is done in.
  */
-void matrix_mult_CS(Processor &Proc);
+template<class SRegint, class SBit>
+void matrix_mult_CS(Processor<SRegint, SBit> &Proc);
 
 /* This does Gaussian elimination on an n by m cint matrix A 
  * returning the result in B
@@ -48,6 +51,7 @@ void matrix_mult_CS(Processor &Proc);
  * See the main BLAS.cpp file for how data is pushed/poped
  * and which order it is done in.
  */
-void Gaussian_Elimination(Processor &Proc);
+template<class SRegint, class SBit>
+void Gaussian_Elimination(Processor<SRegint, SBit> &Proc);
 
 #endif

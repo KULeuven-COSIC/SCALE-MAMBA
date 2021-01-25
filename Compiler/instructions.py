@@ -36,6 +36,8 @@
   STARG= 0x13,
   CALL= 0x14,
   RETURN= 0x15,
+  CALLR = 0x16,
+  JMPR = 0x17,
   RUN_TAPE= 0x19,
   JOIN_TAPE= 0x1A,
   CRASH= 0x1B,
@@ -144,8 +146,8 @@
 
   # Branching and comparison
   JMP= 0x90,
-  JMPNZ= 0x91,
-  JMPEQZ= 0x92,
+  JMPNE= 0x91,
+  JMPEQ= 0x92,
   EQZINT= 0x93,
   LTZINT= 0x94,
   LTINT= 0x95,
@@ -1104,11 +1106,13 @@ class reqbl(base.Instruction):
 
 
 class run_tape(base.Instruction):
-    r""" RUN_TAPE i j n
-         In thread i start tape n with argument j.
+    r""" RUN_TAPE i j k n
+         In thread i start tape k with argument j.
+         Execute with program counter starting at n
+         In MAMBA we always assume n=0
      """
     code = base.opcodes['RUN_TAPE']
-    arg_format = ['int', 'int', 'int']
+    arg_format = ['int', 'int', 'int', 'int']
 
 
 class join_tape(base.Instruction):
@@ -1144,6 +1148,16 @@ class RETURN(base.JumpInstruction):
     code = base.opcodes['RETURN']
     arg_format = []
     jump_arg = -1
+
+class CALLR(base.JumpInstruction):
+    r""" CALLR i
+         Pushes the current PC onto the stack, and then jump to the
+         address ri.
+     """
+    __slots__ = []
+    code = base.opcodes['CALLR']
+    arg_format = ['r']
+    jump_arg = 0
 
 class restart(base.IOInstruction):
     r""" RESTART
@@ -2016,29 +2030,38 @@ class jmp(base.JumpInstruction):
     arg_format = ['int']
     jump_arg = 0
 
+class jmpr(base.JumpInstruction):
+    r""" JMPR i
+         Unconditional jump to the absolute address ri.
+     """
+    __slots__ = []
+    code = base.opcodes['JMPR']
+    arg_format = ['r']
+    jump_arg = 0
 
-class jmpnz(base.JumpInstruction):
-    r""" JMPNZ i n
-         Jump of n+1 instructions if regint register r_i \neq 0.
+
+class jmpne(base.JumpInstruction):
+    r""" JMPNE i j n
+         Jump of n+1 instructions if regint register r_i \neq j.
          Example:
-            jmpnz(c, n) : advance n+1 instructions if c is non-zero
-            jmpnz(c, 0) : do nothing
-            jmpnz(c, -1): infinite loop if c is non-zero
+            jmpne(c, 0, n) : advance n+1 instructions if c is non-zero
+            jmpne(c, 0, 0) : do nothing
+            jmpne(c, 0, -1): infinite loop if c is non-zero
      """
     __slots__ = []
-    code = base.opcodes['JMPNZ']
-    arg_format = ['r', 'int']
-    jump_arg = 1
+    code = base.opcodes['JMPNE']
+    arg_format = ['r', 'int', 'int']
+    jump_arg = 2
 
 
-class jmpeqz(base.JumpInstruction):
-    r""" JMPEQZ i n
-         Jump n+1 instructions if regint register r_i == 0.
+class jmpeq(base.JumpInstruction):
+    r""" JMPEQ i j n
+         Jump n+1 instructions if regint register r_i == j.
      """
     __slots__ = []
-    code = base.opcodes['JMPEQZ']
-    arg_format = ['r', 'int']
-    jump_arg = 1
+    code = base.opcodes['JMPEQ']
+    arg_format = ['r', 'int', 'int']
+    jump_arg = 2
 
 
 #

@@ -1,6 +1,120 @@
-warning: Write to register is never read
-    --> tests/optimizations/lt_32_unopt.asm:1162:1
+error: read from uninitialized register
+   --> tests/optimizations/lt_32_unopt.asm:504:1
+    |
+504 | subs s479, s429, s476 # 502
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 476 was never written to
+    |
+error: read from uninitialized register
+   --> tests/optimizations/lt_32_unopt.asm:505:1
+    |
+505 | subs s480, s334, s477 # 503
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 477 was never written to
+    |
+error: read from uninitialized register
+   --> tests/optimizations/lt_32_unopt.asm:861:1
+    |
+861 | subs s806, s464, s803 # 859
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 803 was never written to
+    |
+error: read from uninitialized register
+   --> tests/optimizations/lt_32_unopt.asm:862:1
+    |
+862 | subs s807, s487, s804 # 860
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 804 was never written to
+    |
+error: read from uninitialized register
+    --> tests/optimizations/lt_32_unopt.asm:1034:1
      |
-1162 | subsfi s2, s4, 0 # 1160
-     | ----------------------- register 2 written to but will never be read from again
+1034 | subs s965, s791, s962 # 1032
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 962 was never written to
+     |
+error: read from uninitialized register
+    --> tests/optimizations/lt_32_unopt.asm:1035:1
+     |
+1035 | subs s966, s814, s963 # 1033
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 963 was never written to
+     |
+error: read from uninitialized register
+    --> tests/optimizations/lt_32_unopt.asm:1115:1
+     |
+1115 | subs s1040, s950, s1037 # 1113
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 1037 was never written to
+     |
+error: read from uninitialized register
+    --> tests/optimizations/lt_32_unopt.asm:1116:1
+     |
+1116 | subs s1041, s973, s1038 # 1114
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 1038 was never written to
+     |
+error: read from uninitialized register
+    --> tests/optimizations/lt_32_unopt.asm:1139:1
+     |
+1139 | subs s1064, s1025, s1061 # 1137
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 1061 was never written to
+     |
+error: read from uninitialized register
+    --> tests/optimizations/lt_32_unopt.asm:1140:1
+     |
+1140 | subs s1065, s1048, s1062 # 1138
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ register 1062 was never written to
+     |
+warning: Write to register is never read
+   --> tests/optimizations/lt_32_unopt.asm:496:1
+    |
+496 | stopopen 2, c110, c111 # 494
+    | ---------------------------- register 113 written to but will never be read from again
+    |
+warning: Write to register is never read
+   --> tests/optimizations/lt_32_unopt.asm:496:1
+    |
+496 | stopopen 2, c110, c111 # 494
+    | ---------------------------- register 114 written to but will never be read from again
+    |
+warning: Write to register is never read
+   --> tests/optimizations/lt_32_unopt.asm:853:1
+    |
+853 | stopopen 2, c203, c204 # 851
+    | ---------------------------- register 206 written to but will never be read from again
+    |
+warning: Write to register is never read
+   --> tests/optimizations/lt_32_unopt.asm:853:1
+    |
+853 | stopopen 2, c203, c204 # 851
+    | ---------------------------- register 207 written to but will never be read from again
+    |
+warning: Write to register is never read
+    --> tests/optimizations/lt_32_unopt.asm:1026:1
+     |
+1026 | stopopen 2, c248, c249 # 1024
+     | ----------------------------- register 251 written to but will never be read from again
+     |
+warning: Write to register is never read
+    --> tests/optimizations/lt_32_unopt.asm:1026:1
+     |
+1026 | stopopen 2, c248, c249 # 1024
+     | ----------------------------- register 252 written to but will never be read from again
+     |
+warning: Write to register is never read
+    --> tests/optimizations/lt_32_unopt.asm:1107:1
+     |
+1107 | stopopen 2, c269, c270 # 1105
+     | ----------------------------- register 272 written to but will never be read from again
+     |
+warning: Write to register is never read
+    --> tests/optimizations/lt_32_unopt.asm:1107:1
+     |
+1107 | stopopen 2, c269, c270 # 1105
+     | ----------------------------- register 273 written to but will never be read from again
+     |
+warning: Write to register is never read
+    --> tests/optimizations/lt_32_unopt.asm:1142:1
+     |
+1142 | stopopen 2, c278, c279 # 1140
+     | ----------------------------- register 278 written to but will never be read from again
+     |
+warning: Write to register is never read
+    --> tests/optimizations/lt_32_unopt.asm:1142:1
+     |
+1142 | stopopen 2, c278, c279 # 1140
+     | ----------------------------- register 279 written to but will never be read from again
      |

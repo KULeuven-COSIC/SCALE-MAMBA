@@ -44,7 +44,6 @@ bit s31 # 117
 bit s32 # 120
 bit s33 # 122
 adds s1, s1, s1 # 74
-movs s34, s33 # 123
 subcfi c5, c6, 1 # 68
 adds s1, s1, s2 # 76
 adds s1, s1, s1 # 77
@@ -116,7 +115,7 @@ subs s9, s0, s19 # 66
 mulm s20, s9, c5 # 69
 adds s0, s20, s2 # 72
 adds s18, s1, s0 # 125
-adds s2, s18, s34 # 126
+adds s2, s18, s33 # 126
 startopen 1, s2 # 127
 stopopen 1, c4 # 128
 modci c6, c4, 2 # 129

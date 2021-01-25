@@ -10,7 +10,8 @@ All rights reserved
 /* This holds a vector of 64 authenticated bits, representing a
  * 64 bit integer value
  *
- * This implements the sregint type within the SCALE processor.
+ * This implements the sregint type within the SCALE processor
+ * when using the HSS subsystem
  *
  * Many operations require interaction, hence for these we pass
  * a player.
@@ -27,7 +28,7 @@ class aBitVector
 {
   vector<aBit> x;
 
-  /* Evaluate a Circuita
+  /* Evaluate a Circuit
    * The first two write the output to *this, the second two return the
    * one bit answer.
    */
@@ -59,6 +60,13 @@ public:
     return "aBitVector";
   }
 
+  // Number of chars needed to hold an aBit in a string
+  // in non-human form
+  static unsigned int size()
+  {
+    return sreg_bitl * aBit::size();
+  }
+
   aBitVector()
   {
     x.resize(sreg_bitl);
@@ -87,8 +95,6 @@ public:
   {
     return x;
   }
-
-  unsigned long long Open(Player &P) const;
 
   /* Bitwise Operations */
   void Bitwise_XOR(const aBitVector &a, const aBitVector &b)
@@ -217,6 +223,39 @@ public:
   //  - Can do in human or machine only format (later should be faster)
   void output(ostream &s, bool human) const;
   void input(istream &s, bool human);
+
+  unsigned int output(uint8_t *buff) const
+  {
+    unsigned int pos= 0;
+    for (unsigned int i= 0; i < sreg_bitl; i++)
+      {
+        pos+= x[i].output(buff + pos);
+      }
+    return pos;
+  }
+  // Input directly from a string of chars
+  unsigned int input(const uint8_t *buff)
+  {
+    unsigned int pos= 0;
+    for (unsigned int i= 0; i < sreg_bitl; i++)
+      {
+        pos+= x[i].input(buff + pos);
+      }
+    return pos;
+  }
+
+  /* Input/Output to a string at position pos.
+   * String is already assigned enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
 };
 
 #endif

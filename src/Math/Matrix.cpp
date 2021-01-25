@@ -13,10 +13,11 @@ All rights reserved
 
 using namespace std;
 
-void Gauss_Elim(gfp_matrix &A, unsigned int maxrow)
+template<class T>
+void Gauss_Elim(vector<vector<T>> &A, unsigned int maxrow)
 {
   unsigned int nr= A.size(), nc= A[0].size();
-  gfp t, ti;
+  T t, ti;
   unsigned int c= 0;
   for (unsigned int r= 0; r < maxrow && c < nc; r++)
     { // Find pivot
@@ -67,38 +68,38 @@ void Gauss_Elim(gfp_matrix &A, unsigned int maxrow)
     }
 }
 
-gfp_matrix Mul(const gfp_matrix &A, const gfp_matrix &B)
+template<class T>
+void Mul(vector<vector<T>> &ans, const vector<vector<T>> &A, const vector<vector<T>> &B)
 {
   unsigned int m= A.size(), n= B[0].size(), t= A[0].size();
-  if (t != B.size())
+  if (t != B.size() || ans.size() != m || ans[0].size() != n)
     {
       throw invalid_length();
     }
-  gfp_matrix C(m, vector<gfp>(n));
-  gfp te;
+  T te;
   for (unsigned int i= 0; i < m; i++)
     {
       for (unsigned int j= 0; j < n; j++)
         {
-          C[i][j].assign_zero();
+          ans[i][j].assign_zero();
           for (unsigned int k= 0; k < t; k++)
             {
               te.mul(A[i][k], B[k][j]);
-              C[i][j].add(te);
+              ans[i][j].add(te);
             }
         }
     }
-  return C;
 }
 
-gfp dot_product(const vector<gfp> &x, const vector<gfp> &y)
+template<class T>
+T dot_product(const vector<T> &x, const vector<T> &y)
 {
   unsigned int n= x.size();
   if (n != y.size())
     {
       throw invalid_length();
     }
-  gfp ans, te;
+  T ans, te;
   ans.assign_zero();
   for (unsigned int i= 0; i < n; i++)
     {
@@ -106,6 +107,25 @@ gfp dot_product(const vector<gfp> &x, const vector<gfp> &y)
       ans.add(te);
     }
   return ans;
+}
+
+template<class T>
+void dot_product(vector<T> &ans, const vector<T> &x, const vector<vector<T>> &y)
+{
+  if (x.size() != y.size() || ans.size() != y[0].size())
+    {
+      throw invalid_length();
+    }
+  T te;
+  for (unsigned int k= 0; k < ans.size(); k++)
+    {
+      ans[k].assign_zero();
+      for (unsigned int i= 0; i < x.size(); i++)
+        {
+          te.mul(x[i], y[i][k]);
+          ans[k].add(te);
+        }
+    }
 }
 
 int dot_product(const vector<int> &x, const vector<int> &y)
@@ -123,28 +143,114 @@ int dot_product(const vector<int> &x, const vector<int> &y)
   return ans;
 }
 
-vector<gfp> Mul(const gfp_matrix &A, const vector<gfp> &x)
+word dot_product(const vector<word> &x, const vector<gf2> &y)
 {
-  unsigned int m= A.size(), t= A[0].size();
-  if (t != x.size())
+  unsigned int n= x.size();
+  if (n != y.size())
     {
       throw invalid_length();
     }
-  vector<gfp> y(m);
-  gfp te;
+  word ans= 0;
+  for (unsigned int i= 0; i < n; i++)
+    {
+      if (y[i].is_one())
+        {
+          ans^= x[i];
+        }
+    }
+  return ans;
+}
+
+void dot_product(vector<word> &ans, const vector<gf2> &x, const vector<vector<word>> &y)
+{
+  if (x.size() != y.size() || ans.size() != y[0].size())
+    {
+      throw invalid_length();
+    }
+  for (unsigned int k= 0; k < ans.size(); k++)
+    {
+      ans[k]= 0;
+    }
+  for (unsigned int i= 0; i < x.size(); i++)
+    {
+      if (x[i].is_one())
+        {
+          for (unsigned int k= 0; k < ans.size(); k++)
+            {
+              ans[k]^= y[i][k];
+            }
+        }
+    }
+}
+
+template<class T>
+void Mul(vector<T> &ans, const vector<vector<T>> &A, const vector<T> &x)
+{
+  unsigned int m= A.size(), t= A[0].size();
+  if (t != x.size() || ans.size() != m)
+    {
+      throw invalid_length();
+    }
+  T te;
   for (unsigned int i= 0; i < m; i++)
     {
-      y[i].assign_zero();
+      ans[i].assign_zero();
       for (unsigned int k= 0; k < t; k++)
         {
           te.mul(A[i][k], x[k]);
-          y[i].add(te);
+          ans[i].add(te);
         }
     }
-  return y;
 }
 
-ostream &operator<<(ostream &s, const gfp_matrix &A)
+void Mul(vector<word> &ans, const vector<vector<gf2>> &A, const vector<word> &x)
+{
+  unsigned int m= A.size(), t= A[0].size();
+  if (t != x.size() || ans.size() != m)
+    {
+      throw invalid_length();
+    }
+  for (unsigned int i= 0; i < m; i++)
+    {
+      ans[i]= 0;
+      for (unsigned int k= 0; k < t; k++)
+        {
+          if (A[i][k].is_one())
+            {
+              ans[i]^= x[k];
+            }
+        }
+    }
+}
+
+void Mul(vector<vector<word>> &ans, const vector<vector<gf2>> &A, const vector<vector<word>> &x)
+{
+  unsigned int m= A.size(), t= A[0].size(), n= x[0].size();
+  if (t != x.size() || ans.size() != m || ans[0].size() != n)
+    {
+      throw invalid_length();
+    }
+  for (unsigned int i= 0; i < m; i++)
+    {
+      for (unsigned int j= 0; j < n; j++)
+        {
+          ans[i][j]= 0;
+        }
+      for (unsigned int k= 0; k < t; k++)
+        {
+          if (A[i][k].is_one())
+            {
+              for (unsigned int j= 0; j < n; j++)
+                {
+                  ans[i][j]^= x[k][j];
+                }
+            }
+        }
+    }
+}
+
+template<class T>
+ostream &operator<<(ostream &s, const vector<vector<T>> &A)
 {
   s << A.size() << " " << A[0].size() << endl;
   for (unsigned int i= 0; i < A.size(); i++)
@@ -158,11 +264,12 @@ ostream &operator<<(ostream &s, const gfp_matrix &A)
   return s;
 }
 
-istream &operator>>(istream &s, gfp_matrix &A)
+template<class T>
+istream &operator>>(istream &s, vector<vector<T>> &A)
 {
   int r, c;
   s >> r >> c;
-  A.resize(r, vector<gfp>(c));
+  A.resize(r, vector<T>(c));
   for (int i= 0; i < r; i++)
     {
       for (int j= 0; j < c; j++)
@@ -228,7 +335,7 @@ void print(const imatrix &S)
     }
 }
 
-void print(const gfp_matrix &S)
+void print(const vector<vector<gfp>> &S)
 {
   unsigned int m= S.size(), n= S[0].size();
   for (unsigned int i= 0; i < m; i++)
@@ -253,7 +360,8 @@ int row_sum(const imatrix &D, int i)
 
 // Can we solve sustem (A' x = b) where A=A'||b
 // Does the row reduction as well
-bool Solvable(gfp_matrix &A)
+template<class T>
+bool Solvable(vector<vector<T>> &A)
 {
   Gauss_Elim(A, min(A.size(), A[0].size()));
 
@@ -279,16 +387,20 @@ bool Solvable(gfp_matrix &A)
 }
 
 // Assumes already sun Solvable
-vector<gfp> BackSubst(const gfp_matrix &A)
+template<class T>
+void BackSubst(vector<T> &ans, const vector<vector<T>> &A)
 {
   unsigned int nc= A[0].size() - 1;
-  vector<gfp> ans(nc);
+  if (ans.size() != nc)
+    {
+      throw invalid_length();
+    }
   for (unsigned int j= 0; j < nc; j++)
     {
       ans[j].assign_zero();
     }
 
-  gfp te;
+  T te;
   for (int i= (int) A.size() - 1; i >= 0; i--)
     {
       unsigned int c= 0;
@@ -310,10 +422,10 @@ vector<gfp> BackSubst(const gfp_matrix &A)
             }
         }
     }
-  return ans;
 }
 
-bool is_zero(const vector<gfp> &x)
+template<class T>
+bool is_zero(const vector<T> &x)
 {
   for (unsigned int i= 0; i < x.size(); i++)
     {
@@ -337,3 +449,25 @@ int Hwt(const vector<int> &D)
     }
   return hwt;
 }
+
+template void Gauss_Elim(vector<vector<gfp>> &A, unsigned int maxrow);
+template void Gauss_Elim(vector<vector<gf2>> &A, unsigned int maxrow);
+template void Mul(vector<vector<gfp>> &ans,
+                  const vector<vector<gfp>> &A, const vector<vector<gfp>> &B);
+template void Mul(vector<vector<gf2>> &ans,
+                  const vector<vector<gf2>> &A, const vector<vector<gf2>> &B);
+template void Mul(vector<gfp> &ans, const vector<vector<gfp>> &A, const vector<gfp> &x);
+template void Mul(vector<gf2> &ans, const vector<vector<gf2>> &A, const vector<gf2> &x);
+template void BackSubst(vector<gfp> &ans, const vector<vector<gfp>> &A);
+template void BackSubst(vector<gf2> &ans, const vector<vector<gf2>> &A);
+template gfp dot_product(const vector<gfp> &x, const vector<gfp> &y);
+template void dot_product(vector<gfp> &ans, const vector<gfp> &x, const vector<vector<gfp>> &y);
+template gf2 dot_product(const vector<gf2> &x, const vector<gf2> &y);
+template bool Solvable(vector<vector<gfp>> &A);
+template bool Solvable(vector<vector<gf2>> &A);
+template ostream &operator<<(ostream &s, const vector<vector<gfp>> &A);
+template ostream &operator<<(ostream &s, const vector<vector<gf2>> &A);
+template istream &operator>>(istream &s, vector<vector<gfp>> &A);
+template istream &operator>>(istream &s, vector<vector<gf2>> &A);
+template bool is_zero(const vector<gfp> &x);
+template bool is_zero(const vector<gf2> &x);

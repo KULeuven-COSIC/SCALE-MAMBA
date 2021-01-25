@@ -7,7 +7,8 @@ All rights reserved
 
 #include "Processor/Program.h"
 
-void Program::compute_constants()
+template<class SRegint, class SBit>
+void Program<SRegint, SBit>::compute_constants()
 {
   for (int reg_type= 0; reg_type < MAX_REG_TYPE; reg_type++)
     {
@@ -22,10 +23,11 @@ void Program::compute_constants()
     }
 }
 
-void Program::parse(stringstream &s)
+template<class SRegint, class SBit>
+void Program<SRegint, SBit>::parse(stringstream &s)
 {
   p.resize(0);
-  Instruction instr;
+  Instruction<SRegint, SBit> instr;
   if (!s.fail())
     {
       s.peek();
@@ -39,7 +41,8 @@ void Program::parse(stringstream &s)
   compute_constants();
 }
 
-ostream &operator<<(ostream &s, const Program &P)
+template<class SRegint, class SBit>
+ostream &operator<<(ostream &s, const Program<SRegint, SBit> &P)
 {
   for (unsigned int i= 0; i < P.p.size(); i++)
     {
@@ -47,3 +50,9 @@ ostream &operator<<(ostream &s, const Program &P)
     }
   return s;
 }
+
+#include "Mod2Engine/aBitVector2.h"
+#include "OT/aBitVector.h"
+
+template class Program<aBitVector, aBit>;
+template class Program<aBitVector2, Share2>;

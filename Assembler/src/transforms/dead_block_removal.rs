@@ -57,7 +57,7 @@ impl super::Pass for Pass {
                 // Remove this block from all other blocks' list of incoming blocks.
                 // If the list length drops to zero, future iterations will remove that
                 // block, too.
-                for (_, sources) in &mut referenced {
+                for sources in referenced.values_mut() {
                     sources.remove(&i);
                 }
                 changed = true;

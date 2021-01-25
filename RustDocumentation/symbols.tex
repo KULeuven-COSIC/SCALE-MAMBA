@@ -1,0 +1,345 @@
+\newcommand{\sshare}[1]{\langle #1 \rangle}    
+\newcommand{\bsshare}[1]{\Big\langle #1 \Big\rangle}  
+\newcommand{\BList}{\mathsf{BitsList}}
+\newcommand{\SList}{\mathsf{SquaresList}}
+\newcommand{\MList}{\mathsf{MultList}}
+\newcommand{\Zk}{\Z_{\langle k \rangle}}
+\newcommand{\Zgam}{\Z_{\langle \gamma \rangle}}
+\newcommand{\Qk}[1]{\Q_{\langle k, #1 \rangle}}
+\newcommand{\Random}{\mathsf{Random}}
+\newcommand{\Open}{{\mathsf{Open}}}
+\newcommand{\Mult}{\mathsf{Mult}}
+
+\newcommand{\abort}{\mathsf{abort}}
+\newcommand{\asn}{\leftarrow}
+\mathchardef\mhyphen="2D
+
+\newcommand{\F}{{\mathbb{F}}}
+\newcommand{\N}{{\mathbb{N}}}
+\newcommand{\Q}{{\mathbb{Q}}}
+\newcommand{\Z}{{\mathbb{Z}}}
+
+\newcommand{\true}{{\mathsf{true}}}
+\newcommand{\false}{{\mathsf{false}}}
+
+\newcommand{\floor}[1]{{\lfloor #1 \rfloor}}
+\newcommand{\ceil}[1]{{\lceil #1 \rceil}}
+\newcommand{\angles}[1]{{\langle #1 \rangle}}
+
+\newcommand{\err}{\mathsf{err}}
+
+\newcommand{\modp}{\bmod \; p}
+\newcommand{\modn}{\bmod \; 2^{64}}
+\newcommand{\modtwo}{\bmod \; 2}
+
+\newcommand{\note}[2]{{\textcolor{blue}{\sf (#1's Note:) {\sl{#2}}}}}
+\newcommand{\todo}[1]{{\textcolor{red}{\sf (TO DO:) {\sl{#1}}}}}
+\newcommand{\nps}[1]{{\textcolor{red}{\sf (NPS:) {\sl{#1}}}}}
+\newcommand{\warning}[1]{{\textcolor{red}{\sf Warning: {\sl{#1}}}}}
+\newcommand{\comm}[1]{{\textcolor{red}{\sl{#1}}}}
+\newcommand{\notetoreader}[1]{{\bf \em Note}: #1}
+
+
+
+
+
+%\usepackage[small,nohug,heads=vee]{diagrams}
+%\diagramstyle[labelstyle=\scriptstyle]
+\titleformat*{\paragraph}{\normalfont\normalsize\bfseries\color{blue}}
+
+
+\newenvironment{class}[1]
+{ {\noindent\colorbox{black!10}{\texttt{#1}}}\hspace{0pt} \begin{quote} }
+{ \end{quote} }
+
+\newcommand{\displaytt}[1]{\vspace{1em}\centerline{\texttt{#1}}\vspace{1em}}
+
+\newcommand{\func}[1]{\paragraph{\texttt{#1}}\hspace{0pt} \vspace{0.5em}\\}
+
+\newcommand{\id}{\mathfrak{i}}
+
+\newcommand{\Red}[1]{{\color{red}{#1}}}
+\newcommand{\Blue}[1]{{\color{blue}{#1}}}
+
+\newcommand{\grp}[1]{{\langle #1 \rangle}}
+
+\mathchardef\mhyphen="2D
+
+\newcommand{\Sqr}{\mathsf{Sqr}}
+\newcommand{\Ran}{\mathsf{Ran}}
+\newcommand{\Symm}{\mathsf{Symm}}
+\newcommand{\Pre}{\mathsf{Pre}}
+\newcommand{\BitLT}{\mathsf{Bit{\mhyphen}LT}}
+\newcommand{\BitAdd}{\mathsf{Bit{\mhyphen}Add}}
+\newcommand{\Xor}{\mathsf{Xor}}
+
+\newcommand{\ModTm}{\mathsf{Mod2m}}
+\newcommand{\Trunc}{\mathsf{Trunc}}
+\newcommand{\TruncPr}{\mathsf{TruncPr}}
+\newcommand{\Bits}{\mathsf{Bits}}
+\newcommand{\Sgn}{\mathsf{Sgn}}
+\newcommand{\LTZ}{\mathsf{LTZ}}
+\newcommand{\GTZ}{\mathsf{GTZ}}
+\newcommand{\EQZ}{\mathsf{EQZ}}
+\newcommand{\LT}{\mathsf{LT}}
+\newcommand{\GE}{\mathsf{GE}}
+\newcommand{\EQ}{\mathsf{EQ}}
+\newcommand{\Scale}{\mathsf{Scale}}
+\newcommand{\FPAdd}{\mathsf{FP{\mhyphen}Add}}
+\newcommand{\FPMult}{\mathsf{FP{\mhyphen}Mult}}
+
+\newcommand{\ow}{\overline{w}}
+\newcommand{\ox}{\overline{x}}
+\newcommand{\oy}{\overline{y}}
+\newcommand{\oz}{\overline{z}}
+
+\newcommand{\open}{\text{open}}
+\newcommand{\startopen}{\mathtt{startopen}}
+\newcommand{\stopopen}{\mathtt{stopopen}}
+\newcommand{\triple}{\mathtt{triple}}
+\newcommand{\squ}{\mathtt{square}}
+\newcommand{\bit}{\mathtt{bit}}
+\newcommand{\inp}{\mathtt{input}}
+\newcommand{\inv}{\mathtt{inv}}
+
+
+
+\mathchardef\mhyphen="2D
+
+\newcommand{\ind}{\stackrel{c}{\approx}}
+
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+
+\newcommand{\gc}{\mathfrak{c}}
+\newcommand{\ct}{\mathfrak{c}}
+\newcommand{\xt}{\mathfrak{d}}
+\newcommand{\sk}{\mathfrak{s}}
+\newcommand{\pk}{\mathfrak{pk}}
+\newcommand{\epk}{\mathfrak{epk}}
+\newcommand{\lev}{\ell}
+
+\newcommand{\enc}{\mathfrak{enc}}
+\newcommand{\zero}{\mathfrak{zero}}
+
+\newcommand{\va}{\mathbf{a}}
+\newcommand{\vb}{\mathbf{b}}
+\newcommand{\vc}{\mathbf{c}}
+\newcommand{\vct}{\underline{\mathbf{c}}}
+\newcommand{\vd}{\mathbf{d}}
+\newcommand{\ve}{\mathbf{e}}
+\newcommand{\vf}{\mathbf{f}}
+\newcommand{\vk}{\mathbf{k}}
+\newcommand{\vm}{\mathbf{m}}
+\newcommand{\vr}{\mathbf{r}}
+\newcommand{\vs}{\mathbf{s}}
+\newcommand{\vt}{\mathbf{t}}
+\newcommand{\vv}{\mathbf{v}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vy}{\mathbf{y}}
+\newcommand{\vz}{\mathbf{z}}
+
+
+\newcommand{\norm}[1]{{\Vert #1 \Vert}}
+\newcommand{\can}{\mathsf{can}}
+\newcommand{\DDsecp}{\mathsf{DD\_sec}}
+\newcommand{\Soundsecp}{\mathsf{Sound\_sec}}
+\newcommand{\ZKsecp}{\mathsf{ZK\_sec}}
+\newcommand{\Sacsecp}{\mathsf{sacrifice\_sec}}
+\newcommand{\Macsecp}{\mathsf{macs\_sec}}
+
+\newcommand{\Sample}{\mathsf{Sample}}
+\newcommand{\FRand}{\mathcal{F}_{\mathsf{Rand}}}
+
+\newcommand{\KeyGen}{\mathsf{KeyGen}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
+\newcommand{\DistDec}{\mathsf{DistDec}}
+\newcommand{\SwitchModulus}{\mathsf{SwitchModulus}}
+\newcommand{\SwitchKey}{\mathsf{SwitchKey}}
+
+
+\newcommand{\Seed}{\mathsf{Seed}}
+\newcommand{\PRF}{\mathsf{PRF}}
+\newcommand{\cnt}{\mathsf{cnt}}
+\newcommand{\cond}{\mathsf{cond}}
+
+\newcommand{\Rand}{\mathsf{Rand}}
+\newcommand{\MACCheck}{\mathsf{MACCheck}}
+\newcommand{\EncCommit}{\mathsf{EncCommit}}
+\newcommand{\Reshare}{\mathsf{Reshare}}
+\newcommand{\DataGen}{\mathsf{DataGen}}
+\newcommand{\DataCheck}{\mathsf{DataCheck}}
+\newcommand{\MACKeyGen}{\mathsf{MACKeyGen}}
+
+\newcommand{\clean}{\mathsf{clean}}
+\newcommand{\scale}{\mathsf{scale}}
+\newcommand{\dec}{\mathsf{dec}}
+\newcommand{\dishonest}{\mathsf{dishonest}}
+\newcommand{\KS}{\mathsf{KS}}
+
+\newcommand{\Var}{\mathsf{Var}}
+
+\newcommand{\chall}{\mathsf{chall}}
+
+\newcommand{\RLWE}{\mathsf{RLWE}}
+
+\newcommand{\dN}{\mathcal{DG}}
+\newcommand{\HWT}{\mathcal{HWT}}
+\newcommand{\ZO}{\mathcal{ZO}}
+\newcommand{\RC}{\mathcal{RC}}
+\newcommand{\calU}{\mathcal{U}}
+
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\Comm}{\mathsf{Commit}}
+\newcommand{\Challenge}{\mathsf{Chal}}
+\newcommand{\Resp}{\mathsf{Response}}
+\newcommand{\Verify}{\mathsf{Verify}}
+\newcommand{\Deliver}{\mathsf{Deliver}}
+\newcommand{\Abort}{\mathsf{Abort}}
+\newcommand{\Skip}{\mathsf{Skip}}
+\newcommand{\Cheat}{\mathsf{Cheat}}
+\newcommand{\Proceed}{\mathsf{Proceed}}
+\newcommand{\Pass}{\mathsf{Pass}}
+\newcommand{\Continue}{\mathsf{Continue}}
+\newcommand{\CheatSwitch}{\mathsf{CheatSwitch}}
+\newcommand{\Success}{\mathsf{Success}}
+\newcommand{\NoSuccess}{\mathsf{NoSuccess}}
+\newcommand{\Start}{\mathsf{Start}}
+\newcommand{\Command}{\mathsf{Command}}
+\newcommand{\DataType}{\mathsf{DataType}}
+\newcommand{\InputPrep}{\mathsf{InputPrep}}
+\newcommand{\Triples}{\mathsf{Triples}}
+\newcommand{\Squares}{\mathsf{Squares}}
+\newcommand{\Angle}{\mathsf{Angle}}
+\newcommand{\SEncCommit}{\mathsf{SEncCommit}}
+\newcommand{\SReshare}{\mathsf{SReshare}}
+\newcommand{\BreakDown}{\mathsf{BreakDown}}
+\newcommand{\Decision}{\mathsf{Decision}}
+\newcommand{\resp}{\mathsf{resp}}
+
+\newcommand{\Func}{\mathcal{F}}
+\newcommand{\Sim}{\mathcal{S}}
+\newcommand{\Env}{\mathcal{Z}}
+\newcommand{\Adv}{\mathcal{A}}
+
+\newcommand{\FKEYGEN}{\ensuremath{\mathcal{F}_\textsc{KeyGen}}}
+\newcommand{\PIKEYGEN}{\ensuremath{\Pi_\textsc{KeyGen}}}
+\newcommand{\SKEYGEN}{\ensuremath{\mathcal{S}_\textsc{KeyGen}}}
+\newcommand{\FCOMM}{\ensuremath{\mathcal{F}_\textsc{Commit}}}
+\newcommand{\PICOMM}{\ensuremath{\Pi_\textsc{Commit}}}
+\newcommand{\SCOMM}{\ensuremath{\mathcal{S}_\textsc{Commit}}}
+\newcommand{\FENCCOMMIT}{\ensuremath{\mathcal{F}_\textsc{EncCommit}}}
+\newcommand{\PIENCCOMMIT}{\ensuremath{\Pi_\textsc{EncCommit}}}
+\newcommand{\SENCCOMMIT}{\ensuremath{\mathcal{S}_\textsc{EncCommit}}}
+\newcommand{\FCOMMOPEN}{\ensuremath{\mathcal{F}_\textsc{Comm}}}
+\newcommand{\FMACCHECK}{\ensuremath{\mathcal{F}_\textsc{MACCheck}}}
+\newcommand{\SMACCHECK}{\ensuremath{\mathcal{S}_\textsc{MACCheck}}}
+\newcommand{\FPREP}{\ensuremath{\mathcal{F}_\textsc{Prep}}}
+\newcommand{\FMACKEYGEN}{\ensuremath{\mathcal{F}_\textsc{MACKeyGen}}}
+\newcommand{\SMACKEYGEN}{\ensuremath{\mathcal{S}_\textsc{MACKeyGen}}}
+\newcommand{\STUPLEGEN}{\ensuremath{\mathcal{S}_\textsc{TupleGen}}}
+\newcommand{\STUPLECHECK}{\ensuremath{\mathcal{S}_\textsc{TupleCheck}}}
+\newcommand{\SPREP}{\ensuremath{\mathcal{S}_\textsc{Prep}}}
+\newcommand{\FSHE}{\ensuremath{\mathcal{F}_\textsc{SHE}}}
+\newcommand{\PISHE}{\ensuremath{\Pi_\textsc{SHE}}}
+\newcommand{\SSHE}{\ensuremath{\mathcal{S}_\textsc{SHE}}}
+\newcommand{\Online}{\ensuremath{\Pi_\textsc{Online}}}
+\newcommand{\FONLINE}{\ensuremath{\mathcal{F}_\textsc{Online}}}
+\newcommand{\SONLINE}{\ensuremath{\mathcal{S}_\textsc{Online}}}
+\newcommand{\Prep}{\ensuremath{\Pi_\textsc{Prep}}}
+
+\newcommand{\Proto}[1]{\Pi_\mathsf{#1}}
+\newcommand{\Simu}[1]{\mathcal{S}_{\mathsf{#1}}}
+
+\newcommand{\Pgpok}{\Proto{gZKPoK}}
+\newcommand{\Sgpok}{\Simu{gZKPoK}^S}
+\newcommand{\gZKPoK}{\mathsf{ZKPoK}}
+\newcommand{\flag}{\mathsf{flag}}
+\newcommand{\Pred}{\mathsf{P}}
+\newcommand{\Diag}{\mathsf{Diag}}
+
+\newcommand{\ui}{^{(i)}}
+\newcommand{\uti}{\ui{}^{\intercal}}
+\newcommand{\transpose}[1]{#1^{\intercal}}
+
+\def\tick{\tikz\fill[scale=0.4](0,.35) -- (.25,0) -- (1,.7) -- (.25,.15) -- cycle;}
+
+\newcommand{\figlab}[1]{\label{fig:#1}}
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\tablab}[1]{\label{tab:#1}}
+\newcommand{\tabref}[1]{Table~\ref{tab:#1}}
+
+% Environments
+\newenvironment{boxfig}[2]{% {#1}{#2} = {Caption}{label}
+   \vspace{0.3cm}  
+     \begin{figure}[htbp!]
+     \renewcommand{\figurename}{{\bf Figure~}}
+     \newcommand{\FigCaption}{#1}
+     \newcommand{\FigLabel}{#2}
+       \vspace{-0.60cm}
+     \begin{center}
+       \begin{small}
+         \begin{tabular}{@{}|@{~~}l@{~~}|@{}}
+           \hline
+           \rule[-1.5ex]{0pt}{1ex}\begin{minipage}[b]{.96\linewidth}
+             \vspace{1ex}
+             \smallskip
+             \begin{center}\FigCaption\end{center}
+             }{%
+           \end{minipage}\\
+           \hline
+         \end{tabular}
+       \end{small}
+       \vspace{-0.2cm}
+       \caption{\FigCaption}
+       \figlab{\FigLabel}
+     \end{center}
+   \end{figure}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Better Box environment
+% Usage: \begin{Boxfig}[placement]{Caption}{Label}{Title}
+\newenvironment{Boxfig}[4][]{
+    \begin{figure}[thb!]
+    \renewcommand{\figurename}{{\bf Figure~}}
+    \newcommand{\FigCaption}{#2}
+    \newcommand{\FigLabel}{#3}
+    \vspace{-0.25cm}
+    \begin{center}
+        \begin{small}
+        \begin{tabular}{@{}|@{~~}l@{~~}|@{}}
+        \hline
+        \rule[-1.5ex]{0pt}{1ex}\begin{minipage}[b]{.96\linewidth}
+        \vspace{1ex}
+        \smallskip
+        \begin{center}
+           \textbf{#4}
+        \end{center}
+}
+{%
+        \end{minipage}\\
+        \hline
+        \end{tabular}
+        \end{small}
+        \vspace{-0.25cm}
+        \caption{\FigCaption}
+        \label{fig:\FigLabel}
+    \end{center}
+    \end{figure}
+}
+
+\newcommand{\ints}{\mathbf{i64}}
+\newcommand{\bool}{\mathbf{bool}}
+\newcommand{\SecretI}{\mathbf{SecretI64}}
+\newcommand{\ClearModp}{\mathbf{ClearModp}}
+\newcommand{\SecretModp}{\mathbf{SecretModp}}
+\newcommand{\SecretBit}{\mathbf{SecretBit}}
+\newcommand{\regint}{\mathsf{regint}}
+\newcommand{\sregint}{\mathsf{sregint}}
+\newcommand{\cint}{\mathsf{cint}}
+\newcommand{\sint}{\mathsf{sint}}
+\newcommand{\sbit}{\mathsf{sbit}}
+

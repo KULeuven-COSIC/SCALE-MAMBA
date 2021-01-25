@@ -7,7 +7,11 @@ All rights reserved
 #ifndef _SimplifyCircuit
 #define _SimplifyCircuit
 
-/* Class to perform Circuit simplification */
+/* Class to perform Circuit simplification 
+ *
+ * - This only works for circuits without MAND gates!
+ *
+ */
 
 #include "GC/Circuit.h"
 

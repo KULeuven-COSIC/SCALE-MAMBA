@@ -66,6 +66,7 @@ All rights reserved
  */
 
 #include "FHE_Keys.h"
+#include "Tools/buffer.h"
 #include "config.h"
 
 class ZKPoK
@@ -111,9 +112,14 @@ class ZKPoK
   // Gets the matrix value we have
   int M(unsigned int k, unsigned int l, const vector<int> &e);
 
+  // Buffer for IO
+  mutable buffer buff;
+
 public:
   // Default settings (standard TopGear)
-  ZKPoK()
+  //   Define a big size of the buffer to avoid redoing stuff
+  //       V_estimate*(2 for ctx)*(2 for lev)*(32768 for dim)*maxsizeof(modp)
+  ZKPoK() : buff(20 * 4 * 32768 * MAX_MOD_SZ * sizeof(mp_limb_t))
   {
     single= false;
     prover= false;
@@ -147,22 +153,22 @@ public:
              const FHE_PK &pk, const FFT_Data &PTD, PRNG &G,
              const vector<gfp> &alpha= {});
   // Player calls this to enter the each other players vectors
-  // and sum up the vE vectors
-  void Step0_Step(istream &vE, const FHE_PK &pk);
+  // and sum up the vectors in the vE strings
+  void Step0_Step(const uint8_t *vE, const FHE_PK &pk);
 
   void Step1(const FHE_PK &pk, const FFT_Data &PTD, PRNG &G);
 
   // Player calls this to enter the each other players vectors vA
-  void Step1_Step(istream &vA, const FHE_PK &pk);
+  void Step1_Step(const uint8_t *vA, const FHE_PK &pk);
 
-  // Get my vA for broadcasting
-  void get_vA(ostream &s) const;
-  // Get my vE for broadcasting
-  void get_vE(ostream &s) const;
-  // Get my vT for broadcasting
-  void get_vT(ostream &s) const;
-  // Get my vz for broadcasting
-  void get_vZ(ostream &s) const;
+  // Get my vE for broadcasting, len is the size of the buffer returned
+  const uint8_t *get_vE(unsigned int &len) const;
+  // Get my vA for broadcasting, len is the size of the buffer returned
+  const uint8_t *get_vA(unsigned int &len) const;
+  // Get my vT and vZ for broadcasting, len is the size of the buffer returned
+  const uint8_t *get_vT_vZ(unsigned int &len) const;
+  // Get my vZ for broadcasting, len is the size of the buffer returned
+  const uint8_t *get_vZ(unsigned int &len) const;
 
   // Generate the vector e for Step 2 from a random seed
   void Generate_e(vector<int> &e, uint8_t seed[SEED_SIZE]);
@@ -171,7 +177,7 @@ public:
   void Step2(const vector<int> &e, const FHE_PK &pk);
 
   // Player calls this to enter the each other players vector vT
-  void Step2_Step(istream &vT, istream &vZ, const FHE_PK &pk);
+  void Step2_Step(const uint8_t *vT_vZ, const FHE_PK &pk);
 
   bool Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers);
 

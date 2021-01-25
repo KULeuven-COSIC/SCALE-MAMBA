@@ -205,6 +205,7 @@ public:
   void output(ostream &s, bool human= false) const;
   void input(istream &s, bool human= false);
 
+  /*
   string str()
   {
     stringstream ss;
@@ -213,6 +214,7 @@ public:
       ss << (int) bytes[i] << " ";
     return ss.str();
   }
+  */
 };
 
 #endif

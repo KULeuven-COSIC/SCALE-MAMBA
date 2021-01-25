@@ -12,10 +12,13 @@ All rights reserved
 
 extern vector<sacrificed_data> SacrificeD;
 
-void Processor_IO::private_input(unsigned int player, int target, unsigned int channel,
-                                 Processor &Proc, Player &P, Machine &machine,
-                                 offline_control_data &OCD,
-                                 unsigned int vectorize)
+template<class SRegint, class SBit>
+void Processor_IO<SRegint, SBit>::private_input(
+    unsigned int player, int target, unsigned int channel,
+    Processor<SRegint, SBit> &Proc, Player &P,
+    Machine<SRegint, SBit> &machine,
+    offline_control_data &OCD,
+    unsigned int vectorize)
 {
   int thread= Proc.get_thread_num();
 
@@ -52,9 +55,9 @@ void Processor_IO::private_input(unsigned int player, int target, unsigned int c
         }
     }
   OCD.OCD_mutex[thread].unlock();
-  #ifdef BENCH_OFFLINE
-  P.inputs+=vectorize;
-  #endif
+#ifdef BENCH_OFFLINE
+  P.inputs+= vectorize;
+#endif
   Proc.increment_counters(Share::SD.M.shares_per_player(P.whoami()));
 
   if (player == P.whoami())
@@ -85,11 +88,13 @@ void Processor_IO::private_input(unsigned int player, int target, unsigned int c
     }
 }
 
-void Processor_IO::private_output(unsigned int player, int source, unsigned int channel,
-                                  Processor &Proc, Player &P,
-                                  Machine &machine,
-                                  offline_control_data &OCD,
-                                  unsigned int vectorize)
+template<class SRegint, class SBit>
+void Processor_IO<SRegint, SBit>::private_output(
+    unsigned int player, int source, unsigned int channel,
+    Processor<SRegint, SBit> &Proc, Player &P,
+    Machine<SRegint, SBit> &machine,
+    offline_control_data &OCD,
+    unsigned int vectorize)
 {
   int thread= Proc.get_thread_num();
   Wait_For_Preproc(DATA_INPUT_MASK, vectorize, thread, OCD, player);
@@ -116,9 +121,9 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
     }
 
   OCD.OCD_mutex[thread].unlock();
-  #ifdef BENCH_OFFLINE
-  P.inputs+=vectorize;
-  #endif
+#ifdef BENCH_OFFLINE
+  P.inputs+= vectorize;
+#endif
 
   for (unsigned int i= 0; i < vectorize; i++)
     {
@@ -141,3 +146,6 @@ void Processor_IO::private_output(unsigned int player, int source, unsigned int 
         }
     }
 }
+
+template class Processor_IO<aBitVector, aBit>;
+template class Processor_IO<aBitVector2, Share2>;

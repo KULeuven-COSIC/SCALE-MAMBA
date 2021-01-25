@@ -20,7 +20,6 @@ void offline_Maurer_squares(Player &P, PRSS &prss, list<Share> &a,
                             list<Share> &b,
                             unsigned int rep= 1);
 
-void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b,
-                         Open_Protocol &OP);
+void offline_Maurer_bits(Player &P, PRSS &prss, list<Share> &b);
 
 #endif

@@ -1,4 +1,4 @@
-all: 
+all:
 	make progs
 	make test
 	make doc
@@ -9,7 +9,7 @@ progs:
 test:
 	-cd Test ; make
 
-doc: 
+doc:
 	-cd Documentation ; make
 	-cd Compiler ; doxygen doxy.config
 
@@ -17,10 +17,10 @@ circuits:
 	-cd Circuits ; make ; ./convert.sh
 
 clean:
-	-rm  *.x
+	-rm SetupBinary.x PlayerBinary.x
 	-cd src ; make clean
 	-cd Test ; make clean
-	-cd Circuits ; make clean 
+	-cd Circuits ; make clean
 
 pclean:
 	-cd Programs ; rm */*.bc ; rm */*.sch ; rm */*.asm

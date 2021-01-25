@@ -1,4 +1,4 @@
-\mainsection{System and User Defined Circuits for Garbling}
+\mainsection{System and User Defined Binary Circuits}
 \label{sec:GC}
 SCALE-MAMBA allows one to call user defined circuits, both
 from the byte-code and the MAMBA language.
@@ -30,19 +30,24 @@ to the function must be a multiple of 64-bits in length.
 If this is not the case you just need to pad the
 input/output to the correct size.
 
-You then need to convert the netlist into ``Bristol 
-Fashion''. To do this we use a small program
+You then need to convert the netlist into a
+simple ``Bristol Fashion''. To do this we use a small program
 called \verb|convert.x| which lives in the 
 \verb|Circuits| directory. This takes a \verb|.net|
 file in the \verb|VHDL| subdirectory and turns it
 into a \verb|.txt| file in the \verb|Bristol| subdirectory.
 
-{\bf Note:} Some optimizations are applied to the
+
+{\bf Note 1:} Some optimizations are applied to the
 circuit on this transfer, which include removing unused
 wires etc. If your original function needed padding to
 make 64-bit multiple inputs/outputs you need to stop
 this optimization. To do this just comment out the
 line \verb|SC.Simplify()| in the program \verb|convert.cpp|.
+
+{\bf Note 2:} The circuits in the subdirectory
+\verb|Bristol| are in the simple Bristol fashion format,
+with no MAND gates.
 
 You should now have a Bristol Fashion file with an 
 extension \verb|.txt| in the directory \verb|Circuits/Bristol|.
@@ -93,12 +98,12 @@ into memory, and that when it does need to be loaded
 where to get it from.
 
 \subsection{Byte Code Operation}
-The garbled circuit is executed by the \verb|GC| byte-code.
+The circuit is executed by the \verb|GC| byte-code.
 This takes as input a single integer which defines the
 circuit to be evaluated.
-The arguments to the garbled circuit, as \verb|sregint| values,
+The arguments to the circuit, as \verb|sregint| values,
 are then popped off the \verb|sregint|-stack and then passed
-into the garbled circuit engine.
+into the binary circuit engine.
 On return the resulting result values are then pushed
 onto the \verb|sregint|-stack.
 Since a \verb|sregint| register is 64-bits long, this
@@ -107,13 +112,23 @@ of 64-bits.
 
 When this instruction is executed, if the circuit has
 not yet been loaded it is loaded into memory. Then the
-Garbled Circuit engine is called with the given input
+binary circuit engine is called with the given input
 values to produce the output.
 Note, that the first time a GC operation is met, the
 runtime might give a small delay as the various pre-processing
-queues need to fill up.
+queues need to fill up, this is especially true for the
+HSS based binary circuit engine.
 In subsequent GC operations this stall disappears (unless
 you are doing a lot of GC operations one after another).
+
+{\bf Note:} When using the binary circuit engine for
+Shamir and Replicated sharing when loading a 
+{\em user define circuit} for the first time there is
+also a delay as the circuit gets `optimized' on the
+fly by adding MAND gate instead of many single AND
+gates. This can take a while for large circuits.
+Thus if timing GC operations always do a dummy execution
+first before executing any timing.
 
 Due to the way the queues are produced if you pass in a
 VERY big circuit the  runtime might abort. If this happens
@@ -202,9 +217,10 @@ Number & Function \\
 121 & IEEE floating point (double) multiplication \\
 122 & IEEE floating point (double) division \\
 123 & IEEE floating point (double) equality \\
-124 & IEEE floating point (double)  to sregint \\
+124 & IEEE floating point (double) to sregint \\
 125 & sregint to IEEE floating point (double) \\
 126 & IEEE floating point (double) sqrt \\
+127 & IEEE floating point (double) lt \\
 \hline
 \end{tabular}
 \end{center}
@@ -349,4 +365,64 @@ print_int(b);        print_ln("")
 \end{lstlisting}
 Note how negation can be obtained by a bit flip in the sign position.
 
+
+\subsection{What Algorithms are Used}
+There are two different binary circuit engines. One for Shamir/Replicated
+sharings and one for Full Threshold/Q2 MSP sharings.
+In theory one could use the Shamir/Replicated sharing for the Q2 MSP
+sharings, but currently there is a bug in the conversion which we need
+to iron out.
+\begin{itemize}
+\item It has something to do with creating the correct complete access
+structure from the Q2 MSP, in order to generate the associated
+replicated sharing.
+\end{itemize}
+
+\paragraph{Shamir/Replicated Sharings}
+The base triples are produced using Maurer's simple protocol
+\cite{Maurer} using the underlying replicated sharing method.
+Thus this is use a PRSS to generate 
+$a$ and $b$, and then generate $c$ via Schur-Multiplication
+followed by resharing.
+The triples are then verified to be correct using Protocol 3.1
+from \cite{DBLP:conf/sp/ArakiBFLLNOWW17}.
+This is all done in a single offline thread.
+
+{\bf Note:} This entire method (including the online phase)
+requires a sufficiently small Replicated representation of 
+the base access structure. Thus for Shamir sharings for which 
+one cannot implement a PRSS (as the size of the associated 
+Replicated scheme is too large) we default to the HSS based
+method for Full Threshold sharings. 
+
+As the underlying access structure is Q2 the shares are automatically
+self-authenticating (see \cite{SW18}), one can run the 
+MPC protocol from \cite{SW18} to evaluate the circuit.
+Since this protocol is not constant round we need to `massage'
+the Bristol Fashion circuit into its extended format, which
+is AND-depth oriented and includes the MAND gates. This
+results in a delay when loading a circuit into SCALE for the
+first time.
+The protocol for multiplication within the circuit
+makes use of the reduced communication methodology of
+\cite{KRSW}.
+With authentication performed by hashing the opened sharings,
+and then comparing the hash value at appropriate moments.
+
+\paragraph{Full Threshold/Q2 MSP Sharings}
+Authenticated bits (called aBits) and authenticated triples (called aANDs) 
+are generated with BDOZ style MACs using an OT based pre-processing.
+The underlying OT protocol is from \cite{CO15}.
+The base random OTs are  converted into a large number of
+correlated COT's, for which we use \cite{AC:FKOS15}[Full Version, Figure 19]
+and \cite{C:KelOrsSch15}[Full Version, Figure 7].
+These correlated OTs are then converted into random sharings of authenticated
+bits (so called aShares/aBits), for this step we use \cite{AC:HazSchSor17}[Full Version, Figure 16].
+Finally these aBits are converted into aANDs using
+\cite{CCS:WanRanKat17b}[Full Version, Figures 16, 8 and 18 in order].
+The hash function in the protocol to generated HaANDs from \cite{CCS:WanRanKat17b}
+is implemented using the CCR-secure MMO construction from \cite{GKWY19}.
+Once the aBits and the aANDs are produced (in the offline threads) 
+the protocol to process a circuit utilizes the garbled-circuit BMR approach of
+\cite{AC:HazSchSor17}.
 

@@ -34,27 +34,21 @@ error: expected at least 1 arguments
 3 | vldms
   | ^^^^^
   |
-error: expected at least 0 arguments
+error: invalid number of arguments
  --> tests/broken_asm/vector_op.asm:4:1
   |
 4 | vldms 42
-  | ^^^^^^^^
+  | ^^^^^^^^ The number of arguments given did not match what the assembly instruction requires
   |
-error: expected at least 1 arguments
- --> tests/broken_asm/vector_op.asm:4:1
-  |
-4 | vldms 42
-  | ^^^^^^^^
-  |
-error: expected register, got `13`
- --> tests/broken_asm/vector_op.asm:5:11
-  |
-5 | vldms 45, 13
-  |           ^^ for operand here
-  |
-error: expected at least 1 arguments
+error: invalid number of arguments
  --> tests/broken_asm/vector_op.asm:5:1
   |
 5 | vldms 45, 13
-  | ^^^^^^^^^^^^
+  | ^^^^^^^^^^^^ The number of arguments given did not match what the assembly instruction requires
+  |
+error: invalid number of arguments
+ --> tests/broken_asm/vector_op.asm:7:1
+  |
+7 | vldms 45, s32, 8192,
+  | ^^^^^^^^^^^^^^^^^^^^ The number of arguments given did not match what the assembly instruction requires
   |

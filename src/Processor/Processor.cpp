@@ -7,16 +7,18 @@ All rights reserved
 
 #include "Processor.h"
 #include "GC/Garbled.h"
+#include "GC/Q2_Evaluate.h"
 #include "Offline/DABitMachine.h"
 
-extern MaliciousDABitMachine daBitMachine;
 extern Base_Circuits Global_Circuit_Store;
 
-Processor::Processor(int thread_num, unsigned int nplayers,
-                     Player &P) : online_thread_num(thread_num), iop(nplayers)
+template<class SRegint, class SBit>
+Processor<SRegint, SBit>::Processor(int thread_num, unsigned int nplayers,
+                                    Machine<SRegint, SBit> &machine, Player &P)
+    : online_thread_num(thread_num), iop(nplayers)
 {
 
-  daBitGen= daBitMachine.new_generator(P, thread_num);
+  daBitGen= machine.daBitMachine.new_generator(P, thread_num);
   rounds= 0;
   sent= 0;
   stack_Cp.reserve(16384);
@@ -26,7 +28,8 @@ Processor::Processor(int thread_num, unsigned int nplayers,
   stack_sbit.reserve(16384);
 }
 
-Processor::~Processor()
+template<class SRegint, class SBit>
+Processor<SRegint, SBit>::~Processor()
 {
   fprintf(stderr, "Sent %d elements in %d rounds\n", sent, rounds);
 #ifdef VERBOSE
@@ -35,9 +38,11 @@ Processor::~Processor()
   for (auto &timer : daBitGen->timers)
     cout << timer.first << " took time " << timer.second.elapsed() / 1e6 << endl;
 #endif
+  delete daBitGen;
 }
 
-void Processor::POpen_Start(const vector<int> &reg, int size, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::POpen_Start(const vector<int> &reg, int size, Player &P)
 {
   // printf("POpen_Start : size = %d     reg.size = %lu\n ",size,reg.size());
   int sz= reg.size();
@@ -65,14 +70,15 @@ void Processor::POpen_Start(const vector<int> &reg, int size, Player &P)
         }
     }
   PO.resize(sz * size);
-  OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
+  P.OP->Open_To_All_Begin(PO, Sh_PO, P, 0);
 }
 
-void Processor::POpen_Stop(const vector<int> &reg, int size, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::POpen_Stop(const vector<int> &reg, int size, Player &P)
 {
   int sz= reg.size();
   PO.resize(sz * size);
-  OP.Open_To_All_End(PO, Sh_PO, P, 0);
+  P.OP->Open_To_All_End(PO, Sh_PO, P, 0);
   if (size > 1)
     {
       typename vector<gfp>::iterator PO_it= PO.begin();
@@ -98,7 +104,8 @@ void Processor::POpen_Stop(const vector<int> &reg, int size, Player &P)
   increment_counters(reg.size() * size);
 }
 
-void Processor::clear_registers()
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::clear_registers()
 {
   for (unsigned int i= 0; i < Cp.size(); i++)
     {
@@ -134,8 +141,11 @@ void Processor::clear_registers()
 }
 
 // Now the routine to execute a program
-void Processor::execute(const Program &prog, int argument, Player &P,
-                        Machine &machine, offline_control_data &OCD)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::execute(const Program<SRegint, SBit> &prog, int argument,
+                                       unsigned int start,
+                                       Player &P,
+                                       Machine<SRegint, SBit> &machine, offline_control_data &OCD)
 {
   reg_maxp= prog.num_reg(MODP);
   reg_maxi= prog.num_reg(INT);
@@ -173,7 +183,7 @@ void Processor::execute(const Program &prog, int argument, Player &P,
 #endif
 
   unsigned int size= prog.size();
-  PC= 0;
+  PC= start;
   arg= argument;
   // This is a deterministic PRNG, used in some ORAM routines
   // Having a fixed seed is therefore no problem
@@ -206,21 +216,22 @@ void Processor::execute(const Program &prog, int argument, Player &P,
     }
 }
 
-void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_sint_to_sregint_small(int i0, int i1, Player &P)
 {
   unsigned int size= numBits(gfp::pr());
   unsigned long p= gfp::pr().get_ui();
-  aBitVector x, y, z, r2;
-  aBit bit;
-  int b;
+  SRegint x, y, z, r2;
+  SBit bit;
+  word b;
   bool done= false;
   vector<Share> bpr(size);
-  vector<aBit> b2r(size);
+  vector<SBit> b2r(size);
   auto &daBitGen= get_generator();
   // Get a set of size daBits, until the value is less than p
   while (!done)
     { // Get daBits
-      daBitV.get_daBits(bpr, b2r, daBitGen);
+      daBitV.get_daBits(bpr, b2r, daBitGen, P);
       r2.assign_zero();
       for (unsigned int i= 0; i < size; i++)
         {
@@ -228,7 +239,7 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
         }
       z.sub(r2, p, P, online_thread_num);
       bit= z.less_than_zero();
-      Open_aBit(b, bit, P);
+      P.OP2->Open_Bit(b, bit, P);
       if (b == 1)
         {
           done= true;
@@ -250,8 +261,8 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
 
   // Now open x-r
   vector<gfp> gfp_xr(1);
-  OP.Open_To_All_Begin(gfp_xr, S_xr, P, 2);
-  OP.Open_To_All_End(gfp_xr, S_xr, P, 2);
+  P.OP->Open_To_All_Begin(gfp_xr, S_xr, P, 2);
+  P.OP->Open_To_All_End(gfp_xr, S_xr, P, 2);
 
   // Now add z=(x-r)+r in the GC routines
   bigint bi_xr;
@@ -282,7 +293,57 @@ void Processor::convert_sint_to_sregint_small(int i0, int i1, Player &P)
   write_srint(i1, x);
 }
 
-void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
+template<>
+void Processor<aBitVector, aBit>::convert_sint_to_sregint_sub(
+    const vector<vector<aBit>> &input, int i1, Player &P)
+{
+  vector<vector<aBit>> output(1, vector<aBit>(sreg_bitl));
+
+  // Evaluate the garbled circuit
+  Base_Garbled_Circuit GC;
+  GC.Garble(Global_Circuit_Store.Circuits[LSSS_to_GC], P, online_thread_num);
+  GC.Evaluate(output, input, Global_Circuit_Store.Circuits[LSSS_to_GC], P);
+
+  // Write back into the processor
+  write_srint(i1, output[0]);
+}
+
+template<>
+void Processor<aBitVector2, Share2>::convert_sint_to_sregint_sub(
+    const vector<vector<Share2>> &input, int i1, Player &P)
+{
+  vector<vector<Share2>> output(1, vector<Share2>(sreg_bitl));
+
+  // Evaluate the garbled circuit
+  Evaluate(output, input, Global_Circuit_Store.Circuits[LSSS_to_GC], P, online_thread_num);
+
+  // Write back into the processor
+  aBitVector2 temp;
+  collapse(temp, output[0]);
+  write_srint(i1, temp);
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+template<>
+void Processor<aBitVector2, Share2>::convert_sint_to_sregint_sub(
+    const vector<vector<aBit>> &input, int i1, Player &P)
+{
+  // This is a dummy function to get around a C++ quirk
+  throw not_implemented();
+}
+
+template<>
+void Processor<aBitVector, aBit>::convert_sint_to_sregint_sub(
+    const vector<vector<Share2>> &input, int i1, Player &P)
+{
+  // This is a dummy function to get around a C++ quirk
+  throw not_implemented();
+}
+#pragma GCC diagnostic pop
+
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_sint_to_sregint(int i0, int i1, Player &P)
 {
   unsigned int size0= numBits(gfp::pr());
   unsigned int size1= sreg_bitl + conv_stat_sec;
@@ -300,15 +361,14 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
       return;
     }
   // Set up arrays for the GC stuff
-  vector<vector<aBit>> input(2);
+  vector<vector<SBit>> input(2);
   input[0].resize(size0);
   input[1].resize(size1);
-  vector<vector<aBit>> output(1, vector<aBit>(sreg_bitl));
 
   // Get a daBit
   vector<Share> bpr(size1);
   auto &daBitGen= get_generator();
-  daBitV.get_daBits(bpr, input[1], daBitGen);
+  daBitV.get_daBits(bpr, input[1], daBitGen, P);
 
   // Now form r
   Share r(P.whoami());
@@ -325,40 +385,36 @@ void Processor::convert_sint_to_sregint(int i0, int i1, Player &P)
 
   // Now open x-r
   vector<gfp> gfp_xr(1);
-  OP.Open_To_All_Begin(gfp_xr, S_xr, P, 2);
-  OP.Open_To_All_End(gfp_xr, S_xr, P, 2);
+  P.OP->Open_To_All_Begin(gfp_xr, S_xr, P, 2);
+  P.OP->Open_To_All_End(gfp_xr, S_xr, P, 2);
 
-  // Form vector<aBit> of gfp_xr
+  // Form vector<SBit> of gfp_xr
   bigint bi_xr;
   to_bigint(bi_xr, gfp_xr[0]);
   for (unsigned int i= 0; i < size0; i++)
     {
       if ((bi_xr & 1) == 0)
         {
-          input[0][i].assign_zero();
+          input[0][i].assign_zero(P.whoami());
         }
       else
         {
-          input[0][i].assign_one();
+          input[0][i].assign_one(P.whoami());
         }
       bi_xr>>= 1;
     }
 
   // Evaluate the garbled circuit
-  Base_Garbled_Circuit GC;
-  GC.Garble(Global_Circuit_Store.Circuits[LSSS_to_GC], P, online_thread_num);
-  GC.Evaluate(output, input, Global_Circuit_Store.Circuits[LSSS_to_GC], P);
-
-  // Write back into the processor
-  write_srint(i1, output[0]);
+  convert_sint_to_sregint_sub(input, i1, P);
 }
 
-void Processor::convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &P)
 {
   /* Get sreg_bitl daBits */
-  vector<aBit> a2r(sreg_bitl);
+  vector<SBit> a2r(sreg_bitl);
   auto &daBitGen= get_generator();
-  daBitV.get_daBits(apr, a2r, daBitGen);
+  daBitV.get_daBits(apr, a2r, daBitGen, P);
 
   /* Add onto the input register */
   for (unsigned int i= 0; i < sreg_bitl; i++)
@@ -367,8 +423,8 @@ void Processor::convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &
     }
 
   /* Now open these */
-  vector<int> v(sreg_bitl);
-  Open_aBits(v, a2r, P);
+  vector<word> v(sreg_bitl);
+  P.OP2->Open_Bits(v, a2r, P);
   Share one(1, P.whoami(), P.get_mac_keys());
 
   /* Now form the XOR on the modp side 
@@ -385,7 +441,8 @@ void Processor::convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &
     }
 }
 
-void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_sregint_to_sint(int i0, int i1, Player &P)
 {
   vector<Share> apr(sreg_bitl);
 
@@ -409,7 +466,8 @@ void Processor::convert_sregint_to_sint(int i0, int i1, Player &P)
   write_Sp(i1, ans);
 }
 
-void Processor::convert_suregint_to_sint(int i0, int i1, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_suregint_to_sint(int i0, int i1, Player &P)
 {
   vector<Share> apr(sreg_bitl);
 
@@ -430,28 +488,29 @@ void Processor::convert_suregint_to_sint(int i0, int i1, Player &P)
   write_Sp(i1, ans);
 }
 
-void Processor::convert_sbit_to_sint(int i0, int i1, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_sbit_to_sint(int i0, int i1, Player &P)
 {
   Share apr;
-  aBit a2r;
+  SBit a2r;
 
   /* Get a single daBit */
   auto &daBitGen= get_generator();
-  daBitV.get_daBit(apr, a2r, daBitGen);
+  daBitV.get_daBit(apr, a2r, daBitGen, P);
 
   /* Add onto the input register */
   a2r.add(read_sbit(i0));
 
   /* Now open it */
-  int v;
-  Open_aBit(v, a2r, P);
+  word v;
+  P.OP2->Open_Bit(v, a2r, P);
   Share one(1, P.whoami(), P.get_mac_keys());
 
   /* Now form the XOR on the modp side
    *   apr= apr+v-2*v*apr
    *      = (v==0) * apr  + (v==1)*(-apr+1)
    */
-  if (v == 1)
+  if ((v & 1) == 1)
     {
       apr.negate();
       apr.add(one);
@@ -461,7 +520,8 @@ void Processor::convert_sbit_to_sint(int i0, int i1, Player &P)
   write_Sp(i1, apr);
 }
 
-void Processor::convert_sint_to_sbit(int i0, int i1, Player &P)
+template<class SRegint, class SBit>
+void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P)
 {
   unsigned int psize= numBits(gfp::pr());
   if (1 + conv_stat_sec >= sreg_bitl || psize <= 1 + conv_stat_sec)
@@ -473,13 +533,13 @@ void Processor::convert_sint_to_sbit(int i0, int i1, Player &P)
 
   // Get a set of size daBits
   vector<Share> bpr(size);
-  vector<aBit> b2r(size);
+  vector<SBit> b2r(size);
   auto &daBitGen= get_generator();
-  daBitV.get_daBits(bpr, b2r, daBitGen);
+  daBitV.get_daBits(bpr, b2r, daBitGen, P);
 
   // Now create the integer r
   Share r(P.whoami());
-  aBitVector r2, z;
+  SRegint r2, z;
   r.assign_zero();
   r2.assign_zero();
   for (int i= size - 1; i >= 0; i--)
@@ -495,8 +555,8 @@ void Processor::convert_sint_to_sbit(int i0, int i1, Player &P)
 
   // Now open x+r
   vector<gfp> gfp_xr(1);
-  OP.Open_To_All_Begin(gfp_xr, S_xr, P, 2);
-  OP.Open_To_All_End(gfp_xr, S_xr, P, 2);
+  P.OP->Open_To_All_Begin(gfp_xr, S_xr, P, 2);
+  P.OP->Open_To_All_End(gfp_xr, S_xr, P, 2);
 
   // Now add z=(x+r)-r in the GC routines
   bigint bi_xr;
@@ -510,7 +570,8 @@ void Processor::convert_sint_to_sbit(int i0, int i1, Player &P)
 /* Arguments are obtained from the srint stack, and then outputs
  * are pushed back onto the srint stack
  */
-void Processor::apply_GC(unsigned int circuit_number, Player &P)
+template<>
+void Processor<aBitVector, aBit>::apply_GC(unsigned int circuit_number, Player &P)
 {
   // Check circuit is loaded
   Global_Circuit_Store.check(circuit_number);
@@ -574,3 +635,74 @@ void Processor::apply_GC(unsigned int circuit_number, Player &P)
         }
     }
 }
+
+/* Arguments are obtained from the srint stack, and then outputs
+ * are pushed back onto the srint stack
+ */
+template<>
+void Processor<aBitVector2, Share2>::apply_GC(unsigned int circuit_number, Player &P)
+{
+  // Check circuit is loaded
+  Global_Circuit_Store.check(circuit_number);
+
+  // Set up arrays for the IO from the GC and load in the inputs
+  unsigned int numI= Global_Circuit_Store.Circuits[circuit_number].num_inputs();
+  unsigned int numO= Global_Circuit_Store.Circuits[circuit_number].num_outputs();
+  vector<vector<Share2>> input(numI);
+  vector<vector<Share2>> output(numO);
+  aBitVector2 temp;
+  vector<Share2> temp_bits;
+
+  int regib;
+  bool empty= true;
+  // The first argument is at the bottom of the stack, the
+  // last is on the top. So need to take this into account
+  for (int i= numI - 1; i >= 0; i--)
+    {
+      input[i].resize(Global_Circuit_Store.Circuits[circuit_number].num_iWires(i));
+      for (int j= input[i].size() - 1; j >= 0; j--)
+        {
+          if (empty)
+            {
+              pop_srint(temp);
+              empty= false;
+              expand(temp_bits, temp);
+              regib= sreg_bitl - 1;
+            }
+          input[i][j]= temp_bits[regib];
+          regib--;
+          if (regib < 0)
+            {
+              empty= true;
+            }
+        }
+    }
+
+  for (unsigned int i= 0; i < numO; i++)
+    {
+      output[i].resize(Global_Circuit_Store.Circuits[circuit_number].num_oWires(i));
+    }
+
+  // Evaluate the garbled circuit
+  Evaluate(output, input, Global_Circuit_Store.Circuits[circuit_number], P, online_thread_num);
+
+  // Now process the outputs
+  regib= 0;
+  for (int i= numO - 1; i >= 0; i--)
+    {
+      for (unsigned int j= 0; j < output[i].size(); j++)
+        {
+          temp_bits[regib]= output[i][j];
+          regib++;
+          if (regib == sreg_bitl)
+            {
+              regib= 0;
+              collapse(temp, temp_bits);
+              push_srint(temp);
+            }
+        }
+    }
+}
+
+template class Processor<aBitVector, aBit>;
+template class Processor<aBitVector2, Share2>;

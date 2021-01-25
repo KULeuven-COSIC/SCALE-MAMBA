@@ -104,10 +104,10 @@ class Garbled_Circuit : public Base_Garbled_Circuit
    */
 
   // My output wire openings, one for each variable assigned to me
-  vector<vector<int>> outputs;
+  vector<vector<word>> outputs;
 
   // My input wire openings, one for each variable assigned to me
-  vector<vector<int>> inputs;
+  vector<vector<word>> inputs;
 
 public:
   void Garble(const Circuit &C,

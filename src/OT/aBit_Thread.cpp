@@ -155,7 +155,7 @@ void aBit_Thread(Player &P, unsigned int no_online_threads,
       int decide= make_aBit_Thread_decision(P);
       if (decide == 0)
         {
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
       else
         {
@@ -189,7 +189,7 @@ aBit aBit_Data::get_aShare(unsigned int q)
         {
           wait= true;
           aBD_mutex.unlock();
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
     }
   // At this point the mutex is locked
@@ -216,7 +216,7 @@ list<aBit> aBit_Data::get_aShares(unsigned int q, unsigned int num)
         {
           wait= true;
           aBD_mutex.unlock();
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
     }
   // At this point the mutex is locked

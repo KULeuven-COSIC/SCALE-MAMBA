@@ -8,14 +8,14 @@ All rights reserved
 #include "Tools/random.h"
 #include "Exceptions/Exceptions.h"
 #include "Tools/CBC-MAC.h"
-#include "cpu-support.h"
 #include "Tools/int.h"
+#include "cpu-support.h"
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
 using namespace std;
 
-PRNG::PRNG() { useC= (cpu_has_aes()==false); }
+PRNG::PRNG() { useC= (cpu_has_aes() == false); }
 
 void PRNG::ReSeed(int thread)
 {
@@ -113,7 +113,10 @@ void PRNG::hash()
 {
   if (useC)
     {
-      aes_encrypt(random, state, KeyScheduleC);
+      for (unsigned int i= 0; i < PIPELINES; i++)
+        {
+          aes_encrypt(random + i * AES_BLK_SIZE, state + i * AES_BLK_SIZE, KeyScheduleC);
+        }
     }
   else
     {
@@ -161,18 +164,29 @@ unsigned int PRNG::get_uint()
     {
       next();
     }
-  unsigned int a0= random[cnt], a1= random[cnt + 1], a2= random[cnt + 2],
-               a3= random[cnt + 3];
+  unsigned int ans= *((unsigned int *) &random[cnt]);
   cnt= cnt + 4;
-  unsigned int ans= (a0 + (a1 << 8) + (a2 << 16) + (a3 << 24));
-  // print_state(); cout << " UINT " << ans << endl;
+  return ans;
+}
+
+word PRNG::get_word()
+{
+  // We need eight bytes of randomness
+  if (cnt > RAND_SIZE - 8)
+    {
+      next();
+    }
+  word ans= *((word *) &random[cnt]);
+  cnt= cnt + 8;
   return ans;
 }
 
 __m128i PRNG::get_doubleword()
 {
   if (cnt > RAND_SIZE - 16)
-    next();
+    {
+      next();
+    }
   __m128i ans= _mm_loadu_si128((__m128i *) &random[cnt]);
   cnt+= 16;
   return ans;

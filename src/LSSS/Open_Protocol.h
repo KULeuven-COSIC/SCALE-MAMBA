@@ -28,8 +28,10 @@ All rights reserved
  */
 
 #include "Share.h"
-#include "System/Player.h"
+#include "Tools/buffer.h"
 #include <openssl/sha.h>
+
+class Player;
 
 class Open_Protocol
 {
@@ -45,6 +47,11 @@ class Open_Protocol
 
   // Hash function to define the hash for checking when type!=Full
   vector<SHA256_CTX> sha256;
+
+  // This is memory which we keep around for buffering IO
+  // It stops us having to create/delete memory on every
+  // receive operation
+  mutable buffer buff;
 
 public:
   Open_Protocol();

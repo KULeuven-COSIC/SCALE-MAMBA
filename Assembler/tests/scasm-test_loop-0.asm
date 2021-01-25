@@ -33,7 +33,7 @@ stmci c6, r3 # 29
 ldint r4, 1 # 30
 subint r5, r1, r4 # 31
 pushint r5 # 32
-jmpnz r5, -32 # 33
+jmpne r5, 0, -32 # 33
 # test_loop-0-end-loop-2
 popint r6 # 34
 ldint r7, 5 # 35
@@ -70,10 +70,10 @@ stmci c12, r13 # 63
 ldint r14, 1 # 64
 subint r15, r10, r14 # 65
 pushint r15 # 66
-jmpnz r15, -28 # 67
+jmpne r15, 0, -28 # 67
 # test_loop-0-end-loop-5
 popint r16 # 68
 ldint r17, 1 # 69
 subint r18, r8, r17 # 70
 pushint r18 # 71
-jmpnz r18, -36 # 72
+jmpne r18, 0, -36 # 72

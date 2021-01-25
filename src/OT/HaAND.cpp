@@ -13,6 +13,14 @@ void HaAND::Init(Player &P, int connection)
 {
   AgreeRandom(P, base_key, AES_BLK_SIZE, connection);
   counter= 0;
+  x.resize(number);
+  y.resize(number);
+  v.resize(number);
+  unsigned int n= P.nplayers();
+  HKi.resize(number, vector<gf2n>(n));
+  HKiD.resize(number, vector<gf2n>(n));
+  HMi.resize(number, vector<gf2n>(n));
+  buff.resize(2 * number);
 }
 
 void HaAND::make_more(Player &P, int num_online)
@@ -31,14 +39,6 @@ void HaAND::make_more(Player &P, int num_online)
 
   //P.clocks[0].reset(); P.clocks[0].start(); cout << "\t\t\tIn HaAND" << endl;
   unsigned int n= P.nplayers();
-
-  unsigned int number= 32768;
-  x.resize(number);
-  y.resize(number);
-  v.resize(number);
-  HKi.resize(number, vector<gf2n>(n));
-  HKiD.resize(number, vector<gf2n>(n));
-  HMi.resize(number, vector<gf2n>(n));
 
   list<aBit> xL= OTD.aBD.get_aShares(num_online, number);
   list<aBit> yL= OTD.aBD.get_aShares(num_online, number);
@@ -106,14 +106,14 @@ void HaAND::make_more(Player &P, int num_online)
                 }
             }
 
-          ostringstream oo;
           for (unsigned int k= 0; k < number; k++)
             {
               int h0= HKi[k][i].get_bit(0) ^ s[k][i];
               int h1= HKiD[k][i].get_bit(0) ^ s[k][i] ^ y[k].get_value();
-              oo << h0 << " " << h1 << endl;
+              buff.get_buffer()[2 * k]= (uint8_t) h0;
+              buff.get_buffer()[2 * k + 1]= (uint8_t) h1;
             }
-          o[i]= oo.str();
+          o[i]= string((char *) buff.get_buffer(), 2 * number);
         }
     }
 
@@ -123,11 +123,11 @@ void HaAND::make_more(Player &P, int num_online)
     {
       if (i != P.whoami())
         {
-          istringstream iss(o[i]);
           int h0, h1, h;
           for (unsigned int k= 0; k < number; k++)
             {
-              iss >> h0 >> h1;
+              h0= (o[i].c_str())[2 * k];
+              h1= (o[i].c_str())[2 * k + 1];
               h= h1;
               if (x[k].get_value() == 0)
                 {

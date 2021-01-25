@@ -7,13 +7,11 @@ All rights reserved
 
 #include "Processor/Instruction.h"
 #include "Exceptions/Exceptions.h"
-#include "Local/Local_Functions.h"
 #include "Offline/offline_data.h"
 #include "Processor/Processor.h"
 #include "Tools/Crypto.h"
 #include "Tools/parse.h"
 #include "Tools/util_containers.h"
-extern Local_Functions Global_LF;
 
 #include <algorithm>
 #include <limits>
@@ -23,10 +21,12 @@ extern Local_Functions Global_LF;
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "GC/Garbled.h"
+#include "Mod2Engine/Mod2Maurer.h"
+#include "Mod2Engine/Mod2_Thread.h"
 #include "OT/OT_Thread_Data.h"
 
 extern OT_Thread_Data OTD;
+extern Mod2_Thread_Data MTD;
 
 extern Base_Circuits Global_Circuit_Store;
 extern vector<sacrificed_data> SacrificeD;
@@ -54,7 +54,8 @@ void to_signed_bigint(bigint &bi, const gfp &x, int len)
     bi= -bi;
 }
 
-void Instruction::parse(istream &s)
+template<class SRegint, class SBit>
+void Instruction<SRegint, SBit>::parse(istream &s)
 {
   n= 0;
   start.resize(0);
@@ -106,7 +107,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case SUBINT:
       case MULINT:
       case DIVINT:
-      case RUN_TAPE:
       case ADDSINT:
       case ADDSINTC:
       case SUBSINT:
@@ -133,6 +133,13 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         r[0]= get_int(s);
         r[1]= get_int(s);
         r[2]= get_int(s);
+        break;
+      // instructions with 4 integer operands
+      case RUN_TAPE:
+        r[0]= get_int(s);
+        r[1]= get_int(s);
+        r[2]= get_int(s);
+        n= get_int(s);
         break;
       // instructions with 2 register operands
       case LDMCI:
@@ -218,6 +225,8 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case PRINT_CHAR4_REGINT:
       case PRINT_INT:
       case PRINT_IEEE_FLOAT:
+      case CALLR:
+      case JMPR:
         r[0]= get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
@@ -261,8 +270,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case STMS:
       case LDMINT:
       case STMINT:
-      case JMPNZ:
-      case JMPEQZ:
       case LDINT:
       case INPUT_CLEAR:
       case OUTPUT_CLEAR:
@@ -285,6 +292,8 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         break;
       // instructions with 1 reg + 2 integer operand
       case PRINT_FIX:
+      case JMPNE:
+      case JMPEQ:
         r[0]= get_int(s);
         n= get_int(s);
         m= get_int(s);
@@ -463,12 +472,14 @@ RegType BaseInstruction::get_reg_type() const
       case OUTPUT_INT:
       case PRIVATE_OUTPUT:
       case JMP:
-      case JMPNZ:
-      case JMPEQZ:
+      case JMPNE:
+      case JMPEQ:
       case STARTOPEN:
       case START_CLOCK:
       case STOP_CLOCK:
       case CALL:
+      case CALLR:
+      case JMPR:
       case RETURN:
       case GC:
       case LF:
@@ -518,7 +529,8 @@ int BaseInstruction::get_max_reg(RegType reg_type) const
   return 0;
 }
 
-ostream &operator<<(ostream &s, const Instruction &instr)
+template<class SRegint, class SBit>
+ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
 {
   // Is it vectorized?
   if (instr.size != 1)
@@ -706,6 +718,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case RETURN:
         s << "RETURN";
         break;
+      case CALLR:
+        s << "CALLR";
+        break;
+      case JMPR:
+        s << "JMPR";
+        break;
       case RUN_TAPE:
         s << "RUN_TAPE";
         break;
@@ -877,11 +895,11 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case JMP:
         s << "JMP";
         break;
-      case JMPNZ:
-        s << "JMPNZ";
+      case JMPNE:
+        s << "JMPNE";
         break;
-      case JMPEQZ:
-        s << "JMPEQZ";
+      case JMPEQ:
+        s << "JMPEQ";
         break;
       case EQZINT:
         s << "EQZINT";
@@ -1404,6 +1422,8 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case GETSPS:
       case GETSPC:
       case GETSPSBIT:
+      case CALLR:
+      case JMPR:
         s << "r_" << instr.r[0] << " ";
         break;
       // instructions with 2 cint + 1 integer operand
@@ -1449,8 +1469,6 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case LDINT:
       case LDMINT:
       case STMINT:
-      case JMPNZ:
-      case JMPEQZ:
       case INPUT_INT:
       case OPEN_CHANNEL:
       case OUTPUT_INT:
@@ -1493,6 +1511,13 @@ ostream &operator<<(ostream &s, const Instruction &instr)
         s << instr.n << " ";
         s << instr.m << " ";
         break;
+      // instructions with 1 rint + 2 integer operands
+      case JMPEQ:
+      case JMPNE:
+        s << "r_" << instr.r[0] << " ";
+        s << instr.n << " ";
+        s << instr.m << " ";
+        break;
       // instructions with 1 integer operand
       case PRINT_CHAR:
       case PRINT_CHAR4:
@@ -1515,11 +1540,12 @@ ostream &operator<<(ostream &s, const Instruction &instr)
       case CLEAR_REGISTERS:
       case RETURN:
         break;
-      // Three integer operands
+      // Four integer operands
       case RUN_TAPE:
         s << instr.r[0] << " ";
         s << instr.r[1] << " ";
         s << instr.r[2] << " ";
+        s << instr.n << " ";
         break;
       // Various variable length instructions
       case MUL2SINT:
@@ -1556,8 +1582,9 @@ ostream &operator<<(ostream &s, const Instruction &instr)
   return s;
 }
 
-void Instruction::execute_using_sacrifice_data(
-    Processor &Proc, offline_control_data &OCD) const
+template<class SRegint, class SBit>
+void Instruction<SRegint, SBit>::execute_using_sacrifice_data(
+    Processor<SRegint, SBit> &Proc, offline_control_data &OCD) const
 {
   int thread= Proc.get_thread_num();
   // Check to see if we have to wait
@@ -1622,8 +1649,34 @@ void Instruction::execute_using_sacrifice_data(
     }
 }
 
-bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
-                          offline_control_data &OCD) const
+void Mult_Bit(aBit &z, const aBit &x, const aBit &y, Player &P, int online_thread_num)
+{
+  OTD.check();
+  aTriple T= OTD.aAD.get_aAND(online_thread_num);
+#ifdef BENCH_OFFLINE
+  P.aands+= 1;
+#endif
+
+  Mult_Bit(z, x, y, T, P);
+}
+
+void Mult_Bit(Share2 &z, const Share2 &x, const Share2 &y, Player &P, int online_thread_num)
+{
+  MTD.check();
+  vector<Share2> T(3);
+  MTD.get_Single_Triple(T, online_thread_num);
+  Mult_Bit(z, x, y, T, P);
+
+#ifdef BENCH_OFFLINE
+  P.mod2s+= 1;
+#endif
+}
+
+template<class SRegint, class SBit>
+bool Instruction<SRegint, SBit>::execute(
+    Processor<SRegint, SBit> &Proc, Player &P,
+    Machine<SRegint, SBit> &machine,
+    offline_control_data &OCD) const
 {
   Timer instr_timer;
   if (machine.verbose > 0)
@@ -1665,7 +1718,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           // Extract daBit
           for (unsigned int i= 0; i < size; i++)
             {
-              Proc.write_daBit(r[0] + i, r[1] + i);
+              Proc.write_daBit(r[0] + i, r[1] + i, P);
             }
         }
       else if (opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT)
@@ -1693,23 +1746,23 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
           Proc.POpen_Stop(start, size, P);
         }
 #ifdef BENCH_OFFLINE
-       switch (opcode)
-	{
-	    case TRIPLE:
-		  P.triples+=size;
-		  break;
-	    case SQUARE:
-		  P.squares+=size;
-		  break;
-            case BIT:
-		  P.bits+=size;
-		  break;
-	    case DABIT:
-		  P.dabits+=size;
-		  break;
-            default:
-		  break;
-	}
+      switch (opcode)
+        {
+          case TRIPLE:
+            P.triples+= size;
+            break;
+          case SQUARE:
+            P.squares+= size;
+            break;
+          case BIT:
+            P.bits+= size;
+            break;
+          case DABIT:
+            P.dabits+= size;
+            break;
+          default:
+            break;
+        }
 #endif
     }
   else
@@ -1717,6 +1770,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
       // Need to copy as we might need to alter this in the loop
       //   But it should not be that big in any case here
       vector<int> c_start= start;
+      SBit aB;
+      word t;
 
       // Loop here to cope with vectorization, if an instruction is not vectorizable
       // then size=1 in any case :-)
@@ -1834,7 +1889,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               case PEEKSBIT:
                 Proc.peek_sbit(Proc.get_sbit_ref(r[0]), Proc.read_Ri(r[1]));
                 break;
-	      case RPEEKINT:
+              case RPEEKINT:
                 Proc.rpeek_int(Proc.get_Ri_ref(r[0]), Proc.read_Ri(r[1]));
                 break;
               case RPEEKSINT:
@@ -1864,7 +1919,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               case POKESBIT:
                 Proc.poke_sbit(Proc.read_Ri(r[0]), Proc.read_sbit(r[1]));
                 break;
-	      case RPOKEINT:
+              case RPOKEINT:
                 Proc.rpoke_int(Proc.read_Ri(r[0]), Proc.read_Ri(r[1]));
                 break;
               case RPOKESINT:
@@ -2203,21 +2258,28 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               case JMP:
                 Proc.relative_jump((signed int) n);
                 break;
-              case JMPNZ:
-                if (Proc.read_Ri(r[0]) != 0)
+              case JMPNE:
+                if (Proc.read_Ri(r[0]) != n)
                   {
-                    Proc.relative_jump((signed int) n);
+                    Proc.relative_jump((signed int) m);
                   }
                 break;
-              case JMPEQZ:
-                if (Proc.read_Ri(r[0]) == 0)
+              case JMPEQ:
+                if (Proc.read_Ri(r[0]) == n)
                   {
-                    Proc.relative_jump((signed int) n);
+                    Proc.relative_jump((signed int) m);
                   }
                 break;
               case CALL:
                 Proc.push_int(Proc.get_PC());
                 Proc.relative_jump((signed int) n);
+                break;
+              case CALLR:
+                Proc.push_int(Proc.get_PC());
+                Proc.jump(Proc.read_Ri(r[0]));
+                break;
+              case JMPR:
+                Proc.jump(Proc.read_Ri(r[0]));
                 break;
               case RETURN:
                 long ret_pos;
@@ -2231,6 +2293,7 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                   }
                 Proc.jump(ret_pos);
                 break;
+
               case EQZINT:
                 if (Proc.read_Ri(r[1]) == 0)
                   Proc.write_Ri(r[0], 1);
@@ -2434,15 +2497,18 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
               case REQBL:
                 break;
               case RUN_TAPE:
-                machine.run_tape(r[0], r[2], r[1]);
+                machine.run_tape(r[0], r[2], r[1], n);
                 break;
               case JOIN_TAPE:
                 machine.Lock_Until_Finished_Tape(n);
                 break;
               case CRASH:
-                machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
                 // Note deliberately no "break" to enable CRASH to call RESTART
                 // if the IO.crash returns
+                machine.get_IO().crash(Proc.get_PC() - 1, Proc.get_thread_num());
+#pragma GCC diagnostic pop
               case RESTART:
                 if (Proc.get_thread_num() != 0)
                   {
@@ -2543,9 +2609,15 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 Proc.write_srint(r[0], n);
                 break;
               case LDSBIT:
-                Proc.temp.aB.assign_zero();
-                Proc.temp.aB.add(n);
-                Proc.write_sbit(r[0], Proc.temp.aB);
+                if ((n & 1) == 0)
+                  {
+                    aB.assign_zero(P.whoami());
+                  }
+                else
+                  {
+                    aB.assign_one(P.whoami());
+                  }
+                Proc.write_sbit(r[0], aB);
                 break;
               case ADDSINT:
                 Proc.get_srint_ref(r[0]).add(Proc.read_srint(r[1]), Proc.read_srint(r[2]), P, Proc.online_thread_num);
@@ -2629,22 +2701,18 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
                 break;
               case ANDSB:
-                OTD.check();
-                Proc.temp.T= OTD.aAD.get_aAND(Proc.online_thread_num);
-                Mult_aBit(Proc.get_sbit_ref(r[0]), Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
-                #if BENCH_OFFLINE
-			P.aands++;
-                #endif
+                Mult_Bit(Proc.get_sbit_ref(r[0]), Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), P, Proc.online_thread_num);
+#if BENCH_OFFLINE
+                P.aands++;
+#endif
                 break;
               case ORSB:
-                OTD.check();
-                Proc.temp.T= OTD.aAD.get_aAND(Proc.online_thread_num);
-                Mult_aBit(Proc.temp.aB, Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), Proc.temp.T, P);
+                Mult_Bit(aB, Proc.read_sbit(r[1]), Proc.read_sbit(r[2]), P, Proc.online_thread_num);
                 Proc.get_sbit_ref(r[0]).add(Proc.read_sbit(r[1]), Proc.read_sbit(r[2]));
-                Proc.get_sbit_ref(r[0]).add(Proc.temp.aB);
-		#if BENCH_OFFLINE
-                        P.aands++;
-                #endif
+                Proc.get_sbit_ref(r[0]).add(aB);
+#if BENCH_OFFLINE
+                P.aands++;
+#endif
                 break;
               case NEGB:
                 Proc.get_sbit_ref(r[0]).negate(Proc.read_sbit(r[1]));
@@ -2681,18 +2749,20 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
                 Proc.convert_sbit_to_sint(r[1], r[0], P);
                 break;
               case OPENSINT:
-                Proc.write_Ri(r[0], Proc.read_srint(r[1]).Open(P));
+                P.OP2->Open_BitVector(t, Proc.read_srint(r[1]), P);
+                Proc.write_Ri(r[0], t);
                 break;
               case OPENSBIT:
-                int t;
-                Open_aBit(t, Proc.read_sbit(r[1]), P);
-                Proc.write_Ri(r[0], t);
+                P.OP2->Open_Bit(t, Proc.read_sbit(r[1]), P);
+                // AND with one, as for Share2's the sbits can be bigger
+                // than one bit
+                Proc.write_Ri(r[0], t & 1);
                 break;
               case GC:
                 Proc.apply_GC(n, P);
                 break;
               case LF:
-                Global_LF.apply_Function(n, Proc);
+                machine.LF_Table.apply_Function(n, Proc);
                 break;
               default:
                 printf("Invalid opcode=%d. Since it is not implemented\n", opcode);
@@ -2734,3 +2804,8 @@ bool Instruction::execute(Processor &Proc, Player &P, Machine &machine,
     }
   return restart;
 }
+
+template ostream &operator<<(ostream &s, const Instruction<aBitVector, aBit> &instr);
+
+template class Instruction<aBitVector, aBit>;
+template class Instruction<aBitVector2, Share2>;

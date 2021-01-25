@@ -1,0 +1,103 @@
+\subsection{Operators}
+
+\subsubsection{Unary Operators}
+The following unary operations are allowed on $\SecretBit$, $\SecretI64$.
+\begin{verbatim}
+     !
+\end{verbatim}
+This operation inverts all bits (or just the one bit in the $\SecretBit$ case)
+of its argument. There is no $!$ operation like in C on integers. If you want to
+check whether all bits are zero in Rust, you need to use an equality operation.
+
+
+\subsubsection{Binary Operators}
+The following operations are allowed between $\SecretI$ and $\ints$
+types:
+\begin{verbatim}
+     +   -   *   /
+     ^   &   |
+\end{verbatim}
+The output is of type $\SecretI$ if any of the two operands are
+$\SecretI$s, otherwise the output type is a $\ints$.
+
+~\\
+
+\noindent
+The following operations are allowed between $\SecretModp$ and $\ClearModp$
+types:
+\begin{verbatim}
+     +   -   *
+\end{verbatim}
+The output is of type $\SecretModp$ if any of the two operands are
+$\SecretModp$s, otherwise the output type is a $\ClearModp$.
+
+~\\
+\noindent
+The following operations are allowed between $\SecretModp$ and $\ClearModp$
+types:
+\begin{verbatim}
+     /
+\end{verbatim}
+The output is of type $\SecretModp$ if any of the first operand is
+$\SecretModp$s, otherwise the output type is a $\ClearModp$.
+     {\bf Note:} The second operand must be a $\ClearModp$ or a $ConstI32$ at present.
+
+~ \\
+
+\noindent
+The following operations are allowed between $\ClearModp$ and $\ints$ types:
+\begin{verbatim}
+    %   <<   >>  ^  &  |
+\end{verbatim}
+The operations are performed by lifting the $\ClearModp$ values to
+the integers (in the range $[0,\ldots,p)$) and then performing
+the operation over the integers.  The output is of type $\ClearModp$
+
+~ \\
+
+\noindent
+The following operations are allowed between $\SecretBit$ types:
+\begin{verbatim}
+     ^   &   |
+\end{verbatim}
+The output is of type $\SecretBit$
+
+~\\
+
+\noindent
+The following operations are allowed between $\ints$ types:
+\begin{verbatim}
+     ==    !=
+     <   >   <=  >=
+\end{verbatim}
+The output is of type $\ints$/$\bool$ and therefore allows branching
+on the resulting condition etc.
+
+
+~ \\
+
+\noindent
+Between an $\SecretI$, $\SecretModp$ or $\ClearModp$ and an immediate operand (an \verb|ConstU32|)
+you can execute shift-left and shift-right operations. These operators also exist if both operands
+are $i64$.
+\begin{verbatim}
+     <<    >>
+\end{verbatim}
+As in
+\begin{lstlisting}
+   let sb = sa << ConstU32::<3>;
+\end{lstlisting}
+For integers, the small example needs to use $\mathsf{black\_box}$ 
+as otherwise the optimizer will optimize the shift and just store 
+the end result.
+\begin{lstlisting}
+   let a = black_box(2);
+   let b = black_box(1);
+   let c = a << b
+\end{lstlisting}
+
+
+~ \\
+
+\todo{These discuss native operands, what about non-native?
+     We will get to them when we have the arith routines done}

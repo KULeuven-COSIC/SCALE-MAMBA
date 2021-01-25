@@ -43,7 +43,7 @@ pub trait Visitor<'a> {
         stmt.replace_registers(cx, |mut reg| {
             self.visit_register(&mut reg);
             reg
-        })
+        });
     }
     fn visit_terminator(&mut self, terminator: &mut Terminator) {
         self.walk_terminator(terminator)
@@ -63,16 +63,18 @@ pub trait Visitor<'a> {
                     JumpMode::Conditional(cnd) => {
                         let JumpCondition {
                             fallthrough_block,
-                            jump_if_zero,
+                            jump_if_equal,
+                            constant,
                             register,
                         } = cnd;
-                        let _ = jump_if_zero;
+                        let _ = jump_if_equal;
+                        let _ = constant;
                         self.visit_block_id(fallthrough_block);
                         let mut reg = register.map(Register::from);
                         self.visit_register(&mut reg.elem);
                         *register = reg.require(self.cx());
                     }
-                    JumpMode::Call => {}
+                    JumpMode::Call { fallthrough_block } => self.visit_block_id(fallthrough_block),
                 }
             }
             Terminator::Restart { comment }

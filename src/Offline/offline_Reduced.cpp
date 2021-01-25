@@ -14,6 +14,8 @@ bool maurer= true;
 bool need_prss= false;
 unsigned int pos;
 
+void clear_vector_string(vector<string> &ss);
+
 void Init_Configure(unsigned int whoami)
 {
   init= true;
@@ -50,8 +52,8 @@ void Init_Configure(unsigned int whoami)
 }
 
 void mult_inner_subroutine_one(const Share &aa, const Share &bb, Share &cc,
-                               Share &cc_m, vector<stringstream> &ss_m,
-                               stringstream &ss_r, Player &P, PRSS &prss,
+                               Share &cc_m, vector<string> &ss_m,
+                               string &ss_r, Player &P, PRSS &prss,
                                PRZS &przs)
 {
   Share dd;
@@ -104,24 +106,29 @@ void mult_inner_subroutine_one(const Share &aa, const Share &bb, Share &cc,
     {
       vector<Share> maur(P.nplayers());
       make_shares(maur, prod, P.G);
+      string ee;
       for (unsigned int k= 0; k < P.nplayers(); k++)
         {
           if (k != P.whoami())
             {
-              maur[k].output(ss_m[k], false);
+              ee.resize(Share::size(k));
+              maur[k].output(ee, 0);
+              ss_m[k]+= ee;
             }
         }
       cc_m= maur[whoami]; /* Stored for adding in later */
     }
   else
     { /* Specific Send of my value */
-      prod.output(ss_r, false);
+      string ee(gfp::size(), ' ');
+      prod.output(ee, 0);
+      ss_r+= ee;
     }
 }
 
 void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
-                               const vector<stringstream> &ss_m,
-                               const stringstream &ss_r, Player &P)
+                               const vector<string> &ss_m,
+                               const string &ss_r, Player &P)
 {
   unsigned int whoami= P.whoami();
   gfp tmp;
@@ -133,7 +140,7 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
         {
           if (k != whoami)
             {
-              P.send_to_player(k, ss_m[k].str(), 0);
+              P.send_to_player(k, ss_m[k], 0);
             }
         }
     }
@@ -142,11 +149,12 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
       for (unsigned int k= 0; k < Share::SD.mult_chans[whoami][pos].size();
            k++)
         {
-          P.send_to_player(Share::SD.mult_chans[whoami][pos][k], ss_r.str(), 0);
+          P.send_to_player(Share::SD.mult_chans[whoami][pos][k], ss_r, 0);
         }
     }
 
   /* Now do the receiving */
+  string ss;
 
   /* First do non Maurer receives */
   for (unsigned int k= 0; k < Share::SD.M.shares_per_player(whoami); k++)
@@ -154,12 +162,11 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
       if (Share::SD.mult_proc[whoami][k] == 2)
         {
           int pl= Share::SD.mult_chans[whoami][k][0];
-          string sstr;
-          P.receive_from_player(pl, sstr, 0);
-          istringstream is(sstr);
+          P.receive_from_player(pl, ss, 0);
+          unsigned int pos= 0;
           for (int j= 0; j < amortize; j++)
             {
-              tmp.input(is, false);
+              pos+= tmp.input(ss, pos);
               cc[j].set_share(k, tmp);
             }
         }
@@ -174,12 +181,11 @@ void mult_inner_subroutine_two(vector<Share> &cc, vector<Share> &cc_m,
       unsigned int pl= Share::SD.maurer_chans[k];
       if (pl != whoami)
         {
-          string sstr;
-          P.receive_from_player(pl, sstr, 0);
-          istringstream is(sstr);
+          P.receive_from_player(pl, ss, 0);
+          unsigned int pos= 0;
           for (int j= 0; j < amortize; j++)
             {
-              dd.input(is, false);
+              pos+= dd.input(ss, pos);
               cc[j].add(dd);
             }
         }
@@ -203,12 +209,14 @@ void offline_Reduced_triples(Player &P, PRSS &prss, PRZS &przs, list<Share> &a,
       Init_Configure(P.whoami());
     }
 
+  string ss_r;
+  vector<string> ss_m(P.nplayers());
   for (int i= 0; i < sz_offline_batch / amortize; i++)
     {
-      vector<stringstream> ss_m(P.nplayers()); // This line is here to make sure
-                                               // ss is reinitialized every loop
-      stringstream
-          ss_r; // This line is here to make sure ss is reinitialized every loop
+      // These next line are here to make sure ss is reinitialized every loop
+      ss_r= "";
+      clear_vector_string(ss_m);
+
       for (int j= 0; j < amortize; j++)
         {
           aa= prss.next_share(P);
@@ -242,12 +250,14 @@ void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs,
       Init_Configure(P.whoami());
     }
 
+  string ss_r;
+  vector<string> ss_m(P.nplayers());
   while (a.size() < sz_offline_batch * rep)
     {
-      vector<stringstream> ss_m(P.nplayers()); // This line is here to make sure
-                                               // ss is reinitialized every loop
-      stringstream
-          ss_r; // This line is here to make sure ss is reinitialized every loop
+      // These next line are here to make sure ss is reinitialized every loop
+      ss_r= "";
+      clear_vector_string(ss_m);
+
       for (int j= 0; j < amortize; j++)
         {
           aa= prss.next_share(P);
@@ -268,8 +278,7 @@ void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs,
     }
 }
 
-void offline_Reduced_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b,
-                          Open_Protocol &OP)
+void offline_Reduced_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b)
 {
   vector<Share> aa(amortize);
   vector<Share> bb(amortize), bb_m(amortize);
@@ -282,15 +291,19 @@ void offline_Reduced_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b,
       Init_Configure(P.whoami());
     }
 
+  string ss_r;
+  vector<string> ss_m(P.nplayers());
   for (int i= 0; i < sz_offline_batch / amortize;
        i++)
-    {                                          /* Essentially run the square protocol to get amortize
-number of sharing of a and sharing of b=a^2
-*/
-      vector<stringstream> ss_m(P.nplayers()); // This line is here to make sure
-                                               // ss is reinitialized every loop
-      stringstream
-          ss_r; // This line is here to make sure ss is reinitialized every loop
+    {
+      /* Essentially run the square protocol to get amortize
+         number of sharing of a and sharing of b=a^2
+      */
+
+      // These next line are here to make sure ss is reinitialized every loop
+      ss_r= "";
+      clear_vector_string(ss_m);
+
       for (int j= 0; j < amortize; j++)
         {
           aa[j]= prss.next_share(P);
@@ -303,12 +316,12 @@ number of sharing of a and sharing of b=a^2
       mult_inner_subroutine_two(bb, bb_m, ss_m, ss_r, P);
 
       /* Now open the values bb to get the values a2 */
-      OP.Open_To_All_Begin(a2, bb, P, 0);
-      OP.Open_To_All_End(a2, bb, P, 0);
+      P.OP->Open_To_All_Begin(a2, bb, P, 0);
+      P.OP->Open_To_All_End(a2, bb, P, 0);
 
       /* Now compute v=a/sqrt{a2} assuming a2<>0
- * and then    (v+1)/2
- */
+       * and then    (v+1)/2
+       */
       Share te;
       for (int j= 0; j < amortize; j++)
         {

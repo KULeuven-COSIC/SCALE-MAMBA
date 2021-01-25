@@ -30,7 +30,7 @@ void Sender_COPE::init(Player &P, int i, unsigned int fsize, CryptoPP::RandomPoo
           ROT_S[j].reset();
         }
       P.receive_from_player(nbReceiver, input, connection);
-      ROT_S[j].message(input);
+      ROT_S[j].message(input, j);
     }
 
   u.resize(bit_size_field);
@@ -67,7 +67,7 @@ void Receiver_COPE::init(Player &P, int i, unsigned int fsize, gfp &delta, Crypt
   for (unsigned int j= 0; j < bit_size_field; j++)
     {
       ROT_R[j].init(input, choicebits[j]);
-      ROT_R[j].message(output, RNG);
+      ROT_R[j].message(output, j, RNG);
       P.send_to_player(nbSender, output, connection);
     }
 

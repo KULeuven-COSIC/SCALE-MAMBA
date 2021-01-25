@@ -9,8 +9,33 @@ All rights reserved
 #include <fstream>
 #include <mutex>
 
+#include "LSSS/Share.h"
 #include "OT/aBitVector.h"
 #include "config.h"
+
+void load_circuit(Circuit &C, const string &location, bool verbose= false)
+{
+  if (verbose)
+    {
+      cout << "Loading circuit from location " << location << endl;
+    }
+  ifstream inpf(location);
+  if (inpf.fail())
+    {
+      throw file_error(location);
+    }
+  inpf >> C;
+  inpf.close();
+
+  if (Share::SD.Etype != HSS)
+    {
+      C.merge_AND_gates();
+    }
+  if (verbose)
+    {
+      cout << "Finished loading circuit" << endl;
+    }
+}
 
 /* This it the global store of circuits */
 Base_Circuits Global_Circuit_Store;
@@ -19,69 +44,25 @@ void Base_Circuits::initialize(const bigint &p)
 {
   Circuit C;
 
-  ifstream inpf;
-
-  inpf.open("Circuits/Bristol/adder64.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/adder64.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/adder64.txt");
   Circuits.insert(make_pair(0, C));
 
-  inpf.open("Circuits/Bristol/sub64.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/sub64.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/sub64.txt");
   Circuits.insert(make_pair(1, C));
 
-  inpf.open("Circuits/Bristol/mult2_64.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/mult2_64.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/mult2_64.txt");
   Circuits.insert(make_pair(2, C));
 
-  inpf.open("Circuits/Bristol/mult64.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/mult64.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/mult64.txt");
   Circuits.insert(make_pair(3, C));
 
-  inpf.open("Circuits/Bristol/divide64.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/divide64.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/divide64.txt");
   Circuits.insert(make_pair(4, C));
 
-  inpf.open("Circuits/Bristol/neg64.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/neg64.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/neg64.txt");
   Circuits.insert(make_pair(5, C));
 
-  inpf.open("Circuits/Bristol/zero_equal.txt");
-  if (inpf.fail())
-    {
-      throw file_error("Circuits/Bristol/zero_equal.txt");
-    }
-  inpf >> C;
-  inpf.close();
+  load_circuit(C, "Circuits/Bristol/zero_equal.txt");
   Circuits.insert(make_pair(6, C));
 
   /* We can do a conversion if log_2 p bits mod p 
@@ -107,13 +88,7 @@ void Base_Circuits::initialize(const bigint &p)
   if (lg2p > sreg_bitl &&
       ((lg2p > sreg_bitl + conv_stat_sec) || (y1 > conv_stat_sec) || (y2 > conv_stat_sec)))
     {
-      inpf.open("Data/ConversionCircuit-LSSS_to_GC.txt");
-      if (inpf.fail())
-        {
-          throw file_error("Data/ConversionCircuit-LSSS_to_GC.txt");
-        }
-      inpf >> C;
-      inpf.close();
+      load_circuit(C, "Data/ConversionCircuit-LSSS_to_GC.txt");
       Circuits.insert(make_pair(7, C));
 
       convert_ok= true;
@@ -153,6 +128,8 @@ void Base_Circuits::initialize(const bigint &p)
   location.insert(make_pair(125, "Circuits/Bristol/FP-i2f.txt"));
   loaded.insert(make_pair(126, false));
   location.insert(make_pair(126, "Circuits/Bristol/FP-sqrt.txt"));
+  loaded.insert(make_pair(127, false));
+  location.insert(make_pair(127, "Circuits/Bristol/FP-lt.txt"));
 
   /* Now any user defined ones */
 
@@ -167,18 +144,15 @@ void Base_Circuits::check(int num)
 {
   /* Use mutex here just in case */
   mutex_GC_load.lock();
+  if (loaded.count(num) == 0)
+    {
+      throw invalid_circuit();
+    }
   if (loaded[num] == false)
     {
       loaded[num]= true;
-
       Circuit C;
-      ifstream inpf(location[num]);
-      if (inpf.fail())
-        {
-          throw file_error(location[num]);
-        }
-      inpf >> C;
-      inpf.close();
+      load_circuit(C, location[num], true);
       Circuits.insert(make_pair(num, C));
     }
   mutex_GC_load.unlock();

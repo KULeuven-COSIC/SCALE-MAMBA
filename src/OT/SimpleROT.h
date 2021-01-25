@@ -20,8 +20,9 @@ All rights reserved
  * Calling sequence should be
  *   Sender.init(output,RNG)
  *   Receiver.init(output,choicebit);
- *   Receiver.message(output,RNG)
- *   Sender.message(output);
+ *   Receiver.message(output, j, RNG)
+ *   Sender.message(output, j);
+ * where j is an unsigned int domain seperator
  *
  */
 
@@ -56,7 +57,7 @@ public:
     complete= false;
   }
 
-  void message(const string &input);
+  void message(const string &input, unsigned int domain);
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int i, unsigned int row, BitMatrix &M);
@@ -85,7 +86,7 @@ public:
     return complete;
   }
 
-  void message(string &output, CryptoPP::RandomPool &RNG);
+  void message(string &output, unsigned int domain, CryptoPP::RandomPool &RNG);
 
   /* Returns M.size() random bits from PRG and assigns them to given row */
   void get_random_bits(unsigned int row, BitMatrix &M);

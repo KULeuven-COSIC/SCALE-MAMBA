@@ -9,7 +9,6 @@ All rights reserved
 
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 using namespace std;
 #include <openssl/sha.h>
 
@@ -22,14 +21,8 @@ string Hash(const string &data)
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, data.c_str(), data.size());
   SHA256_Final(hash, &sha256);
-  stringstream ss;
-  for (int i= 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-      // (human form) ss << hex << setw(2) << setfill('0') << (int) hash[i];
-      ss << hash[i];
-    }
-
-  return ss.str();
+  string ss((char *) hash, SHA256_DIGEST_LENGTH);
+  return ss;
 }
 
 void Commit(string &comm, string &open, const string &data, PRNG &G)
@@ -56,26 +49,24 @@ void Create_Random(gfp &ans, Player &P, int connection)
   vector<string> Comm_e(P.nplayers());
   vector<string> Open_e(P.nplayers());
 
-  gfp e;
   ans.randomize(P.G);
-  stringstream ee;
-  ans.output(ee, false);
-  Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ee.str(), P.G);
+  string ee(gfp::size(), ' ');
+  ans.output(ee, 0);
+  Commit(Comm_e[P.whoami()], Open_e[P.whoami()], ee, P.G);
 
   P.Broadcast_Receive(Comm_e, false, connection);
   P.Broadcast_Receive(Open_e, false, connection);
 
+  gfp e;
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
       if (i != P.whoami())
         {
-          string ee;
           if (!Open(ee, Comm_e[i], Open_e[i]))
             {
               throw invalid_commitment();
             }
-          istringstream is(ee);
-          e.input(is, false);
+          e.input(ee, 0);
           ans.add(ans, e);
         }
     }
@@ -117,9 +108,9 @@ void Commit_And_Open(vector<T> &data, Player &P, bool check, int connection)
   vector<string> Comm_data(P.nplayers());
   vector<string> Open_data(P.nplayers());
 
-  stringstream ss;
-  data[P.whoami()].output(ss, false);
-  string ee= ss.str();
+  string ee(T::size(), ' ');
+  data[P.whoami()].output(ee, 0);
+
   Commit(Comm_data[P.whoami()], Open_data[P.whoami()], ee, P.G);
 
   P.Broadcast_Receive(Comm_data, check, connection);
@@ -133,8 +124,7 @@ void Commit_And_Open(vector<T> &data, Player &P, bool check, int connection)
             {
               throw invalid_commitment();
             }
-          istringstream is(ee);
-          data[i].input(is, false);
+          data[i].input(ee, 0);
         }
     }
 }
@@ -168,12 +158,11 @@ void Commit_And_Open(vector<vector<T>> &data, Player &P, bool check, int connect
   vector<string> Comm_data(P.nplayers());
   vector<string> Open_data(P.nplayers());
 
-  string ee;
+  string ee(T::size() * data.size(), ' ');
+  unsigned int pos= 0;
   for (unsigned int j= 0; j < data.size(); j++)
     {
-      stringstream ss;
-      data[j][P.whoami()].output(ss, false);
-      ee+= ss.str();
+      pos+= data[j][P.whoami()].output(ee, pos);
     }
   Commit(Comm_data[P.whoami()], Open_data[P.whoami()], ee, P.G);
 
@@ -188,10 +177,10 @@ void Commit_And_Open(vector<vector<T>> &data, Player &P, bool check, int connect
             {
               throw invalid_commitment();
             }
-          istringstream is(ee);
+          pos= 0;
           for (unsigned int j= 0; j < data.size(); j++)
             {
-              data[j][i].input(is, false);
+              pos+= data[j][i].input(ee, pos);
             }
         }
     }

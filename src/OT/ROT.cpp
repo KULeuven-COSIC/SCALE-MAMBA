@@ -34,7 +34,8 @@ void OT_Receiver::init(CryptoPP::RandomPool &RNG, int choicebit)
   KeyGen(sk, pk, b, crs, RNG);
 }
 
-void OT_Receiver::message(string &output, const string &input)
+void OT_Receiver::message(string &output, const string &input,
+                          unsigned int domain)
 {
   if (complete)
     {
@@ -71,14 +72,17 @@ void OT_Receiver::message(string &output, const string &input)
         {
           throw invalid_length();
         }
-      unsigned char *data= new unsigned char[len];
+      unsigned char *data= new unsigned char[len + 4];
+      INT_TO_BYTES(data + len, domain);
       crs.EncodePoint(data, M);
-      PRG.SetSeed(data, len);
+      PRG.SetSeed(data, len + 4);
       delete[] data;
     }
 }
 
-void OT_Sender::message(string &output, const string &input, CryptoPP::RandomPool &RNG)
+void OT_Sender::message(string &output, const string &input,
+                        unsigned int domain,
+                        CryptoPP::RandomPool &RNG)
 {
   if (complete)
     {
@@ -127,11 +131,14 @@ void OT_Sender::message(string &output, const string &input, CryptoPP::RandomPoo
         {
           throw invalid_length();
         }
-      unsigned char *data= new unsigned char[len];
+      unsigned char *data= new unsigned char[len + 4];
+      INT_TO_BYTES(data + len, domain);
+
       crs.EncodePoint(data, M[0]);
-      PRG[0].SetSeed(data, len);
+      PRG[0].SetSeed(data, len + 4);
+
       crs.EncodePoint(data, M[1]);
-      PRG[1].SetSeed(data, len);
+      PRG[1].SetSeed(data, len + 4);
       delete[] data;
     }
 }

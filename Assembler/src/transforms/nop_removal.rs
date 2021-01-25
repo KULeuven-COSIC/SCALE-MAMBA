@@ -1,7 +1,10 @@
 //! Remove all `nop` instructions
 
-use crate::asm::{Body, Instruction};
 use crate::Compiler;
+use crate::{
+    asm::{Body, Instruction},
+    lexer::Operand,
+};
 
 #[derive(Default)]
 pub struct Pass;
@@ -14,6 +17,10 @@ impl super::Pass for Pass {
         for block in &mut body.blocks {
             block.stmts.retain(|elem| match elem.instr {
                 Instruction::Nop => false,
+                // Assignments from a register to itself are useless
+                Instruction::Assign { destination, value } => {
+                    Operand::Register(destination.elem) != value.elem
+                }
                 _ => true,
             });
         }

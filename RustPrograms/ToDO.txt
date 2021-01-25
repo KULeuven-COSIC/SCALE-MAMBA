@@ -1,0 +1,268 @@
+This file is the list of instructions we want to test
+can be access and tested from the new system, and we have
+a way of calling them.
+
+When an instruction is tested mark it with a + in the first
+column, and put the test file at the end, so e.g.
+
++ LDI = 0x1,   test_xxxx.rs
+
+NOTE, we also need to test vectorized versions of all
+instructions. But that comes later when we worry about
+arrays etc
+
+  # Load/store
++ LDI= 0x1,              test_modp.rs
++ LDSI= 0x2,             test_modp.rs
++ LDMC= 0x3,             test_memory.rs
++ LDMS= 0x4,             test_memory.rs
++ STMC= 0x5,             test_modp.rs
++ STMS= 0x6,             test_memory.rs
++ LDMCI= 0x7,            test_memory.rs
++ LDMSI= 0x8,            test_memory.rs
++ STMCI= 0x9,            test_memory.rs
++ STMSI= 0xA,            test_memory.rs
++ MOVC= 0xB,             test_modp.rs
++ MOVS= 0xC,             test_modp.rs
++ MOVINT= 0xD,           test_sregint.rs
++ MOVSB = 0xE,           test_sregint.rs
++ LDMINT= 0xCA,          test_memory.rs
++ STMINT= 0xCB,          test_sregint.rs
++ LDMINTI= 0xCC,         test_memory.rs
++ STMINTI= 0xCD,         test_memory.rs
+
+  # Machine
+  LDTN= 0x10,
+  LDARG= 0x11,
++ REQBL= 0x12,            manual_test_system.rs
+  STARG= 0x13,
+  CALL= 0x14,
+  RETURN= 0x15,
+  CALLR=0x16,
+  JMPR=0x17,
+  RUN_TAPE= 0x19,
+  JOIN_TAPE= 0x1A,
++ CRASH= 0x1B,            manual_test_system.rs
++ RESTART= 0x1C,          manual_test_system.rs
++ CLEAR_MEMORY= 0x1D,     manual_test_system.rs
++ CLEAR_REGISTERS= 0x1E,  manual_test_system.rs
+
+  # Addition
++ ADDC= 0x20,	  	  test_modp.rs
++ ADDS= 0x21,		  test_modp.rs
++ ADDM= 0x22,		  test_modp.rs
++ ADDCI= 0x23,		  test_modp.rs  
++ ADDSI= 0x24,	  	  test_modp.rs  
++ SUBC= 0x25,		  test_modp.rs
++ SUBS= 0x26,		  test_modp.rs
++ SUBML= 0x27,		  test_modp.rs
++ SUBMR= 0x28,		  test_modp.rs
++ SUBCI= 0x29,            test_modp.rs
++ SUBSI= 0x2A,            test_modp.rs
++ SUBCFI= 0x2B,           test_modp.rs
++ SUBSFI= 0x2C,           test_modp.rs
+
+  # Multiplication/division/other arithmetic
++ MULC= 0x30,             test_modp.rs
++ MULM= 0x31,             test_modp.rs
++ MULCI= 0x32,            test_modp.rs
++ MULSI= 0x33,            test_modp.rs
++ DIVC= 0x34,             test_modp.rs
++ DIVCI= 0x35,            test_modp.rs
++ MODC= 0x36,             test_modp.rs
++ MODCI= 0x37,            test_modp.rs
++ LEGENDREC= 0x38,        test_modp.rs
++ DIGESTC= 0x39,          manual_test_system.rs
+
+  # IO
++ OUTPUT_CLEAR= 0x40,      manual_test_io.rs
++ INPUT_CLEAR= 0x41,       manual_test_io.rs
+  OUTPUT_SHARES= 0x42, 
+  INPUT_SHARES= 0x43,   
++ PRIVATE_INPUT= 0x44,     manual_test_io.rs
++ PRIVATE_OUTPUT= 0x46,    manual_test_io.rs
++ OUTPUT_INT= 0x48,        manual_test_io.rs
++ INPUT_INT= 0x49,         manual_test_io.rs
++ OPEN_CHANNEL= 0x4A,      manual_test_io.rs
++ CLOSE_CHANNEL= 0x4B,     manual_test_io.rs
+
+  # Open
++ STARTOPEN= 0xA0,           test_modp.rs
++ STOPOPEN= 0xA1,            test_modp.rs
++ OPENSINT= 0xA2,            test_sregint.rs
++ OPENSBIT= 0xA3,            test_sregint.rs
+
+  # Data access
++ TRIPLE= 0x50,              test_modp.rs
++ BIT= 0x51,                 test_modp.rs
++ SQUARE= 0x52,              test_modp.rs
+  DABIT= 0x53,
+
+  # Bitwise logical operations on regints
++ ANDINT= 0x5A,             test_sregint.rs
++ ORINT= 0x5B,              test_sregint.rs
++ XORINT= 0x5C,             test_sregint.rs
++ INVINT= 0x5D,             test_sregint.rs
++ SHLINT= 0x5E,             test_sregint.rs
++ SHRINT= 0x5F,             test_sregint.rs
+
+  # sregint/sbit instructions
++ LDMSINT= 0x60,            test_memory.rs
++ LDMSINTI= 0x61,           test_memory.rs
++ STMSINT= 0x62,            test_memory.rs
++ STMSINTI= 0x63,           test_memory.rs
++ MOVSINT= 0x64,            test_sregint.rs
++ LDSINT= 0x65,		    test_sregint.rs
++ ADDSINT= 0x66, 	    test_sregint.rs
++ ADDSINTC= 0x67,	    test_sregint.rs
++ SUBSINT= 0x68,	    test_sregint.rs
++ SUBSINTC= 0x69,	    test_sregint.rs
++ SUBCINTS= 0x6A,	    test_sregint.rs
++ MULSINT= 0x6B,	    test_sregint.rs
++ MULSINTC= 0x6C,	    test_sregint.rs
++ DIVSINT= 0x6D,	    test_sregint.rs
++ SHLSINT= 0x6E,            test_sregint.rs
++ SHRSINT= 0x6F,            test_sregint.rs
+
+  # Bitwise logic
++ ANDC= 0x70,               test_modp.rs
++ XORC= 0x71,               test_modp.rs
++ ORC= 0x72,                test_modp.rs
++ ANDCI= 0x73,              test_modp.rs
++ XORCI= 0x74,              test_modp.rs
++ ORCI= 0x75,               test_modp.rs
+  NOTC= 0x76,                        <- A weird operation. Need to think whether we should change it
++ NEG= 0x77,		    test_sregint.rs
++ SAND= 0x78,               test_sregint.rs
++ XORSB= 0x79,              test_sregint.rs
++ ANDSB= 0x7A,              test_sregint.rs
++ ORSB= 0x7B,               test_sregint.rs
++ NEGB= 0x7C,               test_sregint.rs
++ LDSBIT = 0x7C,            test_sregint.rs
+
+  # Bitwise shifts
++ SHLC= 0x80,               test_modp.rs
++ SHRC= 0x81,               test_modp.rs
++ SHLCI= 0x82,              test_modp.rs
++ SHRCI= 0x83,              test_modp.rs
+
+  # Branching and comparison
++ JMP= 0x90,                test_branch.rs
++ JMPNE= 0x91,              test_branch.rs
++ JMPEQ= 0x92,              test_recursion.rs
++ EQZINT= 0x93,             test_branch.rs
++ LTZINT= 0x94,             test_modp.rs
++ LTINT= 0x95,              test_sregint.rs
++ GTINT= 0x96,              test_sregint.rs
++ EQINT= 0x97,              test_sregint.rs
+
+  # Integers
++ LDINT= 0x9A,              test_sregint.rs
++ ADDINT= 0x9B,             test_sregint.rs
++ SUBINT= 0x9C,             test_sregint.rs
++ MULINT= 0x9D,             test_sregint.rs
++ DIVINT= 0x9E,             test_sregint.rs
+
+  # Conversion
++ CONVINT= 0xC0,            test_sregint.rs
++ CONVMODP= 0xC1,           test_sregint.rs
++ CONVSINTSREG= 0xC2,       test_sregint.rs
++ CONVREGSREG= 0xC3,        test_sregint.rs
++ CONVSREGSINT= 0xC4,       test_sregint.rs
++ CONVSUREGSINT= 0xC5,      test_sregint.rs
++ CONVSINTSBIT= 0xC6,       test_sregint.rs
++ CONVSBITSINT= 0xC7,       test_sregint.rs
+
+  # Debug Printing
+  PRINT_MEM= 0xB0,
++ PRINT_REG= 0xB2,          test_modp.rs
+  PRINT_CHAR= 0xB3,
+  PRINT_CHAR4= 0xB4,
++ PRINT_CHAR_REGINT= 0xB5,  test_modp.rs
+  PRINT_CHAR4_REGINT= 0xB6,
+  PRINT_FLOAT= 0xB7,
+  PRINT_FIX= 0xB8,
++ PRINT_INT= 0xB9,          test_local_functions.rs
++ PRINT_IEEE_FLOAT= 0xBA,   test_ieee.rs
+
+  # Comparison of sregints
++ EQZSINT = 0xD0,           test_sregint.rs
++ LTZSINT = 0xD1,           test_sregint.rs
+
+  # Bitwise logical operations on sregints
++ ANDSINT = 0xD3,           test_sregint.rs
++ ANDSINTC = 0xD4,          test_sregint.rs
++ ORSINT = 0xD5,            test_sregint.rs
++ ORSINTC = 0xD6,           test_sregint.rs
++ XORSINT = 0xD7,           test_sregint.rs
++ XORSINTC = 0xD8,          test_sregint.rs
++ INVSINT = 0xD9,           test_sregint.rs
+
+  # 64x64 -> 128 multiplier
++ MUL2SINT = 0xDA,          test_sregint.rs
+
+  # GC/Local Function (and allied) commands
++ GC = 0xDB,                test_GC.rs
++ BITSINT = 0xDC,           test_sregint.rs
++ SINTBIT = 0xDD,           test_sregint.rs
++ LF      = 0xDE,           test_local_functions.rs
+
+  # Others
++ RAND= 0xE0,               manual_test_system.rs
++ START_CLOCK= 0xE1,        manual_test_system.rs
++ STOP_CLOCK= 0xE2,         manual_test_system.rs
+
+  # Stack operations
++ PUSHINT= 0x100,           test_stacks.rs
++ POPINT= 0x101,            test_stacks.rs
++ PEEKINT= 0x102,           test_stacks.rs
++ POKEINT= 0x103,           test_stacks.rs
++ GETSPINT= 0x104,          test_stacks.rs
+
++ PUSHSINT= 0x105,          test_stacks.rs
++ POPSINT= 0x106,           test_stacks.rs
++ PEEKSINT= 0x107,          test_stacks.rs
++ POKESINT= 0x108,          test_stacks.rs
++ GETSPSINT= 0x109,         test_stacks.rs
+
++ PUSHSBIT= 0x10A,          test_stacks.rs
++ POPSBIT= 0x10B,           test_stacks.rs
++ PEEKSBIT= 0x10C,          test_stacks.rs
++ POKESBIT= 0x10D,          test_stacks.rs
++ GETSPSBIT= 0x10E,         test_stacks.rs
+
++ PUSHC= 0x110,             test_stacks.rs
++ POPC= 0x111,              test_stacks.rs
++ PEEKC= 0x112,             test_stacks.rs
++ POKEC= 0x113,             test_stacks.rs
++ GETSPC= 0x114,            test_stacks.rs
+
++ PUSHS= 0x115,             test_stacks.rs
++ POPS= 0x116,              test_stacks.rs
++ PEEKS= 0x117,             test_stacks.rs
++ POKES= 0x118,             test_stacks.rs
++ GETSPS= 0x119,            test_stacks.rs
+
+  # Relative peek and poke
++ RPEEKINT= 0x120,          test_stacks.rs
++ RPOKEINT= 0x121,          test_stacks.rs
++ RPEEKSINT= 0x122,         test_stacks.rs
++ RPOKESINT= 0x123,         test_stacks.rs
++ RPEEKSBIT= 0x124,         test_stacks.rs
++ RPOKESBIT= 0x125,         test_stacks.rs
++ RPEEKC= 0x126,            test_stacks.rs
++ RPOKEC= 0x127,            test_stacks.rs
++ RPEEKS= 0x128,            test_stacks.rs
++ RPOKES= 0x129,            test_stacks.rs
+
+
+
+
+
+
+
+
+STANDARD LIBRARY TESTING
+
+Array                       test_GC.rs
+Matrix                      test_local_functions.rs

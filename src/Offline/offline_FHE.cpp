@@ -305,18 +305,17 @@ void Update_ZKPoK(ZKPoK &ZKP, Player &P,
 
   // Transmit E data if we are prover, receive data if
   // we are verifier
+  unsigned int len;
+  const uint8_t *buff;
   if (ZKP.is_prover())
     {
-      stringstream osE;
-      ZKP.get_vE(osE);
-      P.send_all(osE.str(), 0);
+      buff= ZKP.get_vE(len);
+      P.send_all(buff, len, 0);
     }
   else
     {
-      string vsE;
-      P.receive_from_player(prover, vsE, 0);
-      istringstream isE(vsE);
-      ZKP.Step0_Step(isE, pk);
+      buff= P.receive_from_player(prover, len, 0);
+      ZKP.Step0_Step(buff, pk);
     }
 
   ZKP.Step1(pk, PTD, P.G);
@@ -325,16 +324,13 @@ void Update_ZKPoK(ZKPoK &ZKP, Player &P,
   // we are verifier
   if (ZKP.is_prover())
     {
-      stringstream osA;
-      ZKP.get_vA(osA);
-      P.send_all(osA.str(), 0);
+      buff= ZKP.get_vA(len);
+      P.send_all(buff, len, 0);
     }
   else
     {
-      string vsA;
-      P.receive_from_player(prover, vsA, 0);
-      istringstream isA(vsA);
-      ZKP.Step1_Step(isA, pk);
+      buff= P.receive_from_player(prover, len, 0);
+      ZKP.Step1_Step(buff, pk);
     }
 
   // Step 2 first step
@@ -348,19 +344,13 @@ void Update_ZKPoK(ZKPoK &ZKP, Player &P,
   if (ZKP.is_prover())
     {
       // Transmit T and Z data
-      stringstream osT, osZ;
-      ZKP.get_vT(osT);
-      ZKP.get_vZ(osZ);
-      P.send_all(osT.str(), 0);
-      P.send_all(osZ.str(), 0);
+      buff= ZKP.get_vT_vZ(len);
+      P.send_all(buff, len, 0);
     }
   else
     {
-      string vsT, vsZ;
-      P.receive_from_player(prover, vsT, 0);
-      P.receive_from_player(prover, vsZ, 0);
-      istringstream isT(vsT), isZ(vsZ);
-      ZKP.Step2_Step(isT, isZ, pk);
+      buff= P.receive_from_player(prover, len, 0);
+      ZKP.Step2_Step(buff, pk);
     }
 
   // Step 3
@@ -408,7 +398,7 @@ void offline_FHE_IO(Player &P, unsigned int player_num, list<Share> &a,
       ready= industry.is_ready();
       if (ready == false)
         {
-          sleep(5);
+          sleep(15);
         }
     }
 

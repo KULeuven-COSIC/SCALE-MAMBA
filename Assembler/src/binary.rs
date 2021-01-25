@@ -97,7 +97,7 @@ pub fn parse<'a>(cx: &'a Compiler, input: &'a [u8]) -> Vec<Lexical<'a>> {
                     v,
                 });
             }
-            args.push(Span::DUMMY.with(Operand::from(v as i32)));
+            args.push(Operand::from(v as i32).into());
         }
         let arg_pos = |name: &str| -> (usize, &'static ArgTy) {
             let pos = instruction
@@ -120,7 +120,7 @@ pub fn parse<'a>(cx: &'a Compiler, input: &'a [u8]) -> Vec<Lexical<'a>> {
                     // FIXME: treat unsigned and signed types differently
                     ArgTy::Player | ArgTy::Channel | ArgTy::Int { .. } => {
                         let i = read(false)?;
-                        args.push(Span::DUMMY.with(Operand::from(i as i32)))
+                        args.push(Operand::from(i as i32).into())
                     }
                     ArgTy::List {
                         element_type,
@@ -141,7 +141,7 @@ pub fn parse<'a>(cx: &'a Compiler, input: &'a [u8]) -> Vec<Lexical<'a>> {
                     }
                     ArgTy::Register(kind, _) => {
                         let i = read(false)?;
-                        args.push(Span::DUMMY.with(Operand::from(Register::new(*kind, i))))
+                        args.push(Operand::from(Register::new(*kind, i)).into())
                     }
                 }
                 Ok(())

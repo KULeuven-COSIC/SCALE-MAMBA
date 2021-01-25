@@ -23,9 +23,9 @@ reqbl 10
 starg r5
 run_tape 1, 1, 2
 join_tape 3
-jmpnz r1, 1
+jmpne r1, 0, 1
 crash
-jmpnz r2, 1
+jmpne r2, 0, 1
 restart
 clear_memory
 clear_registers
@@ -104,8 +104,8 @@ shrc c3, c1, c2
 shlci c3, c1, 10
 shrci c3, c1, 10
 jmp 1
-jmpnz r1, 1
-jmpeqz r1, 1
+jmpne r1, 0, 1
+jmpeq r1, 0, 1
 eqzint r2, r1
 ltzint r2, r1
 ltint r3, r1, r2

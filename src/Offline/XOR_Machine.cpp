@@ -13,18 +13,23 @@ All rights reserved
  */
 
 #include "XOR_Machine.h"
+#include "LSSS/Open_Protocol.h"
+#include "LSSS/Open_Protocol2.h"
+#include "OT/aBit.h"
+#include "System/Player.h"
 #include <cassert>
 
 extern vector<sacrificed_data> SacrificeD;
 
-XOR_Machine::XOR_Machine(Player &P, offline_control_data &OCD, int thread) : P(P), OCD(OCD), thread(thread) {}
+template<class SBit>
+XOR_Machine<SBit>::XOR_Machine(Player &P, offline_control_data &OCD, int thread) : P(P), OCD(OCD), thread(thread) {}
 
 // Opens MANY bits according the the CNC parameters
 // and check that they are consistent (ie the same) in
 // both fields
-void XOR_Machine::consistency_check(const vector<vector<Share>> &Shp,
-                                    const vector<vector<aBit>> &Sh2, const vector<int> &perm, int left_out,
-                                    Open_Protocol &OP)
+template<class SBit>
+void XOR_Machine<SBit>::consistency_check(const vector<vector<Share>> &Shp,
+                                          const vector<vector<SBit>> &Sh2, const vector<int> &perm, int left_out)
 {
 
   int num_allBits= perm.size();
@@ -47,23 +52,23 @@ void XOR_Machine::consistency_check(const vector<vector<Share>> &Shp,
     }
 
   // Open bits in both fields
-  OP.Open_To_All_Begin(OPp, allShp, P, 2);
-  OP.Open_To_All_End(OPp, allShp, P, 2);
+  P.OP->Open_To_All_Begin(valuesp, allShp, P, 2);
+  P.OP->Open_To_All_End(valuesp, allShp, P, 2);
 
-  Open_aBits(OP2, allSh2, P);
+  P.OP2->Open_Bits(values2, allSh2, P);
 
   // Check bit consistency in both fields
   for (int i= 0; i < total_cnc; ++i)
-    if (!this->bit_equality(OPp[i], OP2[i]))
+    if (!bit_equality(valuesp[i], values2[i]))
       throw Sacrifice_Check_Error("daBit consistency error!");
 }
 
 /* This is a modified version from Processor/SPDZ.cpp
  * Does XOR(LBits, RBits) in GFp using triples from OCD
  */
-void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
-                       const vector<Share> &RBits,
-                       Open_Protocol &OP)
+template<class SBit>
+void XOR_Machine<SBit>::xors(vector<Share> &result, const vector<Share> &LBits,
+                             const vector<Share> &RBits)
 {
   assert(LBits.size() == RBits.size());
   int n= LBits.size();
@@ -84,7 +89,7 @@ void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
   tb.splice(tb.begin(), sd_tb, sd_tb.begin(), next(sd_tb.begin(), n));
   tc.splice(tc.begin(), sd_tc, sd_tc.begin(), next(sd_tc.begin(), n));
 #ifdef BENCH_OFFLINE
-  P.triples+=n;
+  P.triples+= n;
 #endif
 
   OCD.mul_mutex[thread].unlock();
@@ -104,8 +109,8 @@ void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
       shares.push_back(RBits[i] - triples[1][i]);
     }
 
-  OP.Open_To_All_Begin(opened, shares, P, 2);
-  OP.Open_To_All_End(opened, shares, P, 2);
+  P.OP->Open_To_All_Begin(opened, shares, P, 2);
+  P.OP->Open_To_All_End(opened, shares, P, 2);
   auto it= opened.begin();
 
   result.resize(LBits.size()); // Make sure we have enough space
@@ -132,8 +137,8 @@ void XOR_Machine::xors(vector<Share> &result, const vector<Share> &LBits,
  * at least one honest party which contributed with some
  * randomness
  */
-
-void XOR_Machine::party_log_xor(vector<Share> &accumulator, vector<vector<Share>> &lsts, Open_Protocol &OP)
+template<class SBit>
+void XOR_Machine<SBit>::party_log_xor(vector<Share> &accumulator, vector<vector<Share>> &lsts)
 {
   // Multiple lists packed into one vector; Need to XOR-merge them
   // and maximize the MAC Check done in parallel: ie obtain:
@@ -161,7 +166,7 @@ void XOR_Machine::party_log_xor(vector<Share> &accumulator, vector<vector<Share>
               right.push_back(lsts[i][j + step]);
             }
 
-      this->xors(tmp, left, right, OP);
+      this->xors(tmp, left, right);
       // Now put data back in place
       size_t cnt= 0;
       for (int i= 0; i < n; ++i)
@@ -182,9 +187,10 @@ void XOR_Machine::party_log_xor(vector<Share> &accumulator, vector<vector<Share>
  * To do XOR in gfp(p) we need triples
  * To do XOR for gf(2^n) is local, hence just simple additions.
  */
-void XOR_Machine::combine(vector<Share> &combinedp, vector<aBit> &combined2,
-                          const vector<Share> &Shp, const vector<aBit> Sh2,
-                          Open_Protocol &OP)
+template<class SBit>
+void XOR_Machine<SBit>::combine(vector<Share> &combinedp, vector<SBit> &combined2,
+                                const vector<Share> &Shp, const vector<SBit> Sh2)
+
 {
   // Data from Shp/2 comes as [Player_1, ..., Player_n]
   int num_bits= Shp.size() / P.nplayers();
@@ -200,9 +206,9 @@ void XOR_Machine::combine(vector<Share> &combinedp, vector<aBit> &combined2,
           Lst[i].push_back(Shp[pnum * num_bits + i]);
         }
     }
-  this->party_log_xor(combinedp, Lst, OP);
-  OP.Open_To_All_Begin(OPp, combinedp, P, 2);
-  OP.Open_To_All_End(OPp, combinedp, P, 2);
+  this->party_log_xor(combinedp, Lst);
+  P.OP->Open_To_All_Begin(valuesp, combinedp, P, 2);
+  P.OP->Open_To_All_End(valuesp, combinedp, P, 2);
 
   combined2.clear();
   combined2.resize(num_bits);
@@ -212,11 +218,12 @@ void XOR_Machine::combine(vector<Share> &combinedp, vector<aBit> &combined2,
       combined2[i].add(Sh2[pnum * num_bits + i]);
 }
 
-bool XOR_Machine::bit_equality(const gfp &x, const gf2n &y)
+template<class SBit>
+bool XOR_Machine<SBit>::bit_equality(const gfp &x, const word &y)
 {
   bool equal= 0;
-  equal|= (x.is_zero() & y.is_zero());
-  equal|= (x.is_one() & y.is_one());
+  equal|= (x.is_zero() & (y == 0));
+  equal|= (x.is_one() & (y == 1));
   return equal;
 }
 
@@ -224,10 +231,9 @@ bool XOR_Machine::bit_equality(const gfp &x, const gf2n &y)
  * to combine bits inside the buckets
  * after xoring in both fields, more sacrificing is done.
  */
-
-void XOR_Machine::check_correctness(vector<Share> &combinedp,
-                                    vector<aBit> &combined2, int bucket_size, int nFinalBits,
-                                    Open_Protocol &OP)
+template<class SBit>
+void XOR_Machine<SBit>::check_correctness(vector<Share> &combinedp,
+                                          vector<SBit> &combined2, int bucket_size, int nFinalBits)
 {
   // Here we need to XOR the head of each bucket with the rest of daBits
   // put heads in left, the rest in right
@@ -241,25 +247,28 @@ void XOR_Machine::check_correctness(vector<Share> &combinedp,
         }
     }
   vector<Share> to_checkp;
-  this->xors(to_checkp, left, right, OP);
+  this->xors(to_checkp, left, right);
 
   // XOR is local for GF2n case
-  vector<aBit> to_check2;
+  vector<SBit> to_check2;
   for (int i= 0; i < nFinalBits; i++)
     {
       auto &head= combined2[i * bucket_size];
       for (int j= 1; j < bucket_size; j++)
         {
-          aBit tmp;
+          SBit tmp;
           tmp.add(head, combined2[i * bucket_size + j]);
           to_check2.push_back(tmp);
         }
     }
-  OP.Open_To_All_Begin(OPp, to_checkp, P, 2);
-  OP.Open_To_All_End(OPp, to_checkp, P, 2);
+  P.OP->Open_To_All_Begin(valuesp, to_checkp, P, 2);
+  P.OP->Open_To_All_End(valuesp, to_checkp, P, 2);
 
-  Open_aBits(OP2, to_check2, P);
+  P.OP2->Open_Bits(values2, to_check2, P);
   for (int i= 0; i < (int) to_checkp.size(); ++i)
-    if (!this->bit_equality(OPp[i], OP2[i]))
+    if (!bit_equality(valuesp[i], values2[i]))
       throw Sacrifice_Check_Error("daBit correctness error");
 }
+
+template class XOR_Machine<aBit>;
+template class XOR_Machine<Share2>;

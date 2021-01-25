@@ -51,10 +51,10 @@ impl<'a> Statement<'a> {
                 destination: args.index_or_err(cx, 0).require(cx),
                 value: args.index_or_err(cx, 1),
             },
-            "restart" | "crash" | "addc" | "adds" | "addm" | "addci" | "addsi" | "addsint"
-            | "addsintc" | "addint" | "subc" | "subs" | "subml" | "submr" | "subci" | "subsi"
-            | "subcfi" | "subsfi" | "subint" | "subsint" | "subsintc" | "subcints" | "mulc"
-            | "mulm" | "mulci" | "mulsi" | "mulsint" | "mulsintc" | "mulint" | "divc" | "divci"
+            "call" | "addc" | "adds" | "addm" | "addci" | "addsi" | "addsint" | "addsintc"
+            | "addint" | "subc" | "subs" | "subml" | "submr" | "subci" | "subsi" | "subcfi"
+            | "subsfi" | "subint" | "subsint" | "subsintc" | "subcints" | "mulc" | "mulm"
+            | "mulci" | "mulsi" | "mulsint" | "mulsintc" | "mulint" | "divc" | "divci"
             | "divsint" | "divint" | "modc" | "modci" | "shlsint" | "shrsint" | "shlc" | "shrc"
             | "shlci" | "shrci" | "ltint" | "gtint" | "eqint" | "andc" | "xorc" | "orc"
             | "andci" | "orci" | "xorci" | "sand" | "xorsb" | "andsb" | "orsb" | "andsint"
@@ -70,15 +70,14 @@ impl<'a> Statement<'a> {
             | "clear_memory" | "clear_registers" | "starg" | "convsuregsint" | "convint"
             | "convmodp" | "convregsreg" | "convsregsint" | "convsintsreg" | "convsintsbit"
             | "convsbitsint" | "pokeint" | "pokec" | "pokes" | "pokesint" | "pokesbit"
-            | "peekint" | "peekc" | "peeks" | "peeksint" | "peeksbit" | "rpokeint" 
-            | "rpokec" | "rpokes" | "rpokesint" | "rpokesbit" | "rpeekint" | "rpeekc" 
-            | "rpeeks" | "rpeeksint" | "rpeeksbit" | "popint" | "popc"
-            | "pops" | "popsint" | "popsbit" | "pushint" | "pushc" | "pushs" | "pushsint"
-            | "pushsbit" | "ldarg" | "ldtn" | "opensint" | "opensbit" | "dabit" | "print_reg"
-            | "gc" | "lf" | "print_char_regint" | "print_char4_regint" | "print_int"
-            | "print_fix_plain" | "print_ieee_float" | "print_float" | "print_mem"
-            | "print_fix" | "print_char" | "print_char4" | "mul2sint" | "bit" | "square"
-            | "triple" | "sintbit" => {
+            | "peekint" | "peekc" | "peeks" | "peeksint" | "peeksbit" | "rpokeint" | "rpokec"
+            | "rpokes" | "rpokesint" | "rpokesbit" | "rpeekint" | "rpeekc" | "rpeeks"
+            | "rpeeksint" | "rpeeksbit" | "popint" | "popc" | "pops" | "popsint" | "popsbit"
+            | "pushint" | "pushc" | "pushs" | "pushsint" | "pushsbit" | "ldarg" | "ldtn"
+            | "opensint" | "opensbit" | "dabit" | "print_reg" | "gc" | "lf"
+            | "print_char_regint" | "print_char4_regint" | "print_int" | "print_fix_plain"
+            | "print_ieee_float" | "print_float" | "print_mem" | "print_fix" | "print_char"
+            | "print_char4" | "mul2sint" | "bit" | "square" | "triple" | "sintbit" => {
                 let instr = name2instr(instruction).expect("unknown instruction");
                 if instr.args.len() == args.elem.len() {
                     let num_destinations = instr
@@ -225,16 +224,22 @@ impl<'a> Body<'a> {
                         .is_none());
                     continue;
                 }
-                "jmpnz" | "jmpeqz" => (
+                "jmpne" | "jmpeq" => (
                     JumpMode::Conditional(JumpCondition {
                         fallthrough_block: usize::max_value(),
-                        jump_if_zero: lexical.instruction == "jmpeqz",
+                        jump_if_equal: lexical.instruction == "jmpeq",
                         register: lexical.args().index_or_err(cx, 0).require(cx),
+                        constant: lexical.args().index_or_err(cx, 1).require(cx),
                     }),
-                    lexical.args().index_or_err(cx, 1),
+                    lexical.args().index_or_err(cx, 2),
                 ),
                 "jmp" => (JumpMode::Goto, lexical.args().index_or_err(cx, 0)),
-                "call" => (JumpMode::Call, lexical.args().index_or_err(cx, 0)),
+                "call" => (
+                    JumpMode::Call {
+                        fallthrough_block: usize::max_value(),
+                    },
+                    lexical.args().index_or_err(cx, 0),
+                ),
                 _ => continue,
             };
             // +1 because that's what the docs say. an offset of `0` is just a `nop`
@@ -278,12 +283,15 @@ impl<'a> Body<'a> {
 
             trace!("target_block: {}", target_block);
 
-            if let JumpMode::Conditional(JumpCondition {
-                fallthrough_block: block,
-                ..
-            }) = &mut mode
-            {
-                *block = fallthrough_block;
+            match &mut mode {
+                JumpMode::Conditional(JumpCondition {
+                    fallthrough_block: block,
+                    ..
+                })
+                | JumpMode::Call {
+                    fallthrough_block: block,
+                } => *block = fallthrough_block,
+                _ => {}
             }
             let jump = Jump {
                 target_block,
@@ -313,10 +321,11 @@ impl<'a> Body<'a> {
             if let Terminator::Jump(jmp) = &mut jl.elem {
                 jmp.target_block = block_map[&jmp.target_block];
                 match &mut jmp.mode {
-                    JumpMode::Conditional(cnd) => {
-                        cnd.fallthrough_block = block_map[&cnd.fallthrough_block]
-                    }
-                    JumpMode::Call | JumpMode::Goto => {}
+                    JumpMode::Call { fallthrough_block }
+                    | JumpMode::Conditional(JumpCondition {
+                        fallthrough_block, ..
+                    }) => *fallthrough_block = block_map[&*fallthrough_block],
+                    JumpMode::Goto => {}
                 }
             }
             jl

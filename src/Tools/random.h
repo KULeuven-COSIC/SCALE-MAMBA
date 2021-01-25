@@ -79,14 +79,10 @@ public:
 
   double get_double();
   unsigned char get_uchar();
+  // Gets 32 bits
   unsigned int get_uint();
-  word get_word()
-  {
-    word a= get_uint();
-    a<<= 32;
-    a+= get_uint();
-    return a;
-  }
+  // Gets 64 bits
+  word get_word();
   __m128i get_doubleword();
 
   const uint8_t *get_seed() const

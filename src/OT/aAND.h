@@ -18,7 +18,9 @@ All rights reserved
  * The protocol to be run is Figure 18 of 2017/189
  */
 
+#include "LSSS/Open_Protocol2.h"
 #include "LaAND.h"
+#include "config.h"
 #include <list>
 
 class aAND
@@ -31,9 +33,15 @@ class aAND
 public:
   aAND(Player &P)
   {
-    LA.resize(1);
-    LA[0].Init(P, 2);
-    triples.resize(0);
+    unsigned int number= HaAND::get_number();
+    int lg2number= CEIL_LOG2(number);
+    unsigned int B= DIV_CEIL(OT_stat_sec, lg2number);
+    LA.resize(B);
+    for (unsigned int i= 0; i < B; i++)
+      {
+        LA[i].Init(P, 2);
+      }
+    triples.resize(number);
   }
 
   /* This is Figure 18 of ePrint 2017/189 with l=number */
@@ -57,8 +65,8 @@ public:
 void Mult_aBits(vector<aBit> &z, const vector<aBit> &x, const vector<aBit> &y,
                 list<aTriple> &T, Player &P);
 
-/* Multiply a single aBit given a single triple */
-void Mult_aBit(aBit &z, const aBit &x, const aBit &y,
-               aTriple &T, Player &P);
+/* Multiply two aBits, given a triple */
+void Mult_Bit(aBit &z, const aBit &x, const aBit &y,
+              const aTriple &T, Player &P);
 
 #endif

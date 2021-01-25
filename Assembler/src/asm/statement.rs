@@ -87,7 +87,7 @@ impl<'a> Statement<'a> {
 
     fn read_registers_generic<T: RegisterModeTrait>(&self, cx: &Compiler) -> Vec<Register> {
         use crate::binary::instructions::ArgTy;
-        let relexed = self.relex(cx);
+        let relexed = self.relex(cx).0;
         let (instr, args) = match relexed.fetch_instr(cx) {
             Some(i) => i,
             None => return Vec::new(),
@@ -141,7 +141,7 @@ impl<'a> Statement<'a> {
     }
 
     pub fn memory_read(&self, cx: &Compiler) -> bool {
-        let relexed = self.relex(cx);
+        let relexed = self.relex(cx).0;
         let (instr, _) = match relexed.fetch_instr(cx) {
             Some(i) => i,
             None => return false,
@@ -150,7 +150,7 @@ impl<'a> Statement<'a> {
     }
 
     pub fn memory_write(&self, cx: &Compiler) -> bool {
-        let relexed = self.relex(cx);
+        let relexed = self.relex(cx).0;
         let (instr, _) = match relexed.fetch_instr(cx) {
             Some(i) => i,
             None => return false,
@@ -200,7 +200,7 @@ impl<'a> Statement<'a> {
     }
 
     pub fn is_barrier(&self, cx: &Compiler) -> bool {
-        let relexed = self.relex(cx);
+        let relexed = self.relex(cx).0;
         let (instr, _) = match relexed.fetch_instr(cx) {
             Some(i) => i,
             None => return false,
@@ -209,16 +209,10 @@ impl<'a> Statement<'a> {
     }
 
     pub fn is_startopen(&self) -> bool {
-        match self.instr {
-            Instruction::StartOpen { .. } => true,
-            _ => false,
-        }
+        matches!(self.instr, Instruction::StartOpen { .. })
     }
     pub fn is_stopopen(&self) -> bool {
-        match self.instr {
-            Instruction::StopOpen { .. } => true,
-            _ => false,
-        }
+        matches!(self.instr, Instruction::StopOpen { .. })
     }
 }
 

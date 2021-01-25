@@ -7,8 +7,10 @@ All rights reserved
 
 #include "Processor/Memory.h"
 #include "LSSS/Share.h"
+#include "LSSS/Share2.h"
 #include "Math/Integer.h"
 #include "Math/gfp.h"
+#include "Mod2Engine/aBitVector2.h"
 #include "OT/aBitVector.h"
 
 #include <fstream>
@@ -24,7 +26,17 @@ void Memory<T>::minimum_size(unsigned int sz, string threadname, int verbose)
           fprintf(stderr, "%s needs more %s memory, resizing to %d\n",
                   threadname.c_str(), T::type_string().c_str(), sz);
         }
-      M.resize(sz, def_value);
+      try
+        {
+          M.resize(sz, def_value);
+        }
+      catch (std::bad_alloc &e)
+        {
+          fprintf(stderr, "\n%s needed more %s memory, resizing from %ld to %d failed\n",
+                  threadname.c_str(), T::type_string().c_str(), M.size(), sz);
+          fflush(stderr);
+          throw e;
+        }
     }
   memory_mutex.unlock();
 }
@@ -86,6 +98,7 @@ template class Memory<gfp>;
 template class Memory<Share>;
 template class Memory<Integer>;
 template class Memory<aBitVector>;
+template class Memory<aBitVector2>;
 
 template istream &operator>>(istream &s, Memory<gfp> &M);
 template istream &operator>>(istream &s, Memory<Share> &M);

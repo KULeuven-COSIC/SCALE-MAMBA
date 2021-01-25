@@ -11086,7 +11086,7 @@ adds s2, s1, s1 # 11082
 adds s1, s0, s2 # 11083
 subml s0, s1, c0 # 11084
 stmsi s0, r1 # 11085
-jmpnz r0, -22 # 11086
+jmpne r0, 0, -22 # 11086
 # tutorial-0-end-loop-2
 ldms s0, 8291 # 11087
 popint r0 # 11088
@@ -11109,7 +11109,7 @@ print_char4 539172896 # 11104
 print_char4 538976288 # 11105
 print_char 10 # 11106
 print_char 10 # 11107
-jmpeqz r0, 3 # 11108
+jmpeq r0, 0, 3 # 11108
 # tutorial-0-if-block-3
 ldsi s0, 123 # 11109
 stms s0, 8192 # 11110

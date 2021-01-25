@@ -17,9 +17,10 @@ All rights reserved
 #define SRC_OFFLINE_XOR_MACHINE_H_
 
 #include "LSSS/Open_Protocol.h"
-#include "OT/aBit.h"
+#include "Math/gf2n.h"
 #include "Offline/offline_data.h"
 
+template<class SBit>
 class XOR_Machine
 {
 
@@ -28,41 +29,37 @@ class XOR_Machine
   Player &P;
 
   vector<Share> allShp;
-  vector<aBit> allSh2;
+  vector<SBit> allSh2;
 
-  vector<gfp> OPp;
-  vector<int> OP2;
+  vector<gfp> valuesp;
+  vector<word> values2;
   offline_control_data &OCD;
 
   int thread;
 
   void xors(vector<Share> &result, const vector<Share> &LBits,
-            const vector<Share> &RBits,
-            Open_Protocol &OP);
+            const vector<Share> &RBits);
 
-  bool bit_equality(const gfp &x, const gf2n &y);
+  bool bit_equality(const gfp &x, const word &y);
 
 public:
-  XOR_Machine(Player &P, offline_control_data &OCD, int thread);
+  XOR_Machine(Player &P, offline_control_data &OCD, int online_thread);
 
   int get_thread() const
   {
     return thread;
   }
 
-  void combine(vector<Share> &combinedp, vector<aBit> &combined2,
-               const vector<Share> &Shp, const vector<aBit> Sh2,
-               Open_Protocol &OP);
+  void combine(vector<Share> &combinedp, vector<SBit> &combined2,
+               const vector<Share> &Shp, const vector<SBit> Sh2);
 
   void check_correctness(vector<Share> &combinedp,
-                         vector<aBit> &combined2, int bucket_size, int nFinalBits,
-                         Open_Protocol &OP);
+                         vector<SBit> &combined2, int bucket_size, int nFinalBits);
 
-  void party_log_xor(vector<Share> &accumulator, vector<vector<Share>> &lsts, Open_Protocol &OP);
+  void party_log_xor(vector<Share> &accumulator, vector<vector<Share>> &lsts);
 
   void consistency_check(const vector<vector<Share>> &Shp,
-                         const vector<vector<aBit>> &Sh2, const vector<int> &perm, int left_out,
-                         Open_Protocol &OP);
+                         const vector<vector<SBit>> &Sh2, const vector<int> &perm, int left_out);
 };
 
 #endif /* SRC_OFFLINE_XOR_MACHINE_H_ */

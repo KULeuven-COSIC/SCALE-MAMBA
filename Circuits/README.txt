@@ -4,6 +4,10 @@ the file
   /src/GC/Circuit.h
 for a description of the format.
 
+For our system we store circuits in the non-extended
+form, i.e. with NO MADD gates. Then if we need a reduced
+depth circuit we do the MADD gate conversion on the fly
+
 
 
 -------------------------------------------------------------

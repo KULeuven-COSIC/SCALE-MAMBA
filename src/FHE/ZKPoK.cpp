@@ -170,93 +170,101 @@ int ZKPoK::M(unsigned int k, unsigned int l, const vector<int> &e)
   return e[k * U + l];
 }
 
-void ZKPoK::get_vA(ostream &s) const
+const uint8_t *ZKPoK::get_vA(unsigned int &len) const
 {
+  unsigned int sz= A.size() * A[0].size();
+  buff.resize(sz);
+  len= 0;
   for (unsigned int i= 0; i < A.size(); i++)
     {
-      A[i].output(s);
+      len+= A[i].output(buff.get_buffer() + len);
     }
+  return buff.get_buffer();
 }
 
-void ZKPoK::get_vE(ostream &s) const
+const uint8_t *ZKPoK::get_vE(unsigned int &len) const
 {
+  unsigned int sz= E.size() * E[0].size();
+  buff.resize(sz);
+  len= 0;
   for (unsigned int i= 0; i < E.size(); i++)
     {
-      E[i].output(s);
+      len+= E[i].output(buff.get_buffer() + len);
     }
+  return buff.get_buffer();
 }
 
-void ZKPoK::get_vT(ostream &s) const
+const uint8_t *ZKPoK::get_vT_vZ(unsigned int &len) const
 {
+  unsigned int sz= T.size() * (T[0].size() + Z[0].size());
+  buff.resize(sz);
+  len= 0;
   for (unsigned int i= 0; i < T.size(); i++)
     {
-      T[i].output(s);
+      len+= T[i].output(buff.get_buffer() + len);
+      len+= Z[i].output(buff.get_buffer() + len);
     }
-}
-
-void ZKPoK::get_vZ(ostream &s) const
-{
-  for (unsigned int i= 0; i < Z.size(); i++)
-    {
-      Z[i].output(s);
-    }
+  return buff.get_buffer();
 }
 
 // Player calls this to enter the each other players vector vE
-void ZKPoK::Step0_Step(istream &vE, const FHE_PK &pk)
+void ZKPoK::Step0_Step(const uint8_t *vE, const FHE_PK &pk)
 {
   Ciphertext eq(pk.get_params()), temp(pk.get_params());
+  unsigned int pos= 0;
   for (unsigned int i= 0; i < E.size(); i++)
     {
       if (single == true && prover == false)
         {
-          E[i].input(vE);
+          pos+= E[i].input(vE + pos);
         }
       else if (single == false)
         {
-          eq.input(vE);
+          pos+= eq.input(vE + pos);
           add(E[i], E[i], eq);
         }
     }
 }
 
 // Player calls this to enter the each other players vector vA
-void ZKPoK::Step1_Step(istream &vA, const FHE_PK &pk)
+void ZKPoK::Step1_Step(const uint8_t *vA, const FHE_PK &pk)
 {
   Ciphertext eq(pk.get_params()), temp(pk.get_params());
+  unsigned int pos= 0;
   for (unsigned int i= 0; i < A.size(); i++)
     {
       if (single == true && prover == false)
         {
-          A[i].input(vA);
+          pos+= A[i].input(vA + pos);
         }
       else if (single == false)
         {
-          eq.input(vA);
+          pos+= eq.input(vA + pos);
           add(A[i], A[i], eq);
         }
     }
 }
 
 // Player calls this to enter the each other players vector vT
-void ZKPoK::Step2_Step(istream &vT, istream &vZ, const FHE_PK &pk)
+void ZKPoK::Step2_Step(const uint8_t *vT_vZ, const FHE_PK &pk)
 {
   Random_Coins Ti(pk.get_params());
   Rq_Element Zi(pk.get_params().FFTD(), polynomial, polynomial);
   Ciphertext temp(pk.get_params());
 
+  unsigned int pos= 0;
   for (unsigned int i= 0; i < T.size(); i++)
     {
       if (single == true && prover == false)
         {
-          T[i].input(vT);
-          Z[i].input(vZ);
+          pos+= T[i].input(vT_vZ + pos);
+          pos+= Z[i].input(vT_vZ + pos);
           pk.quasi_encrypt(eq[i], Z[i], T[i]);
         }
       else if (single == false)
         {
-          Ti.input(vT);
-          Zi.input(vZ);
+          pos+= Ti.input(vT_vZ + pos);
+          pos+= Zi.input(vT_vZ + pos);
           add(T[i], T[i], Ti);
           add(Z[i], Z[i], Zi);
           pk.quasi_encrypt(temp, Zi, Ti);
@@ -451,6 +459,7 @@ bool ZKPoK::Step3(const FHE_PK &pk, const FFT_Data &PTD, unsigned int nplayers)
   Z.resize(0);
   T.resize(0, Random_Coins(pk.get_params()));
   eq.resize(0, Ciphertext(pk.get_params()));
+  buff.clean();
 
   used.resize(U);
   for (unsigned int i= 0; i < used.size(); i++)

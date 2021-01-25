@@ -40,7 +40,7 @@ impl<'a> Lexical<'a> {
     }
 }
 
-fn parse_operand<'a>(cx: &'a Compiler, span: Span) -> Spanned<Operand> {
+fn parse_operand(cx: &Compiler, span: Span) -> Spanned<Operand> {
     let span = span.trim(cx);
     let s = span.snippet(cx).to_ascii_lowercase();
     match &*s {

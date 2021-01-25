@@ -426,7 +426,8 @@ void Share::input(istream &s, bool human)
 
 void make_shares(vector<Share> &share, const gfp &val, PRNG &G)
 {
-  vector<gfp> ss= Share::SD.M.Random_Sharing(val, G);
+  vector<gfp> ss(Share::SD.M.row_dim());
+  Share::SD.M.Random_Sharing(ss, val, G);
 
   vector<gfp> sv;
   int c= 0;

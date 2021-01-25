@@ -1,0 +1,97 @@
+\subsection{ClearModp}
+This is the same as the $\cint$ in the underlying SCALE virtual machine.
+
+\subsubsection{Conversion of Data}
+\func{ClearModp::from(a)}
+This takes a constant $a$, a runtime integer $i64$ or a $\ints$
+and loads it into a value of type $\ClearModp$.
+\begin{lstlisting}
+    let ca = CleadModp::from(ConstI32::<8>);
+    // Works, but creates multiple assembly instructions.
+    let cx = CleadModp::from(42);
+\end{lstlisting}
+
+
+\subsubsection{IO}
+The IO class functions for $\ClearModp$ datatypes can be access via the following commands:
+
+\func{ClearModp::input(x)}
+Loads an $\ClearModp$ from the channel $x$.
+\begin{lstlisting}
+    let a=ClearModp::input(Channel::<10>);
+\end{lstlisting}
+
+\func{a.output(x)}
+Writes an $\ClearModp$ to channel $x$.
+\begin{lstlisting}
+   let v = ClearModp::from(ConstI32::<1>);
+   v.output(Channel::<10>);
+\end{lstlisting}
+
+
+\subsubsection{Other Operations}
+
+\func{x.lengendre()}
+Computes the legendre symbol of $x$ modulo the prime underlying the
+$\ClearModp$ type
+\begin{lstlisting}
+   let l = x.legendre();
+\end{lstlisting}
+
+
+\func{x.digest()}
+Computes a pseudo-random digest of the value $x$.
+\begin{lstlisting}
+   let d = x.digest();
+\end{lstlisting}
+
+
+\subsubsection{Memory Access}
+\func{a.store_in_mem(x)}
+To store data into memory location $50$ say you need to execute,
+recalling that memory is accessed by $32$ bit values.
+\begin{lstlisting}
+    unsafe{ ca.store_in_mem(ConstU32::<50>); }
+\end{lstlisting}
+To store to a variable location you use
+\begin{lstlisting}
+    let x: i64 = 50;
+    unsafe{ ca.store_in_mem(x); }
+\end{lstlisting}
+
+\func{ClearModp::load_from_mem(x)}
+To load data from memory you do
+\begin{lstlisting}
+    let ca=ClearModp::load_from_mem(ConstU32::<50>);
+    let x: i64 = 50;
+    cb=ClearModp::load_from_mem(x);
+\end{lstlisting}
+
+
+\subsubsection{Testing Data}
+\func{x.test()}
+In the SCALE target this takes the $\ClearModp$ value $x$,
+applies a reveal operation to it, and then writes the
+resulting $\ClearModp$ value into memory.
+
+In the Test target this takes a value stored in the $\ClearModp$
+memory saved on the last SCALE invocation, and compares it to
+$x$. If the two values are the same it prints the value, and the
+line number in the rust file where this was executed.
+Otherwise it aborts.
+
+\func{x.test_mem(loc)}
+This compares the value held in variable $x$ to the memory location
+at position $loc$, a simple example being
+\begin{lstlisting}
+    let c = ClearModp::from(ConstI32::<8>);
+    unsafe{ c.store_in_mem(ConstU32::<3>); }
+    ClearModp::from(ConstI32::<8>).test_mem(ConstU32::<3>);
+\end{lstlisting}
+On the SCALE target this is basically a no-op, on the Test target
+it does this comparison.
+
+\func{x.test_value(y)}
+Test whether the value held in $x$ is the same as the value held in $y$.
+This is the same as \verb|x.test()| except the value is compared to
+$y$ and not the value emulated in the test environment.

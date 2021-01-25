@@ -1,8 +1,11 @@
 [package]
-name = "documentation"
-version = "0.1.0"
+name = "scale_documentation"
+version = "0.0.1"
 authors = ["Oliver Scherer <oliver.scherer@cosmian.com>"]
 edition = "2018"
+description = "structured SCALE assembly documentation"
+repository = "https://github.com/KULeuven-COSIC/SCALE-MAMBA"
+license-file = "../License.txt"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,5 +18,5 @@ path = "documentation.rs"
 
 [dependencies]
 lazy_static = "1.4.0"
-documentation_parser = { path = "documentation_parser" }
+documentation_parser = { package = "scale_documentation_parser", version = "0.0.1", path = "documentation_parser" }
 eyre = "0.6.0"

@@ -26,6 +26,7 @@ pub struct Compiler {
     pub show_warnings: bool,
     pub optimization_level: u8,
     pub verbose: bool,
+    pub optimization_fuel: RefCell<Option<u64>>,
 }
 
 #[derive(Default, Clone)]
@@ -57,6 +58,21 @@ impl Compiler {
             optimization_level: 3,
             error_count: Cell::new(0),
             verbose: false,
+            optimization_fuel: std::env::var("OPTIMIZATION_FUEL")
+                .ok()
+                .map(|f| f.parse().unwrap())
+                .into(),
+        }
+    }
+
+    pub fn check_fuel_left(&self) -> bool {
+        match &mut *self.optimization_fuel.borrow_mut() {
+            None => true,
+            Some(0) => false,
+            Some(fuel) => {
+                *fuel -= 1;
+                true
+            }
         }
     }
 
@@ -115,8 +131,10 @@ impl Compiler {
         if err.fatal() {
             self.error_count.set(self.error_count.get() + 1);
         } else if !self.show_warnings {
+            warn!(?err);
             return span;
         }
+        error!(?err);
         if self.error_count.get() >= 100 {
             return span;
         }
@@ -125,8 +143,7 @@ impl Compiler {
         span.with_error()
     }
     pub fn checked_from<
-        'a,
-        T: std::convert::TryInto<U> + std::fmt::Display + Copy,
+        T: std::convert::TryInto<U> + std::fmt::Display + std::fmt::Debug + Copy,
         U: Expected + Default,
     >(
         &self,
@@ -189,7 +206,7 @@ impl std::fmt::Debug for ErrorReported {
     }
 }
 
-pub trait Error: Sized {
+pub trait Error: std::fmt::Debug + Sized {
     fn print(self, cx: &Compiler) -> Snippet<'_>;
     /// Whether compilation should not succeed
     fn fatal(&self) -> bool {

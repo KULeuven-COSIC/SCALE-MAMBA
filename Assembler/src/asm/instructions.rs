@@ -49,3 +49,34 @@ pub enum Instruction<'a> {
     /// during assembly.
     Nop,
 }
+
+impl<'a> Instruction<'a> {
+    pub fn as_assign(&self) -> Option<(Register, Operand)> {
+        match self {
+            Self::Assign { destination, value } => Some((destination.elem, value.elem)),
+            _ => None,
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn as_general(&self, name: &str) -> Option<(&[Spanned<Register>], &[Spanned<Operand>])> {
+        match self {
+            Self::General {
+                destinations,
+                values,
+                instruction,
+            } if *instruction == name => Some((destinations, values)),
+            _ => None,
+        }
+    }
+    pub fn as_binop(&self, name: &str) -> Option<(Register, Register, Register)> {
+        match self.as_general(name)? {
+            ([result], [a, b]) => Some((
+                result.elem,
+                a.elem.try_as_register().ok()?,
+                b.elem.try_as_register().ok()?,
+            )),
+            _ => None,
+        }
+    }
+}

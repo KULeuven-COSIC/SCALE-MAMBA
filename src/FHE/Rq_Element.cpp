@@ -407,6 +407,31 @@ void Rq_Element::input(istream &s)
     a[i].input(s);
 }
 
+unsigned int Rq_Element::output(uint8_t *buff) const
+{
+  memcpy(buff, (char *) &lev, sizeof(lev));
+  unsigned int pos= sizeof(lev);
+
+  for (int i= 0; i <= lev; i++)
+    {
+      pos+= a[i].output(buff + pos);
+    }
+
+  return pos;
+}
+
+unsigned int Rq_Element::input(const uint8_t *buff)
+{
+  memcpy((char *) &lev, buff, sizeof(lev));
+  unsigned int pos= sizeof(lev);
+  for (int i= 0; i <= lev; i++)
+    {
+      pos+= a[i].input(buff + pos);
+    }
+
+  return pos;
+}
+
 bool Rq_Element::is_zero() const
 {
   if (!a[0].is_zero())

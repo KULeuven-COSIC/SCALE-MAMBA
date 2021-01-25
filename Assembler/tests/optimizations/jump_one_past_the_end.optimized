@@ -1,5 +1,5 @@
 ldint r0, 1 # 0
-jmpeqz r0, 6 # 1
+jmpeq r0, 0, 6 # 1
 print_char 84 # 2
 print_char 114 # 3
 print_char 117 # 4

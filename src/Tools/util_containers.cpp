@@ -14,6 +14,7 @@ All rights reserved
 
 #include "util_containers.h"
 #include "LSSS/Share.h"
+#include "LSSS/Share2.h"
 #include "Math/gfp.h"
 #include "OT/aBit.h"
 
@@ -60,10 +61,13 @@ void Split_Lists(list<T> &front,
 }
 
 template void Split_Lists(vector<Share> &, list<Share> &, list<Share> &, unsigned int);
+template void Split_Lists(vector<Share2> &, list<Share2> &, list<Share2> &, unsigned int);
 
 template void Split_Lists(list<Share> &, list<Share> &, unsigned int);
+template void Split_Lists(list<Share2> &, list<Share2> &, unsigned int);
 template void Split_Lists(list<gfp> &, list<gfp> &, unsigned int);
 
 template void Split_Lists(vector<Share> &, list<Share> &, unsigned int);
+template void Split_Lists(vector<Share2> &, list<Share2> &, unsigned int);
 template void Split_Lists(vector<gfp> &, list<gfp> &, unsigned int);
 template void Split_Lists(vector<aBit> &, list<aBit> &, unsigned int);

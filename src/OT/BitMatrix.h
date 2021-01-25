@@ -100,6 +100,11 @@ public:
   void output(ostream &s, bool human= false) const;
   void input(istream &s, bool human= false);
 
+  // Following assumes buff is already assigned/of correct size
+  // Which is 16*size()
+  void output(char *buff) const;
+  void input(const char *buff);
+
   // Convert row r of block c into a gf2n element
   gf2n to_gf2n(int r, int c) const;
 };

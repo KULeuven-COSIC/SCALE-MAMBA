@@ -1,0 +1,32 @@
+\mainsection{Basic Rust Types}
+The main thing to keep in mind is that {\bf currently} the only
+Rust type supported is the $\ints$ type.
+However, if you {\bf use} another type it might cause neither an error nor a crash
+of the compiler (at the moment, we want to fix this); so you
+might get undefined behaviour.
+
+While it works to just use integral constants almost everywhere,
+it can be more efficient to use the \verb|ConstI32| and \verb|ConstU32| values
+instead. This is because for example \verb|ClearModp::from(42)| will end
+up creating two assembly instructions, one to load the $42$ into a
+$\regint$ register, the second one for a conversion from $\regint$ to
+$\cint$. If \verb|ClearModp::from(ConstI32::<42>)| is used instead, you
+get just one assembly instruction to diretly load a constant into a
+$\cint$ register.
+
+Similarly there are operations which are only supported on constants.
+One example is dividing a \verb|SecretModp| by an integer, this only works
+when using \verb|ConstI32|, as MPC has a special (and thus very efficient)
+instruction for this kind of division.
+
+\input{I64}
+\newpage
+\input{SecretI64}
+\newpage
+\input{ClearModp}
+\newpage
+\input{SecretModp}
+\newpage
+\input{SecretBit}
+\newpage
+\input{Operators}

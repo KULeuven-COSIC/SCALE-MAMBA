@@ -31,22 +31,27 @@ KeyGenM::KeyGenM(Player &Pl) : P(Pl)
 {
 }
 
-void KeyGenM::genKey(unsigned int N, MASCOTTriples &mt1, MASCOTTriples &mt2, bigint fsize1, bigint fsize2, bigint pMPC, unsigned int nb_threads_1, unsigned int nb_threads_2)
+void KeyGenM::genKey(unsigned int N, bigint fsize1, bigint fsize2, bigint pMPC, unsigned int nb_threads_1, unsigned int nb_threads_2, SSL_CTX *ctx, const SystemData &SD, vector<vector<vector<int>>> &csockets, vector<gfp> &MacK)
 {
   unsigned int whoami= P.whoami();
   unsigned int nbPlayers= P.nplayers();
   unsigned int nbThreads1= nb_threads_1;
   unsigned int nbThreads2= nb_threads_2;
+
   totalBitsGenerated= 0;
 
-  //Init the factories
   gfp::init_field(fsize1);
+  //Player Pmt1(whoami, SD, 0, ctx, csockets[1], MacK, 0);
+  MASCOTTriples mt1(P, fsize1);
   mt1.Multiply();
   mt1.Combine();
   mt1.Authenticate();
   mt1.Sacrifice();
 
+  //Init the factories
   gfp::init_field(fsize2);
+  //Player Pmt2(whoami, SD, 0, ctx, csockets[nbThreads1 + 2], MacK, 0);
+  MASCOTTriples mt2(P, fsize2);
   mt2.Multiply();
   mt2.Combine();
   mt2.Authenticate();
@@ -71,7 +76,8 @@ void KeyGenM::genKey(unsigned int N, MASCOTTriples &mt1, MASCOTTriples &mt2, big
     {
       u_triples_w1[i].resize(3);
       mac_u_triples_w1[i].resize(3);
-      MASCOTTriples *mt= new MASCOTTriples(P, fsize1, mt1.Delta, i + 2);
+      Player *Ptmp1= new Player(whoami, SD, 0, ctx, csockets[i + 2], MacK, 0);
+      MASCOTTriples *mt= new MASCOTTriples(*Ptmp1, fsize1, mt1.Delta, i + 2);
       thread th(&MASCOTTriples::execute, mt, ref(mtx1[i]), ref(u_triples_w1[i]), ref(mac_u_triples_w1[i]), ref(keepGoing), &totalProduced1);
       TFactory1.push_back(move(th));
     }
@@ -85,7 +91,8 @@ void KeyGenM::genKey(unsigned int N, MASCOTTriples &mt1, MASCOTTriples &mt2, big
     {
       u_triples_w2[i].resize(3);
       mac_u_triples_w2[i].resize(3);
-      MASCOTTriples *mt= new MASCOTTriples(P, fsize2, mt2.Delta, i + 2 + nbThreads1);
+      Player *Ptmp2= new Player(whoami, SD, 0, ctx, csockets[i + 3 + nbThreads1], MacK, 0);
+      MASCOTTriples *mt= new MASCOTTriples(*Ptmp2, fsize2, mt2.Delta, i + 3 + nbThreads1);
       thread th(&MASCOTTriples::execute, mt, ref(mtx2[i]), ref(u_triples_w2[i]), ref(mac_u_triples_w2[i]), ref(keepGoing), &totalProduced2);
       TFactory2.push_back(move(th));
     }

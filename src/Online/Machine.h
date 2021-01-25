@@ -8,9 +8,9 @@ All rights reserved
 #define _Machine
 
 #include "Input_Output/IO.h"
-#include "LSSS/Share.h"
+#include "Local/Local_Functions.h"
 #include "Math/Integer.h"
-#include "OT/aBitVector.h"
+#include "Offline/DABitMachine.h"
 #include "Processor/Memory.h"
 #include "Processor/Program.h"
 #include "Schedule.h"
@@ -38,10 +38,14 @@ public:
 
   // Integer argument to the program (optional)
   int arg;
+
+  // The start position
+  int pc= 0;
 };
 
 #define N_TIMERS 100
 
+template<class SRegint, class SBit>
 class Machine
 {
   /* This is the thread control data
@@ -63,11 +67,16 @@ class Machine
 
 public:
   // The vector of programs used by the schedule file
-  vector<Program> progs;
+  vector<Program<SRegint, SBit>> progs;
 
-  int get_OTI_arg(unsigned int i)
+  int get_OTI_arg(unsigned int i) const
   {
     return OTI[i].arg;
+  }
+
+  unsigned int get_PC(unsigned int i) const
+  {
+    return OTI[i].pc;
   }
 
   unsigned int max_n_threads() const
@@ -92,7 +101,7 @@ public:
   Memory<gfp> Mc;
   Memory<Share> Ms;
   Memory<Integer> Mr;
-  Memory<aBitVector> Msr;
+  Memory<SRegint> Msr;
 
   // The Schedule process we are running
   Schedule schedule;
@@ -102,6 +111,12 @@ public:
   {
     verbose= xx;
   }
+
+  // The local function table
+  Local_Functions<SRegint, SBit> LF_Table;
+
+  // The daBitMachine
+  MaliciousDABitMachine<SBit> daBitMachine;
 
   // -----------------------------------------------------
 
@@ -142,7 +157,9 @@ public:
   void Lock_Until_Finished_Tape(unsigned int num);
 
   // This runs tape tape_number on thread thread_number with argument arg
-  void run_tape(unsigned int thread_number, unsigned int tape_number, int arg);
+  // starting with PC=n
+  void run_tape(unsigned int thread_number, unsigned int tape_number, int arg,
+                unsigned int n= 0);
 
   // Main run routine
   void run();

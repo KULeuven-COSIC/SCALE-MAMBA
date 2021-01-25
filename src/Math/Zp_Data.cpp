@@ -44,7 +44,7 @@ void Zp_Data::init(const bigint &p, bool mont)
           throw not_implemented();
         }
     }
-  inline_mpn_zero(prA, MAX_MOD_SZ+1);
+  inline_mpn_zero(prA, MAX_MOD_SZ + 1);
   inline_mpn_copyi(prA, pr.get_mpz_t()->_mp_d, t);
 }
 
@@ -62,11 +62,10 @@ void Zp_Data::assign(const Zp_Data &Zp)
   inline_mpn_copyi(prA, Zp.prA, t + 1);
 }
 
-
-void Zp_Data::Mont_Mult_Normal(mp_limb_t *z, 
-		               const mp_limb_t *x, const mp_limb_t *y) const
+void Zp_Data::Mont_Mult_Normal(mp_limb_t *z,
+                               const mp_limb_t *x, const mp_limb_t *y) const
 {
-  mp_limb_t ans[2 * MAX_MOD_SZ+2], u;
+  mp_limb_t ans[2 * MAX_MOD_SZ + 2], u;
   // First loop
   u= x[0] * y[0] * pi;
   ans[t]= mpn_mul_1(ans, y, t, x[0]);
@@ -75,10 +74,10 @@ void Zp_Data::Mont_Mult_Normal(mp_limb_t *z,
     { // u=(ans0+xi*y0)*pd
       u= (ans[i] + x[i] * y[0]) * pi;
       // ans=ans+xi*y+u*pr
-      mp_limb_t carry = mpn_addmul_1(ans + i, y, t , x[i]);
-      ans[t+i]+=carry;
-      ans[t+i+1]=(ans[t+i]<carry);
-      ans[t+i+1]+= mpn_addmul_1(ans + i, prA, t + 1, u);
+      mp_limb_t carry= mpn_addmul_1(ans + i, y, t, x[i]);
+      ans[t + i]+= carry;
+      ans[t + i + 1]= (ans[t + i] < carry);
+      ans[t + i + 1]+= mpn_addmul_1(ans + i, prA, t + 1, u);
     }
   // if (ans>=pr) { ans=z-pr; }
   // else         { z=ans;    }

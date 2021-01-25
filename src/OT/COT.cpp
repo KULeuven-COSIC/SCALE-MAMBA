@@ -33,13 +33,13 @@ void Sender_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, unsigned int 
           ROT_S[j].reset();
         }
       P.receive_from_player(i, input, connectionNb);
-      ROT_S[j].message(input);
+      ROT_S[j].message(input, j);
 #else
       ROT_S[j].init(RNG);
       while (!ROT_S[j].is_complete())
         {
           P.receive_from_player(i, input, connectionNb);
-          ROT_S[j].message(output, input, RNG);
+          ROT_S[j].message(output, input, j, RNG);
           P.send_to_player(i, output, connectionNb);
         }
 #endif
@@ -63,7 +63,7 @@ void Receiver_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int>
     {
 #ifdef SimpleOT
       ROT_R[j].init(input, choicebits[j]);
-      ROT_R[j].message(output, RNG);
+      ROT_R[j].message(output, j, RNG);
       P.send_to_player(i, output, connection);
 #else
       ROT_R[j].init(RNG, choicebits[j]);
@@ -73,7 +73,7 @@ void Receiver_COT::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int>
             {
               P.receive_from_player(i, input, connection);
             }
-          ROT_R[j].message(output, input);
+          ROT_R[j].message(output, input, j);
           if (!ROT_R[j].is_complete())
             {
               P.send_to_player(i, output, connection);
@@ -110,9 +110,10 @@ void Sender_COT::next_iteration(Player &P,
   xMatrix.add(ttM[1]);
 
   // Now send xMatrix to the other player
-  stringstream ss;
-  xMatrix.output(ss);
-  P.send_to_player(pair, ss.str(), connection);
+  char *buff= new char[16 * xMatrix.size()];
+  xMatrix.output(buff);
+  P.send_to_player(pair, (uint8_t *) buff, 16 * xMatrix.size(), connection);
+  delete[] buff;
 
   // Step 4
   gf2n t;
@@ -136,11 +137,10 @@ void Receiver_COT::next_iteration(Player &P,
     }
 
   // Step 2 and 3
-  string ss;
   BitMatrix xMatrix(sz_aB);
-  P.receive_from_player(pair, ss, connection);
-  istringstream iss(ss);
-  xMatrix.input(iss);
+  unsigned int len;
+  const uint8_t *P_buff= P.receive_from_player(pair, len, connection);
+  xMatrix.input((char *) P_buff);
 
   // Zero row of xMatrix if b=0
   for (unsigned int j= 0; j < OT_comp_sec; j++)
@@ -227,10 +227,10 @@ void Sender_COT::next_checked_iteration(Player &P,
       tc.add(temp);
     }
   // Now send xc and tc to the Receiver
-  stringstream ss;
-  xc.output(ss);
-  tc.output(ss);
-  P.send_to_player(pair, ss.str(), connection);
+  uint8_t buff[2 * sizeof(gf2n)];
+  xc.output(buff);
+  tc.output(buff + sizeof(gf2n));
+  P.send_to_player(pair, buff, 2 * sizeof(gf2n), connection);
 }
 
 void Receiver_COT::next_checked_iteration(Player &P,
@@ -263,11 +263,10 @@ void Receiver_COT::next_checked_iteration(Player &P,
     }
 
   // Get xc and tc from the Sender
-  string ss;
-  P.receive_from_player(pair, ss, connection);
-  istringstream iss(ss);
-  xc.input(iss);
-  tc.input(iss);
+  unsigned int len;
+  const uint8_t *P_buff= P.receive_from_player(pair, len, connection);
+  xc.input(P_buff);
+  tc.input(P_buff + sizeof(gf2n));
 
   // Do the check
   gf2n eq;

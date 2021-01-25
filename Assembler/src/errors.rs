@@ -6,6 +6,7 @@ use crate::Compiler;
 use annotate_snippets::display_list::FormatOptions;
 use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation};
 
+#[derive(Debug)]
 pub struct InvalidVectorSize {
     pub n: Spanned<i32>,
 }
@@ -14,7 +15,7 @@ impl Error for InvalidVectorSize {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.n.span)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get(format!(
@@ -46,16 +47,19 @@ pub fn line(substr: &str, s: &str) -> (usize, (usize, usize), String) {
     (n + 1, (col, col + substr.len()), s.to_owned())
 }
 
+#[derive(Debug)]
 pub struct ExpectedGot<T, E> {
     pub got: Spanned<T>,
     pub expected: E,
 }
 
-impl<T: std::fmt::Display, E: std::fmt::Display> Error for ExpectedGot<T, E> {
+impl<T: std::fmt::Display + std::fmt::Debug, E: std::fmt::Display + std::fmt::Debug> Error
+    for ExpectedGot<T, E>
+{
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.got.span)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get(format!(
@@ -75,6 +79,7 @@ impl<T: std::fmt::Display, E: std::fmt::Display> Error for ExpectedGot<T, E> {
     }
 }
 
+#[derive(Debug)]
 pub struct ExpectedOperand {
     pub span: Span,
 }
@@ -83,7 +88,7 @@ impl Error for ExpectedOperand {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some("expected an operand`"),
@@ -100,6 +105,7 @@ impl Error for ExpectedOperand {
     }
 }
 
+#[derive(Debug)]
 pub struct ArgNotFound {
     pub span: Span,
     pub i: usize,
@@ -109,7 +115,7 @@ impl Error for ArgNotFound {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(
@@ -129,6 +135,7 @@ impl Error for ArgNotFound {
     }
 }
 
+#[derive(Debug)]
 pub struct JumpOutOfBounds {
     pub spans: Vec<Span>,
 }
@@ -137,7 +144,7 @@ impl Error for JumpOutOfBounds {
     fn spans(&self) -> &[Span] {
         &self.spans
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some("a jump jumped beyond the program's boundaries"),
@@ -172,6 +179,7 @@ impl Error for JumpOutOfBounds {
     }
 }
 
+#[derive(Debug)]
 pub struct UnknownInstruction<'a> {
     pub span: Span,
     pub instruction: &'a str,
@@ -181,7 +189,7 @@ impl<'a> Error for UnknownInstruction<'a> {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print<'b>(self, cx: &'b Compiler) -> Snippet<'b> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get(format!(
@@ -201,6 +209,7 @@ impl<'a> Error for UnknownInstruction<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct InvalidRegisterId {
     pub span: Span,
     pub err: std::num::ParseIntError,
@@ -210,7 +219,7 @@ impl Error for InvalidRegisterId {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some("invalid register id"),
@@ -231,6 +240,7 @@ impl Error for InvalidRegisterId {
     }
 }
 
+#[derive(Debug)]
 pub struct Io {
     pub err: std::io::Error,
 }
@@ -239,7 +249,7 @@ impl Error for Io {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get(self.err.to_string())),
@@ -256,6 +266,7 @@ impl Error for Io {
     }
 }
 
+#[derive(Debug)]
 pub struct UnimplementedInstruction<'a> {
     pub span: Span,
     pub name: &'a str,
@@ -265,7 +276,7 @@ impl<'a> Error for UnimplementedInstruction<'a> {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print<'b>(self, cx: &'b Compiler) -> Snippet<'b> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(
@@ -289,6 +300,7 @@ impl<'a> Error for UnimplementedInstruction<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct TooManyArguments {
     pub span: Span,
 }
@@ -297,7 +309,7 @@ impl Error for TooManyArguments {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&self.span)
     }
-    fn print<'b>(self, cx: &'b Compiler) -> Snippet<'b> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get("invalid number of arguments".to_string())),
@@ -318,6 +330,7 @@ impl Error for TooManyArguments {
     }
 }
 
+#[derive(Debug)]
 pub struct UninitializedRead {
     pub spans: Vec<Span>,
     // FIXME: make this a `Register`
@@ -328,7 +341,12 @@ impl Error for UninitializedRead {
     fn spans(&self) -> &[Span] {
         &self.spans
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn fatal(&self) -> bool {
+        // The scale engine allows reading from uninitialized registers,
+        // which yields 0.
+        false
+    }
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some("read from uninitialized register"),
@@ -350,6 +368,7 @@ impl Error for UninitializedRead {
     }
 }
 
+#[derive(Debug)]
 pub struct DeadWrite {
     pub spans: Vec<Span>,
     // FIXME: make this a `Register`
@@ -363,7 +382,7 @@ impl Error for DeadWrite {
     fn fatal(&self) -> bool {
         false
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some("Write to register is never read"),
@@ -387,6 +406,7 @@ impl Error for DeadWrite {
     }
 }
 
+#[derive(Debug)]
 pub struct NotVectorizable {
     pub instr: &'static str,
     pub v: u32,
@@ -396,7 +416,7 @@ impl Error for NotVectorizable {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get(format!(
@@ -416,6 +436,7 @@ impl Error for NotVectorizable {
     }
 }
 
+#[derive(Debug)]
 pub struct SkippedErrors {
     pub error_count: usize,
 }
@@ -424,7 +445,7 @@ impl Error for SkippedErrors {
     fn spans(&self) -> &[Span] {
         std::slice::from_ref(&Span::DUMMY)
     }
-    fn print<'a>(self, cx: &'a Compiler) -> Snippet<'a> {
+    fn print(self, cx: &Compiler) -> Snippet<'_> {
         Snippet {
             title: Some(Annotation {
                 label: Some(cx.strings.push_get(format!(

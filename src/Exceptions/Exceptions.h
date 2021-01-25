@@ -350,6 +350,24 @@ class OT_disabled : public exception
   }
 };
 
+class Mod2Engine_Error : public exception
+{
+  string msg;
+
+public:
+  Mod2Engine_Error(string m)
+  {
+    msg= "Mod2Engine-Error : " + m;
+  }
+  ~Mod2Engine_Error() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
+  }
+};
+
 class stack_error : public exception
 {
   virtual const char *what() const throw()
@@ -453,5 +471,36 @@ public:
   }
 };
 
+class thread_error : public exception
+{
+  string msg;
+
+public:
+  thread_error(string m)
+  {
+    msg= "thread_error : " + m;
+  }
+  ~thread_error() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
+  }
+};
+class invalid_local_function : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Tried to load invalid local function";
+  }
+};
+class invalid_circuit : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Tried to load invalid binary circuit";
+  }
+};
 
 #endif

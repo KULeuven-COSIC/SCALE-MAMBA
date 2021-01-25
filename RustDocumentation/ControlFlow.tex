@@ -1,0 +1,109 @@
+\mainsection{Control Flow}
+In this section we detail the control flow operations which we
+support.
+
+\subsection{If-then-else}
+Branching on clear data is possible via the standard
+rust if-then-else construct. In contrast to Mamba, if you
+need to access data which has been altered within the
+if clauses you do not need to store these in memory.
+Instead you can just use the standard Rust local variables
+and everything will work as expected.
+For example
+\begin{lstlisting}
+    let c0 = black_box(0);
+
+    // Testing c0 = False
+    let a = if c0 == 1 {
+        ClearModp::from(ConstI32::<0>)
+    } else {
+        ClearModp::from(ConstI32::<25>)
+    };
+    // use `a` from here on
+\end{lstlisting}
+
+\subsection{While Loops}
+While loops can also be executed over $\ints$ datatypes, for
+example
+\begin{lstlisting}
+    let mut cond: i64 = 0;
+    while cond==0 {
+        ... Do Something ...
+        cond = ... some condition ...
+    }
+\end{lstlisting}
+If you want to access something inside the loop that can still be
+used outside the loop afterwards, use local variables similar to
+how the $cond$ variable is used.
+
+\subsection{For Loops}
+Again standard rust loops can be executed, for example
+\begin{lstlisting}
+    let mut res = 1;
+    for i in 2..n  {
+        res *= i;
+    }
+    a=a+res;
+\end{lstlisting}
+The compiler decides on heuristic optimization rules how and whether
+to unroll such loops. Whether the loop is unrolled or not has no
+effect on the correctness of the loop, but it can have effects on
+the efficiency of cryptographic operations.
+
+\subsection{Function Calls}
+Function calls can either be placed inline (which is really only a
+    {\em hint} to the compiler) or they can be performed using
+stack-pushing of arguments, call/return and then popping outputs.
+The former corresponds to the Mamba `Python-Function' behaviour,
+whilst the latter corresponds to the Mamba `Mamba-Function' behaviour.
+However, with Rust if the compiler decides that the expanded version
+is too big it will revert to the call/return variant.
+
+In the following \verb|foo| is an unrolled function,
+whilst \verb|bar| is a call/return style function.
+
+\begin{lstlisting}
+    #[inline(always)]
+    fn foo(x: i64) -> i64 {
+        let mut y=1;
+        for i in 2..x
+           y *= i;
+        y
+    }
+
+    #[inline(never)]
+    fn bar(x: i64) -> i64 {
+        let mut y=1;
+        for i in 2..x
+           y *= i;
+        y
+    }
+
+
+
+    #[inline(never)]
+    fn main() {
+        let x = foo(10);
+        let y = bar(10);
+        ...
+    }
+\end{lstlisting}
+When using call/return the compiler works out all the stack pushing
+and popping for you.
+This is why usage of the stacks by the user might be unsafe, as the
+compiler really needs direct access to the stacks.
+
+Function calls can also be recursive, unlike function calls in Mamba,
+\begin{lstlisting}
+    #[inline(never)]
+    fn fibonacci(x: u64) -> u64 {
+        print!(x as i64, "\n");
+        match x {
+            0 => 0,
+            1 | 2 => 1,
+            _ => fibonacci(x - 1) + fibonacci(x - 2)
+        }
+    }
+\end{lstlisting}
+Note that the compiler is much less likely to fully inline recursive
+functions unless it can tell when the recursion will end.

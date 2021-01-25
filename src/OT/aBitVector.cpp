@@ -46,27 +46,14 @@ void aBitVector::assign_one()
     }
 }
 
-unsigned long long aBitVector::Open(Player &P) const
-{
-  vector<int> dv(sreg_bitl);
-  Open_aBits(dv, x, P);
-  unsigned long long xx= 0;
-  for (int i= sreg_bitl - 1; i >= 0; i--)
-    {
-      xx<<= 1;
-      xx+= dv[i];
-    }
-  return xx;
-}
-
 void aBitVector::Bitwise_AND(const aBitVector &a, const aBitVector &b, Player &P, unsigned int online_thread_no)
 {
   OTD.check();
   list<aTriple> triples= OTD.aAD.get_aANDs(online_thread_no, sreg_bitl);
   Mult_aBits(x, a.x, b.x, triples, P);
-  #ifdef BENCH_OFFLINE
-     P.aands+=sreg_bitl;
-  #endif
+#ifdef BENCH_OFFLINE
+  P.aands+= sreg_bitl;
+#endif
 }
 
 void aBitVector::Bit_AND(const aBitVector &a, const aBit &bb, Player &P, unsigned int online_thread_no)

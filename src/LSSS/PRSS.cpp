@@ -112,7 +112,8 @@ void AgreeRandom(Player &P, uint8_t *seed, int len,
     }
 }
 
-void PRSS::ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M)
+template<class Sh, class Fld>
+void PRSS_Base<Sh, Fld>::ReplicatedSetUp(Player &P, const CAS &AS, const MSP<Fld> &M)
 {
   whoami= P.whoami();
   /* Go through each delta_plus set, find ones I am in
@@ -167,7 +168,8 @@ void PRSS::ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M)
     }
 }
 
-void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
+template<class Sh, class Fld>
+void PRSS_Base<Sh, Fld>::MSP_SetUp(Player &P, const CAS &AS, const MSP<Fld> &M)
 {
   whoami= P.whoami();
   // If AS.delta.size()==0 then (for Shamir) things are too big
@@ -179,17 +181,13 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
       G.resize(1);
       G[0].ReSeed(2000 + whoami);
       Shares_Of_One.resize(0);
-      batch_pos= 0;
-      batch.resize(1024, Share(whoami));
-      batch_production(P);
       return;
     }
 
   G.resize(AS.delta_plus.size());
   Asets.resize(AS.delta_plus.size(), vector<unsigned int>(AS.n));
   Shares_Of_One.resize(AS.delta_plus.size());
-  vector<gfp> macs(0);
-  vector<gfp> sh(M.shares_per_player(whoami));
+  vector<Fld> sh(M.shares_per_player(whoami));
   vector<int> D(AS.n);
 
   // We go through maximally qualified sets and take their compliments
@@ -202,13 +200,13 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
           D[j]= AS.delta_plus[i][j];
         }
       // We want to solve Dx =0 and sum x_i=1
-      gfp_matrix AA= M.extract_rows(D);
+      vector<vector<Fld>> AA= M.extract_rows(D);
       for (unsigned int j= 0; j < AA.size(); j++)
         {
           AA[j].resize(M.col_dim() + 1);
           AA[j][M.col_dim()].assign_zero();
         }
-      AA.resize(AA.size() + 1, vector<gfp>(M.col_dim() + 1));
+      AA.resize(AA.size() + 1, vector<Fld>(M.col_dim() + 1));
       for (unsigned int j= 0; j < M.col_dim() + 1; j++)
         {
           AA[AA.size() - 1][j].assign_one();
@@ -219,8 +217,10 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
         }
 
       // Do back substitution
-      vector<gfp> x= BackSubst(AA);
-      x= M.Sharing(x);
+      vector<Fld> bx(M.col_dim());
+      BackSubst(bx, AA);
+      vector<Fld> x(M.row_dim());
+      M.Sharing(x, bx);
       // Extract my part
       int c= 0;
       for (unsigned int j= 0; j < AS.n; j++)
@@ -241,7 +241,7 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
         {
           AgreeRandom(P, Asets[i], seed, SEED_SIZE, 0);
           G[i].SetSeedFromRandom(seed);
-          Shares_Of_One[i].assign(whoami, sh, macs);
+          Shares_Of_One[i].assign(whoami, sh);
         }
       else
         {
@@ -251,19 +251,20 @@ void PRSS::MSP_SetUp(Player &P, const CAS &AS, const MSP &M)
     }
 }
 
-PRSS::PRSS(Player &P)
+template<class Sh, class Fld>
+PRSS_Base<Sh, Fld>::PRSS_Base(Player &P)
 {
-  if (Share::SD.type == Full)
+  if (Sh::SD.type == Full || Sh::SD.type == Other)
     {
       return; /* This is a NOP */
     }
-  else if (Share::SD.type == Replicated)
+  else if (Sh::SD.type == Replicated)
     {
-      ReplicatedSetUp(P, Share::SD.AS, Share::SD.M);
+      ReplicatedSetUp(P, Sh::SD.AS, Sh::SD.M);
     }
-  else if (Share::SD.type == Q2MSP || Share::SD.type == Shamir)
+  else if (Sh::SD.type == Q2MSP || Sh::SD.type == Shamir)
     {
-      MSP_SetUp(P, Share::SD.AS, Share::SD.M);
+      MSP_SetUp(P, Sh::SD.AS, Sh::SD.M);
     }
   else
     {
@@ -323,6 +324,8 @@ void PRSS::batch_production(Player &P)
   gfp te;
   Share temp;
   vector<Share> Sh(P.nplayers());
+  // Still use stringstream's here as this is rarely used
+  // and its too complex to unpick in some sense
   vector<stringstream> ss(P.nplayers());
   for (unsigned int i= 0; i < batch.size(); i++)
     {
@@ -349,13 +352,31 @@ void PRSS::batch_production(Player &P)
       if (j != whoami)
         {
           string ss;
-          P.receive_from_player(j, ss, 0);
-          stringstream is(ss);
+          unsigned int len;
+          const uint8_t *P_sbuff= P.receive_from_player(j, len, 0);
+          unsigned int pos= 0;
           for (unsigned int i= 0; i < batch.size(); i++)
             {
-              temp.input(is, false);
+              pos+= temp.input(P_sbuff + pos);
               batch[i].add(temp);
             }
         }
     }
 }
+
+Share2 PRSS2::next_share()
+{
+  Share2 S(whoami);
+
+  vector<word> si(G.size());
+  for (unsigned int i= 0; i < G.size(); i++)
+    {
+      si[i]= G[i].get_word();
+    }
+  S.set_shares(si);
+
+  return S;
+}
+
+template class PRSS_Base<Share, gfp>;
+template class PRSS_Base<Share2, gf2>;

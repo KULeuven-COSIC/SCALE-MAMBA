@@ -10,7 +10,6 @@ All rights reserved
  * all are correct
  */
 
-#include <sstream>
 #include <vector>
 using namespace std;
 
@@ -18,8 +17,7 @@ using namespace std;
 #include "Tools/util_containers.h"
 #include "config.h"
 
-void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
-                       list<Share> &c, Open_Protocol &OP)
+void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b, list<Share> &c)
 {
   // The number of sacrifice equations we need per item produced
   int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
@@ -64,8 +62,8 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
             }
         }
 
-      OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
-      OP.Open_To_All_End(PO, Sh_PO, P, 0);
+      P.OP->Open_To_All_Begin(PO, Sh_PO, P, 0);
+      P.OP->Open_To_All_End(PO, Sh_PO, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -81,8 +79,8 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
               Sh_Tau[i * rep + j].sub(Sh_Tau[i * rep + j], te, P.get_mac_keys());
             }
         }
-      OP.Open_To_All_Begin(Tau, Sh_Tau, P, 0);
-      OP.Open_To_All_End(Tau, Sh_Tau, P, 0);
+      P.OP->Open_To_All_Begin(Tau, Sh_Tau, P, 0);
+      P.OP->Open_To_All_End(Tau, Sh_Tau, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -103,8 +101,7 @@ void sacrifice_triples(Player &P, list<Share> &a, list<Share> &b,
 }
 
 void sacrifice_phase_triples(Player &P, int fake_sacrifice, list<Share> &a,
-                             list<Share> &b, list<Share> &c,
-                             Open_Protocol &OP)
+                             list<Share> &b, list<Share> &c)
 {
   if (fake_sacrifice)
     {
@@ -112,12 +109,11 @@ void sacrifice_phase_triples(Player &P, int fake_sacrifice, list<Share> &a,
     }
   else
     {
-      sacrifice_triples(P, a, b, c, OP);
+      sacrifice_triples(P, a, b, c);
     }
 }
 
-void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
-                       Open_Protocol &OP)
+void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b)
 {
   // The number of sacrifice equations we need per item produced
   int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
@@ -160,8 +156,8 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
             }
         }
 
-      OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
-      OP.Open_To_All_End(PO, Sh_PO, P, 0);
+      P.OP->Open_To_All_Begin(PO, Sh_PO, P, 0);
+      P.OP->Open_To_All_End(PO, Sh_PO, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -177,8 +173,8 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
             }
         }
 
-      OP.Open_To_All_Begin(Tau, Sh_Tau, P, 0);
-      OP.Open_To_All_End(Tau, Sh_Tau, P, 0);
+      P.OP->Open_To_All_Begin(Tau, Sh_Tau, P, 0);
+      P.OP->Open_To_All_End(Tau, Sh_Tau, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -197,8 +193,7 @@ void sacrifice_squares(Player &P, list<Share> &a, list<Share> &b,
   b= move(bo);
 }
 
-void sacrifice_phase_squares(Player &P, int fake_sacrifice, list<Share> &a,
-                             list<Share> &b, Open_Protocol &OP)
+void sacrifice_phase_squares(Player &P, int fake_sacrifice, list<Share> &a, list<Share> &b)
 {
   if (fake_sacrifice)
     {
@@ -206,12 +201,11 @@ void sacrifice_phase_squares(Player &P, int fake_sacrifice, list<Share> &a,
     }
   else
     {
-      sacrifice_squares(P, a, b, OP);
+      sacrifice_squares(P, a, b);
     }
 }
 
-void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
-                    list<Share> &s, Open_Protocol &OP)
+void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a, list<Share> &s)
 {
   // The number of sacrifice equations we need per item produced
   int rep= sacrifice_stat_sec / numBits(gfp::pr()) + 1;
@@ -252,8 +246,8 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
             }
         }
 
-      OP.Open_To_All_Begin(PO, Sh_PO, P, 0);
-      OP.Open_To_All_End(PO, Sh_PO, P, 0);
+      P.OP->Open_To_All_Begin(PO, Sh_PO, P, 0);
+      P.OP->Open_To_All_End(PO, Sh_PO, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -268,8 +262,8 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
               Sh_Tau[i * rep + j].sub(Sh_Tau[i * rep + j], temp);
             }
         }
-      OP.Open_To_All_Begin(Tau, Sh_Tau, P, 0);
-      OP.Open_To_All_End(Tau, Sh_Tau, P, 0);
+      P.OP->Open_To_All_Begin(Tau, Sh_Tau, P, 0);
+      P.OP->Open_To_All_End(Tau, Sh_Tau, P, 0);
 
       for (int i= 0; i < this_loop; i++)
         {
@@ -288,7 +282,7 @@ void sacrifice_bits(Player &P, list<Share> &bits, list<Share> &a,
 }
 
 void sacrifice_phase_bits(Player &P, int fake_sacrifice, list<Share> &bit,
-                          list<Share> a, list<Share> &sa, Open_Protocol &OP)
+                          list<Share> a, list<Share> &sa)
 {
   if (fake_sacrifice)
     {
@@ -296,6 +290,6 @@ void sacrifice_phase_bits(Player &P, int fake_sacrifice, list<Share> &bit,
     }
   else
     {
-      sacrifice_bits(P, bit, a, sa, OP);
+      sacrifice_bits(P, bit, a, sa);
     }
 }

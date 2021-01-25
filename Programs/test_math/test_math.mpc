@@ -166,10 +166,10 @@ test(mpc_math.exp2_fx(d))
 
 # Test pow
 print_ln("Testing pow (fxp)")
-test(mpc_math.pow_fx(a,2),lower=3.5, upper=4.01)
-test(mpc_math.pow_fx(b,2),lower=8, upper=9)
-test(mpc_math.pow_fx(c,2),lower=15, upper=16.01)
-test(mpc_math.pow_fx(d,2),lower=24, upper=25)
+test(mpc_math.pow_fx(a,2),lower=3.9999, upper=4.0001)
+test(mpc_math.pow_fx(b,2),lower=8.9999, upper=9.0001)
+test(mpc_math.pow_fx(c,2),lower=15.9999, upper=16.0001)
+test(mpc_math.pow_fx(d,2),lower=24.9999, upper=25.0001)
 
 # Test log
 print_ln("Testing log (fxp)")

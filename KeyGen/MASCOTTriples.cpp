@@ -71,7 +71,7 @@ MASCOTTriples::MASCOTTriples(Player &Pl, bigint fsize, gfp delta, unsigned int c
   G.ReSeed(myThreadNb + 1);
 
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, seed, SEED_SIZE, myThreadNb + 1);
+  AgreeRandom(P, seed, SEED_SIZE, 1);
   G2.SetSeedFromRandom(seed);
 
   isInit= false;
@@ -135,7 +135,7 @@ MASCOTTriples::MASCOTTriples(Player &Pl, bigint fsize, unsigned int connection) 
   G.ReSeed(0);
 
   uint8_t seed[SEED_SIZE];
-  AgreeRandom(P, seed, SEED_SIZE, myThreadNb + 1);
+  AgreeRandom(P, seed, SEED_SIZE, 1);
   G2.SetSeedFromRandom(seed);
 
   isInit= false;
@@ -153,11 +153,11 @@ int check_exit(const Player &P, int myThreadNb, bool kg)
           result= 1;
           ss= "E";
         }
-      P.send_all(ss, myThreadNb + 1);
+      P.send_all(ss, 1);
     }
   else
     {
-      P.receive_from_player(0, ss, myThreadNb + 1);
+      P.receive_from_player(0, ss, 1);
       if (ss.compare("E") == 0)
         {
           result= 1;
@@ -258,11 +258,11 @@ void MASCOTTriples::Multiply()
         {
           if (i < whoami)
             {
-              ROTS[i].init(P, i, RNG, choicebits, myThreadNb + 1);
+              ROTS[i].init(P, i, RNG, choicebits, 1);
             }
           else if (i > whoami)
             {
-              ROTR[i].init(P, i, RNG, myThreadNb + 1);
+              ROTR[i].init(P, i, RNG, 1);
             }
         }
 
@@ -271,11 +271,11 @@ void MASCOTTriples::Multiply()
         {
           if (i > whoami)
             {
-              ROTS[i].init(P, i, RNG, choicebits, myThreadNb + 1);
+              ROTS[i].init(P, i, RNG, choicebits, 1);
             }
           else if (i < whoami)
             {
-              ROTR[i].init(P, i, RNG, myThreadNb + 1);
+              ROTR[i].init(P, i, RNG, 1);
             }
         }
     }
@@ -364,12 +364,12 @@ void MASCOTTriples::Multiply()
               tmp_gfp= (out_vec_sender_gfp[i][j][0] - out_vec_sender_gfp[i][j][1]) + triples[1][indexRound];
               tmp_gfp.output(os, false);
             }
-          P.send_to_player(i, os.str(), myThreadNb + 1);
+          P.send_to_player(i, os.str(), 1);
         }
       else if (i > P.whoami())
         {
           string ss;
-          P.receive_from_player(i, ss, myThreadNb + 1);
+          P.receive_from_player(i, ss, 1);
           istringstream is(ss);
 
           for (unsigned int j= 0; j < nbOTsOutput; j++)
@@ -396,12 +396,12 @@ void MASCOTTriples::Multiply()
               tmp_gfp= (out_vec_sender_gfp[i][j][0] - out_vec_sender_gfp[i][j][1]) + triples[1][indexRound];
               tmp_gfp.output(os, false);
             }
-          P.send_to_player(i, os.str(), myThreadNb + 1);
+          P.send_to_player(i, os.str(), 1);
         }
       else if (i < P.whoami())
         {
           string ss;
-          P.receive_from_player(i, ss, myThreadNb + 1);
+          P.receive_from_player(i, ss, 1);
           istringstream is(ss);
 
           for (unsigned int j= 0; j < nbOTsOutput; j++)
@@ -486,11 +486,11 @@ void MASCOTTriples::Authenticate()
         {
           if (i < whoami)
             {
-              COPE_R[i].init(P, i, bit_size_field, Delta, RNG, myThreadNb + 1);
+              COPE_R[i].init(P, i, bit_size_field, Delta, RNG, 1);
             }
           else if (i > whoami)
             {
-              COPE_S[i].init(P, i, bit_size_field, RNG, myThreadNb + 1);
+              COPE_S[i].init(P, i, bit_size_field, RNG, 1);
             }
         }
 
@@ -498,11 +498,11 @@ void MASCOTTriples::Authenticate()
         {
           if (i > whoami)
             {
-              COPE_R[i].init(P, i, bit_size_field, Delta, RNG, myThreadNb + 1);
+              COPE_R[i].init(P, i, bit_size_field, Delta, RNG, 1);
             }
           else if (i < whoami)
             {
-              COPE_S[i].init(P, i, bit_size_field, RNG, myThreadNb + 1);
+              COPE_S[i].init(P, i, bit_size_field, RNG, 1);
             }
         }
       cout << "[MASCOTTriples - Authenticate] Finished Base-OTs" << endl;
@@ -608,14 +608,14 @@ void MASCOTTriples::Authenticate()
 
   ostringstream os;
   y[whoami].output(os, false);
-  P.send_all(os.str(), myThreadNb + 1);
+  P.send_all(os.str(), 1);
 
   for (unsigned int i= 0; i < nbPlayers; i++)
     {
       if (i != whoami)
         {
           string ss;
-          P.receive_from_player(i, ss, myThreadNb + 1);
+          P.receive_from_player(i, ss, 1);
           istringstream is(ss);
           y[i].input(is, false);
         }
@@ -627,7 +627,7 @@ void MASCOTTriples::Authenticate()
   for (unsigned int i= 0; i < nbPlayers; i++)
     {
       sigma[i][whoami]= m[i] - y[i] * Delta;
-      Commit_And_Open(sigma[i], P, true, myThreadNb + 1);
+      Commit_And_Open(sigma[i], P, true, 1);
       check.assign(0);
       for (unsigned int j= 0; j < nbPlayers; j++)
         {
@@ -690,7 +690,7 @@ void MASCOTTriples::Sacrifice()
       rho[i][whoami].output(os, false);
       str_rho_bcast[whoami]= os.str();
 
-      P.Broadcast_Receive(str_rho_bcast, false, myThreadNb + 1);
+      P.Broadcast_Receive(str_rho_bcast, false, 1);
       rho_opened[i].assign(0);
       for (unsigned int j= 0; j < nbPlayers; j++)
         {
@@ -722,7 +722,7 @@ void MASCOTTriples::Sacrifice()
   gfp check;
   for (unsigned int i= 0; i < nbTriples; i++)
     {
-      Commit_And_Open(theta[i], P, true, myThreadNb + 1);
+      Commit_And_Open(theta[i], P, true, 1);
       check.assign(0);
       for (unsigned int j= 0; j < nbPlayers; j++)
         {

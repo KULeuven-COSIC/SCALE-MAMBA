@@ -18,7 +18,6 @@ All rights reserved
 #include <vector>
 using namespace std;
 #include "Math/gf2n.h"
-
 #include "System/Player.h"
 
 /* Note aBit's can also hold authenticated gf2n elements */
@@ -52,6 +51,13 @@ public:
     Delta= D;
   }
 
+  // Number of chars needed to hold an aBit in a string
+  // in non-human form
+  static unsigned int size()
+  {
+    return (1 + 2 * n) * gf2n::size();
+  }
+
   void assign_zero()
   {
     x.assign_zero();
@@ -67,6 +73,14 @@ public:
     assign_zero();
     negate();
   }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  // Versions which assign a player
+  //   To make the API the same as Share2 for templating purposes
+  void assign_zero(int p) { assign_zero(); }
+  void assign_one(int p) { assign_one(); }
+#pragma GCC diagnostic pop
 
   aBit()
   {
@@ -144,19 +158,50 @@ public:
 
   void output(ostream &s, bool human) const;
   void input(istream &s, bool human);
+
+  unsigned int output(uint8_t *buff) const
+  {
+    unsigned int pos= x.output(buff);
+    for (unsigned int i= 0; i < M.size(); i++)
+      {
+        pos+= M[i].output(buff + pos);
+      }
+    for (unsigned int i= 0; i < K.size(); i++)
+      {
+        pos+= K[i].output(buff + pos);
+      }
+    return pos;
+  }
+  // Input directly from a string of chars
+  unsigned int input(const uint8_t *buff)
+  {
+    unsigned int pos= x.input(buff);
+    for (unsigned int i= 0; i < M.size(); i++)
+      {
+        pos+= M[i].input(buff + pos);
+      }
+    for (unsigned int i= 0; i < K.size(); i++)
+      {
+        pos+= K[i].input(buff + pos);
+      }
+    return pos;
+  }
+
+  /* Input/Output to a string at position pos.
+   * String is already assigned enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
 };
 
-/* Open (and check) a single of aBit */
-void Open_aBit(int &dv, const aBit &v, Player &P);
-
-/* Open (and check) a vector of aBits */
-void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P);
-
-/* Open a vector of aBits to party j 
- *  dv zero if j<>P.whoami
- */
-void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v, Player &P);
-
+/* Used for debugging only... */
 void check_Bits(const vector<aBit> &ee, Player &P);
 void check_Bits(const list<aBit> &ee, Player &P);
 

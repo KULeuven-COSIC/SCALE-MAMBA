@@ -20,7 +20,9 @@ using namespace std;
 #include "Offline/offline_data.h"
 #include "System/Player.h"
 
+template<class SRegint, class SBit>
 class Processor;
+template<class SRegint, class SBit>
 class Machine;
 
 /*
@@ -58,6 +60,8 @@ enum {
   STARG= 0x13,
   CALL= 0x14,
   RETURN= 0x15,
+  CALLR= 0x16,
+  JMPR= 0x17,
   RUN_TAPE= 0x19,
   JOIN_TAPE= 0x1A,
   CRASH= 0x1B,
@@ -166,8 +170,8 @@ enum {
 
   // Branching and comparison
   JMP= 0x90,
-  JMPNZ= 0x91,
-  JMPEQZ= 0x92,
+  JMPNE= 0x91,
+  JMPEQ= 0x92,
   EQZINT= 0x93,
   LTZINT= 0x94,
   LTINT= 0x95,
@@ -291,6 +295,9 @@ enum SecrecyType {
   MAX_SECRECY_TYPE
 };
 
+template<class SRegint, class SBit>
+class Instruction;
+
 class BaseInstruction
 {
 protected:
@@ -311,22 +318,25 @@ public:
 
   // Returns the maximal register used
   int get_max_reg(RegType reg_type) const;
+
+  template<class SRegint, class SBit>
+  friend ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr);
 };
 
+template<class SRegint, class SBit>
 class Instruction : public BaseInstruction
 {
-  void execute_using_sacrifice_data(Processor &Proc,
+  void execute_using_sacrifice_data(Processor<SRegint, SBit> &Proc,
                                     offline_control_data &OCD) const;
 
 public:
   // Reads a single instruction from the istream
   void parse(istream &s);
 
-  friend ostream &operator<<(ostream &s, const Instruction &instr);
-
   // Execute this instruction, updateing the processor and memory
   //  Returns true if we should execute a restart
-  bool execute(Processor &Proc, Player &P, Machine &machine,
+  bool execute(Processor<SRegint, SBit> &Proc, Player &P,
+               Machine<SRegint, SBit> &machine,
                offline_control_data &OCD) const;
 };
 

@@ -30,8 +30,8 @@ public:
 
   gfp Delta;
   unsigned int myThreadNb;
-  MASCOTTriples(Player &Pl, bigint fsize, unsigned int connection= 0);
-  MASCOTTriples(Player &Pl, bigint fsize, gfp delta, unsigned int connection= 0);
+  MASCOTTriples(Player& Pl, bigint fsize, unsigned int connection= 0);
+  MASCOTTriples(Player& Pl, bigint fsize, gfp delta, unsigned int connection= 0);
   void execute(std::mutex &mtx, vector<list<gfp>> &u_triples, vector<list<gfp>> &mac_u_triples, bool &keepGoing, unsigned long int *totalProduced);
 
   void Multiply();
@@ -44,7 +44,7 @@ public:
   void OpenToOne(unsigned int i, gfp &a, gfp &mac_a, gfp &out);
 
 private:
-  Player P;
+  Player &P;
   bigint size_field;
   unsigned int bit_size_field;
   unsigned int keyGen_sec;

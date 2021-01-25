@@ -34,6 +34,8 @@ All rights reserved
 using namespace std;
 
 #include "Exceptions/Exceptions.h"
+#include "LSSS/Open_Protocol.h"
+#include "LSSS/Open_Protocol2.h"
 #include "Networking.h"
 #include "Player.h"
 
@@ -124,8 +126,6 @@ void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD, const st
 
   // Load in my certificates
   string str_crt= rootDirectory + "Cert-Store/" + SD.PlayerCRT[me];
-  std::cout << "sm::" << me << ":: loading certificate from " + str_crt
-            << std::endl;
   string str_key= str_crt.substr(0, str_crt.length() - 3) + "key";
   LoadCertificates(ctx, str_crt.c_str(), str_key.c_str());
 
@@ -142,6 +142,7 @@ void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD, const st
 Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
                vector<vector<int>> &csockets, const vector<gfp> &MacK, int verbose)
 {
+  thread_number= thread;
   unsigned int nbChannels= csockets[0].size();
   clocks.resize(10);
   G.ReSeed(thread);
@@ -154,6 +155,9 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   me= mynumber;
   ssl.resize(SD.n);
 
+  OP= new Open_Protocol;
+  OP2= new Open_Protocol2;
+
 #ifdef BENCH_NETDATA
   br_messages_sent= 0;
   pp_messages_sent= 0;
@@ -162,13 +166,14 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
 #endif
 
 #ifdef BENCH_OFFLINE
-  triples=0;
-  squares=0;
-  bits=0;
-  dabits=0;
-  inputs=0;
-  abits=0;
-  aands=0;
+  triples= 0;
+  squares= 0;
+  bits= 0;
+  dabits= 0;
+  inputs= 0;
+  abits= 0;
+  aands= 0;
+  mod2s= 0;
 #endif
 
   // When communicating with player i, player me acts as server when i<me
@@ -261,42 +266,45 @@ Player::~Player()
           SSL_free(ssl[i][2]);
         }
     }
+  delete OP;
+  delete OP2;
 }
 
-void Player::send_all(const string &o, int connection, bool verbose) const
+void Player::send_all(const uint8_t *data, unsigned int length,
+                      int connection, bool verbose) const
 {
-  uint8_t buff[4];
+  uint8_t szbuff[4];
 #ifdef BENCH_NETDATA
   br_messages_sent++;
   int len_buff= 4;
 #endif
-  encode_length(buff, o.length());
+  encode_length(szbuff, length);
   for (unsigned int i= 0; i < ssl.size(); i++)
     {
       if (i != me)
         {
-          if (SSL_write(ssl[i][connection], buff, 4) != 4)
+          if (SSL_write(ssl[i][connection], szbuff, 4) != 4)
             {
               throw sending_error();
             }
-          if (SSL_write(ssl[i][connection], o.c_str(), o.length()) != (int) o.length())
+          if (SSL_write(ssl[i][connection], data, length) != (int) length)
             {
               throw sending_error();
             }
 #ifdef BENCH_NETDATA
-          data_sent+= len_buff + o.length();
+          data_sent+= len_buff + length;
 #endif
           if (verbose)
             {
               printf("Sent to player %d : ", i);
               for (unsigned int j= 0; j < 4; j++)
                 {
-                  printf("%.2X", (uint8_t) buff[j]);
+                  printf("%.2X", buff.get_buffer()[j]);
                 }
               printf(" : ");
-              for (unsigned int j= 0; j < o.size(); j++)
+              for (unsigned int j= 0; j < length; j++)
                 {
-                  printf("%.2X", (uint8_t) o.c_str()[j]);
+                  printf("%.2X", data[j]);
                 }
               printf("\n");
             }
@@ -304,22 +312,23 @@ void Player::send_all(const string &o, int connection, bool verbose) const
     }
 }
 
-void Player::send_to_player(int player, const string &o, int connection) const
+void Player::send_to_player(int player, const uint8_t *data, unsigned int length,
+                            int connection) const
 {
-  uint8_t buff[4];
+  uint8_t szbuff[4];
   int len_buff= 4;
-  encode_length(buff, o.length());
-  if (SSL_write(ssl[player][connection], buff, len_buff) != len_buff)
+  encode_length(szbuff, length);
+  if (SSL_write(ssl[player][connection], szbuff, len_buff) != len_buff)
     {
       throw sending_error();
     }
-  if (SSL_write(ssl[player][connection], o.c_str(), o.length()) != (int) o.length())
+  if (SSL_write(ssl[player][connection], data, length) != (int) length)
     {
       throw sending_error();
     }
 #ifdef BENCH_NETDATA
   pp_messages_sent++;
-  data_sent+= len_buff + o.length();
+  data_sent+= len_buff + length;
 #endif
 }
 
@@ -331,11 +340,11 @@ void receive(SSL *ssl, uint8_t *data, int len)
       j= SSL_read(ssl, data + i, len - i);
       if (j <= 0)
         {
-          /*
+          /* 
              int e0=SSL_get_error(ssl,j);
              int e1=ERR_get_error();
              printf("SSL_READ error : %d : %d % d : Was trying to read % d bytes out
-             of % d bytes \n",j,e0,e1,len-i,len);
+	     of % d bytes \n",j,e0,e1,len-i,len);
              perror("Some Error" );
           */
           throw receiving_error();
@@ -348,38 +357,36 @@ void receive(SSL *ssl, uint8_t *data, int len)
     }
 }
 
-void Player::receive_from_player(int i, string &o, int connection, bool verbose) const
+const uint8_t *Player::receive_from_player(int i, unsigned int &length,
+                                           int connection, bool verbose) const
 {
-  uint8_t buff[4];
+  uint8_t szbuff[4];
   unsigned int len_buff= 4;
-  receive(ssl[i][connection], buff, len_buff);
-  int nlen= decode_length(buff);
-  uint8_t *sbuff= new uint8_t[nlen];
-  receive(ssl[i][connection], sbuff, nlen);
-  o.assign((char *) sbuff, nlen);
+  receive(ssl[i][connection], szbuff, len_buff);
+  length= decode_length(szbuff);
+
+  // If not enough memory make it
+  //   Assign double the amount to avoid minor tweaks later
+  buff.resize(length);
+  receive(ssl[i][connection], buff.get_buffer(), length);
 #ifdef BENCH_NETDATA
-  data_received+= len_buff + nlen;
+  data_received+= len_buff + length;
 #endif
   if (verbose)
     {
       printf("Received from player %d : ", i);
       for (unsigned int j= 0; j < len_buff; j++)
         {
-          printf("%.2X", (uint8_t) buff[j]);
+          printf("%.2X", buff.get_buffer()[j]);
         }
       printf(" : ");
-      for (unsigned int j= 0; j < o.size(); j++)
+      for (unsigned int j= 0; j < length; j++)
         {
-          printf("%.2X", (uint8_t) o.c_str()[j]);
-        }
-      printf("\n");
-      for (int j= 0; j < nlen; j++)
-        {
-          printf("%.2X", (uint8_t) sbuff[j]);
+          printf("%.2X", buff.get_buffer()[j]);
         }
       printf("\n");
     }
-  delete[] sbuff;
+  return buff.get_buffer();
 }
 
 /* This is deliberately weird to avoid problems with OS max buffer
@@ -478,7 +485,7 @@ void Player::Send_Distinct_And_Receive(vector<string> &o, int connection) const
 }
 
 #ifdef BENCH_NETDATA
-void Player::print_network_data(int thread_num)
+void Player::print_network_data()
 {
   printf(BENCH_TEXT_BOLD BENCH_COLOR_BLUE BENCH_MAGIC_START
          "{\"player\":%u,\n"
@@ -492,13 +499,12 @@ void Player::print_network_data(int thread_num)
          "    \"p-to-p\":%ld\n"
          "  }\n"
          "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
-         me, thread_num, data_sent, ((double) data_sent / 1000000), data_received, ((double) data_received / 1000000), br_messages_sent, pp_messages_sent);
+         me, thread_number, data_sent, ((double) data_sent / 1000000), data_received, ((double) data_received / 1000000), br_messages_sent, pp_messages_sent);
 }
 #endif
 
-
 #ifdef BENCH_OFFLINE
-void Player::print_offline(int thread_num)
+void Player::print_offline()
 {
   printf(BENCH_TEXT_BOLD BENCH_COLOR_BLUE BENCH_MAGIC_START
          "{\"player\":%u,\n"
@@ -511,8 +517,9 @@ void Player::print_offline(int thread_num)
          "    \"inputs\":{\%lu\"},\n"
          "    \"aBits\":{\%lu\"},\n"
          "    \"aANDs\":{\%lu\"},\n"
+         "    \"Mod2Tripless\":{\%lu\"},\n"
          "  }\n"
          "}\n" BENCH_MAGIC_END BENCH_ATTR_RESET,
-         me, thread_num, triples, squares, bits, dabits, inputs, abits, aands);
+         me, thread_number, triples, squares, bits, dabits, inputs, abits, aands, mod2s);
 }
 #endif

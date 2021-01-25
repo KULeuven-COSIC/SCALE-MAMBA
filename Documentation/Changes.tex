@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.10} of the SCALE and MAMBA software.
+This is currently {\bf version 1.11} of the SCALE and MAMBA software.
 There are two main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -26,6 +26,53 @@ The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
 
+
+
+\subsection{Changes in version 1.11 from 1.10}
+Apart from the usual minor bug fixes...
+\begin{enumerate}
+\item There has been a {\bf major} upgrade for when processing binary
+	circuits when using replicated or Shamir secret sharing.
+	This gives a (roughly) ten-fold performance improvement
+	when executing GC commands, or performing arithmetic on
+	\verb+sregint+'s.
+	In particular this means {\em all} \verb|ShareData.txt|
+	files produced by the \verb|Setup.x| program need to
+	be updated.
+	For details of the differences between the two methodologies
+	for executing binary circuits see Chapter \ref{sec:GC}.
+\item We now have an experimental way of programming the system
+	using Rust. See the {\bf pdf} file in the directory \verb|RustDocumentation|
+	for an overview. Whilst this is not yet fully operational
+	we welcome feedback and language features.
+	\warning{Overtime MAMBA will be deprecated as a means
+	of programming the system as the Rust variant becomes
+	more fully operational}.
+\item Circuit for IEEE floating point `less than' added.
+\item Fixed a bug inherited from Hart's book re computing $2^x$.
+\item Added domain seperation in the OT PRNG's to fix a potential
+	security issue found by Mike Rosulek.
+\item \verb|JMPEQ|/\verb|JMPNE| instructions have added to take
+	an argument for doing equality testing before jumping.
+	Thus the older \verb|JMPEQZ|/\verb|JMPNZ| instructions,
+	which did comparison with zero, have been removed.
+\item We have added \verb|CALLR| and \verb|JMPR| instructions which
+	call/jump to an {\bf absolute} address indicated by
+      a \verb|regint| argument.
+\item The \verb|RUN_TAPE| instruction now takes a fourth argument which
+	specifies what value of the program counter you should start the
+	tape with.
+\item Some code has been moved around to aid in calling Scale programmatically from other programs.
+\item To compile you can now either use the traditional Makefile, or
+	you can use Rust to compile the C++. 
+	To use this latter option just set the environment variable
+	\verb|USE_RUST| to be equal to one, and then run \verb|Player.x|.
+	This will compile the binary and then call it.
+	Note, to compile the Test programs and the KeyGen program you
+	still need to use traditional Make.
+	For this reason we have removed support for using CMake.
+\end{enumerate}
+
 \subsection{Changes in version 1.10 from 1.9}
 Apart from the usual minor bug fixes...
 \begin{enumerate}
@@ -34,7 +81,7 @@ Apart from the usual minor bug fixes...
 	to be set. This corresponds to the maximum size of the finite field used
 	for the secret sharing scheme. The variable  \verb+MAX_MOD_SIZE+ corresponds
 	to the maximum size of the moduli in the FHE scheme used for the Offline
-	phase in the Full Threshold implementation.
+	phase in the Full Threshold implementation, it must be bigger than \verb+MAX_MOD_SIZE+.
 \item  A compile time flag \verb+BENCH_OFFLINE+ now prints at the end of the program
 	how much offline data your program consumed. By using this data and tweaking
 	the settings in \verb|config.h|, and using the \verb|min| and \verb|max| flags

@@ -63,7 +63,7 @@ impl BodyInfo {
                 |reg, v| seen.get_or_insert(reg, || Some(v), |old| *old = std::cmp::max(v, *old));
             for (stmt_id, stmt) in block.stmts.iter().enumerate() {
                 let relexed = stmt.relex(cx);
-                let relexed = relexed.display(cx);
+                let relexed = relexed.0.display(cx);
                 let span = debug_span!("stmt", %relexed);
                 let _enter = span.enter();
                 // reads happen before writes, because any instruction will first read values
@@ -150,7 +150,7 @@ impl BodyInfo {
                             |lt| lt.end = block.stmts.len(),
                         );
                     }
-                    JumpMode::Call | JumpMode::Goto => {}
+                    JumpMode::Call { .. } | JumpMode::Goto => {}
                 },
                 Terminator::Restart { .. }
                 | Terminator::Crash { .. }
@@ -308,7 +308,12 @@ impl super::Pass for Pass {
         }
 
         // mark all uninitialized locals as global
-        for block in blocks.iter() {
+        for (id, block) in blocks.iter().enumerate() {
+            let span = debug_span!("block", id);
+            let _enter = span.enter();
+            trace!(?base_map);
+            trace!(?cross_block);
+            trace!(?block.uninit);
             cross_block
                 .as_mut()
                 .join(block.uninit.as_ref())
@@ -481,22 +486,6 @@ impl super::Pass for Pass {
             block_local_maps.push(block_local_map);
         }
 
-        // now check for dead code
-        let mut all_uninit: RegisterStruct<BTreeSet<u32>> = Default::default();
-        for block in &blocks {
-            all_uninit
-                .as_mut()
-                .join(block.uninit.as_ref())
-                .map(|(all_uninit, uninit)| all_uninit.extend(uninit.keys()));
-        }
-        let mut all_dead_write: RegisterStruct<BTreeSet<u32>> = Default::default();
-        for block in &blocks {
-            all_dead_write
-                .as_mut()
-                .join(block.dead_write.as_ref())
-                .map(|(all_dead_write, dead_write)| all_dead_write.extend(dead_write.keys()));
-        }
-
         trace!(?base_map);
 
         // Compute the renaming map for the global registers
@@ -562,7 +551,7 @@ impl super::Pass for Pass {
                     })
             };
             for stmt in &mut block.stmts {
-                trace!("replace reg in {}", stmt.relex(cx).display(cx));
+                trace!("replace reg in {}", stmt.relex(cx).0.display(cx));
                 stmt.replace_registers(cx, map);
             }
             match &mut block.terminator.elem {
@@ -574,7 +563,7 @@ impl super::Pass for Pass {
                             .with(map(jc.register.elem.into()))
                             .require(cx)
                     }
-                    JumpMode::Goto | JumpMode::Call => {}
+                    JumpMode::Goto | JumpMode::Call { .. } => {}
                 },
                 Terminator::Restart { .. }
                 | Terminator::Crash { .. }

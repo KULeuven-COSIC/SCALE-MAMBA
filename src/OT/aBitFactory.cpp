@@ -155,14 +155,12 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
     }
   // Now send CC[i] to player i and get the corresponding
   // value back
-  vector<string> o(n);
+  vector<string> o(n, string(gf2n::size(), ' '));
   for (unsigned int i= 0; i < n; i++)
     {
       if (i != P.whoami())
         {
-          stringstream ss;
-          CC[i].output(ss);
-          o[i]= ss.str();
+          CC[i].output(o[i], 0);
         }
     }
   P.Send_Distinct_And_Receive(o, 2);
@@ -170,24 +168,20 @@ unsigned int aBitFactory::make_aBits(unsigned int l, Player &P)
     {
       if (i != P.whoami())
         {
-          istringstream ss(o[i]);
-          CC[i].input(ss);
+          CC[i].input(o[i], 0);
           CC[P.whoami()].add(CC[i]);
         }
     }
   // CC[P.whoami()] now holds the new local share of the value in C
 
   /* Step 4e */
-  stringstream ss;
-  CC[P.whoami()].output(ss);
-  o[P.whoami()]= ss.str();
+  CC[P.whoami()].output(o[P.whoami()], 0);
   P.Broadcast_Receive(o, true, 2);
   for (unsigned int i= 0; i < n; i++)
     {
       if (i != P.whoami())
         {
-          istringstream ss(o[i]);
-          CC[i].input(ss);
+          CC[i].input(o[i], 0);
           CC[P.whoami()].add(CC[i]);
         }
     }

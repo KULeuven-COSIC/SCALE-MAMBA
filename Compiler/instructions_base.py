@@ -46,6 +46,8 @@ opcodes = dict(
   STARG= 0x13,
   CALL= 0x14,
   RETURN=0x15,
+  CALLR= 0x16,
+  JMPR= 0x17,
   RUN_TAPE= 0x19,
   JOIN_TAPE= 0x1A,
   CRASH= 0x1B,
@@ -154,8 +156,8 @@ opcodes = dict(
 
   # Branching and comparison
   JMP= 0x90,
-  JMPNZ= 0x91,
-  JMPEQZ= 0x92,
+  JMPNE= 0x91,
+  JMPEQ= 0x92,
   EQZINT= 0x93,
   LTZINT= 0x94,
   LTINT= 0x95,

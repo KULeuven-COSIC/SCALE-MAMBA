@@ -9,10 +9,10 @@ use crate::span::{Span, Spanned};
 use crate::Compiler;
 pub use documentation::RegisterKind;
 pub use parser::parse;
-use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::{collections::BTreeMap, hash::Hash};
 
 macro_rules! gen_register {
     ($($name:ident = $e:ident,)*) => {
@@ -330,7 +330,7 @@ impl<'a> Lexical<'a> {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Operand {
     Register(Register),
     Value(Const),
@@ -343,16 +343,26 @@ pub enum Const {
     Bool(bool),
 }
 
+impl Hash for Const {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.as_int().hash(state)
+    }
+}
+
 impl std::cmp::Eq for Const {}
 // Comparison ignores the type of the constant and just looks at the value.
 // false == 0 and true == 1
 impl std::cmp::PartialEq for Const {
     fn eq(&self, other: &Const) -> bool {
-        match (*self, *other) {
-            (Const::Int(i), Const::Int(j)) => i == j,
-            (Const::Bool(i), Const::Bool(j)) => i == j,
-            (Const::Int(i), Const::Bool(j)) => i == j as i32,
-            (Const::Bool(i), Const::Int(j)) => i as i32 == j,
+        self.as_int() == other.as_int()
+    }
+}
+
+impl Const {
+    pub fn as_int(self) -> i32 {
+        match self {
+            Const::Int(i) => i,
+            Const::Bool(i) => i as _,
         }
     }
 }
@@ -449,7 +459,7 @@ pub trait MapAllValues<T> {
 }
 
 impl<
-        T: std::fmt::Display + Copy,
+        T: std::fmt::Display + std::fmt::Debug + Copy,
         U: Expected + Default + TryFrom<T> + Into<T> + Copy + std::fmt::Display,
     > MapAllValues<T> for Spanned<U>
 {
@@ -467,7 +477,7 @@ impl MapAllValues<Register> for Spanned<Operand> {
     }
 }
 
-impl<U: std::fmt::Display + Copy> Spanned<U> {
+impl<U: std::fmt::Display + std::fmt::Debug + Copy> Spanned<U> {
     pub fn require<T: Expected + Default + TryFrom<U>>(self, cx: &Compiler) -> Spanned<T> {
         cx.checked_from(self)
     }
@@ -480,7 +490,7 @@ impl Spanned<Operand> {
     }
 }
 
-impl<T: TryInto<Operand> + Copy + std::fmt::Display> Spanned<T> {
+impl<T: TryInto<Operand> + Copy + std::fmt::Display + std::fmt::Debug> Spanned<T> {
     pub fn into_operand(self, cx: &Compiler) -> Spanned<Operand> {
         cx.checked_from(self)
     }

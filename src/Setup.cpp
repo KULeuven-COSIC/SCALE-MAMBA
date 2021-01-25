@@ -6,6 +6,7 @@ All rights reserved
 */
 
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -22,7 +23,7 @@ using namespace std;
 #include "System/Init.h"
 #include "config.h"
 
-void init_secret_sharing()
+void init_secret_sharing_inner(std::istream &cin)
 {
   ifstream input("Data/NetworkData.txt");
   if (input.fail())
@@ -94,8 +95,8 @@ void init_secret_sharing()
             }
           cout << "Using modulus p=" << p << endl;
           // NOTE: we need to initialize the `gfp` static here in
-          // order to allow Q2MSP to initialize the `Gen` `gfp_matrix`.
-	        gfp::init_field(p);
+          // order to allow Q2MSP to initialize the `Gen` `vector<vector<gfp>>`.
+          gfp::init_field(p);
           break;
         }
       case Other:
@@ -103,7 +104,7 @@ void init_secret_sharing()
     }
   unsigned int t= 0;
   vector<unsigned int> ns;
-  gfp_matrix Gen;
+  vector<vector<gfp>> Gen;
   ReplicationMode mode= (ReplicationMode) 0;
   OfflineType offline_type= (OfflineType) 0;
   imatrix Sets;
@@ -144,7 +145,7 @@ void init_secret_sharing()
           cin >> k;
 
           cout << "Now enter the matrix" << endl;
-          Gen= gfp_matrix(nr, vector<gfp>(k));
+          Gen= vector<vector<gfp>>(nr, vector<gfp>(k));
           for (unsigned int i= 0; i < nr; i++)
             {
               for (unsigned int j= 0; j < k; j++)
@@ -172,7 +173,7 @@ void init_secret_sharing()
           t= n;
           if (v == 1 || v == 2)
             {
-              enter_sets(Sets, v == 1, n);
+              enter_sets(cin, Sets, v == 1, n);
             }
           else
             {
@@ -217,6 +218,22 @@ void init_secret_sharing()
   out << secret_sharing.SD;
   out.close();
 
+  if (secret_sharing.SD.Etype != HSS)
+    {
+      out.open("Data/SharingData2.txt");
+      if (out.fail())
+        {
+          throw file_error("Data/SharingData2.txt");
+        }
+      out << secret_sharing.SD2;
+      out.close();
+      cout << "We have setup the data for non-HSS based Mod2 engine" << endl;
+    }
+  else
+    {
+      cout << "We will be using an HSS based Mod2 engine" << endl;
+    }
+
   for (unsigned int i= 0; i < n; i++)
     {
       stringstream ss;
@@ -235,6 +252,59 @@ void init_secret_sharing()
     }
 }
 
+extern "C" int init_helper(std::istream &command_line_input, std::function<void(std::istream &)> func)
+{
+  try
+    {
+      func(command_line_input);
+      return 0;
+    }
+  catch (std::exception &e)
+    {
+      std::cerr << "sm:: Failed to init secret sharing: " << e.what()
+                << std::endl;
+      return 1;
+    }
+}
+
+extern "C" int init_secret_sharing_rust(const char *command_line_input)
+{
+  std::stringstream ss(command_line_input);
+  return init_helper(ss, init_secret_sharing_inner);
+}
+
+extern "C" int init_certs_rust(const char *command_line_input)
+{
+  std::stringstream ss(command_line_input);
+  return init_helper(ss, init_certs);
+}
+
+extern "C" int init_secret_sharing_cin()
+{
+  return init_helper(cin, init_secret_sharing_inner);
+}
+
+extern "C" int init_certs_cin()
+{
+  return init_helper(cin, init_certs);
+}
+
+extern "C" int init_conversion_rust()
+{
+  try
+    {
+      init_conversion();
+      return 0;
+    }
+  catch (std::exception &e)
+    {
+      std::cerr << "sm:: Failed to init secret sharing: " << e.what()
+                << std::endl;
+      return 1;
+    }
+}
+
+#ifndef USE_RUST
 int main(int argc, const char *argv[])
 {
   int ans= -1;
@@ -264,14 +334,15 @@ int main(int argc, const char *argv[])
 
   if (ans == 1 || ans == 4)
     {
-      init_certs();
+      init_certs(cin);
     }
   if (ans == 2 || ans == 4)
     {
-      init_secret_sharing();
+      init_secret_sharing_inner(cin);
     }
   if (ans == 3 || ans == 4)
     {
       init_conversion();
     }
 }
+#endif

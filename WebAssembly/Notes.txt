@@ -1,0 +1,43 @@
+WebAssembly/scale/examples
+
+These examples are testing the `.asm` that is generated from small Rust
+programs. They are very helpful in detecting bugs/changes in the
+converter and do also help when writing new converter logic. I think we
+should keep them.  The subdirectories hold the bc/asm/sch files
+
+
+
+WebAssembly/scale/impl_generator
+
+This is the compiler magic that generates all the operator overloads
+from the `Documentation/instructions.rs`. Basically I was lazy and
+didn't want to write all the `extern "C" fn addi...` and similar
+implementations, and I was even lazier and didn't want to write `impl
+Add for SecretI64` and similar. Anything that we can convert
+automatically from the documentation saves us from having to hand-roll
+lots of very similar code. If you want to see what happens, run `cargo
+expand` in `WebAssembly/scale` and look at the output, it contains all
+the generated code.
+
+
+WebAssembly/src
+
+That is the main web-assembly to scale-assembly converter, which also
+handles `i64` since that is a builtin type that we can't override the
+operators to call the assembly instructions.
+
+
+
+WebAssembly/src/main.rs
+
+Holds the wasm->scale converter
+
+
+target directories:
+
+Rust puts all its compilation artifacts in the `target` directory. 
+
+
+
+
+

@@ -10,13 +10,12 @@ All rights reserved
 #include "LSSS/Open_Protocol.h"
 #include <list>
 
-void sacrifice_phase_triples(Player &P, int fake_sacrifice, list<Share> &a,
-                             list<Share> &b, list<Share> &c, Open_Protocol &OP);
+void sacrifice_phase_triples(Player &P, int fake_sacrifice,
+                             list<Share> &a, list<Share> &b, list<Share> &c);
 
-void sacrifice_phase_squares(Player &P, int fake_sacrifice, list<Share> &a,
-                             list<Share> &b, Open_Protocol &OP);
+void sacrifice_phase_squares(Player &P, int fake_sacrifice, list<Share> &a, list<Share> &b);
 
 void sacrifice_phase_bits(Player &P, int fake_sacrifice, list<Share> &bit,
-                          list<Share> a, list<Share> &sa, Open_Protocol &OP);
+                          list<Share> a, list<Share> &sa);
 
 #endif

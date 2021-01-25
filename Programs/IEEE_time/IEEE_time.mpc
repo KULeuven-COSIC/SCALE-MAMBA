@@ -7,7 +7,7 @@ sfloat.kappa=40
 # Means we need 148 bit prime at least
 
 # Number of loops for timing
-n=50
+n=500
 
 FP_add=120
 FP_mul=121
@@ -16,6 +16,7 @@ FP_eq=123
 FP_f2i=124
 FP_i2f=125
 FP_sqrt=126
+FP_lt=127
 
 r0=convert_to_float("3.125")
 print_ieee_float(r0)
@@ -40,15 +41,19 @@ s1=sregint(r1)
 s2=sregint(r2)
 s3=sregint(r3)
 
-# A non-timed execution here to warm up the GC engine
+# A non-timed execution here to warm up the GC engine,
+# and load all the circuits
 sregint.push(s0)
-sregint.push(s1)
-sregint.push(s2)
-sregint.push(s3)
+sregint.push(s0)
+sregint.push(s0)
+sregint.push(s0)
+sregint.push(s0)
 GC(FP_add)
-GC(FP_add)
-s4=sregint.pop()
-s5=sregint.pop()
+GC(FP_mul)
+GC(FP_div)
+GC(FP_lt)
+GC(FP_sqrt)
+sregint.pop()
 
 print_ln("GC + ")
 @for_range(n+1)
@@ -94,6 +99,16 @@ def loop_body(i):
 stop_timer(1)
 s4=sregint.pop()
 
+print_ln("GC < ")
+@for_range(n+1)
+def loop_body(i):
+  sregint.push(s0)
+start_timer(1)
+@for_range(n)
+def loop_body(i):
+  GC(FP_lt)
+stop_timer(1)
+s4=sregint.pop()
 
 
 x=sfloat(-.3133131)
@@ -122,6 +137,14 @@ start_timer(1)
 @for_range(n)
 def loop_body(i):
   z=x/y
+stop_timer(1)
+
+print_ln("")
+print_ln("sfloat <")
+start_timer(1)
+@for_range(n)
+def loop_body(i):
+  z=x<y
 stop_timer(1)
 
 
@@ -159,6 +182,14 @@ start_timer(1)
 @for_range(n)
 def loop_body(i):
   z=mpc_math.sqrt(x)
+stop_timer(1)
+
+print_ln("")
+print_ln("sfix <")
+start_timer(1)
+@for_range(n)
+def loop_body(i):
+  z=x<y
 stop_timer(1)
 
 # Now test the conversion

@@ -10,13 +10,15 @@ using namespace std;
 
 #include "MSP.h"
 
-void MSP::assign(const MSP &M)
+template<class T>
+void MSP<T>::assign(const MSP<T> &M)
 {
   Gen= M.Gen;
   ns= M.ns;
 }
 
-ostream &operator<<(ostream &s, const MSP &M)
+template<class T>
+ostream &operator<<(ostream &s, const MSP<T> &M)
 {
   s << M.Gen << endl;
   s << M.ns.size() << endl;
@@ -29,7 +31,8 @@ ostream &operator<<(ostream &s, const MSP &M)
   return s;
 }
 
-istream &operator>>(istream &s, MSP &M)
+template<class T>
+istream &operator>>(istream &s, MSP<T> &M)
 {
   s >> M.Gen;
   unsigned int sz;
@@ -43,10 +46,11 @@ istream &operator>>(istream &s, MSP &M)
   return s;
 }
 
-void MSP::Initialize_Full_Threshold(unsigned int nn)
+template<class T>
+void MSP<T>::Initialize_Full_Threshold(unsigned int nn)
 {
   ns.resize(nn);
-  Gen.resize(nn, vector<gfp>(nn));
+  Gen.resize(nn, vector<T>(nn));
   for (unsigned int i= 0; i < nn; i++)
     {
       ns[i]= 1;
@@ -58,7 +62,8 @@ void MSP::Initialize_Full_Threshold(unsigned int nn)
     }
 }
 
-void MSP::Initialize_Shamir(unsigned int nn, unsigned int t)
+template<>
+void MSP<gfp>::Initialize_Shamir(unsigned int nn, unsigned int t)
 {
   ns.resize(nn);
 
@@ -78,7 +83,16 @@ void MSP::Initialize_Shamir(unsigned int nn, unsigned int t)
     }
 }
 
-void MSP::Initialize_Replicated(const CAS &AS)
+template<>
+void MSP<gf2>::Initialize_Shamir(unsigned int nn, unsigned int t)
+{
+  ostringstream aa;
+  aa << "Cannot have Shammir (" << nn << "," << t << ") mod 2";
+  throw wrong_gfp_size(aa.str());
+}
+
+template<class T>
+void MSP<T>::Initialize_Replicated(const CAS &AS)
 {
   // Compute number of shares in total
   int m= 0;
@@ -87,7 +101,7 @@ void MSP::Initialize_Replicated(const CAS &AS)
     {
       m+= (AS.n - row_sum(AS.delta_plus, i));
     }
-  Gen.resize(m, vector<gfp>(szk));
+  Gen.resize(m, vector<T>(szk));
   ns.resize(AS.n);
   int k= 0;
   for (unsigned int i= 0; i < AS.n; i++)
@@ -109,10 +123,11 @@ void MSP::Initialize_Replicated(const CAS &AS)
     }
 }
 
-gfp_matrix MSP::Make_Parity() const
+template<class T>
+vector<vector<T>> MSP<T>::Make_Parity() const
 {
   unsigned int nr= Gen.size(), nc= Gen[0].size();
-  gfp_matrix GG(nr, vector<gfp>(nr + nc));
+  vector<vector<T>> GG(nr, vector<T>(nr + nc));
   for (unsigned int i= 0; i < nr; i++)
     {
       for (unsigned int j= 0; j < nc; j++)
@@ -128,7 +143,7 @@ gfp_matrix MSP::Make_Parity() const
 
   Gauss_Elim(GG, nc);
 
-  gfp_matrix P(nr, vector<gfp>(nr));
+  vector<vector<T>> P(nr, vector<T>(nr));
   for (unsigned int i= 0; i < nr; i++)
     {
       for (unsigned int j= 0; j < nr; j++)
@@ -144,9 +159,11 @@ gfp_matrix MSP::Make_Parity() const
  * reconstruction matrix for the set of ALL shares vec{s}.
  * Assumes Mrows is full rank
  */
-void MSP::Make_Recon(vector<gfp> &ReconS, gfp_matrix &ReconSS,
-                     const vector<int> &MRows) const
+template<class T>
+void MSP<T>::Make_Recon(vector<T> &ReconS, vector<vector<T>> &ReconSS,
+                        const vector<int> &MRows) const
 {
+
   int nr= 0, nc= Gen[0].size();
   for (unsigned int i= 0; i < Gen.size(); i++)
     {
@@ -156,7 +173,7 @@ void MSP::Make_Recon(vector<gfp> &ReconS, gfp_matrix &ReconSS,
         }
     }
 
-  gfp_matrix A(nr, vector<gfp>(nc + nr));
+  vector<vector<T>> A(nr, vector<T>(nc + nr));
   /* Add in rows of people who send me stuff */
   int c= 0;
   for (unsigned int r= 0; r < Gen.size(); r++)
@@ -179,7 +196,7 @@ void MSP::Make_Recon(vector<gfp> &ReconS, gfp_matrix &ReconSS,
   Gauss_Elim(A, nc);
 
   /* Set reconstruction vector for player i */
-  gfp_matrix B(nr, vector<gfp>(nr));
+  vector<vector<T>> B(nr, vector<T>(nr));
 
   ReconS.resize(nr);
   for (int i= 0; i < nr; i++)
@@ -193,23 +210,26 @@ void MSP::Make_Recon(vector<gfp> &ReconS, gfp_matrix &ReconSS,
     }
 
   /* Now compute reconstruction matrix for player i */
-  ReconSS= Mul(Gen, B);
+  ReconSS.resize(Gen.size(), vector<T>(B[0].size()));
+  Mul(ReconSS, Gen, B);
 }
 
-vector<gfp> MSP::Random_Sharing(const gfp &val, PRNG &G) const
+template<class T>
+void MSP<T>::Random_Sharing(vector<T> &ans, const T &val, PRNG &G) const
 {
   unsigned int k= Gen[0].size();
-  vector<gfp> kk(k);
+  vector<T> kk(k);
   kk[0]= val;
   for (unsigned int i= 1; i < k; i++)
     {
       kk[i].randomize(G);
       kk[0].sub(kk[i]);
     }
-  return Sharing(kk);
+  Sharing(ans, kk);
 }
 
-bool MSP::check_qualified(const vector<int> &players) const
+template<class T>
+bool MSP<T>::check_qualified(const vector<int> &players) const
 {
   int nc= 0;
   for (unsigned int i= 0; i < players.size(); i++)
@@ -224,7 +244,7 @@ bool MSP::check_qualified(const vector<int> &players) const
       return false;
     }
 
-  gfp_matrix A(Gen[0].size(), vector<gfp>(nc + 1));
+  vector<vector<T>> A(Gen[0].size(), vector<T>(nc + 1));
   int c= 0, i= 0, cc= 0;
   while (c < nc)
     {
@@ -258,7 +278,8 @@ public:
 };
 
 /* Finds all unqualified sets */
-imatrix MSP::find_all_unqualified() const
+template<class T>
+imatrix MSP<T>::find_all_unqualified() const
 {
   imatrix Unqual;
   queue<msp_node> q;
@@ -308,10 +329,11 @@ imatrix MSP::find_all_unqualified() const
 }
 
 /* Extracts matrix rows corresponding to indicator set players */
-gfp_matrix MSP::extract_rows(const vector<int> &players) const
+template<class T>
+vector<vector<T>> MSP<T>::extract_rows(const vector<int> &players) const
 {
   unsigned int nr= Gen.size(), nc= Gen[0].size();
-  gfp_matrix A(nr, vector<gfp>(nc));
+  vector<vector<T>> A(nr, vector<T>(nc));
 
   unsigned int c= 0, r= 0;
   for (unsigned int i= 0; i < players.size(); i++)
@@ -336,10 +358,11 @@ gfp_matrix MSP::extract_rows(const vector<int> &players) const
 /* Gets full reconstruction vector (i.e. over all rows) for a qualified
  * set
  */
-vector<gfp> MSP::get_full_reconstruct(const vector<int> &qual) const
+template<class T>
+vector<T> MSP<T>::get_full_reconstruct(const vector<int> &qual) const
 {
   unsigned int nr= Gen.size(), nc= Gen[0].size();
-  gfp_matrix A(nr, vector<gfp>(nc + nr));
+  vector<vector<T>> A(nr, vector<T>(nc + nr));
 
   int c= 0;
   for (unsigned int i= 0; i < qual.size(); i++)
@@ -364,7 +387,7 @@ vector<gfp> MSP::get_full_reconstruct(const vector<int> &qual) const
 
   Gauss_Elim(A, nc);
 
-  vector<gfp> ans(nr);
+  vector<T> ans(nr);
   c= 0;
   for (unsigned int i= 0; i < qual.size(); i++)
     {
@@ -385,7 +408,8 @@ vector<gfp> MSP::get_full_reconstruct(const vector<int> &qual) const
   return ans;
 }
 
-MSP MSP::make_multiplicative(Schur_Matrices &Sch) const
+template<class T>
+MSP<T> MSP<T>::make_multiplicative(Schur_Matrices<T> &Sch) const
 {
   imatrix Unqual= find_all_unqualified();
   CAS AS(Unqual, true);
@@ -406,8 +430,8 @@ MSP MSP::make_multiplicative(Schur_Matrices &Sch) const
    * and G[0].size() new columns (minus 1)
    */
   unsigned int nnew= min(AS.gamma_minus.size(), Gen[0].size());
-  gfp_matrix Gen2(2 * Gen.size(),
-                  vector<gfp>(Gen[0].size() + nnew - 1));
+  vector<vector<T>> Gen2(2 * Gen.size(),
+                         vector<T>(Gen[0].size() + nnew - 1));
   vector<unsigned int> ns2(ns.size());
   for (unsigned int i= 0; i < Gen2.size(); i++)
     {
@@ -444,7 +468,7 @@ MSP MSP::make_multiplicative(Schur_Matrices &Sch) const
   c1= 0;
   for (unsigned int i= 0; i < nnew; i++)
     {
-      vector<gfp> te= get_full_reconstruct(AS.gamma_minus[i]);
+      vector<T> te= get_full_reconstruct(AS.gamma_minus[i]);
       // Insert in column c1 (or in first Gen[0].size() columns)
       c= 0;
       c2= 0;
@@ -477,7 +501,7 @@ MSP MSP::make_multiplicative(Schur_Matrices &Sch) const
         }
     }
 
-  MSP M2(Gen2, ns2);
+  MSP<T> M2(Gen2, ns2);
   ismult= Sch.initialize(M2);
   if (!ismult)
     {
@@ -485,3 +509,10 @@ MSP MSP::make_multiplicative(Schur_Matrices &Sch) const
     }
   return M2;
 }
+
+template class MSP<gfp>;
+template class MSP<gf2>;
+template istream &operator>>(istream &s, MSP<gfp> &M);
+template istream &operator>>(istream &s, MSP<gf2> &M);
+template ostream &operator<<(ostream &s, const MSP<gfp> &M);
+template ostream &operator<<(ostream &s, const MSP<gf2> &M);

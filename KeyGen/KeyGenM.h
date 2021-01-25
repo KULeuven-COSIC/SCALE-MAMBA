@@ -7,6 +7,7 @@ All rights reserved
 
 #include "MASCOTTriples.h"
 #include "System/Player.h"
+#include <functional>
 
 class KeyGenM
 {
@@ -52,7 +53,9 @@ public:
 
   KeyGenM(Player &P);
 
-  void genKey(unsigned int N, MASCOTTriples &mt1, MASCOTTriples &mt2, bigint fsize1, bigint fsize2, bigint pMPC, unsigned int nb_threads_1, unsigned int nb_threads_2);
+  //void genKey(unsigned int N, MASCOTTriples &mt1, MASCOTTriples &mt2, bigint fsize1, bigint fsize2, bigint pMPC, unsigned int nb_threads_1, unsigned int nb_threads_2);
+  void genKey(unsigned int N, bigint fsize1, bigint fsize2, bigint pMPC, unsigned int nb_threads_1, unsigned int nb_threads_2, SSL_CTX *ctx, const SystemData &SD,vector<vector<vector<int>>> &csockets, vector<gfp> &MacK);
+
 
   void RandomBit(int M, int sec, MASCOTTriples &mt1, MASCOTTriples &mt2, bigint fsize1, bigint fsize2);
 

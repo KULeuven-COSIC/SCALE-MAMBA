@@ -113,8 +113,6 @@ void mult_phase(int num_online, Player &P, int fake_sacrifice,
   PRZS przs(P);
   FakePrep prep(P);
 
-  Open_Protocol OP;
-
   list<Share> a, b, c;
   list<Share>::iterator it;
   int flag;
@@ -133,7 +131,7 @@ void mult_phase(int num_online, Player &P, int fake_sacrifice,
 
       if (flag == 2)
         {
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
       else
         {
@@ -143,8 +141,8 @@ void mult_phase(int num_online, Player &P, int fake_sacrifice,
               fflush(stdout);
             }
 
-          offline_phase_triples(P, prss, przs, prep, a, b, c, pk, sk, PTD, fake_sacrifice, OP, industry);
-          OP.RunOpenCheck(P, "", 0);
+          offline_phase_triples(P, prss, przs, prep, a, b, c, pk, sk, PTD, fake_sacrifice, industry);
+          P.OP->RunOpenCheck(P, "", 0);
           if (verbose > 1)
             {
               printf("Out of triples: thread = %d\n", num_online);
@@ -176,8 +174,6 @@ void square_phase(int num_online, Player &P, int fake_sacrifice,
   PRZS przs(P);
   FakePrep prep(P);
 
-  Open_Protocol OP;
-
   list<Share> a, b, c;
   list<Share>::iterator it;
   int flag;
@@ -197,7 +193,7 @@ void square_phase(int num_online, Player &P, int fake_sacrifice,
 
       if (flag == 2)
         {
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
       else
         {
@@ -207,8 +203,8 @@ void square_phase(int num_online, Player &P, int fake_sacrifice,
               fflush(stdout);
             }
 
-          offline_phase_squares(P, prss, przs, prep, a, b, pk, sk, PTD, fake_sacrifice, OP, industry);
-          OP.RunOpenCheck(P, "", 0);
+          offline_phase_squares(P, prss, przs, prep, a, b, pk, sk, PTD, fake_sacrifice, industry);
+          P.OP->RunOpenCheck(P, "", 0);
           if (verbose > 1)
             {
               printf("Out of squares: thread = %d\n", num_online);
@@ -238,8 +234,6 @@ void bit_phase(int num_online, Player &P, int fake_sacrifice,
   PRZS przs(P);
   FakePrep prep(P);
 
-  Open_Protocol OP;
-
   list<Share> a, b, c;
   list<Share>::iterator it;
   int flag;
@@ -259,7 +253,7 @@ void bit_phase(int num_online, Player &P, int fake_sacrifice,
 
       if (flag == 2)
         {
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
       else
         {
@@ -269,8 +263,8 @@ void bit_phase(int num_online, Player &P, int fake_sacrifice,
               fflush(stdout);
             }
 
-          offline_phase_bits(P, prss, przs, prep, b, pk, sk, PTD, fake_sacrifice, OP, industry);
-          OP.RunOpenCheck(P, "", 0);
+          offline_phase_bits(P, prss, przs, prep, b, pk, sk, PTD, fake_sacrifice, industry);
+          P.OP->RunOpenCheck(P, "", 0);
 
           if (verbose > 1)
             {
@@ -386,8 +380,6 @@ void inputs_phase(int num_online, Player &P, int fake_sacrifice,
   // Initialize PRSS stuff for IO production
   PRSS prss(P);
 
-  Open_Protocol OP;
-
   list<Share> a;
   list<gfp> opened;
   list<Share>::iterator it;
@@ -401,7 +393,7 @@ void inputs_phase(int num_online, Player &P, int fake_sacrifice,
 
       if (exit != true && finish == 0 && minput_global == false)
         {
-          sleep(2);
+          nanosleep(&time_s, NULL);
         }
       else
         {
@@ -409,7 +401,7 @@ void inputs_phase(int num_online, Player &P, int fake_sacrifice,
             {
               if (minputs[i])
                 {
-                  make_IO_data(P, fake_sacrifice, prss, i, a, opened, pk, sk, PTD, OCD, OP, num_online, industry);
+                  make_IO_data(P, fake_sacrifice, prss, i, a, opened, pk, sk, PTD, OCD, num_online, industry);
 
                   /* Add to queues */
                   OCD.OCD_mutex[num_online].lock();

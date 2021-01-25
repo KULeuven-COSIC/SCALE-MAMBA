@@ -46,6 +46,7 @@ public:
 /* Implemented using Cut and Choose method from
  * eprint.iacr.org/2019/207
  */
+template<class SBit>
 class MaliciousDABitMachine : public DABitMachineBase
 {
 
@@ -58,7 +59,7 @@ public:
   MaliciousDABitMachine();
   void Initialize(unsigned int n_parties, offline_control_data &OCD);
   void find_cnc_params();
-  AbstractDABitGenerator *new_generator(Player &P, int thread_num);
+  AbstractDABitGenerator<SBit> *new_generator(Player &P, unsigned int online_thread_num);
 };
 
 #endif /* SRC_OFFLINE_DABITMACHINE_H_ */

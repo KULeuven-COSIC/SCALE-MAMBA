@@ -12,11 +12,14 @@ using namespace std;
 
 #include "CAS.h"
 #include "Share.h"
+#include "Share2.h"
 #include "System/Player.h"
 #include "Tools/random.h"
 
-class PRSS
+template<class Sh, class Fld>
+class PRSS_Base
 {
+protected:
   // This is the system for Shamir/Q2MSP PRSS
   vector<vector<unsigned int>> Asets;
 
@@ -25,14 +28,20 @@ class PRSS
   vector<PRNG> G;
 
   // For general Shamir/Q2 we have a vector of shares values for each max-unqual set
-  vector<Share> Shares_Of_One;
+  vector<Sh> Shares_Of_One;
 
   // My number
   unsigned int whoami;
 
-  void ReplicatedSetUp(Player &P, const CAS &AS, const MSP &M);
-  void MSP_SetUp(Player &P, const CAS &AS, const MSP &M);
+  void ReplicatedSetUp(Player &P, const CAS &AS, const MSP<Fld> &M);
+  void MSP_SetUp(Player &P, const CAS &AS, const MSP<Fld> &M);
 
+public:
+  PRSS_Base(Player &P);
+};
+
+class PRSS : public PRSS_Base<Share, gfp>
+{
   // When using a protocol we do batch production to save time
   vector<Share> batch;
   unsigned int batch_pos;
@@ -41,9 +50,30 @@ class PRSS
   void batch_production(Player &P);
 
 public:
-  PRSS(Player &P);
+  PRSS(Player &P) : PRSS_Base(P)
+  {
+    if ((Share::SD.type == Shamir || Share::SD.type == Q2MSP) && Asets.size() == 0)
+      {
+        batch_pos= 0;
+        batch.resize(1024, Share(whoami));
+        batch_production(P);
+      }
+  }
 
   Share next_share(Player &P);
+};
+
+/* For the mod2 sharing, when using PRSS, we only have
+ * the non-interactive version (otherwise we would be in
+ * the HSS version) and we generate a lot of shares in
+ * one go
+ */
+class PRSS2 : public PRSS_Base<Share2, gf2>
+{
+public:
+  PRSS2(Player &P) : PRSS_Base(P) { ; }
+
+  Share2 next_share();
 };
 
 /* Some helper functions, useful elsewhere */

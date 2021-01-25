@@ -4,8 +4,10 @@ Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 L
 
 All rights reserved
 */
+
 #include "aBit.h"
 #include "Exceptions/Exceptions.h"
+#include "LSSS/Open_Protocol2.h"
 
 unsigned int aBit::n;
 unsigned int aBit::whoami;
@@ -170,160 +172,19 @@ void aBit::input(istream &s, bool human)
     }
 }
 
-/* Open (and check) a vector of aBits */
-void Open_aBits(vector<int> &dv, const vector<aBit> &v, Player &P)
-{
-  dv.resize(v.size());
-  vector<string> o(P.nplayers());
-  for (unsigned int i= 0; i < P.nplayers(); i++)
-    {
-      if (i != P.whoami())
-        {
-          ostringstream ss;
-          for (unsigned int t= 0; t < v.size(); t++)
-            {
-              ss << (char) v[t].get_value();
-              v[t].get_MAC(i).output(ss);
-            }
-          o[i]= ss.str();
-        }
-    }
-
-  P.Send_Distinct_And_Receive(o, 2);
-
-  for (unsigned int t= 0; t < v.size(); t++)
-    {
-      dv[t]= v[t].get_value();
-    }
-
-  char c;
-  gf2n M;
-  for (unsigned int i= 0; i < P.nplayers(); i++)
-    {
-      if (i != P.whoami())
-        {
-          istringstream is(o[i]);
-          for (unsigned int t= 0; t < v.size(); t++)
-            {
-              is >> c;
-              M.input(is);
-              dv[t]= dv[t] ^ ((unsigned int) c);
-              if (c == 1)
-                {
-                  M.add(aBit::get_Delta());
-                }
-              if (M != v[t].get_Key(i))
-                {
-                  throw OT_error();
-                }
-            }
-        }
-    }
-}
-
-void Open_aBit(int &dv, const aBit &v, Player &P)
-{
-  vector<string> o(P.nplayers());
-  for (unsigned int i= 0; i < P.nplayers(); i++)
-    {
-      if (i != P.whoami())
-        {
-          ostringstream ss;
-          ss << (char) v.get_value();
-          v.get_MAC(i).output(ss);
-          o[i]= ss.str();
-        }
-    }
-
-  P.Send_Distinct_And_Receive(o, 2);
-
-  dv= v.get_value();
-
-  char c;
-  gf2n M;
-  for (unsigned int i= 0; i < P.nplayers(); i++)
-    {
-      if (i != P.whoami())
-        {
-          istringstream is(o[i]);
-          is >> c;
-          M.input(is);
-          dv= dv ^ ((unsigned int) c);
-          if (c == 1)
-            {
-              M.add(aBit::get_Delta());
-            }
-          if (M != v.get_Key(i))
-            {
-              throw OT_error();
-            }
-        }
-    }
-}
-
-void Open_aBits_To(vector<int> &dv, unsigned int j, const vector<aBit> &v,
-                   Player &P)
-{
-  if (j != P.whoami())
-    {
-      //dv.resize(0);
-      ostringstream ss;
-      for (unsigned int t= 0; t < v.size(); t++)
-        {
-          ss << (char) v[t].get_value();
-          v[t].get_MAC(j).output(ss);
-        }
-      P.send_to_player(j, ss.str(), 2);
-    }
-  else
-    {
-      dv.resize(v.size());
-      for (unsigned int t= 0; t < v.size(); t++)
-        {
-          dv[t]= v[t].get_value();
-        }
-
-      char c;
-      gf2n M;
-      for (unsigned int i= 0; i < P.nplayers(); i++)
-        {
-          if (i != P.whoami())
-            {
-              string ss;
-              P.receive_from_player(i, ss, 2);
-              istringstream is(ss);
-              for (unsigned int t= 0; t < v.size(); t++)
-                {
-                  is >> c;
-                  M.input(is);
-                  dv[t]= dv[t] ^ ((unsigned int) c);
-                  if (c == 1)
-                    {
-                      M.add(aBit::get_Delta());
-                    }
-                  if (M != v[t].get_Key(i))
-                    {
-                      throw OT_error();
-                    }
-                }
-            }
-        }
-    }
-}
-
 void check_Bits(const vector<aBit> &xB, Player &P)
 {
   unsigned int sz= xB.size();
-  vector<int> x(sz);
-  Open_aBits(x, xB, P);
+  vector<word> x(sz);
+  P.OP2->Open_Bits(x, xB, P);
 }
 
 void check_Bits(const list<aBit> &xL, Player &P)
 {
   unsigned int sz= xL.size();
-  vector<int> x(sz);
+  vector<word> x(sz);
   vector<aBit> xB;
   xB.reserve(sz);
   copy(begin(xL), end(xL), back_inserter(xB));
-  Open_aBits(x, xB, P);
+  P.OP2->Open_Bits(x, xB, P);
 }

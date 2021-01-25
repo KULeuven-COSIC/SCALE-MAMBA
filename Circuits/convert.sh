@@ -30,11 +30,13 @@ sed -i ':begin;$!N;s/(\n      /(/;tbegin;P;D' VHDL/divide64.net
 sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/divide64.net
 ./convert.x divide64
 
-\cp VHDL/MpcLib/Verilog/MUDIV64.v VHDL/udivide64.net
-sed -i ':begin;$!N;s/)\n      /)/;tbegin;P;D' VHDL/udivide64.net
-sed -i ':begin;$!N;s/(\n      /(/;tbegin;P;D' VHDL/udivide64.net
-sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/udivide64.net
-./convert.x udivide64
+# Steve Lu found a bug so we dont use this one 
+#  - Instead use one Steve created from emp-tool
+#\cp VHDL/MpcLib/Verilog/MUDIV64.v VHDL/udivide64.net
+#sed -i ':begin;$!N;s/)\n      /)/;tbegin;P;D' VHDL/udivide64.net
+#sed -i ':begin;$!N;s/(\n      /(/;tbegin;P;D' VHDL/udivide64.net
+#sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/udivide64.net
+#./convert.x udivide64
 
 \cp VHDL/SHA-3/Keccak_f.net VHDL/Keccak_f.net
 sed -i ':begin;$!N;s/)\n      /)/;tbegin;P;D' VHDL/Keccak_f.net 
@@ -85,4 +87,30 @@ sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/LSSS_to_GC.net
 ./process.x f2i
 ./process.x i2f
 ./process.x eq
+./process.x lt
 
+./make-mand.x adder64
+./make-mand.x aes_128
+./make-mand.x aes_192
+./make-mand.x aes_256
+./make-mand.x AES-non-expanded
+./make-mand.x divide64
+./make-mand.x FP-add
+./make-mand.x FP-div
+./make-mand.x FP-eq
+./make-mand.x FP-f2i
+./make-mand.x FP-i2f
+./make-mand.x FP-lt
+./make-mand.x FP-mul
+./make-mand.x FP-sqrt
+./make-mand.x Keccak_f
+./make-mand.x LSSS_to_GC
+./make-mand.x ModAdd512
+./make-mand.x mult2_64
+./make-mand.x mult64
+./make-mand.x neg64
+./make-mand.x sha256
+./make-mand.x sha512
+./make-mand.x sub64
+./make-mand.x udivide64
+./make-mand.x zero_equal

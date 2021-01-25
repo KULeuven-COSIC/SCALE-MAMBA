@@ -19,7 +19,7 @@ int main(int argc, const char *argv[])
   if ((argc != 2 && argc != 3) || (argc == 3 && strncmp(argv[2], "x", 2) != 0))
     {
       cout << "Call using\n\tprocess.x file\nto check if\n\tFloat/file.txt\ncan be optimized\n";
-      cout << "\nTo stop optimizations use\n\tconvert.x file x" << endl;
+      cout << "\nTo stop optimizations use\n\tprocess.x file x" << endl;
       exit(1);
     }
 

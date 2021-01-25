@@ -8,10 +8,12 @@ All rights reserved
 #include "BLAS.h"
 #include "LSSS/Share.h"
 #include "Math/Matrix.h"
+#include "Mod2Engine/aBitVector2.h"
 #include "OT/aBitVector.h"
 
 /* Pop a cint matrix A */
-void pop_cint_matrix(vector<vector<gfp>> &A, Processor &Proc)
+template<class SRegint, class SBit>
+void pop_cint_matrix(vector<vector<gfp>> &A, Processor<SRegint, SBit> &Proc)
 {
   long r, c;
   Proc.pop_int(c);
@@ -27,7 +29,8 @@ void pop_cint_matrix(vector<vector<gfp>> &A, Processor &Proc)
 }
 
 /* Push a cint matrix A */
-void push_cint_matrix(const vector<vector<gfp>> &A, Processor &Proc)
+template<class SRegint, class SBit>
+void push_cint_matrix(const vector<vector<gfp>> &A, Processor<SRegint, SBit> &Proc)
 {
   unsigned int r= A.size(), c= A[0].size();
   Proc.push_int(r);
@@ -42,7 +45,8 @@ void push_cint_matrix(const vector<vector<gfp>> &A, Processor &Proc)
 }
 
 /* Pop a sint matrix A */
-void pop_sint_matrix(vector<vector<Share>> &A, Processor &Proc)
+template<class SRegint, class SBit>
+void pop_sint_matrix(vector<vector<Share>> &A, Processor<SRegint, SBit> &Proc)
 {
   long r, c;
   Proc.pop_int(c);
@@ -58,7 +62,8 @@ void pop_sint_matrix(vector<vector<Share>> &A, Processor &Proc)
 }
 
 /* Push a sint matrix A */
-void push_sint_matrix(const vector<vector<Share>> &A, Processor &Proc)
+template<class SRegint, class SBit>
+void push_sint_matrix(const vector<vector<Share>> &A, Processor<SRegint, SBit> &Proc)
 {
   unsigned int r= A.size(), c= A[0].size();
   Proc.push_int(r);
@@ -75,7 +80,8 @@ void push_sint_matrix(const vector<vector<Share>> &A, Processor &Proc)
 /* This does cint n-by-k matrix A by cint k-by-m matrix B
  * result in cint n-by-m matrix C. 
  */
-void matrix_mult_CC(Processor &Proc)
+template<class SRegint, class SBit>
+void matrix_mult_CC(Processor<SRegint, SBit> &Proc)
 {
   vector<vector<gfp>> A, B;
   pop_cint_matrix(B, Proc);
@@ -105,7 +111,8 @@ void matrix_mult_CC(Processor &Proc)
 /* This does sint n-by-k matrix A by cint k-by-m matrix B
  * result in sint n-by-m matrix C. 
  */
-void matrix_mult_SC(Processor &Proc)
+template<class SRegint, class SBit>
+void matrix_mult_SC(Processor<SRegint, SBit> &Proc)
 {
   vector<vector<Share>> A;
   vector<vector<gfp>> B;
@@ -136,7 +143,8 @@ void matrix_mult_SC(Processor &Proc)
 /* This does cint n-by-k matrix A by sint k-by-m matrix B
  * result in sint n-by-m matrix C. 
  */
-void matrix_mult_CS(Processor &Proc)
+template<class SRegint, class SBit>
+void matrix_mult_CS(Processor<SRegint, SBit> &Proc)
 {
   vector<vector<gfp>> A;
   vector<vector<Share>> B;
@@ -167,10 +175,21 @@ void matrix_mult_CS(Processor &Proc)
 /* This does Gaussian elimination on an n by m cint matrix A
  * returning the result. 
  */
-void Gaussian_Elimination(Processor &Proc)
+template<class SRegint, class SBit>
+void Gaussian_Elimination(Processor<SRegint, SBit> &Proc)
 {
-  gfp_matrix A;
+  vector<vector<gfp>> A;
   pop_cint_matrix(A, Proc);
   Gauss_Elim(A, A.size());
   push_cint_matrix(A, Proc);
 }
+
+template void matrix_mult_CC(Processor<aBitVector, aBit> &Proc);
+template void matrix_mult_SC(Processor<aBitVector, aBit> &Proc);
+template void matrix_mult_CS(Processor<aBitVector, aBit> &Proc);
+template void Gaussian_Elimination(Processor<aBitVector, aBit> &Proc);
+
+template void matrix_mult_CC(Processor<aBitVector2, Share2> &Proc);
+template void matrix_mult_SC(Processor<aBitVector2, Share2> &Proc);
+template void matrix_mult_CS(Processor<aBitVector2, Share2> &Proc);
+template void Gaussian_Elimination(Processor<aBitVector2, Share2> &Proc);

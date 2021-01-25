@@ -12,8 +12,7 @@ All rights reserved
 #include "offline_subroutines.h"
 
 void make_IO_data_non_Full(Player &P, PRSS &prss, unsigned int player_num,
-                           list<Share> &a, list<gfp> &opened,
-                           Open_Protocol &OP)
+                           list<Share> &a, list<gfp> &opened)
 {
   vector<Share> alist(sz_IO_batch);
   vector<gfp> openedlist(sz_IO_batch);
@@ -31,11 +30,11 @@ void make_IO_data_non_Full(Player &P, PRSS &prss, unsigned int player_num,
    */
   if (P.whoami() != player_num)
     {
-      OP.Open_To_One_Begin(player_num, alist, P);
+      P.OP->Open_To_One_Begin(player_num, alist, P);
     }
   else
     {
-      OP.Open_To_One_End(openedlist, alist, P);
+      P.OP->Open_To_One_End(openedlist, alist, P);
       for (int i= 0; i < sz_IO_batch; i++)
         {
           opened.push_back(openedlist[i]);
@@ -47,7 +46,7 @@ void make_IO_data_non_Full(Player &P, PRSS &prss, unsigned int player_num,
 void make_IO_data(Player &P, int fake_sacrifice, PRSS &prss,
                   unsigned int player_num, list<Share> &a, list<gfp> &opened,
                   const FHE_PK &pk, const FHE_SK &sk, const FFT_Data &PTD,
-                  offline_control_data &OCD, Open_Protocol &OP,
+                  offline_control_data &OCD,
                   unsigned int online_thread,
                   FHE_Industry &industry)
 {
@@ -64,6 +63,6 @@ void make_IO_data(Player &P, int fake_sacrifice, PRSS &prss,
     }
   else
     {
-      make_IO_data_non_Full(P, prss, player_num, a, opened, OP);
+      make_IO_data_non_Full(P, prss, player_num, a, opened);
     }
 }

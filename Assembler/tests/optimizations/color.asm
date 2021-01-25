@@ -11,7 +11,7 @@ pushint r7 # 33
 ldint r6, 1 # 31
 ldint r8, 1 # 34
 ldint r15, 1 # 63
-jmpnz r15, -14 # 64
+jmpne r15, 0, -14 # 64
 ldint r17, 1 # 66
 subint r18, r8, r17 # 67
 pushint r18 # 68

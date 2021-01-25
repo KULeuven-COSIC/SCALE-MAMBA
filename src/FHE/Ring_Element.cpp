@@ -517,5 +517,37 @@ void Ring_Element::input(istream &s)
     x.input(s, FFTD->get_prD(), false);
 }
 
+unsigned int Ring_Element::output(uint8_t *buff) const
+{
+  memcpy(buff, (char *) &rep, sizeof(rep));
+  unsigned int pos= sizeof(rep);
+  auto size= element.size();
+  memcpy(buff + pos, (char *) &size, sizeof(size));
+  pos+= sizeof(size);
+  for (auto &x : element)
+    {
+      pos+= x.output(buff + pos, FFTD->get_prD());
+    }
+  return pos;
+}
+
+unsigned int Ring_Element::input(const uint8_t *buff)
+{
+  memcpy((char *) &rep, buff, sizeof(rep));
+  unsigned int pos= sizeof(rep);
+  check_rep();
+
+  auto size= element.size();
+  memcpy((char *) &size, buff + pos, sizeof(size));
+  pos+= sizeof(size);
+  element.resize(size);
+
+  for (auto &x : element)
+    {
+      pos+= x.input(buff + pos, FFTD->get_prD());
+    }
+  return pos;
+}
+
 template void Ring_Element::from(const Generator<bigint> &generator);
 template void Ring_Element::from(const Generator<int> &generator);

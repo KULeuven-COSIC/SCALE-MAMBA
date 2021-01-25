@@ -169,8 +169,9 @@ instructions! {
   STARG & 0x13 & (address: r) & vectorizable mem_write & r##"STARG ri \newline
                                  Assigns register ri to variable in the thread argument.
                                  In MAMBA compiler this is also used to pass variables to functions."## & ""
-  RUN_TAPE & 0x19 & (thread: int, tape: int, argument: int) & barrier & r##"RUN\_TAPE i j n  \newline
-                                           In thread i start tape n with argument j.  "## & ""
+  RUN_TAPE & 0x19 & (thread: int, tape: int, argument: int, argument: int) & barrier & r##"RUN\_TAPE i j k n  \newline
+                                           In thread i start tape k with argument j.  \newline
+                                           Starting with PC at position n."## & ""
   JOIN_TAPE & 0x1A & (thread: int) & barrier & r##" JOIN\_TAPE i \newline
                                    Wait until tape in thread i has finished. "## & ""
   CRASH & 0x1B & () & terminator & r##"CRASH \newline
@@ -238,32 +239,32 @@ instructions! {
                                              Truncated hash computation on a clear register ci = H(cj)."## & ""
   },
   "IO" {
- OUTPUT_CLEAR & 0x40 & (value: c, channel: i) & vectorizable barrier thread_0_only & r##"OUTPUT\_CLEAR ci n \newline
+ OUTPUT_CLEAR & 0x40 & (value: c, channel: ch) & vectorizable barrier thread_0_only & r##"OUTPUT\_CLEAR ci n \newline
                                             Public output of clear register ci to IO class on channel n. "## & ""
- INPUT_CLEAR & 0x41 & (dest: cw, channel: i) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci n \newline
+ INPUT_CLEAR & 0x41 & (dest: cw, channel: ch) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci n \newline
 					    Gets clear public input ci from the IO class on channel n.
                                             Public inputs need to be the same for all players running the protocol, otherwise a crash will occur. "## & ""
   OUTPUT_SHARES & 0x42 &  (n + 1: int, channel: ch, shares: [s; n]) & vectorizable barrier thread_0_only & r##"OUTPUT\_SHARES n+1 ch si1 ... sin \newline
            Write shares sij for j=1..n to the IO class channel ch.  "## & ""
-  INPUT_SHARES & 0x43 & (n + 1: int, channel: i, shares: [sw; n]) & vectorizable barrier thread_0_only & r##"INPUT\_SHARES n+1 ch si1 ... sin \newline
+  INPUT_SHARES & 0x43 & (n + 1: int, channel: ch, shares: [sw; n]) & vectorizable barrier thread_0_only & r##"INPUT\_SHARES n+1 ch si1 ... sin \newline
           Read shares sij for j=1..n from the IO class channel ch.  "## & ""
-  PRIVATE_INPUT & 0x44 & (dest: sw, player: p, channel: int) & vectorizable barrier thread_0_only & r##"PRIVATE\_INPUT si p m \newline
+  PRIVATE_INPUT & 0x44 & (dest: sw, player: p, channel: ch) & vectorizable barrier thread_0_only & r##"PRIVATE\_INPUT si p m \newline
                                   Private input from player p on channel m assign result to secret si. "## & r##"c1"##
-  PRIVATE_OUTPUT & 0x46  & (value: s, player: p, channel: int) & vectorizable barrier thread_0_only & r##"PRIVATE\_OUTPUT si p m \newline
+  PRIVATE_OUTPUT & 0x46  & (value: s, player: p, channel: ch) & vectorizable barrier thread_0_only & r##"PRIVATE\_OUTPUT si p m \newline
                                   Private output to player p on channel m of secret si. "## & r##"c1"##
-  OUTPUT_INT & 0x48 & (value: r, channel: i) & vectorizable barrier thread_0_only & r##" OUTPUT\_INT ri n \newline
+  OUTPUT_INT & 0x48 & (value: r, channel: ch) & vectorizable barrier thread_0_only & r##" OUTPUT\_INT ri n \newline
                                             Public output of regint register ri to IO class on channel n. "## & ""
-  INPUT_INT & 0x49 & (dest: rw, channel: i) & vectorizable barrier thread_0_only & r##"INPUT\_INT ri n \newline
+  INPUT_INT & 0x49 & (dest: rw, channel: ch) & vectorizable barrier thread_0_only & r##"INPUT\_INT ri n \newline
 					    Gets regint public input ri from the IO class on channel n.
                                             Public inputs need to be the same for all players running the protocol, otherwise a crash will occur. "## & ""
-  OPEN_CHANNEL & 0x4A & (dest: rw, channel: i) & barrier thread_0_only & r##"OPEN\_CHANNEL ri n \newline
+  OPEN_CHANNEL & 0x4A & (dest: rw, channel: ch) & barrier thread_0_only & r##"OPEN\_CHANNEL ri n \newline
 					  Opens channel number n for reading/writing on the IO class.
                                           Channels are assumed to be bi-directional, i.e. can read and write.
                                           This is provided as some IO classes may require this to be called
 					  explicitly, the default one does not need this.
 					  The return value ri {\bf can} be some error code which the IO class
             may want to return. "## & ""
-  CLOSE_CHANNEL & 0x4B & (dest: i) & barrier thread_0_only & r##"CLOSE\_CHANNEL n \newline
+  CLOSE_CHANNEL & 0x4B & (channel: ch) & barrier thread_0_only & r##"CLOSE\_CHANNEL n \newline
 					  Closes channel number n for reading/writing on the IO class.
                                           This is provided as some IO classes may require this to be called
             explicitly, the default one does not need this. "## & ""
@@ -383,14 +384,14 @@ instructions! {
   "Branching and comparison" {
   JMP & 0x90 & (offset: int) & terminator & r##"JMP n \newline
                            Unconditional relative jump of n+1 instructions.  "## & ""
-  JMPNZ & 0x91 & (condition: r, offset: int) & terminator & r##"JMPNZ ri n \newline
-                          Jump of n+1 instructions if regint register ri is not equal to 0.
+  JMPNE & 0x91 & (condition: r, value: int, offset: int) & terminator & r##"JMPNZ ri j n \newline
+                          Jump of n+1 instructions if regint register ri is not equal to j.
                           Example: \newline
-            jmpnz c, n  : advance n+1 instructions if c is non-zero \newline
-            jmpnz c, 0  : do nothing \newline
-            jmpnz c, -1 : infinite loop if c is non-zero \newline          "## & ""
-  JMPEQZ & 0x92 &  (condition: r, offset: int) & terminator & r##"JMPEQZ ri n \newline
-                          Jump of n+1 instructions if regint register ri is equal to 0. "## & ""
+            jmpnz c, 0, n  : advance n+1 instructions if c is non-zero \newline
+            jmpnz c, 0,  0  : do nothing \newline
+            jmpnz c, 0,  -1 : infinite loop if c is non-zero \newline          "## & ""
+  JMPEQ & 0x92 &  (condition: r, value: int, offset: int) & terminator & r##"JMPEQZ ri j n \newline
+                          Jump of n+1 instructions if regint register ri is equal to j. "## & ""
   EQZINT & 0x93 & (dest: rw, value: r) & vectorizable & r##"EQZINT ri rj \newline
                                  Clear comparison to zero test of regint register ri = (rj == 0)."## & ""
   LTZINT & 0x94 & (dest: rw, value: r) & vectorizable & r##"LTZINT ri rj \newline
@@ -405,6 +406,10 @@ instructions! {
                                 Pushes the PC onto the stack, and does a relative jump of n+1 instructions "## & ""
   RETURN & 0x15& () & terminator & r##"RETURN \newline
                                 Pops the top element off the stack, and assigns the PC to this value "## & ""
+  CALLR & 0x16 & (value: r) & terminator & r##"CALLR i \newline
+                                Pushes the PC onto the stack, and then jumps to instruction at position ri"## & ""
+  JMPR & 0x17 & (value: r) & terminator & r##"JMPR i \newline
+                           Unconditional jump to instruction at address ri.  "## & ""
   },
   "Integers" {
   LDINT & 0x9A & (dest: rw, value: i) & vectorizable & r##"LDINT ri n \newline

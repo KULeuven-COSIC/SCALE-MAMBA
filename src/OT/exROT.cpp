@@ -21,8 +21,20 @@ void exROT_Sender::init(Player &P, int i, CryptoPP::RandomPool &RNG, vector<int>
   Delta= COTR.get_Delta();
   aBit::set_nplayers(P.nplayers(), P.whoami(), Delta);
 
-  AgreeRandom(P, base_key, AES_BLK_SIZE, connectionNb);
-  counter = 0;
+  vector<unsigned int> A(P.nplayers());
+  for (unsigned int k= 0; k < P.nplayers(); k++)
+    {
+      if (k == P.whoami() || k == nb_rcver)
+        {
+          A[k]= 1;
+        }
+      else
+        {
+          A[k]= 0;
+        }
+    }
+  AgreeRandom(P, A, base_key, AES_BLK_SIZE, 1);
+  counter= 0;
 
   cout << "[exROT - Sender::init] Finished Base-OT for Sender (" << P.whoami() << "," << nb_rcver << ")" << endl;
 }
@@ -33,21 +45,34 @@ void exROT_Receiver::init(Player &P, int i, CryptoPP::RandomPool &RNG, unsigned 
   gf2n::init_field(OT_comp_sec);
 
   COTS.init(P, nb_sender, RNG, connectionNb);
-  
-  AgreeRandom(P, base_key, AES_BLK_SIZE, connectionNb);
-  counter = 0;
+  vector<unsigned int> A(P.nplayers());
+  for (unsigned int k= 0; k < P.nplayers(); k++)
+    {
+      if (k == P.whoami() || k == nb_sender)
+        {
+          A[k]= 1;
+        }
+      else
+        {
+          A[k]= 0;
+        }
+    }
+  AgreeRandom(P, A, base_key, AES_BLK_SIZE, 1);
+  counter= 0;
 
   cout << "[exRot - Receiver::init] Finished Base-OT for Receiver (" << nb_sender << "," << P.whoami() << ")" << endl;
 }
 
 void exROT_Sender::next_iteration(Player &P, unsigned int size, vector<vector<gf2n>> &out_vec)
 {
-  // Make the MMO key 
+  // Make the MMO key
   uint8_t buffer[AES_BLK_SIZE];
   memset(buffer, 0, AES_BLK_SIZE);
   INT_TO_BYTES(buffer, counter);
-  for (unsigned int i=0; i<AES_BLK_SIZE; i++)
-    { buffer[i]^=base_key[i]; }
+  for (unsigned int i= 0; i < AES_BLK_SIZE; i++)
+    {
+      buffer[i]^= base_key[i];
+    }
   counter++;
   mmo.setIV(buffer);
 
@@ -73,11 +98,11 @@ void exROT_Sender::next_iteration(Player &P, unsigned int size, vector<vector<gf
       aBLifted[i][1].store_into_buffer(&array1[16 * i]);
     }
 
-  unsigned int nbBlocks= ceil(size / OT_comp_sec);
+  unsigned int nbBlocks= ceil(static_cast<float>(size) / OT_comp_sec);
   for (unsigned int i= 0; i < nbBlocks; i++)
     {
-      mmo.hashBlockWise<gf2n, OT_comp_sec>(array0 + i * OT_comp_sec, array0 + i * OT_comp_sec);
-      mmo.hashBlockWise<gf2n, OT_comp_sec>(array1 + i * OT_comp_sec, array1 + i * OT_comp_sec);
+      mmo.hashBlockWise<gf2n, OT_comp_sec>(array0 + i * 16 * OT_comp_sec, array0 + i * 16 * OT_comp_sec);
+      mmo.hashBlockWise<gf2n, OT_comp_sec>(array1 + i * 16 * OT_comp_sec, array1 + i * 16 * OT_comp_sec);
     }
 
   for (unsigned int i= 0; i < size; i++)
@@ -92,13 +117,15 @@ void exROT_Sender::next_iteration(Player &P, unsigned int size, vector<vector<gf
 
 void exROT_Receiver::next_iteration(Player &P, unsigned int size, BitVector &choice_vec, vector<gf2n> &out_vec)
 {
-  
-  // Make the MMO key 
+
+  // Make the MMO key
   uint8_t buffer[AES_BLK_SIZE];
   memset(buffer, 0, AES_BLK_SIZE);
   INT_TO_BYTES(buffer, counter);
-  for (unsigned int i=0; i<AES_BLK_SIZE; i++)
-    { buffer[i]^=base_key[i]; }
+  for (unsigned int i= 0; i < AES_BLK_SIZE; i++)
+    {
+      buffer[i]^= base_key[i];
+    }
   counter++;
   mmo.setIV(buffer);
 
@@ -120,10 +147,10 @@ void exROT_Receiver::next_iteration(Player &P, unsigned int size, BitVector &cho
       aBLifted[i].store_into_buffer(&array[16 * i]);
     }
 
-  unsigned int nbBlocks= ceil(size / OT_comp_sec);
+  unsigned int nbBlocks= ceil(static_cast<float>(size) / OT_comp_sec);
   for (unsigned int i= 0; i < nbBlocks; i++)
     {
-      mmo.hashBlockWise<gf2n, OT_comp_sec>(array + i * OT_comp_sec, array + i * OT_comp_sec);
+      mmo.hashBlockWise<gf2n, OT_comp_sec>(array + i * 16 * OT_comp_sec, array + i * 16 * OT_comp_sec);
     }
 
   for (unsigned int i= 0; i < size; i++)

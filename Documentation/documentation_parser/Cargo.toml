@@ -1,8 +1,11 @@
 [package]
-name = "documentation_parser"
-version = "0.1.0"
+name = "scale_documentation_parser"
+version = "0.0.1"
 authors = ["Oliver Scherer <oliver.scherer@cosmian.com>"]
 edition = "2018"
+description = "a proc macro to parse the structured SCALE documentation into Rust datastructures"
+license = "MIT AND Apache-2.0"
+repository = "https://github.com/KULeuven-COSIC/SCALE-MAMBA"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

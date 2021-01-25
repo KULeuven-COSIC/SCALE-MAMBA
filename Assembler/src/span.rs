@@ -129,7 +129,7 @@ impl<'a> Span {
         }
         self
     }
-    pub fn snippet<'b>(self, cx: &'b Compiler) -> &'b str {
+    pub fn snippet(self, cx: &Compiler) -> &str {
         cx.files
             .get(self.file as usize)
             .map_or("", |x| &x[self.start as usize..self.end as usize])
@@ -149,6 +149,12 @@ impl<'a> Span {
 pub struct Spanned<T> {
     pub span: Span,
     pub elem: T,
+}
+
+impl<T> From<T> for Spanned<T> {
+    fn from(elem: T) -> Self {
+        Span::DUMMY.with(elem)
+    }
 }
 
 impl<'a, 'b, T: Copy + Default> Spanned<&'b [Spanned<T>]> {

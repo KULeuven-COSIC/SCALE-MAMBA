@@ -14,8 +14,12 @@ All rights reserved
 #include "Math/gfp.h"
 #include "SystemData.h"
 #include "Tools/Timer.h"
+#include "Tools/buffer.h"
 #include "Tools/random.h"
 #include <map>
+
+class Open_Protocol;
+class Open_Protocol2;
 
 void Init_SSL_CTX(SSL_CTX *&ctx, unsigned int me, const SystemData &SD, const string &rootDirectory= "");
 
@@ -23,7 +27,8 @@ inline void Destroy_SSL_CTX(SSL_CTX *ctx) { SSL_CTX_free(ctx); }
 
 class Player
 {
-  unsigned int me; // My player number
+  unsigned int me;            // My player number
+  unsigned int thread_number; // The thread_number for this player
 
 #ifdef BENCH_NETDATA
   // network data in bytes
@@ -51,8 +56,10 @@ class Player
   // correct, when we need/want to do this
   vector<SHA256_CTX> sha256;
 
-public:
+  // Buffer for IO
+  mutable buffer buff;
 
+public:
 #ifdef BENCH_OFFLINE
   mutable unsigned long triples;
   mutable unsigned long squares;
@@ -61,10 +68,15 @@ public:
   mutable unsigned long inputs;
   mutable unsigned long abits;
   mutable unsigned long aands;
+  mutable unsigned long mod2s;
 #endif
 
   PRNG G; // Each player has a local PRNG
           // Avoids needing to set one up all the time
+
+  // Have as pointers to avoid name definition circularities
+  Open_Protocol *OP;
+  Open_Protocol2 *OP2;
 
   // We have a set of timers here to use for debug purposes
   // when needed.
@@ -77,10 +89,33 @@ public:
 
   ~Player();
 
-  // Send and receive strings
-  void send_all(const string &o, int connection, bool verbose= false) const;
-  void send_to_player(int player, const string &o, int connection) const;
-  void receive_from_player(int i, string &o, int connection, bool verbose= false) const;
+  // Send and receive arrays of uint8_t's
+  void send_all(const uint8_t *data, unsigned int length,
+                int connection, bool verbose= false) const;
+  void send_to_player(int player, const uint8_t *data, unsigned int length,
+                      int connection) const;
+  // Note repeated calls to this function OVERWRITES the data
+  // pointed to by the returned pointer, the length received is
+  // placed in the length variable
+  const uint8_t *receive_from_player(int i, unsigned int &length,
+                                     int connection, bool verbose= false) const;
+
+  // Now the string versions
+  void send_all(const string &o, int connection, bool verbose= false) const
+  {
+    send_all((uint8_t *) o.c_str(), o.length(), connection, verbose);
+  }
+  void send_to_player(int player, const string &o, int connection) const
+  {
+    send_to_player(player, (uint8_t *) o.c_str(), o.length(), connection);
+  }
+  void receive_from_player(int i, string &o, int connection, bool verbose= false) const
+  {
+    unsigned int length;
+    receive_from_player(i, length, connection, verbose);
+
+    o.assign((char *) buff.get_buffer(), length);
+  }
 
   unsigned int whoami() const
   {
@@ -89,6 +124,10 @@ public:
   unsigned int nplayers() const
   {
     return ssl.size();
+  }
+  unsigned int get_thread() const
+  {
+    return thread_number;
   }
 
   gfp get_mac_key(int i) const
@@ -115,11 +154,11 @@ public:
   void Send_Distinct_And_Receive(vector<string> &o, int connection) const;
 
 #ifdef BENCH_NETDATA
-  void print_network_data(int thread_num);
+  void print_network_data();
 #endif
 
 #ifdef BENCH_OFFLINE
-  void print_offline(int thread_num);
+  void print_offline();
 #endif
 };
 

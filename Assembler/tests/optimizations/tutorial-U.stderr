@@ -4,9 +4,3 @@ warning: Write to register is never read
 12298 | stopopen 1, c3453 # 12296
       | ------------------------- register 3453 written to but will never be read from again
       |
-warning: Write to register is never read
-     --> tests/optimizations/tutorial-U.asm:12325:1
-      |
-12325 | popint r8 # 12321
-      | ----------------- register 8 written to but will never be read from again
-      |

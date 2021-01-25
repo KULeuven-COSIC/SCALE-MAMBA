@@ -21,13 +21,15 @@ using namespace std;
 #include "FHE/FHE_Params.h"
 #include "GC/SimplifyCircuit.h"
 #include "LSSS/Share.h"
+#include "LSSS/ShareData.h"
+#include "LSSS/ShareData2.h"
 #include "OT/aBitVector.h"
 #include "config.h"
-#include "LSSS/ShareData.h"
 
 struct SecretSharing
 {
   ShareData SD;
+  ShareData2 SD2;
   vector<vector<gfp>> mkeys;
 };
 
@@ -40,15 +42,16 @@ enum class ReplicationMode {
   Threshold= 3,
 };
 
-void init_certs();
+void init_certs(std::istream &cin);
 void init_conversion();
 
 /* Note this may update p in the case of FHE parameters */
 SecretSharing init_secret_sharing(ShareType lsss, bigint &p, int lg2p,
                                   unsigned int t, unsigned int n,
-                                  vector<unsigned int> ns, gfp_matrix Gen,
+                                  vector<unsigned int> ns,
+                                  vector<vector<gfp>> &Gen,
                                   ReplicationMode mode, OfflineType offline_type, imatrix Sets);
 
-void enter_sets(imatrix &Sets, bool unqualified, unsigned int n);
+void enter_sets(std::istream &cin, imatrix &Sets, bool unqualified, unsigned int n);
 
 #endif

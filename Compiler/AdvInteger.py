@@ -235,6 +235,7 @@ def PRandM(r_dprime, r_prime, b, k, m, kappa):
 # from WP9 report
 # length of a is even
 def CarryOutAux(d, a):
+    #from Compiler.library import print_ln, print_str
     k = len(a)
     if k > 1 and k % 2 == 1:
         a.append(None)
@@ -242,8 +243,24 @@ def CarryOutAux(d, a):
     u = [None]*(k/2)
     a = a[::-1]
     if k > 1:
+        #print_ln('\tCarryOutAux : %s',k)
         for i in range(k/2):
             u[i] = reg_carry(a[2*i+1], a[2*i], i != k/2-1)
+        #xxxxx
+        #u_open0 = [types.cint() for i in range(k/2)]
+        #u_open1 = [types.cint() for i in range(k/2)]
+        #for i in range(k/2):
+        #  print_str('\t\t\t u.%s : ',i)
+        #  if i!=(k/2-1):
+        #    asm_open(u_open0[i], u[i][0])
+        #    print_reg(u_open0[i])
+        #  else:
+        #    print_str('-')
+        #  asm_open(u_open1[i], u[i][1])
+        #  print_str(' ')
+        #  print_reg(u_open1[i])
+        #  print_ln('')
+        # xxxxx
         CarryOutAux(d, u[:k/2][::-1])
     else:
         movs(d, a[0][1])
@@ -572,10 +589,10 @@ def Mod2m(a_prime, a, k, m, kappa, signed):
     ld2i(c2m, m)
     mulm(t[0], r_dprime, c2m)
     if signed:
-        ld2i(c2k1, k - 1)
-        addm(t[1], a, c2k1)
+       ld2i(c2k1, k - 1)
+       addm(t[1], a, c2k1)
     else:
-        t[1] = a
+       t[1] = a
     adds(t[2], t[0], t[1])
     adds(t[3], t[2], r_prime)
     startopen(t[3])

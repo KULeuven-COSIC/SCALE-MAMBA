@@ -88,7 +88,8 @@ int main(int argc, const char *argv[])
 
   /* Initialize the networking TCP sockets */
   int ssocket;
-  vector<vector<vector<int>>> csockets(1, vector<vector<int>>(SD.n, vector<int>(nb_threads_2 + nb_threads_1 + 5)));
+  unsigned int nbThreads= nb_threads_2 + nb_threads_1 + 3;
+  vector<vector<vector<int>>> csockets(nbThreads, vector<vector<int>>(SD.n, vector<int>(3)));
   Get_Connections(ssocket, csockets, portnum, my_number, SD, verbose - 2);
   printf("All connections now done\n");
 
@@ -105,10 +106,10 @@ int main(int argc, const char *argv[])
   cout << "[PlayerKeyGen] p = " << pMPC << endl;
   cout << "[PlayerKeyGen] N = " << N << endl;
   cout << "[PlayerKeyGen] h = " << HwtSK << endl;
-  MASCOTTriples mt1(P, fsize1);
-  MASCOTTriples mt2(P, fsize2);
+  //MASCOTTriples mt1(P, fsize1);
+  //MASCOTTriples mt2(P, fsize2);
   KeyGenM kg(P);
-  kg.genKey(N, mt1, mt2, fsize1, fsize2, pMPC, nb_threads_1, nb_threads_2);
+  kg.genKey(N, fsize1, fsize2, pMPC, nb_threads_1, nb_threads_2, ctx, SD, csockets, MacK);
   /* Destroy SSL */
   Destroy_SSL_CTX(ctx);
 

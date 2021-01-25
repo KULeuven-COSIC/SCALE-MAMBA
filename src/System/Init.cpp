@@ -22,7 +22,14 @@ using namespace std;
 #include "System/Init.h"
 #include "config.h"
 
-int input_YN()
+// This is a dummy ensuring that none of the functions in this file use the actual `cin`
+// but all use the `istream` passed as an argument.
+struct Dummy
+{
+};
+static Dummy cin= Dummy();
+
+int input_YN(std::istream &cin)
 {
   string str= "";
   do
@@ -103,7 +110,7 @@ void init_FHE(bigint &pr, int lg2p, unsigned int n)
     }
 }
 
-void init_certs()
+void init_certs(std::istream &cin)
 {
   // Initialize the SSL library
   OPENSSL_init_ssl(
@@ -212,7 +219,8 @@ void init_certs()
   output << input_YN() << endl;
   cout << "Fake sacrifice?" << endl;
   output << input_YN() << endl;
-*/
+  */
+
   // Choose non-fake in both cases
   output << 0 << endl;
   output << 0 << endl;
@@ -220,7 +228,7 @@ void init_certs()
   output.close();
 }
 
-void init_replicated(ShareData &SD, unsigned int n, ReplicationMode mode, unsigned int t, OfflineType offline_type, imatrix Sets)
+void init_replicated(ShareData &SD, ShareData2 &SD2, unsigned int n, ReplicationMode mode, unsigned int t, OfflineType offline_type, imatrix Sets)
 {
   CAS AS;
   switch (mode)
@@ -234,20 +242,23 @@ void init_replicated(ShareData &SD, unsigned int n, ReplicationMode mode, unsign
         }
       case ReplicationMode::Threshold:
         {
+          cout << "Threshold..." << endl;
           AS.assign(n, t);
+          cout << "AS = " << AS << endl;
           break;
         }
     }
 
   SD.Initialize_Replicated(AS, offline_type);
+  SD2.Initialize_Replicated(AS);
 }
 
-void init_Q2_MSP(ShareData &SD, vector<unsigned int> ns, gfp_matrix Gen)
+void init_Q2_MSP(ShareData &SD, vector<unsigned int> ns, vector<vector<gfp>> &Gen)
 {
   cout << "Generator matrix is: " << Gen << endl;
   cout << "Target vector is [1,1,...,1]" << endl;
 
-  MSP M(Gen, ns);
+  MSP<gfp> M(Gen, ns);
   SD.Initialize_Q2(M);
 
   if (Gen.size() != SD.M.row_dim())
@@ -261,7 +272,7 @@ void init_Q2_MSP(ShareData &SD, vector<unsigned int> ns, gfp_matrix Gen)
 
 SecretSharing init_secret_sharing(ShareType v, bigint &p, int lg2p,
                                   unsigned int t, unsigned int n,
-                                  vector<unsigned int> ns, gfp_matrix Gen,
+                                  vector<unsigned int> ns, vector<vector<gfp>> &Gen,
                                   ReplicationMode mode, OfflineType offline_type,
                                   imatrix Sets)
 {
@@ -287,6 +298,7 @@ SecretSharing init_secret_sharing(ShareType v, bigint &p, int lg2p,
     }
 
   SecretSharing ret;
+  CAS AS;
   switch (v)
     {
       case Full:
@@ -294,9 +306,14 @@ SecretSharing init_secret_sharing(ShareType v, bigint &p, int lg2p,
         break;
       case Shamir:
         ret.SD.Initialize_Shamir(n, t);
+        if (ret.SD.Etype != HSS)
+          {
+            AS.assign(n, t);
+            ret.SD2.Initialize_Replicated(AS);
+          }
         break;
       case Replicated:
-        init_replicated(ret.SD, n, mode, t, offline_type, Sets);
+        init_replicated(ret.SD, ret.SD2, n, mode, t, offline_type, Sets);
         break;
       case Q2MSP:
         init_Q2_MSP(ret.SD, ns, Gen);
@@ -432,7 +449,7 @@ void init_conversion()
   cout << "Completed the conversion" << endl;
 }
 
-void enter_sets(imatrix &Sets, bool unqualified, unsigned int n)
+void enter_sets(std::istream &cin, imatrix &Sets, bool unqualified, unsigned int n)
 {
   unsigned int v= 0;
   while (v < 1)
@@ -450,7 +467,7 @@ void enter_sets(imatrix &Sets, bool unqualified, unsigned int n)
   cout << "Each set is enterred as a vector of n 0/1 values\n";
   cout << "With 1 meaning that player is in the set\n";
   cout << "For example \n\t0 1 1 0\n";
-  cout << "Would mean players 1 and 2 are the set, but players\n";
+  cout << "Would mean players 1 and 2 are in the set, but players\n";
   cout << "zero and 3 are not." << endl;
 
   for (unsigned int i= 0; i < v; i++)

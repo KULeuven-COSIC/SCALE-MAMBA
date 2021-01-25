@@ -97,7 +97,8 @@ public:
   {
     assignZero(a, ZpD);
   }
-  template<int LL> gfp_(const modp_<LL> &g)
+  template<int LL>
+  gfp_(const modp_<LL> &g)
   {
     a= g;
   }
@@ -160,11 +161,11 @@ public:
   // = x * y
   void mul(const gfp_ &x, const gfp_ &y)
   {
-    a.mul(x.a,y.a,ZpD); 
+    a.mul(x.a, y.a, ZpD);
   }
   void mul(const gfp_ &x)
   {
-    a.mul(a,x.a,ZpD); 
+    a.mul(a, x.a, ZpD);
   }
 
   gfp_ operator+(const gfp_ &x) const
@@ -243,6 +244,29 @@ public:
     a.input(s, ZpD, human);
   }
 
+  // Direct IO to a buffer
+  unsigned int output(uint8_t *buff) const
+  {
+    return a.output(buff, ZpD);
+  }
+  unsigned int input(const uint8_t *buff)
+  {
+    return a.input(buff, ZpD);
+  }
+
+  /* Input/Output to a string at position pos.
+   * String is already of enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return a.output((uint8_t *) s.c_str() + pos, ZpD);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return a.input((uint8_t *) s.c_str() + pos, ZpD);
+  }
+
   friend ostream &operator<<(ostream &s, const gfp_ &x)
   {
     x.output(s, true);
@@ -313,6 +337,5 @@ public:
 #include "gfp.hpp"
 
 typedef gfp_<MAX_GFP_SZ> gfp;
-
 
 #endif

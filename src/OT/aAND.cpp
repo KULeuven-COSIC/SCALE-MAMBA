@@ -14,26 +14,11 @@ All rights reserved
 
 void aAND::make_aANDs(Player &P, int num_online)
 {
-  extern aBit_Data aBD;
-
   //P.clocks[1].reset(); P.clocks[1].start(); cout << "\tIn aAND" << endl;
 
-  LA[0].make_more(P, num_online);
-
-  unsigned int number= LA[0].get_number();
-  triples.resize(number);
-
-  int lg2number= CEIL_LOG2(number);
-  unsigned int B= DIV_CEIL(OT_stat_sec, lg2number);
-  if (LA.size() != B)
-    {
-      LA.resize(B);
-      for (unsigned int i= 1; i < B; i++)
-        {
-          LA[i].Init(P, 2);
-        }
-    }
-  for (unsigned int i= 1; i < B; i++)
+  unsigned int number= triples.size();
+  unsigned int B= LA.size();
+  for (unsigned int i= 0; i < B; i++)
     {
       LA[i].make_more(P, num_online);
     }
@@ -66,7 +51,7 @@ void aAND::make_aANDs(Player &P, int num_online)
       triples[i]= LA[0].triples[i];
     }
   vector<aBit> d(number);
-  vector<int> dv(number);
+  vector<word> dv(number);
   for (unsigned int i= 1; i < B; i++)
     {
       for (unsigned int t= 0; t < number; t++)
@@ -74,7 +59,7 @@ void aAND::make_aANDs(Player &P, int num_online)
           d[t].add(triples[t].y, LA[i].triples[t].y);
         }
 
-      Open_aBits(dv, d, P);
+      P.OP2->Open_Bits(dv, d, P);
 
       for (unsigned int t= 0; t < number; t++)
         {
@@ -93,8 +78,6 @@ void aAND::make_aANDs(Player &P, int num_online)
 void Mult_aBits(vector<aBit> &z, const vector<aBit> &x, const vector<aBit> &y,
                 list<aTriple> &T, Player &P)
 {
-  extern aBit_Data aBD;
-
   if (T.size() != x.size() || T.size() != y.size() || T.size() != z.size())
     {
       throw OT_error();
@@ -113,8 +96,8 @@ void Mult_aBits(vector<aBit> &z, const vector<aBit> &x, const vector<aBit> &y,
       i++;
     }
 
-  vector<int> eedd(2 * sz);
-  Open_aBits(eedd, ed, P);
+  vector<word> eedd(2 * sz);
+  P.OP2->Open_Bits(eedd, ed, P);
 
   for (unsigned int i= 0; i < sz; i++)
     {
@@ -133,18 +116,16 @@ void Mult_aBits(vector<aBit> &z, const vector<aBit> &x, const vector<aBit> &y,
     }
 }
 
-void Mult_aBit(aBit &z, const aBit &x, const aBit &y,
-               aTriple &T, Player &P)
+void Mult_Bit(aBit &z, const aBit &x, const aBit &y,
+              const aTriple &T, Player &P)
 {
-  extern aBit_Data aBD;
-
   vector<aBit> a(1), b(1), ed(2);
   ed[0].add(T.x, x);
   ed[1].add(T.y, y);
   z= T.z;
 
-  vector<int> eedd(2);
-  Open_aBits(eedd, ed, P);
+  vector<word> eedd(2);
+  P.OP2->Open_Bits(eedd, ed, P);
 
   if (eedd[0] == 1)
     {

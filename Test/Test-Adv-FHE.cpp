@@ -233,36 +233,44 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
     }
 
   // Emulate the transmission of data
+  unsigned int len;
   cout << "Emulating transmission of data" << endl;
   {
-    vector<stringstream> osE(n), osA(n);
     for (int i= 0; i < n; i++)
       {
-        ZK[i].get_vE(osE[i]);
-        ZK[i].get_vA(osA[i]);
-        if (osE[i].str().size() > max)
+        const uint8_t *buff= ZK[i].get_vE(len);
+        if (len > max)
           {
-            max= osE[i].str().size();
-          }
-        if (osA[i].str().size() > max)
-          {
-            max= osA[i].str().size();
+            max= len;
           }
         if (i == 0)
           {
-            total+= osE[i].str().size() + osA[i].str().size();
+            total+= len;
           }
-      }
-    for (int i= 0; i < n; i++)
-      {
         for (int j= 0; j < n; j++)
           {
             if (i != j)
               {
-                istringstream isE(osE[j].str());
-                istringstream isA(osA[j].str());
-                ZK[i].Step0_Step(isE, *pk);
-                ZK[i].Step1_Step(isA, *pk);
+                ZK[i].Step0_Step(buff, *pk);
+              }
+          }
+      }
+    for (int i= 0; i < n; i++)
+      {
+        const uint8_t *buff= ZK[i].get_vA(len);
+        if (len > max)
+          {
+            max= len;
+          }
+        if (i == 0)
+          {
+            total+= len;
+          }
+        for (int j= 0; j < n; j++)
+          {
+            if (i != j)
+              {
+                ZK[i].Step1_Step(buff, *pk);
               }
           }
       }
@@ -286,33 +294,22 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   // Emulate the transmission of data
   cout << "Emulating transmission of data" << endl;
   {
-    vector<stringstream> osT(n), osZ(n);
     for (int i= 0; i < n; i++)
       {
-        ZK[i].get_vT(osT[i]);
-        ZK[i].get_vZ(osZ[i]);
-        if (osT[i].str().size() > max)
+        const uint8_t *buff= ZK[i].get_vT_vZ(len);
+        if (len > max)
           {
-            max= osT[i].str().size();
-          }
-        if (osZ[i].str().size() > max)
-          {
-            max= osZ[i].str().size();
+            max= len;
           }
         if (i == 0)
           {
-            total+= osT[i].str().size() + osZ[i].str().size();
+            total+= len;
           }
-      }
-    for (int i= 0; i < n; i++)
-      {
         for (int j= 0; j < n; j++)
           {
             if (i != j)
               {
-                istringstream isT(osT[j].str());
-                istringstream isZ(osZ[j].str());
-                ZK[i].Step2_Step(isT, isZ, *pk);
+                ZK[i].Step2_Step(buff, *pk);
               }
           }
       }
@@ -345,22 +342,41 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
   // Emulate the transmission of data
   cout << "Emulating transmission of data" << endl;
   {
-    vector<stringstream> osE(n), osA(n);
     for (int i= 0; i < n; i++)
       {
-        ZK[i].get_vE(osE[i]);
-        ZK[i].get_vA(osA[i]);
-      }
-    for (int i= 0; i < n; i++)
-      {
+        const uint8_t *buff= ZK[i].get_vE(len);
+        if (len > max)
+          {
+            max= len;
+          }
+        if (i == 0)
+          {
+            total+= len;
+          }
         for (int j= 0; j < n; j++)
           {
             if (i != j)
               {
-                istringstream isE(osE[j].str());
-                istringstream isA(osA[j].str());
-                ZK[i].Step0_Step(isE, *pk);
-                ZK[i].Step1_Step(isA, *pk);
+                ZK[i].Step0_Step(buff, *pk);
+              }
+          }
+      }
+    for (int i= 0; i < n; i++)
+      {
+        const uint8_t *buff= ZK[i].get_vA(len);
+        if (len > max)
+          {
+            max= len;
+          }
+        if (i == 0)
+          {
+            total+= len;
+          }
+        for (int j= 0; j < n; j++)
+          {
+            if (i != j)
+              {
+                ZK[i].Step1_Step(buff, *pk);
               }
           }
       }
@@ -381,22 +397,23 @@ void Test_All(int n, const Ring &Rg, const FFT_Data &PTD,
 
   // Emulate the transmission of data
   {
-    vector<stringstream> osT(n), osZ(n);
     cout << "Emulating transmission of data" << endl;
     for (int i= 0; i < n; i++)
       {
-        ZK[i].get_vT(osT[i]);
-        ZK[i].get_vZ(osZ[i]);
-      }
-    for (int i= 0; i < n; i++)
-      {
+        const uint8_t *buff= ZK[i].get_vT_vZ(len);
+        if (len > max)
+          {
+            max= len;
+          }
+        if (i == 0)
+          {
+            total+= len;
+          }
         for (int j= 0; j < n; j++)
           {
             if (i != j)
               {
-                istringstream isT(osT[j].str());
-                istringstream isZ(osZ[j].str());
-                ZK[i].Step2_Step(isT, isZ, *pk);
+                ZK[i].Step2_Step(buff, *pk);
               }
           }
       }

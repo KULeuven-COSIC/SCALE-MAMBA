@@ -79,6 +79,14 @@ public:
     return (*FFTD).get_prime();
   }
 
+  // Size of string needed to input/output
+  unsigned int size() const
+  {
+    unsigned int sz= sizeof(rep) + sizeof(element.size());
+    sz+= element.size() * (FFTD->get_prD().get_t()) * sizeof(mp_limb_t);
+    return sz;
+  }
+
   void assign_zero();
   void assign_one();
 
@@ -163,6 +171,23 @@ public:
 
   void output(ostream &s) const;
   void input(istream &s);
+
+  // Direct IO to a buffer
+  unsigned int output(uint8_t *buff) const;
+  unsigned int input(const uint8_t *buff);
+
+  /* Input/Output to a string at position pos.
+   * String is already assigned of enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
 
   bool is_zero() const;
 };

@@ -8,9 +8,9 @@ All rights reserved
 #define _Circuit
 
 /* This function defines a circuit 
- *  A gate has one or two input wires
+ *  A gate has one or two input wires (unless it is a MAND gate)
  *    - Only INV/NOT has one
- *  A gate has only one output wire
+ *  A gate has only one output wire (unless it is a MAND gate)
  *
  * The input file format is a little different from "classic"
  * Bristol format, we call the new format "Bristol Fashion"
@@ -32,11 +32,11 @@ All rights reserved
  *     the function, where n=no_1+...+no_nov
  *   - The gates are ordered topologically, so we can evaluate them in sequence.
  *   - Each gate is defined by 
- *      -    Number input wires   (1 or 2)
- *      -    Number output wires  (Always 1)
+ *      -    Number input wires   (1 or 2, unless a MAND gate )
+ *      -    Number output wires  (Always 1, unless a MAND gate)
  *      -    List of input wires
  *      -    List of output wires
- *      -    Gate operation (XOR, AND, INV, EQ or EQW).
+ *      -    Gate operation (XOR, AND, INV, EQ, EQW or MAND).
  *     This is a bit redundant, as the first two entries can be inferred from
  *     the last, but we keep this for backwards compatibility reasons
  *   - So for example
@@ -50,6 +50,15 @@ All rights reserved
  *   - And we use
  *          1 1 3 4 EQW
  *     to say wire 4 should equal wire 3
+ *   - The MAND gate is a multiple AND gate it takes 2n input wires and
+ *     produces n output wires. A gate of the form
+ *          4 2 0 2 1 3 4 5 MAND
+ *     executes the two MAND operations concurrently...
+ *          2 1 0 1 4 AND
+ *          2 1 2 3 5 AND
+ *   - We call a circuit without MAND gates a `basic' Bristol Fashion circuit,
+ *     and when we have MAND gates we say it is an `extended' Bristol Fashion
+ *     circuit.
  */
 
 #include "Exceptions/Exceptions.h"
@@ -62,9 +71,11 @@ enum GateType {
   AND,
   INV,
   EQ,
-  EQW
+  EQW,
+  MAND
 };
 
+// This function only works for type T != MAND
 unsigned int cnt_numI(const GateType &T);
 
 class Circuit
@@ -78,19 +89,24 @@ class Circuit
   // Each Gate is given as an entry in these arrays
   //   Type, Input Wires, Output Wires
   vector<GateType> GateT;
-  vector<vector<unsigned int>> GateI; // nGates x 2 array
-  vector<unsigned int> GateO;
+  vector<vector<unsigned int>> GateI; // nGates x v array
+  vector<vector<unsigned int>> GateO; // nGates x v array
 
+  // These maps are for AND gates only, not MAND gates
   vector<unsigned int> map;  // Map of n'th AND gate to the gate number
   vector<unsigned int> imap; // The inverse map
 
-  unsigned int num_AND; // Number of AND gates
+  unsigned int num_AND;       // Number of AND gates
+  unsigned int total_num_AND; // Number of AND gates
 
+  // Used for testing within the topological sort
   bool gate_is_ok(unsigned int i, const vector<bool> &used) const;
 
 public:
-  void recompute_map();                           // Recomputes the mapping function
+  void recompute_map(); // Recomputes the mapping function
+
   void swap_gate(unsigned int i, unsigned int j); // Swaps two gates around
+
   // Applies a topological sort to the circuit
   // If test=true, just does a test
   void sort(bool flag= false);
@@ -103,9 +119,17 @@ public:
   {
     return nWires;
   }
+
+  // Returns the number of simple AND gates
   unsigned int num_AND_gates() const
   {
     return num_AND;
+  }
+
+  // Returns the total number of AND gates including MAND
+  unsigned int total_num_AND_gates() const
+  {
+    return total_num_AND;
   }
 
   unsigned int num_inputs() const
@@ -134,7 +158,7 @@ public:
 
   unsigned int Gate_Wire_In(unsigned int i, unsigned int j) const
   {
-    if (j > 1 || (j == 1 && (GateT[i] == INV || GateT[i] == EQ || GateT[i] == EQW)) || i > GateI.size())
+    if ((i > GateI.size()) || (j >= GateI[i].size() && GateT[i] != MAND) || (j == 1 && (GateT[i] == INV || GateT[i] == EQ || GateT[i] == EQW)))
       {
         throw circuit_error();
       }
@@ -143,11 +167,29 @@ public:
 
   unsigned int Gate_Wire_Out(unsigned int i) const
   {
-    if (i > GateO.size())
+    if (i > GateO.size() || GateT[i] == MAND)
       {
         throw circuit_error();
       }
-    return GateO[i];
+    return GateO[i][0];
+  }
+
+  unsigned int Gate_Wire_Out(unsigned int i, unsigned int j) const
+  {
+    if ((i > GateO.size()) || (GateT[i] != MAND) || (j >= GateO[i].size()))
+      {
+        throw circuit_error();
+      }
+    return GateO[i][j];
+  }
+
+  unsigned int MAND_Gate_Size(unsigned int i) const
+  {
+    if (GateT[i] != MAND)
+      {
+        throw circuit_error();
+      }
+    return GateO[i].size();
   }
 
   unsigned int get_nth_AND_Gate(unsigned int i) const
@@ -167,6 +209,8 @@ public:
   // File IO
   friend ostream &operator<<(ostream &s, const Circuit &C);
   friend istream &operator>>(istream &s, Circuit &C);
+  // Print gate i
+  void output_gate(ostream &s, unsigned int i) const;
 
   // This function is for testing the circuits
   // outputs is resized by this function so can be blank on
@@ -176,6 +220,16 @@ public:
   friend class SimplifyCircuit;
   friend void Find_Function_One(Circuit &F, const Circuit &Sub);
   friend void Find_Function_Two(Circuit &F, const Circuit &Sub);
+
+  /* This function returns the AND gate depths for each gate 
+   *   Assumed Circuit is topologically sorted
+   */
+  vector<unsigned int> compute_depth() const;
+
+  /* This merges all AND/MAND gates with a given depth 
+   *   Assumed Circuit is topologically sorted
+   */
+  void merge_AND_gates();
 };
 
 #endif

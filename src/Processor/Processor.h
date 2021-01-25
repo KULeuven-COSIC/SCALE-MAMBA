@@ -8,8 +8,10 @@ All rights reserved
 #define _Processor
 
 #include "LSSS/Open_Protocol.h"
+#include "LSSS/Open_Protocol2.h"
 #include "Online/Machine.h"
 
+#include "Mod2Engine/aBitVector2.h"
 #include "OT/aAND.h"
 #include "OT/aBitVector.h"
 #include "Offline/DABitGenerator.h"
@@ -28,10 +30,9 @@ struct TempVars
   gfp rrp, tp, tmpp;
   gfp xip;
   aBitVector aBV;
-  aBit aB;
-  aTriple T;
 };
 
+template<class SRegint, class SBit>
 class Processor
 {
   // Various stacks
@@ -40,8 +41,8 @@ class Processor
   vector<gfp> stack_Cp;
   vector<Share> stack_Sp;
   vector<long> stack_int;
-  vector<aBitVector> stack_srint;
-  vector<aBit> stack_sbit;
+  vector<SRegint> stack_srint;
+  vector<SBit> stack_sbit;
 
   // Optional argument to the tape
   int arg;
@@ -50,8 +51,8 @@ class Processor
   vector<gfp> Cp;
   vector<Share> Sp;
   vector<long> Ri;
-  vector<aBitVector> srint;
-  vector<aBit> sbit;
+  vector<SRegint> srint;
+  vector<SBit> sbit;
 
 // In DEBUG mode we keep track of valid/invalid read/writes on the registers
 #ifdef DEBUG
@@ -73,7 +74,6 @@ class Processor
   // as the Open commands are split in two
   vector<gfp> PO;
   vector<Share> Sh_PO;
-  Open_Protocol OP;
 
   int online_thread_num;
 
@@ -86,19 +86,19 @@ class Processor
    * within instructions
    */
   // In the case when the OT thread is active this holds the daBitGenerator for this thread
-  AbstractDABitGenerator *daBitGen;
+  AbstractDABitGenerator<SBit> *daBitGen;
   // This holds the computed daBits
-  daBitVector daBitV;
+  daBitVector<SBit> daBitV;
 
   // To make sure we do not need to keep allocating/deallocating memory
   // we maintain some scratch variables for use in routines
   TempVars temp;
 
   // Data structures for input and output of private data
-  Processor_IO iop;
+  Processor_IO<SRegint, SBit> iop;
 
   // retrieve dabit generator to avoid dealing with pointers
-  AbstractDABitGenerator &get_generator()
+  AbstractDABitGenerator<SBit> &get_generator()
   {
     return *daBitGen;
   }
@@ -110,10 +110,15 @@ class Processor
   //   Uses daBits
   void convert_sregint_to_sint_sub(int i0, vector<Share> &apr, Player &P);
 
-public:
-  friend class Instruction;
+  void convert_sint_to_sregint_sub(const vector<vector<aBit>> &input, int i1, Player &P);
+  void convert_sint_to_sregint_sub(const vector<vector<Share2>> &input, int i1, Player &P);
 
-  Processor(int online_thread_num, unsigned int nplayers, Player &P);
+public:
+  friend class Instruction<SRegint, SBit>;
+
+  Processor(int online_thread_num, unsigned int nplayers,
+            Machine<SRegint, SBit> &machine, Player &P);
+
   ~Processor();
 
   void clear_registers();
@@ -159,7 +164,7 @@ public:
       {
         throw stack_error();
       }
-    x= stack_int[stack_int.size()-1-y];
+    x= stack_int[stack_int.size() - 1 - y];
   }
   void rpoke_int(long x, long y)
   {
@@ -167,18 +172,18 @@ public:
       {
         throw stack_error();
       }
-    stack_int[stack_int.size()-1-x]= y;
+    stack_int[stack_int.size() - 1 - x]= y;
   }
   void getsp_int(long &x) const
   {
     x= (long) stack_int.size() - 1;
   }
 
-  void push_srint(const aBitVector &x)
+  void push_srint(const SRegint &x)
   {
     stack_srint.push_back(x);
   }
-  void pop_srint(aBitVector &x)
+  void pop_srint(SRegint &x)
   {
     if (stack_srint.size() < 1)
       {
@@ -187,7 +192,7 @@ public:
     x= stack_srint.back();
     stack_srint.pop_back();
   }
-  void peek_srint(aBitVector &x, long y) const
+  void peek_srint(SRegint &x, long y) const
   {
     if (y < 0 || y >= (long) stack_srint.size())
       {
@@ -195,7 +200,7 @@ public:
       }
     x= stack_srint[y];
   }
-  void poke_srint(long x, const aBitVector &y)
+  void poke_srint(long x, const SRegint &y)
   {
     if (x < 0 || x >= (long) stack_srint.size())
       {
@@ -203,21 +208,21 @@ public:
       }
     stack_srint[x]= y;
   }
-  void rpeek_srint(aBitVector &x, long y) const
+  void rpeek_srint(SRegint &x, long y) const
   {
     if (y < 0 || y >= (long) stack_srint.size())
       {
         throw stack_error();
       }
-    x= stack_srint[stack_srint.size()-1-y];
+    x= stack_srint[stack_srint.size() - 1 - y];
   }
-  void rpoke_srint(long x, const aBitVector &y)
+  void rpoke_srint(long x, const SRegint &y)
   {
     if (x < 0 || x >= (long) stack_srint.size())
       {
         throw stack_error();
       }
-    stack_srint[stack_srint.size()-1-x]= y;
+    stack_srint[stack_srint.size() - 1 - x]= y;
   }
   void getsp_srint(long &x) const
   {
@@ -259,7 +264,7 @@ public:
       {
         throw stack_error();
       }
-    x= stack_Cp[stack_Cp.size()-1-y];
+    x= stack_Cp[stack_Cp.size() - 1 - y];
   }
   void rpoke_Cp(long x, const gfp &y)
   {
@@ -267,7 +272,7 @@ public:
       {
         throw stack_error();
       }
-    stack_Cp[stack_Cp.size()-1-x]= y;
+    stack_Cp[stack_Cp.size() - 1 - x]= y;
   }
   void getsp_Cp(long &x) const
   {
@@ -308,7 +313,7 @@ public:
       {
         throw stack_error();
       }
-    x= stack_Sp[stack_Sp.size()-1-y];
+    x= stack_Sp[stack_Sp.size() - 1 - y];
   }
   void rpoke_Sp(long x, const Share &y)
   {
@@ -316,17 +321,17 @@ public:
       {
         throw stack_error();
       }
-    stack_Sp[stack_Sp.size()-1-x]= y;
+    stack_Sp[stack_Sp.size() - 1 - x]= y;
   }
   void getsp_Sp(long &x) const
   {
     x= (long) stack_Sp.size() - 1;
   }
-  void push_sbit(const aBit &x)
+  void push_sbit(const SBit &x)
   {
     stack_sbit.push_back(x);
   }
-  void pop_sbit(aBit &x)
+  void pop_sbit(SBit &x)
   {
     if (stack_sbit.size() < 1)
       {
@@ -335,7 +340,7 @@ public:
     x= stack_sbit.back();
     stack_sbit.pop_back();
   }
-  void peek_sbit(aBit &x, long y) const
+  void peek_sbit(SBit &x, long y) const
   {
     if (y < 0 || y >= (long) stack_sbit.size())
       {
@@ -343,7 +348,7 @@ public:
       }
     x= stack_sbit[y];
   }
-  void poke_sbit(long x, const aBit &y)
+  void poke_sbit(long x, const SBit &y)
   {
     if (x < 0 || x >= (long) stack_sbit.size())
       {
@@ -351,21 +356,21 @@ public:
       }
     stack_sbit[x]= y;
   }
-  void rpeek_sbit(aBit &x, long y) const
+  void rpeek_sbit(SBit &x, long y) const
   {
     if (y < 0 || y >= (long) stack_sbit.size())
       {
         throw stack_error();
       }
-    x= stack_sbit[stack_sbit.size()-1-y];
+    x= stack_sbit[stack_sbit.size() - 1 - y];
   }
-  void rpoke_sbit(long x, const aBit &y)
+  void rpoke_sbit(long x, const SBit &y)
   {
     if (x < 0 || x >= (long) stack_sbit.size())
       {
         throw stack_error();
       }
-    stack_sbit[stack_sbit.size()-1-x]= y;
+    stack_sbit[stack_sbit.size() - 1 - x]= y;
   }
   void getsp_sbit(long &x) const
   {
@@ -463,7 +468,7 @@ public:
     Ri.at(i)= x;
   }
 
-  const aBitVector &read_srint(int i) const
+  const SRegint &read_srint(int i) const
   {
     if (rwsr[i] == 0)
       {
@@ -471,18 +476,18 @@ public:
       }
     return srint.at(i);
   }
-  aBitVector &get_srint_ref(int i)
+  SRegint &get_srint_ref(int i)
   {
     rwsr[i]= 1;
     return srint.at(i);
   }
-  void write_srint(int i, const aBitVector &x)
+  void write_srint(int i, const SRegint &x)
   {
     rwsr[i]= 1;
     srint.at(i)= x;
   }
 
-  const aBit &read_sbit(int i) const
+  const SBit &read_sbit(int i) const
   {
     if (rwsb[i] == 0)
       {
@@ -490,24 +495,25 @@ public:
       }
     return sbit.at(i);
   }
-  aBit &get_sbit_ref(int i)
+  SBit &get_sbit_ref(int i)
   {
     rwsb[i]= 1;
     return sbit.at(i);
   }
-  void write_sbit(int i, const aBit &x)
+  void write_sbit(int i, const SBit &x)
   {
     rwsb[i]= 1;
     sbit.at(i)= x;
   }
 
-  void write_daBit(int i1, int j1)
+  void write_daBit(int i1, int j1, Player &P)
   {
-    daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
+    SBit aB;
+    daBitV.get_daBit(temp.Sansp, aB, *daBitGen, P);
     rwp[i1 + reg_maxp]= 1;
     rwsb[j1]= 1;
     Sp.at(i1)= temp.Sansp;
-    sbit.at(j1)= temp.aB;
+    sbit.at(j1)= aB;
   }
 
 #else
@@ -549,36 +555,37 @@ public:
     Ri[i]= x;
   }
 
-  const aBitVector &read_srint(int i) const
+  const SRegint &read_srint(int i) const
   {
     return srint[i];
   }
-  aBitVector &get_srint_ref(int i)
+  SRegint &get_srint_ref(int i)
   {
     return srint[i];
   }
-  void write_srint(int i, const aBitVector &x)
+  void write_srint(int i, const SRegint &x)
   {
     srint[i]= x;
   }
 
-  const aBit &read_sbit(int i) const
+  const SBit &read_sbit(int i) const
   {
     return sbit[i];
   }
-  aBit &get_sbit_ref(int i)
+  SBit &get_sbit_ref(int i)
   {
     return sbit[i];
   }
-  void write_sbit(int i, const aBit &x)
+  void write_sbit(int i, const SBit &x)
   {
     sbit[i]= x;
   }
-  void write_daBit(int i1, int j1)
+  void write_daBit(int i1, int j1, Player &P)
   {
-    daBitV.get_daBit(temp.Sansp, temp.aB, *daBitGen);
+    SBit aB;
+    daBitV.get_daBit(temp.Sansp, aB, *daBitGen, P);
     write_Sp(i1, temp.Sansp);
-    write_sbit(j1, temp.aB);
+    write_sbit(j1, aB);
   }
 
 #endif
@@ -588,11 +595,11 @@ public:
   /* Direct access to PO class*/
   void Open_To_All_Begin(vector<gfp> &values, const vector<Share> &S, Player &P, int connection)
   {
-    OP.Open_To_All_Begin(values, S, P, connection);
+    P.OP->Open_To_All_Begin(values, S, P, connection);
   }
   void Open_To_All_End(vector<gfp> &values, const vector<Share> &S, Player &P, int connection)
   {
-    OP.Open_To_All_End(values, S, P, connection);
+    P.OP->Open_To_All_End(values, S, P, connection);
   }
 
   /* Open/Close Registers*/
@@ -601,11 +608,16 @@ public:
 
   void RunOpenCheck(Player &P, const string &aux, int connection)
   {
-    OP.RunOpenCheck(P, aux, connection, false);
+    P.OP->RunOpenCheck(P, aux, connection, false);
+    P.OP2->RunOpenCheck(P, aux, connection, false);
   }
 
   // Now the routine to execute a program with given argument
-  void execute(const Program &prog, int argument, Player &P, Machine &machine,
+  // and start at position start
+  void execute(const Program<SRegint, SBit> &prog, int argument,
+               unsigned int start,
+               Player &P,
+               Machine<SRegint, SBit> &machine,
                offline_control_data &OCD);
 
   unsigned int get_random_uint()
@@ -634,7 +646,7 @@ public:
   void convert_suregint_to_sint(int i0, int i1, Player &P);
 
   // Converts a sint register i0 to a sbit register i1
-  // Programmer must gaurantee that i0 only contains a bit
+  // Programmer must guarantee that i0 only contains a bit
   //   Uses the daBits
   void convert_sint_to_sbit(int i0, int i1, Player &P);
 

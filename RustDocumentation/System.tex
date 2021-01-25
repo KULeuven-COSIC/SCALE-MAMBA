@@ -1,0 +1,242 @@
+\mainsection{System Commands}
+This sections assume you kind of understand the SCALE system
+and have already programmed a bit in MAMBA. Eventually we will
+make it all self-contained. But for now lets assume you are
+an expert...
+
+\subsection{System Control Commands}
+\func{start_clock(x)}
+Initializes the timer number $x$.
+
+\func{stop_clock(x)}
+Stops the timer number $x$.
+\begin{lstlisting}
+   start_clock(3);
+   ....
+   stop_clock(3);
+\end{lstlisting}
+
+\func{require_bit_length(x)}
+For some reason you program might require a minimum prime
+length. This command stores the maximum prime length which you
+signal, and then emits a single \verb|REQBL| command at the
+beginning of the output assembler.
+Thus the Rust code
+\begin{lstlisting}
+    ...
+    require_bit_length(10);
+    ...
+    require_bit_length(20);
+    ...
+\end{lstlisting}
+creates assembler with a single \verb|REQBL 20| as the first 
+instruction.
+
+\func{crash()}
+Crashes the system.
+
+\func{restart()}
+Executes the restart machinery.
+
+\func{clear_memory()}
+Executes a clear memory command.
+
+\func{clear_registers()}
+Executes a clear registers command.
+
+\func{open_channel(x)}
+Opens the communication channel to the outside world, returning
+the appropriate value as an $\ints$.
+\begin{lstlisting}
+    let ans = open_channel(10_i32);
+\end{lstlisting}
+
+\func{close_channel(x)}
+Closes the communication channel to the outside world.
+\begin{lstlisting}
+    close_channel(10_i32);
+\end{lstlisting}
+
+
+\subsection{Stack Operations}
+Recall (from the main Scale documentation) there is a stack for all 
+the five basic types $\ints$, $\SecretI$, $\ClearModp$, $\SecretModp$ and $\SecretBit$.
+As the main Rust compiler also uses these stacks for function
+calls you need to be very careful when using the stacks.
+Thus you need to enclose them in an \verb|unsafe| block.
+The basic methodology to use the stacks is the same for all five
+types, so we just give one example here.
+
+\begin{lstlisting}
+    let one = SecretI64::from(1);
+    let two = SecretI64::from(2);
+    let three = SecretI64::from(3);
+    let four = SecretI64::from(4);
+
+    unsafe {
+        SecretI64::push(one);
+        SecretI64::push(two);
+        let sp = SecretI64::get_stack_pointer();
+        let c = SecretI64::peek(sp - 1);       // Peek relative to pos 0
+        let cc = SecretI64::peek_from_top(1);  // Peek relative to pos stack_ptr
+        SecretI64::poke(sp, &three);           // Poke relative to pos 0
+        SecretI64::poke_from_top(1, &four);    // Poke relative to pos stack_ptr
+        let d = SecretI64::pop();
+        let e = SecretI64::pop();
+    }
+\end{lstlisting}
+
+\subsection{Printing}
+Access to the printing commands is performed via the
+\verb|print!| command. 
+Currently, only strings and $\ClearModp$ types can be output in this way.
+\begin{lstlisting}
+    let ca = ClearModp::from(1);
+    let cb = ClearModp::from(2);
+    print!("hello ", ca, " world ", cb, "\n");
+\end{lstlisting}
+
+
+\subsection{Circuits and Local Functions}
+For details of how these work in general see the main SCALE manual.
+If you want to add your own circuits/local functions see the
+files
+\begin{itemize}
+\item \verb|WebAssembly/scale_std/src/circuits.rs|
+\item \verb|WebAssembly/scale_std/src/local_functions.rs|
+\end{itemize}
+which should be relatively self-explanatory as to how to add
+new functions to the underlying system.
+
+\subsubsection{Inbuilt Circuits}
+The inbuilt circuits shipped with SCALE can be called using the
+following function signatures:
+\begin{lstlisting}
+    pub fn AES128( key128: [SecretI64; 2], mess: [SecretI64; 2]) 
+                  -> [SecretI64; 2]
+
+    pub fn AES192( key128: [SecretI64; 3], mess: [SecretI64; 2]) 
+                  -> [SecretI64; 2]
+
+    pub fn AES256( key128: [SecretI64; 4], mess: [SecretI64; 2]) 
+                  -> [SecretI64; 2]
+
+    pub fn SHA3( istate: Array<SecretI64, 25>) -> Array<SecretI64, 25>
+
+    pub fn SHA256( mess: Array<SecretI64, 8>, state: Array<SecretI64, 4>) 
+                  -> Array<SecretI64, 4>
+
+    pub fn SHA512( mess: Array<SecretI64, 16>, state: Array<SecretI64, 8>) 
+                  -> Array<SecretI64, 8>
+
+    pub fn IEEE_add( input: [SecretI64; 2] ) -> SecretI64
+
+    pub fn IEEE_mul( input: [SecretI64; 2] ) -> SecretI64
+
+    pub fn IEEE_div( input: [SecretI64; 2] ) -> SecretI64
+
+    pub fn IEEE_eq( input: [SecretI64; 2] ) -> SecretI64
+
+    pub fn IEEE_f2i( input: SecretI64 ) -> SecretI64
+
+    pub fn IEEE_i2f( input: SecretI64 ) -> SecretI64
+
+    pub fn IEEE_sqrt( input: SecretI64 ) -> SecretI64
+
+    pub fn IEEE_lt( input: [SecretI64; 2] ) -> SecretI64
+\end{lstlisting}
+For example, to call the AES-128 circuit you would execute:
+\begin{lstlisting}
+    #[inline(always)]
+    fn main() {
+
+        let zero = SecretI64::from(0);
+        let one = SecretI64::from(1);
+        let mone = SecretI64::from(-1);
+    
+        let key128: [SecretI64; 2] = [zero, mone];
+        let mess: [SecretI64; 2] = [mone, one];
+    
+        let ciph = AES128(key128,mess);
+    }
+\end{lstlisting}
+
+
+
+\subsubsection{Inbuilt Local Functions}
+The calling of Local Functions works in much the same way.
+If you look at the implementation of matrix multiplication of
+two matrices\footnote{See later for the matrix types} 
+of type $\ClearModp$ in \verb|WebAssembly/scale_std/src/local_functions.rs|
+you will find the implementation:
+\begin{lstlisting}
+    const C_MULT_C: u32 = 0;
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    pub fn Matrix_Mul_CC<const N: u64, const L: u64, const M: u64>
+                        ( A: &Matrix::<ClearModp, N, L>,
+                          B: &Matrix::<ClearModp, L, M>
+                        ) -> Matrix::<ClearModp, N, M> {
+        let (col,row,C)= unsafe { execute_local_function!(C_MULT_C(
+            N as i64,
+            L as i64,
+            *A,
+            L as i64,
+            M as i64,
+            *B
+        ) ->
+            i64,
+            i64,
+            Matrix::<ClearModp, N, M>
+        ) };
+        if row != (N as i64) || col != ( M as i64) {
+            crash();
+        }
+        C
+    }
+\end{lstlisting}
+We explain this now, as you can replicate this to add your own
+Local Functions:
+\begin{itemize}
+\item The `unsafe' part calls the Local Function with index zero.
+\item The arguments are pushed onto the stack in the order
+$N$, $L$, $A$, $L$, $M$ and $B$.
+\item The operation is then called, with the results popped
+off the stack in the order $\mathsf{col}, \mathsf{row}$
+and $C$.
+\item After some doubly checking the matrix $C$ is returned to the 
+caller.
+\end{itemize}
+The caller code is given by
+\begin{lstlisting}
+    let mut A = Matrix::<ClearModp, N, L>::uninitialized();
+    let mut B = Matrix::<ClearModp, L, M>::uninitialized();
+
+    ... Set data in A and B ...
+
+    let C = Matrix_Mul_CC(&A, &B);
+\end{lstlisting}
+Currently there are four Local Functions defined, with
+the signatures:
+\begin{lstlisting}
+    pub fn Matrix_Mul_CC<const N: u64, const L: u64, const M: u64>
+                    ( A: &Matrix::<ClearModp, N, L>,
+                      B: &Matrix::<ClearModp, L, M>
+                    ) -> Matrix::<ClearModp, N, M> 
+
+    pub fn Matrix_Mul_SC<const N: u64, const L: u64, const M: u64>
+                    ( A: &Matrix::<SecretModp, N, L>,
+                      B: &Matrix::<ClearModp, L, M>
+                    ) -> Matrix::<SecretModp, N, M>
+
+    pub fn Matrix_Mul_CS<const N: u64, const L: u64, const M: u64>
+                    ( A: &Matrix::<ClearModp, N, L>,
+                      B: &Matrix::<SecretModp, L, M>
+                    ) -> Matrix::<SecretModp, N, M>
+
+    pub fn Gauss_Elim<const N: u64, const M: u64>
+                 ( A: &Matrix::<ClearModp, N, M>,
+                 ) -> Matrix::<ClearModp, N, M>
+\end{lstlisting}
+

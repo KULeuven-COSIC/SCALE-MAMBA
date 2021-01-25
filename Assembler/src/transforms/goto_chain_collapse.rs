@@ -36,7 +36,10 @@ impl super::Pass for Pass {
                         callers.insert(cond.fallthrough_block, None);
                         callers.insert(jump.target_block, None);
                     }
-                    JumpMode::Call => {}
+                    JumpMode::Call { fallthrough_block } => {
+                        callers.insert(jump.target_block, None);
+                        callers.insert(*fallthrough_block, None);
+                    }
                 },
                 Terminator::Restart { .. }
                 | Terminator::Crash { .. }
@@ -51,29 +54,27 @@ impl super::Pass for Pass {
             if let Some(caller) = callers.remove(&block).unwrap() {
                 loop {
                     trace!(block, caller);
-                    let stmts =
-                        std::mem::replace(&mut body.blocks[block].stmts, Default::default());
+                    let stmts = std::mem::take(&mut body.blocks[block].stmts);
                     body.blocks[caller].stmts.extend(stmts);
                     let terminator = std::mem::replace(
                         &mut body.blocks[block].terminator,
-                        Span::DUMMY.with(Terminator::Crash {
+                        Terminator::Crash {
                             comment: Span::DUMMY,
-                        }),
+                        }
+                        .into(),
                     );
                     // If the next block is also being collapsed, do this immediately and remove it from the
                     // list of blocks to be processed.
-                    match terminator.elem {
-                        Terminator::Jump(Jump {
-                            mode: JumpMode::Goto,
-                            target_block,
-                            ..
-                        }) => {
-                            if let Some(Some(_)) = callers.remove(&target_block) {
-                                block = target_block;
-                                continue;
-                            }
+                    if let Terminator::Jump(Jump {
+                        mode: JumpMode::Goto,
+                        target_block,
+                        ..
+                    }) = terminator.elem
+                    {
+                        if let Some(Some(_)) = callers.remove(&target_block) {
+                            block = target_block;
+                            continue;
                         }
-                        _ => {}
                     }
                     body.blocks[caller].terminator = terminator;
                     break;

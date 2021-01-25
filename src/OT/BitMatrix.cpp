@@ -552,6 +552,32 @@ void BitMatrix::input(istream &s, bool human)
     }
 }
 
+void BitMatrix::output(char *buff) const
+{
+  unsigned int pos= 0;
+  for (unsigned int i= 0; i < squares.size(); i++)
+    {
+      for (int j= 0; j < 128; j++)
+        {
+          memcpy(buff + pos, (char *) squares[i].bytes[j], 16);
+          pos+= 16;
+        }
+    }
+}
+
+void BitMatrix::input(const char *buff)
+{
+  unsigned int pos= 0;
+  for (unsigned int i= 0; i < squares.size(); i++)
+    {
+      for (int j= 0; j < 128; j++)
+        {
+          memcpy((char *) squares[i].bytes[j], buff + pos, 16);
+          pos+= 16;
+        }
+    }
+}
+
 gf2n BitMatrix::to_gf2n(int r, int c) const
 {
   gf2n ans((int128) squares[c].rows[r]);

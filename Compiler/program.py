@@ -155,7 +155,7 @@ class Program(object):
             thread_number = self.n_threads
             self.n_threads += 1
         self.curr_tape.start_new_basicblock(name='pre-run_tape')
-        Compiler.instructions.run_tape(thread_number, arg, tape_index)
+        Compiler.instructions.run_tape(thread_number, arg, tape_index, 0)
         self.curr_tape.start_new_basicblock(name='post-run_tape')
         self.curr_tape.req_node.children.append(self.tapes[tape_index].req_tree)
         return thread_number

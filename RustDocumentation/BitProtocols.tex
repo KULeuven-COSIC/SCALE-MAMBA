@@ -1,0 +1,191 @@
+\mainsection{Bit Oriented Protocols}
+
+These operations all refer to bitwise operations for the mod p based datatype \emph{SecretModp}.
+
+\subsection{binary operations}
+These are the basic bitwise operations.
+
+\func{or_op(a,b)}
+To perform a bitwise OR-operation on two SecretModp values a and b, execute
+\begin{lstlisting}
+	let c: SecretModp = or_op(a,b);
+\end{lstlisting}
+
+\func{mul_op(a,b)}
+To get the product of two SecretModp values a and b, execute
+\begin{lstlisting}
+        let c: SecretModp = mul_op(a,b);
+\end{lstlisting}
+
+\func{addition_op(a,b)}
+To get the sum of two SecretModp values a and b, execute
+\begin{lstlisting}
+        let c: SecretModp = addition_op(a,b);
+\end{lstlisting}
+
+\func{xor_op(a,b)}
+To get the bitwise XOR-operation of two SecretModp values a and b, execute
+\begin{lstlisting}
+        let c: SecretModp = xor_op(a,b);
+\end{lstlisting}
+
+\func{carry(a,b)}
+To compute the carry propagation of two two-bit values [a_0, a_1] and [b_0, b_1], execute this function. The inputs should be provided as two size-two Arrays of SecretModp values. The output will have the same format.
+\begin{lstlisting}
+        let c: Array<SecretModp, 2> = carry(a,b);
+\end{lstlisting}
+
+\func{num_bits(x)}
+This function returns the number of bits that is used in memory to store the variable x (of any type).
+\begin{lstlisting}
+	let l: usize = num_bits(x);
+\end{lstlisting}
+
+\func{ceil_log_2(x)}
+This function returns the minimal amount of bits needed to represent the value of variable x (of type u32).
+\begin{lstlisting}
+	let a: u32 = ceil_log_2(x);
+\end{lstlisting}
+
+\func{two_power(n)}
+This function can be used to compute the n'th power of two. Both in- and output are of type u64.
+\begin{lstlisting}
+	let pow: u64 = two_power(n);
+\end{lstlisting}
+
+\func{inv(x)}
+To compute the modular inverse of a SecretModp variable x, do
+\begin{lstlisting}
+	let x_inv: SecretModp = Inv(x);
+\end{lstlisting}
+
+\func{bits(x, m)}
+This returns the m (u64) MSBs of bit decomposition (Slice<ClearModp>, little endian) of ClearModp value x.
+\begin{lstlisting}
+	let xbits: Slice<ClearModp> = bits(x, m);
+\end{lstlisting}
+
+\func{get_primecompl(bitlen)}
+This auxilliary function returns the two-s complement of the prime P, with respect to the bit size of P.
+\begin{lstlisting}
+	let p_compl: Slice<ClearModp> = get_primecompl(bitlen);
+\end{lstlisting}
+
+\subsection{Protocols}
+This section contains protocols that often make use of Arrays or Slices of SecretModp variables. 
+\func{kopl(op, s)}
+This function recursively computes the op-operation on all elements of the SecretModp slice s. This op must be a binary operation, eg. or_op.
+Argument s must be a slice. If you wish to enter an array, convert it by slicing it inline.
+\begin{lstlisting}
+	let op_s: SecretModp = kopl(xor_op, &s);
+	let op_s: SecretModp = kopl(xor_op, &a.slice(..));
+\end{lstlisting}
+
+\func{kor(s)}
+Because kopl(or_op, s) is very common, it also has its own shortcut.
+\begin{lstlisting}
+	let or_s: SecretModp = kor(&s);
+\end{lstlisting}
+
+\func{preopl(op, s)}
+This function creates a slice containing all pre-ops of the input slice. The i'th element of the resulting slice will thus be equal to op(s_0, ... , s_i).
+\begin{lstlisting}
+	let prexor_s: Slice<SecretModp, K> = preopl(xor_op, &s);
+\end{lstlisting}
+
+\func{preoplb(op, s)}
+There is a separate function preoplb that executes preopl for inputs of form Slice< Array<SecretModp, 2>, K>. The operation is expected to support inputs of this form. 
+\begin{lstlisting}
+	let pre_carry: Slice<Array<SecretModp, 2>,2> = preoplb(carry, &s);
+\end{lstlisting}
+
+
+\func{preor(s)}
+Just like for kor, preopl(or_op, s) deserves a shortcut.
+\begin{lstlisting}
+	let preor_s: Slice<SecretModp, K> = preor(&s);
+\end{lstlisting}
+
+\func{sumbits(s)}
+This function treats the binary input slice as if it were the bit-decomposition of a variable s, and returns this variable s. The bit at s_0 is assumed to be the least significant bit. The function also accepts non-binary slices.
+\begin{lstlisting}
+	let sumbits_s: SecretModp = sumbits(&s);
+\end{lstlisting}
+
+\func{prandint(k)}
+Returns a random SecretModp integer in the interval [0, 2^k-1], where k is a u64 number. 
+During testing, this random number will always be equal to 2^k-1, due to the deterministic nature of emulation.
+\begin{lstlisting}
+	let rand_x: SecretModp = prandint(k);
+\end{lstlisting}
+
+\func{prandm(k, m, kappa)}
+Returns two random SecretModp integers: r and r'. It also returns the bitdecomposition of r' as an Slice<SecretModp>. The u64-type inputs k, m and kappa determine the interval in which r and r' will lie: r is in [0, 2^(k+kappa-m)-1], r' is in [0, 2^k-1]
+During testing, these random numbers will always be equal to 2^k-1.
+\begin{lstlisting}
+	let p_rand_m: (SecretModp, SecretModp, Slice<SecretModp>) = prandm(k, m, kappa);
+\end{lstlisting}
+
+\func{carryoutaux(&s)}
+This function is a subroutine of the carry propagation function CarryOut(). The input should be given as a Slice of 2-size SecretModp Arrays: Slice< Array<SecretModp, 2> >. The output will then be of type SecretModp. 
+Carry propagation for two bit inputs is defined as
+\begin{lstlisting}
+	$\circ: {0,1}^2 \times {0,1}^2 \to {0,1}^2: 
+	(b_0, b_1) \circ (a_0, a_1) \mapsto (a_0*b_0, b_1+a_1*b_0)$
+\end{lstlisting}
+An example of this function being called:
+\begin{lstlisting}
+	let carryoutaux_res: SecretModp = carryoutaux(&s);
+\end{lstlisting}
+
+\func{carryout(&sa, &sb, c)}
+This function evaluates the carry propagation for the sum of bitdecomposed inputs, sa: &Slice<ClearModp> and sb: &Slice<SecretModp>, with initial carry: SecretModp c.
+The restulting carry is represented by a SecretModp value. 
+\begin{lstlisting}
+	let carryout_res: SecretModp = carryout(&sa, &sb, c);
+\end{lstlisting}
+
+\func{bitadd(&abits, &bbits)}
+This function adds two bit-decomposed values, being either SecretModp or ClearModp. Note that for the addition of two ClearModp values, more efficient algorithms exist.
+The output will be a Slice that contains the Secretmodp bits of the result. The size of this slice is one more than the size of the input arrays.
+This function uses the function PreOpLB.
+\begin{lstlisting}
+	let cbits: Slice<SecretModp> = BitAdd(&abits, &bbits);
+\end{lstlisting}
+
+\func{bitincrement(&abits)}
+Bitincrement takes a SecretModp bitarray abits as only argument, and returns the SecretModp bitslice of (abits+1). The output is a slice, so that the size can be one greater than the size of the input. 
+\begin{lstlisting}
+	let a_plus_one: Slice<SecretModp> = bitincrement(&abits);
+\end{lstlisting}
+
+\func{BitLT(a, &bbits)}
+This function evaluates the comparison a < bbits, where a is a ClearModp value, and bbits is the SecretModp bitslice of value b. The result is a SecretModp bit c, that indicates the veracity of the statement. 
+\begin{lstlisting}
+	let c: SecretModp = bitlt(a, &bbits);
+\end{lstlisting}
+
+\func{bitltfull(&abits, &bbits)}
+This function evaluates the comparison abits < bbits, where both abits and bbits are Slices containing the bit decomposition of values a and b, as either SecretModp bits or ClearModp bits. 
+Note that it should not be used for ClearModp-ClearModp comparison. Note also that for ClearModp-SecretModp comparison, the function bitlt() can be used.
+The output is a SecretModp bit, indicating the result of the comparison.
+\begin{lstlisting}
+	let c: SecretModp = bitltfull(&abits, &bbits);
+\end{lstlisting}
+
+\func{bitdec(a, k, m, kappa)}
+This function returns the m MSB of the bit-decomposition of SecretModp variable a, as a Slice<SecretModp>. 
+This function requires a statisctical security gap kappa. k represents the bitsize of a.
+\begin{lstlisting}
+	let abits: Slice<SecretModp> = bitdec(a, k, m, kappa);
+\end{lstlisting}
+
+\func{bitdecfull(a)}
+As an alternative to the function bitdec(), this version of bit decomposition does not require a statistical security gap.
+When the prime consists of 64 bits or more, a similar protocol bitdecfullbig() is called. 
+\begin{lstlisting}
+	let abits: Slice<SecretModp> = bitdecfull(a);
+\end{lstlisting}
+
+
+

@@ -447,6 +447,33 @@ public:
     inline_mpn_copyi((word *) &x.a.a, tmp.get_mpz_t()->_mp_d, tmp.get_mpz_t()->_mp_size);
     return s;
   }
+
+  // Output directly to a string of chars, assumes enough space is
+  // allocated. Returns the number of chars written
+  unsigned int output(uint8_t *buff) const
+  {
+    _mm_storeu_si128((__m128i *) buff, a.a);
+    return sizeof(__m128i);
+  }
+  // Input directly from a string of chars
+  unsigned int input(const uint8_t *buff)
+  {
+    a= _mm_loadu_si128((__m128i *) buff);
+    return sizeof(__m128i);
+  }
+
+  /* Input/Output to a string at position pos.
+   * String is already of enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
 };
 
 inline int128 int128::operator<<(const int &other) const

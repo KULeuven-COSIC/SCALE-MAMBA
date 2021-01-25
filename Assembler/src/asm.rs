@@ -12,13 +12,13 @@ use std::num::NonZeroU32;
 use crate::lexer::register;
 use crate::span::{Span, Spanned};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 /// Represents an entire file
 pub struct Body<'a> {
     pub blocks: Vec<Block<'a>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Block<'a> {
     pub stmts: Vec<Statement<'a>>,
     pub terminator: Spanned<Terminator>,
@@ -28,7 +28,7 @@ impl<'a> Default for Block<'a> {
     fn default() -> Self {
         Self {
             stmts: Default::default(),
-            terminator: Span::DUMMY.with(Terminator::Done),
+            terminator: Terminator::Done.into(),
         }
     }
 }
@@ -53,7 +53,7 @@ impl<'a> Statement<'a> {
     pub fn from_instr_with_comment(instr: Instruction<'a>, comment: Span) -> Self {
         Self {
             instr,
-            vectorized: Span::DUMMY.with(NonZeroU32::new(1).unwrap()),
+            vectorized: NonZeroU32::new(1).unwrap().into(),
             comment,
             span: Span::DUMMY,
         }
@@ -76,7 +76,7 @@ pub struct AugmentedStatement<'a> {
 
 check_type_size!(STATEMENT: Statement<'static>, 128);
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Terminator {
     Jump(Jump),
     Restart { comment: Span },
@@ -85,28 +85,34 @@ pub enum Terminator {
     Done,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Jump {
     pub target_block: usize,
     pub mode: JumpMode,
     pub comment: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum JumpMode {
     Goto,
     Conditional(JumpCondition),
     /// Calls in SCALE are just jumps that push their address onto a stack.
     /// `return` will pop the last item from the stack and jump there.
-    Call,
+    Call {
+        fallthrough_block: usize,
+    },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct JumpCondition {
     pub fallthrough_block: usize,
-    /// If true, jumps to `target_block` on zero and to
-    /// `fallthrough_block` on nonzero
-    pub jump_if_zero: bool,
+    /// If true, jumps to `target_block` on equality and to
+    /// `fallthrough_block` on inequality.
+    /// If false, jumps to `target_block` on inequality and to
+    /// `fallthrough_block` on equality.
+    pub jump_if_equal: bool,
+    /// The constant to compare against
+    pub constant: Spanned<i32>,
     /// Register to be checked
     pub register: Spanned<register::Regint>,
 }

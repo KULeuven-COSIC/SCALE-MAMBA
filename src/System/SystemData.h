@@ -11,6 +11,7 @@ All rights reserved
  * setup using the procedure Setup
  */
 
+#include <istream>
 #include <string>
 #include <vector>
 using namespace std;
@@ -22,6 +23,8 @@ class SystemData
             const vector<string> &PlayerCertFiles,
             const vector<string> &PlayerNames,
             int fake_off, int fake_sac);
+
+  void init_from_stream(istream &inp, const string &resource_name);
 
 public:
   unsigned int n;
@@ -45,6 +48,8 @@ public:
   }
 
   SystemData(const string &NetworkDataFileName);
+
+  SystemData(istream &NetworkData, const string &resource_name);
 };
 
 #endif

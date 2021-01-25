@@ -13,15 +13,16 @@ All rights reserved
  * to base routine. 
  */
 #define sz_offline_batch 60000
-#define sz_IO_batch 10000
+#define sz_IO_batch 10000 
 
 /* The max number of triples etc in the sacrifice production queue 
  * where we stop producing stuff.
  * The actual queues may end up being larger, as we dont want to throw
  * good data away
+ * No need to produce too many squares
  */
 #define max_triples_sacrifice 5000000
-#define max_squares_sacrifice 5000000
+#define max_squares_sacrifice 100000
 #define max_bits_sacrifice 5000000
 // Following is per player 
 #define max_IO_sacrifice 100000
@@ -30,7 +31,7 @@ All rights reserved
 #define amortize 512
 
 /* Number of openings between a OpenCheck call */
-#define open_check_gap 10000
+#define open_check_gap 100000
 
 
 /****************************
@@ -127,6 +128,11 @@ All rights reserved
 #define max_aBit_queue 500000
 #define max_aAND_queue 200000
 
+/* Ditto for the Mod2 Thread (which sometimes replaces the OT thread
+ * depending on the access structure)
+ */
+#define max_Mod2_Triple_queue 500000
+
 /* This says use the SimpleROT from ePrint 2015/267 instead of the DMC 
  * version (the latter introduces a problem in our usage)
  */
@@ -143,6 +149,11 @@ All rights reserved
  */
 #define daBits_stat_sec 40
 
+/* Stat security for the bucketing from the SP2017 protocol
+ * when used 
+ */
+#define SP2017_stat_sec 40
+
 /* This defines the statistical security for LSSS<->GC conversion */
 #define conv_stat_sec 40
 
@@ -156,5 +167,14 @@ All rights reserved
  * circuit
  */
 #define iter_modp_Search_SubCircuit 60
+
+/* Default sleep setting, for when we put threads to sleep 
+ * This is a quarter of a second
+ *    sleep_val = 252000000L;
+ * This value seems to give the best performance on our machines
+ */
+#include <time.h>
+extern struct timespec time_s;
+#define sleep_val 250000000L
 
 #endif

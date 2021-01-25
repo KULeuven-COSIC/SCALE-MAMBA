@@ -9,12 +9,12 @@ All rights reserved
 #define exROT_H
 
 #include "COT.h"
+#include "LSSS/PRSS.h"
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
 #include "System/Player.h"
 #include "Tools/MMO.h"
 #include "cryptopp/randpool.h"
-#include "LSSS/PRSS.h"
 // ePrint 2015/472 Fig.15
 
 /*
@@ -48,7 +48,7 @@ a uint8_t buffer of size k*16.
 
 class exROT_Sender
 {
-  int nb_rcver;
+  unsigned int nb_rcver;
   Receiver_COT COTR;
   gf2n Delta;
 
@@ -67,15 +67,13 @@ public:
 
 class exROT_Receiver
 {
-  int nb_sender;
+  unsigned int nb_sender;
   Sender_COT COTS;
 
   //MMO related stuff
   MMO mmo;
   uint8_t base_key[AES_BLK_SIZE];
   unsigned int counter;
-
-
 
 public:
   //ROT with player i, P is receiver

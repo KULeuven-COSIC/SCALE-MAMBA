@@ -11,7 +11,8 @@ All rights reserved
 #include "Online/Machine.h"
 #include "System/Player.h"
 
+template<class SRegint, class SBit>
 void online_phase(int online_num, Player &P, offline_control_data &OCD,
-                  Machine &machine);
+                  Machine<SRegint, SBit> &machine);
 
 #endif

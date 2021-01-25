@@ -135,7 +135,7 @@ void SimplifyCircuit::remove_redundant_wires(bool verbose)
           CC.GateI[i][j]= match[te];
         }
       te= CC.Gate_Wire_Out(i);
-      CC.GateO[i]= match[te];
+      CC.GateO[i][0]= match[te];
     }
 
   // Remove gates
@@ -232,7 +232,7 @@ void SimplifyCircuit::Remove_EQW()
             {
               C.GateI[ngates][j]= matchW[C.GateI[i][j]];
             }
-          C.GateO[ngates]= matchW[C.GateO[i]];
+          C.GateO[ngates][0]= matchW[C.GateO[i][0]];
           C.GateT[ngates]= C.GateT[i];
           ngates++;
         }
@@ -321,14 +321,14 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
             { // NOT 0 = 1
               CC.GateT[i]= EQ;
               CC.GateI[i][0]= 1;
-              CC.GateO[i]= out;
+              CC.GateO[i][0]= out;
               done= true;
             }
           else if (one[0] == true)
             { // NOT 1 = 0
               CC.GateT[i]= EQ;
               CC.GateI[i][0]= 0;
-              CC.GateO[i]= out;
+              CC.GateO[i][0]= out;
               done= true;
             }
           matchG[gcnt]= i;
@@ -340,7 +340,7 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
             {
               CC.GateT[i]= EQ;
               CC.GateI[i][0]= 0;
-              CC.GateO[i]= out;
+              CC.GateO[i][0]= out;
               matchG[gcnt]= i;
               gcnt++;
               done= true;
@@ -349,7 +349,7 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
             {
               CC.GateT[i]= EQ;
               CC.GateI[i][0]= 1;
-              CC.GateO[i]= out;
+              CC.GateO[i][0]= out;
               matchG[gcnt]= i;
               gcnt++;
               done= true;
@@ -360,7 +360,7 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
               gcnt++;
             }
         }
-      else
+      else if (T == AND || T == XOR)
         { // AND and XOR here
           // First do a re-order, to get the first arg to be 0 or 1 if zero or one
           if (zero[1] == true || one[1] == true)
@@ -375,7 +375,7 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
                 { // 0 AND x = 0
                   CC.GateT[i]= EQ;
                   CC.GateI[i][0]= 0;
-                  CC.GateO[i]= out;
+                  CC.GateO[i][0]= out;
                   done= true;
                   matchG[gcnt]= i;
                   gcnt++;
@@ -391,7 +391,7 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
                   // Replace with EQW gate
                   CC.GateT[i]= EQW;
                   CC.GateI[i][0]= CC.GateI[i][1];
-                  CC.GateO[i]= out;
+                  CC.GateO[i][0]= out;
                   done= true;
                   matchG[gcnt]= i;
                   gcnt++;
@@ -423,7 +423,7 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
                   // Replace with EQW gate
                   CC.GateT[i]= EQW;
                   CC.GateI[i][0]= CC.GateI[i][1];
-                  CC.GateO[i]= out;
+                  CC.GateO[i][0]= out;
                   done= true;
                   matchG[gcnt]= i;
                   gcnt++;
@@ -434,6 +434,10 @@ bool SimplifyCircuit::ApplyAssignment(const GateType &T, bool verbose)
                   gcnt++;
                 }
             }
+        }
+      else
+        {
+          throw not_implemented();
         }
     }
 
@@ -534,7 +538,7 @@ void SimplifyCircuit::Set_Inputs(const vector<unsigned int> &set_input)
           C.GateI[i + cnt][j]= matchW[k];
         }
       unsigned int k= C.Gate_Wire_Out(i + cnt);
-      C.GateO[i + cnt]= matchW[k];
+      C.GateO[i + cnt][0]= matchW[k];
     }
 
   unsigned int te= 0;
@@ -544,14 +548,14 @@ void SimplifyCircuit::Set_Inputs(const vector<unsigned int> &set_input)
         {
           C.GateT[te]= EQ;
           C.GateI[te][0]= 0;
-          C.GateO[te]= matchW[i];
+          C.GateO[te][0]= matchW[i];
           te++;
         }
       else if (set_input[i] == 1)
         {
           C.GateT[te]= EQ;
           C.GateI[te][0]= 1;
-          C.GateO[te]= matchW[i];
+          C.GateO[te][0]= matchW[i];
           te++;
         }
     }
@@ -614,7 +618,7 @@ void SimplifyCircuit::Remove_Outputs(const vector<unsigned int> &remove_output)
           unsigned int k= C.GateI[i][j];
           C.GateI[i][j]= matchW[k];
         }
-      unsigned int k= C.GateO[i];
+      unsigned int k= C.GateO[i][0];
       if (!deleteW[k])
         {
           matchG[gcnt]= i;
@@ -623,7 +627,7 @@ void SimplifyCircuit::Remove_Outputs(const vector<unsigned int> &remove_output)
       else
         { /*cout << "Deleting gate " << i << " " << C.GateT[i] << " " << k << endl; */
         }
-      C.GateO[i]= matchW[k];
+      C.GateO[i][0]= matchW[k];
     }
 
   // Do gate relabeling
@@ -690,17 +694,17 @@ bool SimplifyCircuit::remove_duplicate_gates()
                     }
                   if (equal)
                     { // Swap so gate i has the lowest output wire (might need to sort afterwards, which we do below)
-                      if (C.GateO[i] > C.GateO[j])
+                      if (C.GateO[i][0] > C.GateO[j][0])
                         {
                           C.swap_gate(i, j);
                         }
-                      if (C.GateO[i] >= out_boundary)
+                      if (C.GateO[i][0] >= out_boundary)
                         { // Two output wires are essentially duplicate
                           equal= false;
                         }
                       else
                         { // Delete gate i
-                          matchW[C.GateO[i]]= matchW[C.GateO[j]];
+                          matchW[C.GateO[i][0]]= matchW[C.GateO[j][0]];
                           keepG[j]= true;
                           deleted= true;
                           done= true;
@@ -726,8 +730,8 @@ bool SimplifyCircuit::remove_duplicate_gates()
           unsigned int k= C.GateI[i][j];
           C.GateI[i][j]= matchW[k];
         }
-      unsigned int k= C.GateO[i];
-      C.GateO[i]= matchW[k];
+      unsigned int k= C.GateO[i][0];
+      C.GateO[i][0]= matchW[k];
     }
 
   // Do gate relabeling
@@ -815,7 +819,7 @@ void SimplifyCircuit::Create_SubCircuit(unsigned int numi, vector<bool> &used,
           used[out]= true;
           mapwires.push_back(out);
           Sub.GateT.push_back(C.get_GateType(k));
-          Sub.GateO.push_back(nw);
+          Sub.GateO.push_back(vector<unsigned int>(1, nw));
           if (C.get_GateType(k) == AND)
             {
               Sub.num_AND++;
@@ -880,13 +884,13 @@ void SimplifyCircuit::Create_SubCircuit(unsigned int numi, vector<bool> &used,
                           Sub.GateI[g][j]= k;
                         }
                     }
-                  if (Sub.GateO[g] == k)
+                  if (Sub.GateO[g][0] == k)
                     {
-                      Sub.GateO[g]= te;
+                      Sub.GateO[g][0]= te;
                     }
-                  else if (Sub.GateO[g] == te)
+                  else if (Sub.GateO[g][0] == te)
                     {
-                      Sub.GateO[g]= k;
+                      Sub.GateO[g][0]= k;
                     }
                 }
               // Decrement k as we have a new wire in this position
@@ -970,7 +974,8 @@ void Find_Function_One(Circuit &F, const Circuit &Sub)
   F.GateO.resize(Sub.num_oWires(0));
   for (unsigned int i= 0; i < Sub.num_oWires(0); i++)
     {
-      F.GateO[i]= i + 1;
+      F.GateO[i].resize(1);
+      F.GateO[i][0]= i + 1;
       F.GateI[i].resize(2);
       if (code[i] == 0)
         { // EQ 0 Gate
@@ -1081,28 +1086,28 @@ void Find_Function_Two(Circuit &F, const Circuit &Sub)
   F.numO[0]= Sub.num_oWires(0);
   F.GateT.resize(4 + Sub.num_oWires(0));
   F.GateI.resize(4 + Sub.num_oWires(0));
-  F.GateO.resize(4 + Sub.num_oWires(0));
+  F.GateO.resize(4 + Sub.num_oWires(0), vector<unsigned int>(1));
 
   // INV w0
-  F.GateO[0]= 2;
+  F.GateO[0][0]= 2;
   F.GateT[0]= INV;
   F.GateI[0].resize(2);
   F.GateI[0][0]= 0;
   // INV w1
-  F.GateO[1]= 3;
+  F.GateO[1][0]= 3;
   F.GateT[1]= INV;
   F.GateI[1].resize(2);
   F.GateI[1][0]= 1;
 
   // w0 AND w1
-  F.GateO[2]= 4;
+  F.GateO[2][0]= 4;
   F.GateT[2]= AND;
   F.GateI[2].resize(2);
   F.GateI[2][0]= 0;
   F.GateI[2][1]= 1;
 
   // w0 XOR w1
-  F.GateO[3]= 5;
+  F.GateO[3][0]= 5;
   F.GateT[3]= XOR;
   F.GateI[3].resize(2);
   F.GateI[3][0]= 0;
@@ -1110,7 +1115,7 @@ void Find_Function_Two(Circuit &F, const Circuit &Sub)
 
   for (unsigned int i= 0; i < Sub.num_oWires(0); i++)
     {
-      F.GateO[i + 4]= i + 6;
+      F.GateO[i + 4][0]= i + 6;
       F.GateI[i + 4].resize(2);
       if (code[i] == 0)
         { // EQ 0 Gate
@@ -1290,7 +1295,7 @@ bool SimplifyCircuit::Insert(const Circuit &F, const Circuit &Sub,
         {
           unsigned int old_g= mapgates[i];
           C.GateT[old_g]= S_F.GateT[i];
-          C.GateO[old_g]= new_map_wires[S_F.GateO[i]];
+          C.GateO[old_g][0]= new_map_wires[S_F.GateO[i][0]];
           if (verbose)
             {
               cout << "Gate " << old_g << " :\tType " << C.GateT[old_g] << endl;
@@ -1313,7 +1318,7 @@ bool SimplifyCircuit::Insert(const Circuit &F, const Circuit &Sub,
             }
           if (verbose)
             {
-              cout << "\n\tOutput wire: " << C.GateO[old_g] << endl;
+              cout << "\n\tOutput wire: " << C.GateO[old_g][0] << endl;
             }
         }
       // Now go through the gates we are going to get rid of
@@ -1325,7 +1330,7 @@ bool SimplifyCircuit::Insert(const Circuit &F, const Circuit &Sub,
         {
           unsigned int old_g= mapgates[i];
           // Fix output wire to something which will not be used
-          C.GateO[old_g]= mapwires[number_internal_S_F + S_F.num_iWires(0) + i - nG_F];
+          C.GateO[old_g][0]= mapwires[number_internal_S_F + S_F.num_iWires(0) + i - nG_F];
           if (verbose)
             {
               cout << "Gate " << old_g << " :\tType " << C.GateT[old_g] << endl;
@@ -1342,7 +1347,7 @@ bool SimplifyCircuit::Insert(const Circuit &F, const Circuit &Sub,
             }
           if (verbose)
             {
-              cout << "\n\tOutput wire: " << C.GateO[old_g] << endl;
+              cout << "\n\tOutput wire: " << C.GateO[old_g][0] << endl;
             }
         }
       C.sort();

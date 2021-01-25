@@ -991,7 +991,7 @@ def do_while(loop_fn):
     condition = loop_fn()
     if callable(condition):
         condition = condition()
-    branch = instructions.jmpnz(regint.conv(condition), 0, add_to_prog=False)
+    branch = instructions.jmpne(regint.conv(condition), 0, 0, add_to_prog=False)
     instructions.program.curr_block.set_exit(branch, loop_block)
     get_tape().close_scope(scope, parent_node, 'end-loop')
     return loop_fn
@@ -1028,7 +1028,7 @@ def end_if():
         state = instructions.program.curr_tape.if_states.pop()
     except IndexError:
         raise CompilerError('No open if/else block')
-    branch = instructions.jmpeqz(regint.conv(state.condition), 0, \
+    branch = instructions.jmpeq(regint.conv(state.condition), 0, 0, \
                                      add_to_prog=False)
     # start next block
     get_tape().close_scope(state.start_block, state.req_child.parent, 'end-if')

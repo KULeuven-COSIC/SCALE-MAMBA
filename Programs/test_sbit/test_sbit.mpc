@@ -12,6 +12,9 @@ b = sregint(1)
 c = (a < b)
 test(c, 1)
 
+c = (a > b)
+test(c, 0)
+
 a = sbit(0)
 b = sbit(0)
 

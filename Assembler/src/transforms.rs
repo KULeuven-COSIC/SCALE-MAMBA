@@ -7,15 +7,21 @@ use std::io::Write;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 
+mod assignment_chain;
+mod cmp;
 mod cond_flip;
+mod dce;
 mod dead_block_removal;
+mod destination_propagation;
 mod goto_chain_collapse;
 mod move_done_block_to_end;
 mod nop;
 mod nop_removal;
 mod optimizer_step1;
 mod print;
+mod print_merge;
 mod register_reuse;
+pub mod validate;
 
 /// The interface of a single transformation
 pub trait Pass {
@@ -28,15 +34,23 @@ fn mk_pass<T: Pass + Default + 'static>() -> Box<dyn Pass> {
 }
 
 const PASSES: &[fn() -> Box<dyn Pass>] = &[
+    mk_pass::<validate::Pass>,
     mk_pass::<nop::Pass>,
     mk_pass::<print::Pass>,
+    mk_pass::<print_merge::Pass>,
     mk_pass::<optimizer_step1::Pass>,
+    mk_pass::<assignment_chain::Pass>,
+    mk_pass::<cmp::Pass>,
+    mk_pass::<dce::Pass>,
     mk_pass::<nop_removal::Pass>,
     mk_pass::<goto_chain_collapse::Pass>,
     mk_pass::<dead_block_removal::Pass>,
     mk_pass::<move_done_block_to_end::Pass>,
+    mk_pass::<destination_propagation::Pass>,
     mk_pass::<register_reuse::Pass>,
+    mk_pass::<nop_removal::Pass>,
     mk_pass::<cond_flip::Pass>,
+    mk_pass::<validate::Pass>,
 ];
 
 pub fn apply_default_optimization_pipeline<'a>(

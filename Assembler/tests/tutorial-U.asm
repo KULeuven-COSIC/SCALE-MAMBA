@@ -12320,7 +12320,7 @@ addint r5, r1, r4 # 12316
 pushint r5 # 12317
 ldint r6, 100 # 12318
 ltint r7, r5, r6 # 12319
-jmpnz r7, -22 # 12320
+jmpne r7, 0, -22 # 12320
 # tutorial-0-end-loop-2
 popint r8 # 12321
 ldms s10765, 8291 # 12322
@@ -12343,7 +12343,7 @@ print_char 10 # 12338
 print_char 10 # 12339
 ldi c3458, 0 # 12340
 convmodp r9, c3458, 64 # 12341
-jmpeqz r9, 3 # 12342
+jmpeq r9, 0, 3 # 12342
 # tutorial-0-if-block-3
 ldsi s10766, 123 # 12343
 stms s10766, 8192 # 12344

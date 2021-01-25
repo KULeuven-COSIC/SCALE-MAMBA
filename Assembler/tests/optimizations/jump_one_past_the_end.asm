@@ -1,6 +1,6 @@
 # if_assignment-0--0
 ldint r0, 1 # 0
-jmpeqz r0, 6 # 1
+jmpeq r0, 0, 6 # 1
 # if_assignment-0-if-block-1
 print_char 84 # 2
 print_char 114 # 3

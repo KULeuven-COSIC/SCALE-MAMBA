@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 HERE=$(cd `dirname $0`; pwd)
 
 . $HERE/run-common.sh

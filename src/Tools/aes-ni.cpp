@@ -11,7 +11,6 @@ All rights reserved
  *    M-Code Version  *
  **********************/
 
-
 inline __m128i AES_128_ASSIST(__m128i temp1, __m128i temp2)
 {
   __m128i temp3;

@@ -28,6 +28,8 @@ parameters (in config.h) are used to compile the main programs.
  23 Replicated    (5,2) Maurer
  24 Replicated    (5,2) Reduced
  25 Shamir        (10,4) 
+ 26 Shamir        (3,1) Small 32-bit prime
+ 27 Replicated    (3,1) Small 32-bit prime Maurer
 
 
 To execute ALL the tests type

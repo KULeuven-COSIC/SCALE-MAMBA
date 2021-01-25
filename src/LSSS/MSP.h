@@ -25,33 +25,45 @@ All rights reserved
 #include "LSSS/Schur_Matrices.h"
 #include "Math/Matrix.h"
 
+template<class T>
 class Schur_Matrices;
 
+// Forward declaration as apparently this is needed for friends in templates
+template<class T>
+class MSP;
+template<class T>
+ostream &operator<<(ostream &s, const MSP<T> &M);
+template<class T>
+istream &operator>>(istream &s, MSP<T> &M);
+
+template<class T>
 class MSP
 {
   /* Whilst we dont need the following for Full, we use the
    * following in fake_offline so we still define them for
    * all LSSS versions
    */
-  gfp_matrix Gen;          // Generator matrix \sum_{i=0}^{n-1} ns[i] rows and k columns
+  vector<vector<T>> Gen;   // Generator matrix \sum_{i=0}^{n-1} ns[i] rows and k columns
   vector<unsigned int> ns; // Number of share values per player
 
   /* Gets full reconstruction vector (i.e. over all rows) for a qualified set */
-  vector<gfp> get_full_reconstruct(const vector<int> &qual) const;
+  vector<T> get_full_reconstruct(const vector<int> &qual) const;
 
 public:
   void Initialize_Full_Threshold(unsigned int n);
+  // This next one will not work for gf2
   void Initialize_Shamir(unsigned int n, unsigned int t);
+
   void Initialize_Replicated(const CAS &AS);
-  void Initialize(const gfp_matrix &A,
+  void Initialize(const vector<vector<T>> &A,
                   const vector<unsigned int> &shares_per_player)
   {
     Gen= A;
     ns= shares_per_player;
   }
 
-  void assign(const MSP &M);
-  MSP(const MSP &M)
+  void assign(const MSP<T> &M);
+  MSP(const MSP<T> &M)
   {
     assign(M);
   }
@@ -67,7 +79,7 @@ public:
   {
     Initialize_Replicated(AS);
   }
-  MSP(const gfp_matrix &A, const vector<unsigned int> &shares_per_player)
+  MSP(const vector<vector<T>> &A, const vector<unsigned int> &shares_per_player)
   {
     Initialize(A, shares_per_player);
   }
@@ -76,7 +88,7 @@ public:
   {
     ;
   }
-  MSP &operator=(const MSP &M)
+  MSP &operator=(const MSP<T> &M)
   {
     if (&M != this)
       {
@@ -105,36 +117,40 @@ public:
   {
     return Gen.size();
   }
-  gfp G(int i, int j) const
+  T G(int i, int j) const
   {
     return Gen[i][j];
   }
-  const vector<gfp> &G(int i) const
+  const vector<T> &G(int i) const
   {
     return Gen[i];
   }
+  const vector<vector<T>> &get_G() const
+  {
+    return Gen;
+  }
 
-  friend ostream &operator<<(ostream &s, const MSP &M);
-  friend istream &operator>>(istream &s, MSP &M);
+  friend ostream &operator<<<>(ostream &s, const MSP<T> &M);
+  friend istream &operator>><>(istream &s, MSP<T> &M);
 
   // Make the Parity Check matrix for this MSP
-  gfp_matrix Make_Parity() const;
+  vector<vector<T>> Make_Parity() const;
 
   /* Given a set of rows of Gen in Mrows this creates the
    * reconstruction vector for the share s, and the
    * reconstruction matrix for the set of ALL shares vec{s}.
    * Assumes Mrows is full rank
    */
-  void Make_Recon(vector<gfp> &ReconS, gfp_matrix &ReconSS,
+  void Make_Recon(vector<T> &ReconS, vector<vector<T>> &ReconSS,
                   const vector<int> &MRows) const;
 
   /* Create a random sharing of val */
-  vector<gfp> Random_Sharing(const gfp &val, PRNG &G) const;
+  void Random_Sharing(vector<T> &ans, const T &val, PRNG &G) const;
 
   /* Generate a sharing from an input vector */
-  vector<gfp> Sharing(const vector<gfp> &kk) const
+  void Sharing(vector<T> &ans, const vector<T> &kk) const
   {
-    return Mul(Gen, kk);
+    Mul(ans, Gen, kk);
   }
 
   /* Checks whether the list of players indicate by the binary vector
@@ -143,7 +159,7 @@ public:
   bool check_qualified(const vector<int> &players) const;
 
   /* Extracts matrix rows corresponding to indicator set players */
-  gfp_matrix extract_rows(const vector<int> &players) const;
+  vector<vector<T>> extract_rows(const vector<int> &players) const;
 
   /* Finds all unqualified sets */
   imatrix find_all_unqualified() const;
@@ -152,7 +168,7 @@ public:
    * current MSP if the current MSP is multiplicative.
    * Will abort if *this is not Q2
    * Also returns the associated Schur matrices */
-  MSP make_multiplicative(Schur_Matrices &Sch) const;
+  MSP<T> make_multiplicative(Schur_Matrices<T> &Sch) const;
 };
 
 #endif

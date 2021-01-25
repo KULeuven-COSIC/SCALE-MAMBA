@@ -1,0 +1,18 @@
+[package]
+name = "scale_std"
+version = "0.0.1"
+authors = ["Oliver Scherer <oliver.scherer@cosmian.com>", "Nigel P. Smart"]
+edition = "2018"
+description = "datastructures and algorithms to be run on the SCALE engine"
+license-file = "../../License.txt"
+repository = "https://github.com/KULeuven-COSIC/SCALE-MAMBA"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scale = { package = "scale-core", version = "0.0.1", path = "../scale" }
+
+[features]
+emulate = [ "scale/emulate" ]
+
+[workspace]

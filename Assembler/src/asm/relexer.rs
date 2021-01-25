@@ -18,7 +18,11 @@ impl<'a> Body<'a> {
             trace!(num_blocks = block_starts.len(), num_lexicals = lexicals.len(), ?block.terminator.elem);
             block_starts.push(lexicals.len().try_into().unwrap());
             for statement in &block.stmts {
-                lexicals.push(statement.relex(cx));
+                let (lexical, call_dest) = statement.relex(cx);
+                if let Some(call_dest) = call_dest {
+                    forward_jumps.insert(lexicals.len(), call_dest);
+                }
+                lexicals.push(lexical);
             }
             match &block.terminator.elem {
                 Terminator::Done => {
@@ -63,15 +67,25 @@ impl<'a> Body<'a> {
                         Some(destination) => destination - i32::try_from(pos).unwrap() - 1,
                     };
                     let (instruction, fallthrough) = match &jump.mode {
-                        JumpMode::Call => ("call", jump.target_block),
+                        JumpMode::Call { fallthrough_block } => {
+                            let offset = jump_offset(jump.target_block, lexicals.len());
+                            lexicals.push(Lexical {
+                                instruction: "call",
+                                args: vec![block.terminator.span.with(offset.into())],
+                                comment: jump.comment,
+                                span: block.terminator.span,
+                            });
+                            ("jmp", *fallthrough_block)
+                        }
                         JumpMode::Goto => ("jmp", jump.target_block),
                         JumpMode::Conditional(cond) => {
-                            let instruction = if cond.jump_if_zero { "jmpeqz" } else { "jmpnz" };
+                            let instruction = if cond.jump_if_equal { "jmpeq" } else { "jmpne" };
                             let offset = jump_offset(jump.target_block, lexicals.len());
                             lexicals.push(Lexical {
                                 instruction,
                                 args: vec![
                                     cond.register.map(Operand::from),
+                                    cond.constant.map(Operand::from),
                                     block.terminator.span.with(offset.into()),
                                 ],
                                 comment: jump.comment,
@@ -97,9 +111,9 @@ impl<'a> Body<'a> {
         }
         for (pos, block_id) in forward_jumps {
             let arg_idx = match &*lexicals[pos].instruction {
-                "jmp" => 0,
-                // other jumps have a register first
-                _ => 1,
+                "call" | "jmp" => 0,
+                // other jumps have a register and offset first
+                _ => 2,
             };
             let block_pos = if block_id == block_starts.len() {
                 lexicals.len().try_into().unwrap()
@@ -114,7 +128,8 @@ impl<'a> Body<'a> {
 }
 
 impl<'a> Statement<'a> {
-    pub fn relex(&'a self, cx: &'a Compiler) -> Lexical<'a> {
+    pub fn relex(&'a self, cx: &'a Compiler) -> (Lexical<'a>, Option<usize>) {
+        let call_dest = None;
         let (instruction, args): (_, Vec<Spanned<Operand>>) = match &self.instr {
             Instruction::General {
                 instruction,
@@ -190,11 +205,14 @@ impl<'a> Statement<'a> {
         } else {
             (instruction, args)
         };
-        Lexical {
-            span: self.span,
-            instruction,
-            args,
-            comment: self.comment,
-        }
+        (
+            Lexical {
+                span: self.span,
+                instruction,
+                args,
+                comment: self.comment,
+            },
+            call_dest,
+        )
     }
 }

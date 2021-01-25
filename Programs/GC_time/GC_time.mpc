@@ -13,14 +13,24 @@ def pop_data(stuff,n):
   for i in range(n):
     stuff[n-i-1]=sregint.pop()
 
+# Remember we need to load the circuit in for one
+# execution BEFORE timing it
 
 key = [sregint(0), sregint(-1)]
 mess = [sregint(-1), sregint(1)]
 ciph = [sregint() for _ in range(2)]
 
+num=50
+
 print_ln("AES-128")
+
+push_data(key,2)
+push_data(mess,2)
+GC(AES_128)
+pop_data(ciph,2)
+
 start_timer(1)
-for k in range(20):
+for k in range(num):
   push_data(key,2)
   push_data(mess,2)
   # Op
@@ -29,12 +39,18 @@ for k in range(20):
 stop_timer(1)
 
 
-print_ln("AES-192")
 aes_192_ciphertexts = [sregint() for i in range(2)]
 key.append(sregint(0))
 
+print_ln("AES-192")
+
+push_data(key,3)
+push_data(mess,2)
+GC(AES_192)
+pop_data(ciph,2)
+
 start_timer(2)
-for k in range(20):
+for k in range(num):
   push_data(key,3)
   push_data(mess,2)
   # Op
@@ -43,12 +59,18 @@ for k in range(20):
 stop_timer(2)
 
 
-print_ln("AES-256")
 aes_256_ciphertexts = [sregint() for i in range(2)]
 key.append(sregint(0))
 
+print_ln("AES-256")
+
+push_data(key,4)
+push_data(mess,2)
+GC(AES_256)
+pop_data(ciph,2)
+
 start_timer(3)
-for k in range(20):
+for k in range(num):
   push_data(key,4)
   push_data(mess,2)
   # Op
@@ -56,41 +78,57 @@ for k in range(20):
   pop_data(aes_256_ciphertexts,2)
 stop_timer(3)
 
-print_ln("SHA-3")
 istate = [sregint(0) for i in range(25)]
 ostate_eval_sha3 = [sregint() for i in range(25)]
 
+print_ln("SHA-3")
+
+push_data(istate,25)
+GC(SHA_3)
+pop_data(ostate_eval_sha3,25)
+
 start_timer(4)
-for k in range(20):
+for k in range(num):
   push_data(istate,25)
   GC(SHA_3)
   pop_data(ostate_eval_sha3,25)
 stop_timer(4)
 
-print_ln("SHA-256")
 istate1 = [sregint(0) for i in range(8)]
 istate2 = [sregint(0) for i in range(4)]
 ostate_eval_256 = [sregint() for i in range(4)]
 
+print_ln("SHA-256")
+
+push_data(istate1,8)
+push_data(istate2,4)
+GC(SHA_256)
+pop_data(ostate_eval_256,4)
+
 start_timer(5)
-for k in range(20):
+for k in range(num):
   push_data(istate1,8)
   push_data(istate2,4)
   GC(SHA_256)
   pop_data(ostate_eval_256,4)
 stop_timer(5)
 
-print_ln("SHA-512")
 istate1 = [sregint(0) for i in range(16)]
 istate2 = [sregint(0) for i in range(8)]
 ostate_eval_512 = [sregint() for i in range(8)]
 
+print_ln("SHA-512")
+
+push_data(istate1,16)
+push_data(istate2,8)
+GC(SHA_512)
+pop_data(ostate_eval_512,8)
+
 start_timer(6)
-for k in range(20):
+for k in range(num):
   push_data(istate1,16)
   push_data(istate2,8)
   GC(SHA_512)
   pop_data(ostate_eval_512,8)
 stop_timer(6)
-
 

@@ -27,12 +27,17 @@ pub mod binary;
 pub use compiler::*;
 
 pub fn init_logger() -> Result<(), String> {
-    tracing::subscriber::set_global_default(
-        tracing_subscriber::FmtSubscriber::builder()
-            .with_env_filter(EnvFilter::from_default_env())
-            .finish(),
-    )
-    .map_err(|e| e.to_string())?;
+    let layer = tracing_tree::HierarchicalLayer::default()
+        .with_verbose_exit(true)
+        .with_verbose_entry(true)
+        .with_targets(true)
+        .with_indent_lines(true);
+    let filter = EnvFilter::from_default_env();
+    use tracing_subscriber::layer::SubscriberExt;
+    let subscriber = tracing_subscriber::Registry::default()
+        .with(filter)
+        .with(layer);
+    tracing::subscriber::set_global_default(subscriber).unwrap();
 
     tracing_log::LogTracer::init().map_err(|e| e.to_string())
 }

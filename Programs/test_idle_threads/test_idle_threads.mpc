@@ -4,7 +4,7 @@ def f():
 
 thread = MPCThread(f, 'test')
 
-for i in range(100000):
+for i in range(1000):
     thread.start()
     thread.join()
 
@@ -13,6 +13,6 @@ for i in range(10):
 for i in range(10):
     thread.join()
 
-for i in range(100000):
+for i in range(1000):
     thread.start()
     thread.join()

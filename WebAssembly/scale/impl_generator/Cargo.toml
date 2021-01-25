@@ -1,0 +1,22 @@
+[package]
+name = "scale_impl_generator"
+version = "0.0.1"
+authors = ["Oliver Scherer <oliver.scherer@cosmian.com>"]
+edition = "2018"
+description = "a proc macro to generate a large percentage of all impls on SCALE crypto primitives"
+license = "MIT AND Apache-2.0"
+repository = "https://github.com/KULeuven-COSIC/SCALE-MAMBA"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0"
+proc-macro2 = "1.0"
+documentation = { package = "scale_documentation", version = "0.0.1", path = "../../../Documentation"}
+tracing = "0.1"
+num-bigint = "0.3.0"
+num-integer = "0.1.43"
+num-traits = "0.2.12"

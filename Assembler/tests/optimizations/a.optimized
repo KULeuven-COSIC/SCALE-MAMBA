@@ -16,48 +16,22 @@ stmint r0, 8000
 ldminti r3, r2
 stminti r3, r2
 pushint r3
-popint r4
 ldtn r1
-ldarg r5
+ldarg r4
 reqbl 10
-starg r5
+starg r4
 run_tape 1, 1, 2
 join_tape 3
-jmpnz r1, 1
+jmpne r1, 0, 1
 crash
-jmpnz r2, 1
+jmpne r2, 0, 1
 restart
 clear_memory
 clear_registers
-addc c6, c1, c2
-adds s6, s1, s2
-addm s7, s1, c2
-addci c7, c1, 10
-addsi s8, s1, 10
-subc c8, c1, c2
-subs s13, s1, s2
-subml s9, s13, c1
-submr s10, c1, s13
-subci c9, c1, 10
-subsi s11, s1, 10
-subcfi c10, c1, 10
-subsfi s10, s1, 10
-mulc c11, c1, c2
-mulm s11, s1, c2
-mulci c12, c1, 10
-mulsi s12, s1, 10
-divc c13, c3, c2
-divci c14, c3, 10
-modc c15, c1, c2
-modci c16, c1, 10
-legendrec c17, c1
-digestc c18, c2
 output_clear c1, 1
-input_clear c19, 1
-private_input s13, 1, 10
-private_output s13, 2, 10
-output_int r6, 10
-input_int r7, 10
+private_input s5, 1, 10
+private_output s5, 2, 10
+output_int r5, 10
 startopen 4, s1, s2, s3, s4
 stopopen 4, c1, c2, c3, c4
 opensint r1, sr1
@@ -91,17 +65,13 @@ orci c3, c1, 10
 notc c3, c1, 10
 neg sr1, sr2
 sand sr1, sr2, sb1
-xorsb sb3, sb1, sb2
-andsb sb3, sb1, sb2
-orsb sb3, sb1, sb2
-negb sb3, sb1
 shlc c3, c1, c2
 shrc c3, c1, c2
 shlci c3, c1, 10
 shrci c3, c1, 10
 jmp 1
-jmpnz r1, 1
-jmpeqz r1, 1
+jmpne r1, 0, 1
+jmpeq r1, 0, 1
 eqzint r2, r1
 ltzint r2, r1
 ltint r3, r1, r2
@@ -114,8 +84,6 @@ mulint r1, r2, r3
 divint r1, r2, r3
 convint c1, r2
 convmodp r1, c2, 10
-convsintsreg sr5, s1
-convregsreg sr6, r0
 convsregsint s0, sr0
 print_mem 10
 print_reg c1
@@ -129,15 +97,15 @@ print_int r1
 eqzsint sb1, sr1
 ltzsint sb1, sr1
 andsint sr1, sr2, sr3
-andsintc sr1, sr2, r6
+andsintc sr1, sr2, r5
 orsint sr1, sr2, sr3
-orsintc sr1, sr2, r6
+orsintc sr1, sr2, r5
 xorsint sr1, sr2, s3
-xorsintc sr1, sr2, r6
+xorsintc sr1, sr2, r5
 invsint sr1, sr2
 mul2sint sr1, sr2, sr3, sr4
 bitsint sb1, sr1, 10
-sintbit sr1, sr2, sb6, 10
+sintbit sr1, sr2, sb3, 10
 rand r1, r2
 start_clock 10
 stop_clock 11
@@ -145,28 +113,23 @@ jmp 2
 return
 call -1
 pushint r0 # 3
-getspint r8 # 5
-peekint r5, r8 # 8
-pokeint r8, r2 # 9
-popint r4 # 10
+getspint r6 # 5
+peekint r4, r6 # 8
+pokeint r6, r2 # 9
 pushsint sr0 # 3
-getspsint r8 # 5
-peeksint sr5, r8 # 8
-pokesint r8, sr2 # 9
+getspsint r6 # 5
+pokesint r6, sr2 # 9
 popsint sr4 # 10
 pushs s0 # 3
-getsps r8 # 5
-peeks s5, r8 # 8
-pokes r8, s2 # 9
+getsps r6 # 5
+pokes r6, s2 # 9
 pops s4 # 10
 pushc c0 # 3
-getspc r8 # 5
-peekc c5, r8 # 8
-pokec r8, c2 # 9
+getspc r6 # 5
+peekc c5, r6 # 8
+pokec r6, c2 # 9
 popc c4 # 10
 pushsbit sb0 # 3
-getspsbit r8 # 5
-peeksbit sb5, r8 # 8
-pokesbit r8, sb2 # 9
-popsbit sb4 # 10
+getspsbit r6 # 5
+pokesbit r6, sb2 # 9
 ldi c0, 3

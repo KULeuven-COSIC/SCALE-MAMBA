@@ -19,7 +19,7 @@ using namespace std;
 
 class Share
 {
-  int p;
+  int p;           // The player holding this share
   vector<gfp> a;   // The share
   vector<gfp> mac; // Shares of the mac (when type=FULL)
 
@@ -35,11 +35,19 @@ public:
     return "Share";
   }
 
-  void assign(unsigned int i, vector<gfp> sv, vector<gfp> macs)
+  void assign(unsigned int i, vector<gfp> &sv, vector<gfp> &macs)
   {
     p= (int) i;
     a= sv;
     mac= macs;
+  }
+
+  // Same but only to be called when we know macs is empty
+  void assign(unsigned int i, vector<gfp> &sv)
+  {
+    p= (int) i;
+    a= sv;
+    mac.resize(0);
   }
 
   // Assign the share value when assigning constant aa
@@ -177,6 +185,74 @@ public:
   //  - Can do in human or machine only format (later should be faster)
   void output(ostream &s, bool human) const;
   void input(istream &s, bool human);
+
+  // Returns size of the char string needed to hold players p's
+  // shares
+  static unsigned int size(unsigned int p)
+  {
+    unsigned int len= 1 + SD.M.shares_per_player(p) * gfp::size();
+    if (SD.type == Full)
+      {
+        len+= SD.nmacs * gfp::size();
+      }
+    return len;
+  }
+
+  // Output directly to a string of chars, assumes enough space is
+  // allocated. Returns the number of chars written
+  unsigned int output(uint8_t *buff) const
+  {
+    buff[0]= (char) p;
+    unsigned int pos= 1;
+    for (unsigned int i= 0; i < SD.M.shares_per_player(p); i++)
+      {
+        pos+= a[i].output(buff + pos);
+      }
+    if (SD.type == Full)
+      {
+        for (unsigned int i= 0; i < SD.nmacs; i++)
+          {
+            pos+= mac[i].output(buff + pos);
+          }
+      }
+    return pos;
+  }
+  // Input directly from a string of chars
+  unsigned int input(const uint8_t *buff)
+  {
+    int t= (int) buff[0];
+    unsigned int pos= 1;
+    if (t != p)
+      {
+        p= t;
+        a.resize(SD.M.shares_per_player(p));
+      }
+    for (unsigned int i= 0; i < SD.M.shares_per_player(p); i++)
+      {
+        pos+= a[i].input(buff + pos);
+      }
+    if (SD.type == Full)
+      {
+        for (unsigned int i= 0; i < SD.nmacs; i++)
+          {
+            pos+= mac[i].input(buff + pos);
+          }
+      }
+    return pos;
+  }
+
+  /* Input/Output to a string at position pos.
+   * String is already assigned enough size in both cases.
+   * The number of chars read/written is returned
+   */
+  unsigned int output(string &s, unsigned long pos) const
+  {
+    return output((uint8_t *) s.c_str() + pos);
+  }
+  unsigned int input(const string &s, unsigned long pos)
+  {
+    return input((uint8_t *) s.c_str() + pos);
+  }
 
   /* Takes a vector of shares, one from each player and
      * determines the shared value

@@ -91,10 +91,10 @@ void Base_Garbled_Circuit::Garble(const Circuit &C,
   list<aBit> in_AND_aBits= OTD.aBD.get_aShares(online_thread_no, cnt);
   list<aTriple> triples= OTD.aAD.get_aANDs(online_thread_no, nAG);
   gf2n Delta= aBit::get_Delta();
-  #ifdef BENCH_OFFLINE
-     P.aands+=nAG;
-     P.abits+=cnt;
-  #endif
+#ifdef BENCH_OFFLINE
+  P.aands+= nAG;
+  P.abits+= cnt;
+#endif
 
   unsigned int nI= 0;
   for (unsigned int i= 0; i < C.num_inputs(); i++)
@@ -224,7 +224,7 @@ void Garbled_Circuit::Garble(const Circuit &C,
   // Step 7
   // Open output wires to player i
   vector<aBit> data;
-  vector<int> dummy;
+  vector<word> dummy;
   unsigned int cnt= C.get_nWires();
   for (unsigned int i= 0; i < C.num_outputs(); i++)
     {
@@ -242,11 +242,11 @@ void Garbled_Circuit::Garble(const Circuit &C,
         }
       if (o_assign[i] == P.whoami())
         {
-          Open_aBits_To(outputs[i], o_assign[i], data, P);
+          P.OP2->Open_Bits_To(outputs[i], o_assign[i], data, P);
         }
       else
         {
-          Open_aBits_To(dummy, o_assign[i], data, P);
+          P.OP2->Open_Bits_To(dummy, o_assign[i], data, P);
         }
     }
 
@@ -264,11 +264,11 @@ void Garbled_Circuit::Garble(const Circuit &C,
         }
       if (i_assign[i] == P.whoami())
         {
-          Open_aBits_To(inputs[i], i_assign[i], data, P);
+          P.OP2->Open_Bits_To(inputs[i], i_assign[i], data, P);
         }
       else
         {
-          Open_aBits_To(dummy, i_assign[i], data, P);
+          P.OP2->Open_Bits_To(dummy, i_assign[i], data, P);
         }
     }
 }
@@ -277,7 +277,8 @@ void Base_Garbled_Circuit::Open_Garbling(Player &P)
 {
   vector<string> oo(P.nplayers());
 
-  stringstream ss;
+  uint8_t *buff= new uint8_t[(gab.size() * 4 * P.nplayers() + 1) * gf2n::size()];
+  unsigned int pos= 0;
   for (unsigned int g= 0; g < gab.size(); g++)
     {
       for (unsigned int a= 0; a < 2; a++)
@@ -286,13 +287,14 @@ void Base_Garbled_Circuit::Open_Garbling(Player &P)
             {
               for (unsigned int i= 0; i < P.nplayers(); i++)
                 {
-                  gab[g][a][b][i].output(ss);
+                  pos+= gab[g][a][b][i].output(buff + pos);
                 }
             }
         }
     }
-  one_label[P.whoami()].output(ss);
-  oo[P.whoami()]= ss.str();
+  pos+= one_label[P.whoami()].output(buff + pos);
+  oo[P.whoami()]= string((char *) buff, pos);
+  delete[] buff;
 
   P.Broadcast_Receive(oo, true, 2);
 
@@ -301,7 +303,7 @@ void Base_Garbled_Circuit::Open_Garbling(Player &P)
     {
       if (k != P.whoami())
         {
-          istringstream ss(oo[k]);
+          unsigned int pos= 0;
           for (unsigned int g= 0; g < gab.size(); g++)
             {
               for (unsigned int a= 0; a < 2; a++)
@@ -310,13 +312,13 @@ void Base_Garbled_Circuit::Open_Garbling(Player &P)
                     {
                       for (unsigned int i= 0; i < P.nplayers(); i++)
                         {
-                          temp.input(ss);
+                          pos+= temp.input(oo[k], pos);
                           gab[g][a][b][i].add(temp);
                         }
                     }
                 }
             }
-          temp.input(ss);
+          pos+= temp.input(oo[k], pos);
           one_label[k]= temp;
         }
     }
@@ -337,14 +339,16 @@ void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
     }
 
   // Line 2
+  uint8_t *buff= new uint8_t[tot_num_iwires * gf2n::size()];
   vector<string> o(P.nplayers());
-  stringstream ss2;
+  unsigned int pos= 0;
   for (unsigned int i= 0; i < tot_num_iwires; i++)
     {
       ok[i][P.whoami()]= k[i][Gamma[i]];
-      ok[i][P.whoami()].output(ss2);
+      pos+= ok[i][P.whoami()].output(buff + pos);
     }
-  o[P.whoami()]= ss2.str();
+  o[P.whoami()]= string((char *) buff, pos);
+  delete[] buff;
 
   P.Broadcast_Receive(o, true, 2);
 
@@ -352,10 +356,10 @@ void Base_Garbled_Circuit::Evaluate_Core(vector<int> &Gamma,
     {
       if (i != P.whoami())
         {
-          istringstream is(o[i]);
+          unsigned int pos= 0;
           for (unsigned int j= 0; j < tot_num_iwires; j++)
             {
-              ok[j][i].input(is);
+              pos+= ok[j][i].input(o[i], pos);
             }
         }
     }
@@ -456,7 +460,7 @@ void Base_Garbled_Circuit::Evaluate(vector<vector<aBit>> &output,
     }
   // Add the inputs to the lambda and then open
   vector<aBit> v(tot_num_iwires);
-  vector<int> dv(tot_num_iwires);
+  vector<word> dv(tot_num_iwires);
   unsigned int cnt= 0;
   for (unsigned int i= 0; i < C.num_inputs(); i++)
     {
@@ -467,7 +471,7 @@ void Base_Garbled_Circuit::Evaluate(vector<vector<aBit>> &output,
         }
     }
 
-  Open_aBits(dv, v, P);
+  P.OP2->Open_Bits(dv, v, P);
 
   for (unsigned int i= 0; i < tot_num_iwires; i++)
     {
@@ -512,9 +516,17 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
   vector<int> Gamma(C.get_nWires());
 
   // Line 1
-  unsigned int tot_num_iwires= 0;
+  unsigned int tot_num_iwires= 0, total_iwires_sent= 0;
+  for (unsigned int i= 0; i < C.num_inputs(); i++)
+    {
+      if (i_assign[i] == P.whoami())
+        {
+          total_iwires_sent+= input[i].size();
+        }
+    }
   vector<string> o(P.nplayers());
-  stringstream ss1;
+  uint8_t *buff= new uint8_t[total_iwires_sent];
+  unsigned int pos= 0;
   for (unsigned int i= 0; i < C.num_inputs(); i++)
     {
       if (i_assign[i] == P.whoami())
@@ -522,30 +534,30 @@ void Garbled_Circuit::Evaluate(vector<vector<int>> &output,
           for (unsigned int j= 0; j < input[i].size(); j++)
             {
               Gamma[j + tot_num_iwires]= inputs[i][j] ^ input[i][j];
-              ss1 << (char) Gamma[j + tot_num_iwires];
+              buff[pos]= (uint8_t) Gamma[j + tot_num_iwires];
+              pos++;
             }
         }
       tot_num_iwires+= C.num_iWires(i);
     }
-  o[P.whoami()]= ss1.str();
+  o[P.whoami()]= string((char *) buff, pos);
+  delete[] buff;
 
   P.Broadcast_Receive(o, true, 2);
 
-  char c;
   for (unsigned int i= 0; i < P.nplayers(); i++)
     {
       if (i != P.whoami())
         {
-          istringstream is(o[i]);
-          unsigned int cnt= 0;
+          unsigned int cnt= 0, pos= 0;
           for (unsigned int j= 0; j < C.num_inputs(); j++)
             {
               if (i_assign[j] == i)
                 {
                   for (unsigned int k= 0; k < C.num_iWires(j); k++)
                     {
-                      is >> c;
-                      Gamma[k + cnt]= (int) c;
+                      Gamma[k + cnt]= o[i].c_str()[pos];
+                      pos++;
                     }
                 }
               cnt+= C.num_iWires(j);

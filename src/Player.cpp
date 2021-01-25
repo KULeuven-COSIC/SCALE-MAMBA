@@ -7,17 +7,19 @@ All rights reserved
 
 #include <algorithm>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <list>
 #include <memory>
-#include <pthread.h>
 #include <sstream>
 #include <string>
 #include <unistd.h>
 #include <vector>
 using namespace std;
 
+#include "Mod2Engine/aBitVector2.h"
+#include "OT/aBitVector.h"
 #include "System/Networking.h"
 #include "System/RunTime.h"
 #include "config.h"
@@ -32,6 +34,69 @@ void Usage(ezOptionParser &opt)
   cout << usage;
 }
 
+void main_logic(
+    vector<int> pns,
+    vector<int> minimums, vector<int> maximums,
+    unsigned int maxI,
+    unsigned int my_number,
+    int verbose, int fhefacts,
+    string progname,
+    string memtype,
+    unsigned int portnumbase,
+    bool OT_disable,
+    std::function<Input_Output_Base *(void *)> api_constructor,
+    void *api_handle);
+
+extern "C" int run_scale_from_rust(
+    unsigned int portnumbase,
+    char *memtype,
+    int verbose,
+    int fhe_factories,
+    unsigned int *pns,
+    unsigned int pns_n,
+    int *min,
+    int *max,
+    unsigned char ot_disable,
+    unsigned int max_i,
+    unsigned int my_number,
+    const char *progname,
+    void *api_constructor,
+    void *api_handle)
+{
+  vector<int> pns_vec;
+  for (unsigned i= 0; i < pns_n; i++)
+    {
+      pns_vec.push_back(pns[i]);
+    }
+  vector<int> min_vec;
+  for (unsigned i= 0; i < 3; i++)
+    {
+      min_vec.push_back(min[i]);
+    }
+  vector<int> max_vec;
+  for (unsigned i= 0; i < 3; i++)
+    {
+      max_vec.push_back(max[i]);
+    }
+  typedef Input_Output_Base *(*ConstructorPtr)(void *);
+  auto api_constructor_ptr= (ConstructorPtr) api_constructor;
+  std::function<Input_Output_Base *(void *)> api_function(api_constructor_ptr);
+
+  try
+    {
+      std::string progname_cpp(progname);
+      std::string memtype_cpp(memtype);
+      main_logic(pns_vec, min_vec, max_vec, max_i, my_number, verbose, fhe_factories, progname_cpp, memtype_cpp, portnumbase, ot_disable, api_function, api_handle);
+      return 0;
+    }
+  catch (std::exception &e)
+    {
+      cerr << e.what() << endl;
+      return -1;
+    }
+}
+
+#ifndef USE_RUST
 int main(int argc, const char *argv[])
 {
   ezOptionParser opt;
@@ -58,22 +123,22 @@ int main(int argc, const char *argv[])
           -1,  // Number of args expected.
           ',', // Delimiter if expecting multiple args.
           "List of portnums, one per player\n"
-          "\tMust be the same on each machine\n"
-          "\tThis option overides any defined portnumbase", // Help description.
-          "-pns",                                           // Flag token.
-          "-portnums"                                       // Flag token.
+          "\t  Must be the same on each machine\n"
+          "\t  This option overides any defined portnumbase", // Help description.
+          "-pns",                                             // Flag token.
+          "-portnums"                                         // Flag token.
   );
   opt.add("0", // Default.
           0,   // Required?
           1,   // Number of args expected.
           0,   // Delimiter if expecting multiple args.
           "Set the verbose level.\n"
-          "\tIf positive the higher the value the more\n"
-          "\tstuff printed for offline.\n"
-          "\tIf negative we print verbose for the online\n"
-          "\tphase",  // Help description.
-          "-verbose", // Flag token.
-          "-v"        // Flag token.
+          "\t  If positive the higher the value the more\n"
+          "\t  stuff printed for offline.\n"
+          "\t  If negative we print verbose for the online\n"
+          "\t  phase", // Help description.
+          "-verbose",  // Flag token.
+          "-v"         // Flag token.
   );
   opt.add("0", // Default.
           0,   // Required?
@@ -87,30 +152,30 @@ int main(int argc, const char *argv[])
           1,       // Number of args expected.
           0,       // Delimiter if expecting multiple args.
           "Where to obtain memory, old|empty (default: empty)\n"
-          "\told: reuse previous memory in Memory-P<i>\n"
-          "\tempty: create new empty memory", // Help description.
-          "-m",                               // Flag token.
-          "-memory"                           // Flag token.
+          "\t  old: reuse previous memory in Memory-P<i>\n"
+          "\t  empty: create new empty memory", // Help description.
+          "-m",                                 // Flag token.
+          "-memory"                             // Flag token.
   );
   opt.add("0,0,0", // Default.
           0,       // Required?
           3,       // Number of args expected.
           ',',     // Delimiter if expecting multiple args.
           "Do not start online phase until we have\n"
-          "\tm triples, s squares and b bits\n"
-          "\tMust be the same on each machine", // Help description.
-          "-min"                                // Flag token.
+          "\t  m triples, s squares and b bits\n"
+          "Must be the same on each machine", // Help description.
+          "-min"                              // Flag token.
   );
   opt.add("0,0,0", // Default.
           0,       // Required?
           3,       // Number of args expected.
           ',',     // Delimiter if expecting multiple args.
           "Stop the offline phase when\n"
-          "\tm triples, s squares and b bits\n"
+          "\t  m triples, s squares and b bits\n"
           "have been produced\n"
-          "\tZero argument means infinity here\n"
-          "\tMust be the same on each machine", // Help description.
-          "-max"                                // Flag token.
+          "\t  Zero argument means infinity here\n"
+          "Must be the same on each machine", // Help description.
+          "-max"                              // Flag token.
   );
   opt.add("0", // Default.
           0,   // Required?
@@ -194,10 +259,41 @@ int main(int argc, const char *argv[])
       OT_disable= true;
     }
 
+  int maxI;
+  opt.get("-maxI")->getInt(maxI);
+  main_logic(pns, minimums, maximums, maxI, my_number, verbose, fhefacts, progname, memtype, portnumbase, OT_disable, nullptr, nullptr);
+}
+#endif
+
+void main_logic(
+    vector<int> pns,
+    vector<int> minimums, vector<int> maximums,
+    unsigned int maxI,
+    unsigned int my_number,
+    int verbose, int fhefacts,
+    string progname,
+    string memtype,
+    unsigned int portnumbase,
+    bool OT_disable,
+    std::function<Input_Output_Base *(void *)> api_constructor,
+    void *api_handle)
+{
+
+  cout << "\nNo FHE Factories " << fhefacts << endl;
+  cout << "Port Num Base " << portnumbase << endl;
+  cout << "Portnums : ";
+  for (unsigned int i= 0; i < pns.size(); i++)
+    {
+      cout << pns[i] << " ";
+    }
+  cout << endl;
+  cout << "Verbose " << verbose << endl;
+
+  cout << "maxI = " << maxI << endl;
   /******************************************
    *      Setup offline_control_data OCD    *
    *  -Note if you want to programmatically *
-   *   chnage max_triples_sacrifice etc do  *
+   *   change max_triples_sacrifice etc do  *
    *   it here in the call to the OCD       *
    *   constructor                          *
    ******************************************/
@@ -208,8 +304,7 @@ int main(int argc, const char *argv[])
   OCD.maxm= (unsigned int) maximums[0];
   OCD.maxs= (unsigned int) maximums[1];
   OCD.maxb= (unsigned int) maximums[2];
-  opt.get("-maxI")->getInt(te);
-  OCD.maxI= (unsigned int) te;
+  OCD.maxI= (unsigned int) maxI;
 
   cout << "(Min,Max) number of ...\n";
   cout << "\t(" << OCD.minm << ",";
@@ -243,7 +338,8 @@ int main(int argc, const char *argv[])
     {
       cout << OCD.maxb;
     }
-  cout << ") bits" << endl;
+  cout << ") bits" << endl
+       << endl;
 
   /*************************************
    *     Initialise the system data    *
@@ -300,6 +396,33 @@ int main(int argc, const char *argv[])
       ShD.Otype= Fake;
     }
   Share::init_share_data(ShD);
+
+  ShareData2 ShD2;
+  if (ShD.Etype != HSS)
+    {
+      ifstream inp("Data/SharingData2.txt");
+      if (inp.fail())
+        {
+          throw file_error("Data/SharingData2.txt");
+        }
+      inp >> ShD2;
+      inp.close();
+      if (ShD2.M.nplayers() != SD.n)
+        {
+          throw data_mismatch();
+        }
+      Share2::init_share_data(ShD2);
+      aBitVector2::set_player(my_number);
+      cout << "\nUsing Mod2Engine system for the binary circuit processing" << endl;
+      cout << "  - This uses Replicated sharing mod 2\n"
+           << endl;
+    }
+  else
+    {
+      cout << "\nUsing HSS system for the binary circuit processing" << endl;
+      cout << "  - This uses TinyOT/BDOZ style mod 2 sharing\n"
+           << endl;
+    }
 
   // Fix this here so when we instantiate the memory
   // below in creating the machine we know what size
@@ -379,41 +502,86 @@ int main(int argc, const char *argv[])
   SSL_CTX *ctx;
   Init_SSL_CTX(ctx, my_number, SD);
 
-  /* Initialize the machine */
-  Machine machine;
-  if (verbose < 0)
-    {
-      // Remember to reverse the sign here
-      machine.set_verbose(-verbose);
-      verbose= 0;
-    }
-  machine.SetUp_Memory(my_number, memtype);
-
-  // Here you configure the IO in the machine
-  //  - This depends on what IO machinary you are using
-  //  - Here we are just using the simple IO class
-  unique_ptr<Input_Output_Simple> io(new Input_Output_Simple);
-  io->init(cin, cout, true);
-  machine.Setup_IO(std::move(io));
-
-  // Load the initial tapes for the first program into the schedule
-  unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
-
   unsigned int number_FHE_threads= 0;
   if (Share::SD.type == Full && (SD.fake_offline == 0 || SD.fake_sacrifice == 0))
     {
       number_FHE_threads= fhefacts;
     }
 
-  Run_Scale(my_number, no_online_threads,
-            PTD, pk, sk, MacK,
-            ctx, portnum,
-            SD, machine, OCD,
-            number_FHE_threads,
-            OT_disable,
-            verbose);
+  // Here you configure the IO in the machine
+  //  - This depends on what IO machinary you are using
+  unique_ptr<Input_Output_Base> io;
+  if (api_constructor)
+    {
+      // Here we expect you to supply a function that generates
+      // the IO machinery object.
+      io.reset(api_constructor(api_handle));
+    }
+  else
+    {
+      //  Here we are just using the simple IO class
+      auto ios= std::make_unique<Input_Output_Simple>();
 
-  machine.Dump_Memory(my_number);
+      ios->init(cin, cout, true);
+      io= std::move(ios);
+    }
+
+  /* Initialize the machine and run SCALE
+   *  - Which one we use depends on whether we are using
+   *    HSS or not
+   */
+  if (Share::SD.Etype == HSS)
+    {
+      Machine<aBitVector, aBit> machine;
+      if (verbose < 0)
+        {
+          // Remember to reverse the sign here
+          machine.set_verbose(-verbose);
+          verbose= 0;
+        }
+      machine.SetUp_Memory(my_number, memtype);
+
+      machine.Setup_IO(std::move(io));
+
+      // Load the initial tapes for the first program into the schedule
+      unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
+
+      Run_Scale(my_number, no_online_threads,
+                PTD, pk, sk, MacK,
+                ctx, portnum,
+                SD, machine, OCD,
+                number_FHE_threads,
+                OT_disable,
+                verbose);
+
+      machine.Dump_Memory(my_number);
+    }
+  else
+    {
+      Machine<aBitVector2, Share2> machine;
+      if (verbose < 0)
+        {
+          // Remember to reverse the sign here
+          machine.set_verbose(-verbose);
+          verbose= 0;
+        }
+      machine.SetUp_Memory(my_number, memtype);
+
+      machine.Setup_IO(std::move(io));
+
+      // Load the initial tapes for the first program into the schedule
+      unsigned int no_online_threads= machine.schedule.Load_Programs(progname);
+
+      Run_Scale(my_number, no_online_threads,
+                PTD, pk, sk, MacK,
+                ctx, portnum,
+                SD, machine, OCD,
+                number_FHE_threads,
+                OT_disable,
+                verbose);
+
+      machine.Dump_Memory(my_number);
+    }
 
   Destroy_SSL_CTX(ctx);
 

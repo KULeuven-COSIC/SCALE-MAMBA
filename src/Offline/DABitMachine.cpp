@@ -13,6 +13,8 @@ All rights reserved
  */
 
 #include "DABitMachine.h"
+#include "LSSS/Share2.h"
+#include "OT/aBit.h"
 #include "config.h"
 
 DABitMachineBase::DABitMachineBase() : nBitsPerLoop(kdaBitsPerLoop), sec(daBits_stat_sec), cnc_param(0),
@@ -20,11 +22,13 @@ DABitMachineBase::DABitMachineBase() : nBitsPerLoop(kdaBitsPerLoop), sec(daBits_
 {
 }
 
-MaliciousDABitMachine::MaliciousDABitMachine() : n_parties(0), OCD(0)
+template<class SBit>
+MaliciousDABitMachine<SBit>::MaliciousDABitMachine() : n_parties(0), OCD(0)
 {
 }
 
-void MaliciousDABitMachine::Initialize(uint nparties, offline_control_data &_OCD)
+template<class SBit>
+void MaliciousDABitMachine<SBit>::Initialize(uint nparties, offline_control_data &_OCD)
 {
   this->OCD= &_OCD;
 
@@ -49,7 +53,8 @@ void MaliciousDABitMachine::Initialize(uint nparties, offline_control_data &_OCD
     }
 }
 
-void MaliciousDABitMachine::find_cnc_params()
+template<class SBit>
+void MaliciousDABitMachine<SBit>::find_cnc_params()
 {
   //check if bounds are already computed
   pair<int, int> param_check= make_pair(sec, nBitsPerLoop);
@@ -101,10 +106,14 @@ void MaliciousDABitMachine::find_cnc_params()
   //cout << "Selected for bucketing: C = " << cnc_param << " B = " << bucket_size << endl;
 }
 
-AbstractDABitGenerator *MaliciousDABitMachine::new_generator(Player &P, int thread_num)
+template<class SBit>
+AbstractDABitGenerator<SBit> *MaliciousDABitMachine<SBit>::new_generator(Player &P, unsigned int online_thread_num)
 {
   if (numBits(gfp::pr()) >= 64)
-    return new LargePrimeDABitGenerator(*this, P, thread_num);
+    return new LargePrimeDABitGenerator<SBit>(*this, P, online_thread_num);
   else
-    return new SmallPrimeDABitGenerator(*this, P, thread_num);
+    return new SmallPrimeDABitGenerator<SBit>(*this, P, online_thread_num);
 }
+
+template class MaliciousDABitMachine<aBit>;
+template class MaliciousDABitMachine<Share2>;

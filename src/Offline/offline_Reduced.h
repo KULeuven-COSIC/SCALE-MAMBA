@@ -21,7 +21,6 @@ void offline_Reduced_squares(Player &P, PRSS &prss, PRZS &przs,
                              list<Share> &a, list<Share> &b,
                              unsigned int rep= 1);
 
-void offline_Reduced_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b,
-                          Open_Protocol &OP);
+void offline_Reduced_bits(Player &P, PRSS &prss, PRZS &przs, list<Share> &b);
 
 #endif

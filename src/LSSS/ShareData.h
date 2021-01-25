@@ -25,10 +25,10 @@ All rights reserved
 #include "Math/Matrix.h"
 
 enum ShareType {
-  Full = 0,
-  Shamir = 1,
-  Replicated = 2,
-  Q2MSP = 3,
+  Full= 0,
+  Shamir= 1,
+  Replicated= 2,
+  Q2MSP= 3,
   Other
 };
 
@@ -39,6 +39,13 @@ enum OfflineType {
   Maurer= 1,
   Reduced= 2,
   SPDZ= 3,
+};
+
+// Signal which mod2 engine we should use
+// Use HSS unless Shamir or Replicated
+enum Mod2Engine {
+  HSS= 0,
+  notHSS= 1, // XXXX Need better name
 };
 
 class ShareData
@@ -56,8 +63,9 @@ class ShareData
 public:
   ShareType type;    // Sharing type
   OfflineType Otype; // Offline type
+  Mod2Engine Etype;  // Mod2Engine type
 
-  MSP M;
+  MSP<gfp> M;
 
   // Number of MAC values (when needed assume stat parameter is macs_stat_sec)
   unsigned int nmacs;
@@ -71,7 +79,7 @@ public:
    *        from all shares
    *        Bottom rows are the Parity check rows
    */
-  gfp_matrix Parity;
+  vector<vector<gfp>> Parity;
 
   /* Channels for low cost (non-robust) reconstruction of a share.
    *    Player i sends his k'th share to party j if
@@ -89,7 +97,7 @@ public:
   /* Matrix i corresponds to how to reconstruct the total set
    * of share values for player i
    */
-  vector<gfp_matrix> ReconSS;
+  vector<vector<vector<gfp>>> ReconSS;
 
   /* n by n matrix OpenC[i][j]=1 if exist k such that
    *       RCt[i][j][k]=1
@@ -97,7 +105,7 @@ public:
    */
   imatrix OpenC;
 
-  Schur_Matrices Schur;
+  Schur_Matrices<gfp> Schur;
 
   vector<vector<gfp>> share_of_one; /* A sharing of the value one for other LSSS
                                      This cannot be a vector of Share's as SD
@@ -158,7 +166,7 @@ public:
   void Initialize_Shamir(unsigned int n, unsigned int t);
   void Initialize_Replicated(const CAS &AccStr, OfflineType offline_type);
   // Initializes via MSP M, if M not multiplicative then it extends it
-  void Initialize_Q2(const MSP &MM);
+  void Initialize_Q2(const MSP<gfp> &MM);
 
   friend ostream &operator<<(ostream &s, const ShareData &SD);
   friend istream &operator>>(istream &s, ShareData &SD);

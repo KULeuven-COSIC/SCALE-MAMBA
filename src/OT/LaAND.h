@@ -27,15 +27,22 @@ class LaAND
 {
   HaAND HA;
 
+  class buffer buff;
+
 public:
+  vector<aTriple> triples;
+
   LaAND() { ; }
-  LaAND(Player &P, int connection) : HA(P, connection) { ; }
+
+  LaAND(Player &P, int connection) : HA(P, connection)
+  {
+    buff.resize(HaAND::get_number() * sizeof(gf2n));
+  }
   void Init(Player &P, int connection)
   {
     HA.Init(P, connection);
+    buff.resize(HaAND::get_number() * sizeof(gf2n));
   }
-
-  vector<aTriple> triples;
 
   /* This is Figure 8 of ePrint 2017/189 executed number times */
   void make_more(Player &P, int num_online);

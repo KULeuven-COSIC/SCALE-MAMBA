@@ -13,6 +13,7 @@ using namespace std;
 
 #include "FHE/ZKPoK.h"
 #include "LSSS/Share.h"
+#include "LSSS/Share2.h"
 
 /* These datatypes are just the data store for the offline phase
  *  - We implement them as lists as we want to do constant

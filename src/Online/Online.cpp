@@ -7,14 +7,16 @@ All rights reserved
 
 #include <unistd.h>
 
+#include "Mod2Engine/aBitVector2.h"
 #include "OT/OT_Thread_Data.h"
 #include "Online.h"
 #include "Processor/Processor.h"
 
 extern OT_Thread_Data OTD;
 
+template<class SRegint, class SBit>
 void online_phase(int online_num, Player &P, offline_control_data &OCD,
-                  Machine &machine)
+                  Machine<SRegint, SBit> &machine)
 {
   printf("Doing online for player %d in online thread %d\n", P.whoami(),
          online_num);
@@ -47,7 +49,7 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
       OCD.bit_mutex[online_num].unlock();
 
       OTD.aBD.aBD_mutex.lock();
-      if (OTD.ready == false)
+      if (Share::SD.Etype == HSS && OTD.ready == false)
         {
           if (!OTD.disabled)
             {
@@ -58,13 +60,13 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
 
       if (wait)
         {
-          sleep(1);
+          nanosleep(&time_s, NULL);
         }
     }
-  printf("Starting online phase\n");
+  printf("Starting online phase %d\n", online_num);
 
   // Initialise the program
-  Processor Proc(online_num, P.nplayers(), P);
+  Processor<SRegint, SBit> Proc(online_num, P.nplayers(), machine, P);
 
   bool flag= true;
 
@@ -83,8 +85,9 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
         }
       else
         { // Execute the program
-          Proc.execute(machine.progs[program], machine.get_OTI_arg(online_num), P,
-                       machine, OCD);
+          Proc.execute(machine.progs[program], machine.get_OTI_arg(online_num),
+                       machine.get_PC(online_num),
+                       P, machine, OCD);
 
           // MAC/Hash Check
           if (online_num == 0)
@@ -123,3 +126,9 @@ void online_phase(int online_num, Player &P, offline_control_data &OCD,
   OCD.OCD_mutex[online_num].unlock();
   printf("Exiting online phase : %d\n", online_num);
 }
+
+template void online_phase(int online_num, Player &P, offline_control_data &OCD,
+                           Machine<aBitVector, aBit> &machine);
+
+template void online_phase(int online_num, Player &P, offline_control_data &OCD,
+                           Machine<aBitVector2, Share2> &machine);

@@ -24,8 +24,6 @@ ostream &operator<<(ostream &s, const Memory<T> &M);
 template<class T>
 istream &operator>>(istream &s, Memory<T> &M);
 
-class Machine;
-
 template<class T>
 class Memory
 {
@@ -53,7 +51,7 @@ public:
       }
   }
 
-  const T &read(int i, int verbose)
+  const T &read(unsigned int i, int verbose)
   {
     if (i >= M.size())
       {
