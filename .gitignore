@@ -45,7 +45,6 @@ Programs/*/*.bc
 *.class
 *.dll
 *.exe
-*.x
 *.o
 *.so
 *.pyc
