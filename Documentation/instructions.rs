@@ -445,7 +445,7 @@ instructions! {
   DIVINT & 0x9E  & (dest: rw, left: r, right: r) & vectorizable & r##"DIVINT ri rj rk \newline
                                      Division of regint registers ri=rj / rk. "## & ""
   MODINT & 0x9F  & (dest: rw, left: r, right: r) & vectorizable & r##"MODINT ri rj rk \newline
-                                     Modular reduction of regint registers ri=rj % rk. "## & ""
+                                     Modular reduction of regint registers ri=rj \% rk. "## & ""
   },
   "Conversion" {
   CONVINT & 0xC0 & (dest: cw, value: r) & vectorizable & r##"CONVINT ci rj \newline
