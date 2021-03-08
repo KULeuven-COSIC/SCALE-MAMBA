@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use crate::{ClearModp, SecretI64, SecretModp};
 use num_bigint::ToBigInt;
 use std::sync::Mutex;
@@ -197,8 +201,8 @@ extern "C" fn __clear_memory() {
 extern "C" fn __clear_registers() {}
 
 lazy_static::lazy_static! {
-    static ref MEMORY_I64: Mutex<Vec<i64>> = Default::default();
-    static ref MEMORY_CLEAR: Mutex<Vec<crate::ClearModp>> = Default::default();
-    static ref MEMORY_SECRET: Mutex<Vec<crate::SecretModp>> = Default::default();
-    static ref MEMORY_SECRET_I64: Mutex<Vec<crate::SecretI64>> = Default::default();
+    pub static ref MEMORY_I64: Mutex<Vec<i64>> = Default::default();
+    pub static ref MEMORY_CLEAR: Mutex<Vec<crate::ClearModp>> = Default::default();
+    pub static ref MEMORY_SECRET: Mutex<Vec<crate::SecretModp>> = Default::default();
+    pub static ref MEMORY_SECRET_I64: Mutex<Vec<crate::SecretI64>> = Default::default();
 }

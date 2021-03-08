@@ -36,8 +36,8 @@ arrays etc
   LDARG= 0x11,
 + REQBL= 0x12,            manual_test_system.rs
   STARG= 0x13,
-  CALL= 0x14,
-  RETURN= 0x15,
++ CALL= 0x14,             test_call.rs
++ RETURN= 0x15,           test_call.rs
   CALLR=0x16,
   JMPR=0x17,
   RUN_TAPE= 0x19,
@@ -91,6 +91,16 @@ arrays etc
 + STOPOPEN= 0xA1,            test_modp.rs
 + OPENSINT= 0xA2,            test_sregint.rs
 + OPENSBIT= 0xA3,            test_sregint.rs
+
+  # Memory Management
++ NEWC = 0xA4,               test_local_functions
++ NEWS = 0xA5,               test_local_functions
++ NEWINT = 0xA6,             test_local_functions
++ NEWSINT = 0xA7,            test_GC
++ DELETEC = 0xA8,            test_local_functions
++ DELETES = 0xA9,            test_local_functions
++ DELETEINT = 0xAA,          test_local_functions
++ DELETESINT = 0xAB,         test_GC
 
   # Data access
 + TRIPLE= 0x50,              test_modp.rs
@@ -162,6 +172,7 @@ arrays etc
 + SUBINT= 0x9C,             test_sregint.rs
 + MULINT= 0x9D,             test_sregint.rs
 + DIVINT= 0x9E,             test_sregint.rs
++ MODINT= 0x9F,             test_bitdecfull.rs
 
   # Conversion
 + CONVINT= 0xC0,            test_sregint.rs
@@ -180,8 +191,8 @@ arrays etc
   PRINT_CHAR4= 0xB4,
 + PRINT_CHAR_REGINT= 0xB5,  test_modp.rs
   PRINT_CHAR4_REGINT= 0xB6,
-  PRINT_FLOAT= 0xB7,
-  PRINT_FIX= 0xB8,
++ PRINT_FLOAT= 0xB7,        test_sfloat.rs
++ PRINT_FIX= 0xB8,          test_sfix.rs
 + PRINT_INT= 0xB9,          test_local_functions.rs
 + PRINT_IEEE_FLOAT= 0xBA,   test_ieee.rs
 

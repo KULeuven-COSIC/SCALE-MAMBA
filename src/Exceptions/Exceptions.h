@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -500,6 +500,51 @@ class invalid_circuit : public exception
   virtual const char *what() const throw()
   {
     return "Tried to load invalid binary circuit";
+  }
+};
+class memory_out_of_bounds : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Memory access out of bounds: Try increasing MEMSIZE in config.h";
+  }
+};
+class memory_invalid_size : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Memory has an invalid size";
+  }
+};
+class memory_new_error : public exception
+{
+  string msg;
+
+public:
+  memory_new_error(string m)
+  {
+    msg= "Memory:: New(" + m + ") could not assign a block of that size";
+  }
+  ~memory_new_error() throw()
+  {
+  }
+  virtual const char *what() const throw()
+  {
+    return msg.c_str();
+  }
+};
+class memory_delete_error : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Memory::Delete could not delete that block";
+  }
+};
+class memory_access_error : public exception
+{
+  virtual const char *what() const throw()
+  {
+    return "Trying to access memory which is not allocated";
   }
 };
 

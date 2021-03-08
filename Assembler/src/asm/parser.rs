@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use documentation::name2instr;
 
 use super::{Block, Body, JumpMode, Statement, Terminator};
@@ -55,7 +59,7 @@ impl<'a> Statement<'a> {
             | "addint" | "subc" | "subs" | "subml" | "submr" | "subci" | "subsi" | "subcfi"
             | "subsfi" | "subint" | "subsint" | "subsintc" | "subcints" | "mulc" | "mulm"
             | "mulci" | "mulsi" | "mulsint" | "mulsintc" | "mulint" | "divc" | "divci"
-            | "divsint" | "divint" | "modc" | "modci" | "shlsint" | "shrsint" | "shlc" | "shrc"
+            | "divsint" | "divint" | "modc" | "modci" | "modint" | "shlsint" | "shrsint" | "shlc" | "shrc"
             | "shlci" | "shrci" | "ltint" | "gtint" | "eqint" | "andc" | "xorc" | "orc"
             | "andci" | "orci" | "xorci" | "sand" | "xorsb" | "andsb" | "orsb" | "andsint"
             | "andsintc" | "orsint" | "xorsint" | "notc" | "orsintc" | "xorsintc" | "bitsint"
@@ -77,7 +81,9 @@ impl<'a> Statement<'a> {
             | "opensint" | "opensbit" | "dabit" | "print_reg" | "gc" | "lf"
             | "print_char_regint" | "print_char4_regint" | "print_int" | "print_fix_plain"
             | "print_ieee_float" | "print_float" | "print_mem" | "print_fix" | "print_char"
-            | "print_char4" | "mul2sint" | "bit" | "square" | "triple" | "sintbit" => {
+            | "print_char4" | "mul2sint" | "bit" | "square" | "triple" | "sintbit" | "newc"
+            | "news" | "newint" | "newsint" | "deletec" | "deletes" | "deleteint"
+            | "deletesint" => {
                 let instr = name2instr(instruction).expect("unknown instruction");
                 if instr.args.len() == args.elem.len() {
                     let num_destinations = instr

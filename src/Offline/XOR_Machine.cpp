@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -23,6 +23,43 @@ extern vector<sacrificed_data> SacrificeD;
 
 template<class SBit>
 XOR_Machine<SBit>::XOR_Machine(Player &P, offline_control_data &OCD, int thread) : P(P), OCD(OCD), thread(thread) {}
+
+template<class SBit>
+void XOR_Machine<SBit>::check_debug(const vector<vector<Share>> &combinedp, const vector<vector<SBit>> &combined2)
+{
+	cout << "In CHECK DEBUG" << endl;
+  unsigned int total= combinedp[0].size();
+
+  allShp.clear();
+  allShp.reserve(total);
+
+  allSh2.clear();
+  allSh2.reserve(total);
+
+  // apply permutation
+  for (size_t player= 0; player < P.nplayers(); player++)
+    {
+      for (unsigned int i= 0; i < total; i++)
+        {
+          allShp.push_back(combinedp[player][i]);
+          allSh2.push_back(combined2[player][i]);
+        }
+    }
+
+  // Open bits in both fields
+  P.OP->Open_To_All_Begin(valuesp, allShp, P, 2);
+  P.OP->Open_To_All_End(valuesp, allShp, P, 2);
+
+  P.OP2->Open_Bits(values2, allSh2, P);
+
+  // Check bit consistency in both fields
+  for (unsigned int i= 0; i < total; ++i)
+    {
+      if (!bit_equality(valuesp[i], values2[i]))
+        throw Sacrifice_Check_Error("daBit check_debug!");
+    }
+  	cout << "Finished CHECK_DEBUG" << endl;
+}
 
 // Opens MANY bits according the the CNC parameters
 // and check that they are consistent (ie the same) in
@@ -59,8 +96,12 @@ void XOR_Machine<SBit>::consistency_check(const vector<vector<Share>> &Shp,
 
   // Check bit consistency in both fields
   for (int i= 0; i < total_cnc; ++i)
-    if (!bit_equality(valuesp[i], values2[i]))
-      throw Sacrifice_Check_Error("daBit consistency error!");
+    { 
+      if (!bit_equality(valuesp[i], values2[i]))
+        {
+          throw Sacrifice_Check_Error("daBit consistency error!");
+        }
+    }
 }
 
 /* This is a modified version from Processor/SPDZ.cpp
@@ -212,10 +253,18 @@ void XOR_Machine<SBit>::combine(vector<Share> &combinedp, vector<SBit> &combined
 
   combined2.clear();
   combined2.resize(num_bits);
+  for (int i= 0; i < num_bits; ++i)
+    {
+      combined2[i].assign_zero(P.whoami());
+    }
   // Deal with GF2n case
   for (size_t pnum= 0; pnum < P.nplayers(); pnum++)
+  {
     for (int i= 0; i < num_bits; ++i)
-      combined2[i].add(Sh2[pnum * num_bits + i]);
+      { 
+        combined2[i].add(Sh2[pnum * num_bits + i]); 
+      }
+  }
 }
 
 template<class SBit>

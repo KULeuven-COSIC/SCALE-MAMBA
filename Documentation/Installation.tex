@@ -6,13 +6,19 @@ libraries:
 \begin{itemize}
 \item GCC/G++: Tested with version 8.3.1
 \item MPIR library, compiled with C++ support (use flag --enable-cxx when running configure) : Tested with version 3.0.0
-\item Python, ideally with `gmpy2` package (for testing): Tested with Python 2.7.17
+\item Python: Tested with Python 2.7.17
 \item CPU supporting AES-NI and PCLMUL
 \item OpenSSL: Tested with version 1.1.0.b
 \item Crypto++: Tested with version 7.0
 \item yasm (for MPIR)
 \item m4 (for MPIR)
-\item A Rust compiler of at least version 1.39.0 (4560ea788 2019-11-04)
+\item A Rust compiler of at least version 1.47.0.
+We use the nightly build, so we strongly recommend using this
+as we use a lot of new features in various places.
+We also recommend installing \verb|wasm| support by typing
+\begin{verbatim}
+    rustup target add wasm32-unknown-unknown
+\end{verbatim}
 \end{itemize}
 Developers will also require
 \begin{itemize}
@@ -52,6 +58,16 @@ For our Ubuntu systems we had to use the binary installer marked
 \url{https://forge.rust-lang.org/infra/other-installation-methods.html}
 as there was some incompatibility between \verb+curl+ and our
 \verb+openssl+ installation.
+
+To get nightly support use
+\begin{verbatim}
+    rustup default nightly
+\end{verbatim}
+Also we recommend installing \verb|wasm| support via
+\begin{verbatim}
+    rustup target add wasm32-unknown-unknown
+\end{verbatim}
+
 
 \subsubsection{Installing MPIR, OpenSSL and Crypto++}
 This bit, on explaining how to install  MPIR, OpenSSL and Crypto++ inside \verb+$HOME/local+,

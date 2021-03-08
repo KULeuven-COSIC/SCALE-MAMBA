@@ -1,12 +1,13 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
 
 #include "Processor/Instruction.h"
 #include "Exceptions/Exceptions.h"
+#include "Local/Float.h"
 #include "Offline/offline_data.h"
 #include "Processor/Processor.h"
 #include "Tools/Crypto.h"
@@ -32,27 +33,6 @@ extern Base_Circuits Global_Circuit_Store;
 extern vector<sacrificed_data> SacrificeD;
 
 using namespace std;
-
-// Convert modp to signed bigint of a given bit length
-void to_signed_bigint(bigint &bi, const gfp &x, int len)
-{
-  to_bigint(bi, x);
-  int neg;
-  // get sign and abs(x)
-  bigint p_half= (gfp::pr() - 1) / 2;
-  if (mpz_cmp(bi.get_mpz_t(), p_half.get_mpz_t()) < 0)
-    neg= 0;
-  else
-    {
-      bi= gfp::pr() - bi;
-      neg= 1;
-    }
-  // reduce to range -2^(len-1), ..., 2^(len-1)
-  bigint one= 1;
-  bi&= (one << len) - 1;
-  if (neg)
-    bi= -bi;
-}
 
 template<class SRegint, class SBit>
 void Instruction<SRegint, SBit>::parse(istream &s)
@@ -107,6 +87,7 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case SUBINT:
       case MULINT:
       case DIVINT:
+      case MODINT:
       case ADDSINT:
       case ADDSINTC:
       case SUBSINT:
@@ -197,6 +178,10 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case RPOKEC:
       case RPOKES:
       case RPOKESBIT:
+      case NEWC:
+      case NEWS:
+      case NEWINT:
+      case NEWSINT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         break;
@@ -227,6 +212,10 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case PRINT_IEEE_FLOAT:
       case CALLR:
       case JMPR:
+      case DELETEC:
+      case DELETES:
+      case DELETEINT:
+      case DELETESINT:
         r[0]= get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
@@ -388,6 +377,7 @@ RegType BaseInstruction::get_reg_type() const
       case SUBINT:
       case MULINT:
       case DIVINT:
+      case MODINT:
       case LTZINT:
       case LTINT:
       case GTINT:
@@ -432,6 +422,14 @@ RegType BaseInstruction::get_reg_type() const
       case SHRINT:
       case MUL2SINT:
       case OPEN_CHANNEL:
+      case NEWC:
+      case NEWS:
+      case NEWINT:
+      case NEWSINT:
+      case DELETEC:
+      case DELETES:
+      case DELETEINT:
+      case DELETESINT:
         return INT;
       case MOVSB:
       case XORSB:
@@ -591,6 +589,30 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         break;
       case STMINTI:
         s << "STMINTI";
+        break;
+      case NEWC:
+        s << "NEWC";
+        break;
+      case DELETEC:
+        s << "DELETEC";
+        break;
+      case NEWS:
+        s << "NEWS";
+        break;
+      case DELETES:
+        s << "DELETES";
+        break;
+      case NEWINT:
+        s << "NEWINT";
+        break;
+      case DELETEINT:
+        s << "DELETEINT";
+        break;
+      case NEWSINT:
+        s << "NEWSINT";
+        break;
+      case DELETESINT:
+        s << "DELETESINT";
         break;
       case PUSHINT:
         s << "PUSHINT";
@@ -931,6 +953,9 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       case DIVINT:
         s << "DIVINT";
         break;
+      case MODINT:
+        s << "MODINT";
+        break;
       case CONVINT:
         s << "CONVINT";
         break;
@@ -1171,6 +1196,7 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       case SUBINT:
       case MULINT:
       case DIVINT:
+      case MODINT:
       case ANDINT:
       case ORINT:
       case XORINT:
@@ -1369,6 +1395,10 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       case POKEINT:
       case RPOKEINT:
       case INVINT:
+      case NEWC:
+      case NEWS:
+      case NEWINT:
+      case NEWSINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         break;
@@ -1408,6 +1438,10 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         s << "sr_" << instr.r[0] << " ";
         break;
       // instructions with 1 rint register operands
+      case DELETEC:
+      case DELETES:
+      case DELETEINT:
+      case DELETESINT:
       case PRINT_INT:
       case PRINT_IEEE_FLOAT:
       case PRINT_CHAR_REGINT:
@@ -1679,11 +1713,11 @@ bool Instruction<SRegint, SBit>::execute(
     offline_control_data &OCD) const
 {
   Timer instr_timer;
+  stringstream ss;
   if (machine.verbose > 0)
     {
-      stringstream s;
-      s << *this;
-      printf("Thread %d : %s", Proc.get_thread_num(), s.str().c_str());
+      ss << *this;
+      printf("Thread %d : %s", Proc.get_thread_num(), ss.str().c_str());
       if (machine.verbose > 1)
         {
           instr_timer.reset();
@@ -1783,8 +1817,7 @@ bool Instruction<SRegint, SBit>::execute(
                 Proc.temp.ansp.assign(n);
                 Proc.write_Cp(r[0], Proc.temp.ansp);
                 break;
-              case LDSI:
-                {
+                case LDSI: {
                   Proc.temp.ansp.assign(n);
                   Proc.get_Sp_ref(r[0]).assign(Proc.temp.ansp, P.get_mac_keys());
                 }
@@ -2055,8 +2088,7 @@ bool Instruction<SRegint, SBit>::execute(
                 to_gfp(Proc.temp.ansp, Proc.temp.aa);
                 Proc.write_Cp(r[0], Proc.temp.ansp);
                 break;
-              case DIGESTC:
-                {
+              case DIGESTC: {
                   stringstream o;
                   to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
 
@@ -2220,7 +2252,12 @@ bool Instruction<SRegint, SBit>::execute(
               case SHLC:
                 to_bigint(Proc.temp.aa, Proc.read_Cp(r[2]));
                 if (Proc.temp.aa > 63)
-                  throw not_implemented();
+                  {
+                    cout << "SHLC : error ";
+                    Proc.read_Cp(r[2]).output(cout, true);
+                    cout << endl;
+                    throw not_implemented();
+                  }
 #ifdef DEBUG
                 Proc.temp.ansp.SHL(Proc.read_Cp(r[1]), Proc.temp.aa);
                 Proc.write_Cp(r[0], Proc.temp.ansp);
@@ -2231,7 +2268,12 @@ bool Instruction<SRegint, SBit>::execute(
               case SHRC:
                 to_bigint(Proc.temp.aa, Proc.read_Cp(r[2]));
                 if (Proc.temp.aa > 63)
-                  throw not_implemented();
+                  {
+                    cout << "SHLR : error ";
+                    Proc.read_Cp(r[2]).output(cout, true);
+                    cout << endl;
+                    throw not_implemented();
+                  }
 #ifdef DEBUG
                 Proc.temp.ansp.SHR(Proc.read_Cp(r[1]), Proc.temp.aa);
                 Proc.write_Cp(r[0], Proc.temp.ansp);
@@ -2339,12 +2381,39 @@ bool Instruction<SRegint, SBit>::execute(
               case DIVINT:
                 Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) / Proc.read_Ri(r[2]);
                 break;
+	      case MODINT:
+                Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) % Proc.read_Ri(r[2]);
+                break;
               case CONVINT:
                 Proc.get_Cp_ref(r[0]).assign(Proc.read_Ri(r[1]));
                 break;
               case CONVMODP:
                 to_signed_bigint(Proc.temp.aa, Proc.read_Cp(r[1]), n);
                 Proc.write_Ri(r[0], Proc.temp.aa.get_si());
+                break;
+              case NEWC:
+                Proc.write_Ri(r[0], machine.Mc.New(Proc.read_Ri(r[1])));
+                break;
+              case NEWS:
+                Proc.write_Ri(r[0], machine.Ms.New(Proc.read_Ri(r[1])));
+                break;
+              case NEWINT:
+                Proc.write_Ri(r[0], machine.Mr.New(Proc.read_Ri(r[1])));
+                break;
+              case NEWSINT:
+                Proc.write_Ri(r[0], machine.Msr.New(Proc.read_Ri(r[1])));
+                break;
+              case DELETEC:
+                machine.Mc.Delete(Proc.read_Ri(r[0]));
+                break;
+              case DELETES:
+                machine.Ms.Delete(Proc.read_Ri(r[0]));
+                break;
+              case DELETEINT:
+                machine.Mr.Delete(Proc.read_Ri(r[0]));
+                break;
+              case DELETESINT:
+                machine.Msr.Delete(Proc.read_Ri(r[0]));
                 break;
               case PRINT_MEM:
                 if (P.whoami() == 0)
@@ -2366,14 +2435,8 @@ bool Instruction<SRegint, SBit>::execute(
                 if (P.whoami() == 0)
                   {
                     gfp v= Proc.read_Cp(r[0]);
-                    // immediate values
-                    auto f= n;
-                    auto k= m;
-                    // v has k bits max
-                    to_signed_bigint(Proc.temp.aa, v, k);
-                    mpf_class res= Proc.temp.aa;
-                    // compute v * 2^{-f}
-                    mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), f);
+                    mpf_class res;
+                    convert_from_fix(res, v, m, n);
                     stringstream ss;
                     ss << res;
                     machine.get_IO().debug_output(ss);
@@ -2387,21 +2450,10 @@ bool Instruction<SRegint, SBit>::execute(
                     gfp z= Proc.read_Cp(c_start[2]);
                     gfp s= Proc.read_Cp(c_start[3]);
                     gfp e= Proc.read_Cp(c_start[4]);
-                    to_bigint(Proc.temp.aa, v);
-                    // MPIR can't handle more precision in exponent
-                    to_signed_bigint(Proc.temp.aa2, p, 31);
-                    long exp= Proc.temp.aa2.get_si();
-                    mpf_class res= Proc.temp.aa;
-                    if (exp > 0)
-                      mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp);
-                    else
-                      mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), -exp);
-                    if (z.is_one())
-                      res= 0;
-                    if (!s.is_zero())
-                      res*= -1;
-                    if (not z.is_bit() or not s.is_bit())
-                      throw Processor_Error("invalid floating point number");
+
+                    mpf_class res;
+                    convert_from_float(res, v, p, z, s);
+
                     stringstream ss;
                     if (e.is_zero())
                       {
@@ -2425,27 +2477,8 @@ bool Instruction<SRegint, SBit>::execute(
               case PRINT_IEEE_FLOAT:
                 if (P.whoami() == 0)
                   {
-                    unsigned long y= Proc.read_Ri(r[0]);
-                    // First convert long to bits
-                    vector<int> bits(64);
-                    for (int index= 0; index < 64; index++)
-                      {
-                        bits[63 - index]= y & 1;
-                        y>>= 1;
-                      }
-                    // Now convert bits to double
-                    double x;
-                    uint8_t *ptr= (uint8_t *) &x;
-                    for (int index= 0; index < 8; index++)
-                      {
-                        uint8_t byte= 0;
-                        for (int j= 0; j < 8; j++)
-                          {
-                            byte<<= 1;
-                            byte+= bits[56 + j - index * 8];
-                          }
-                        ptr[index]= byte;
-                      }
+                    long y= Proc.read_Ri(r[0]);
+                    double x= convert_to_double(y);
                     // Now print the double
                     stringstream ss;
                     ss.precision(numeric_limits<double>::digits10 + 2);
@@ -2743,7 +2776,7 @@ bool Instruction<SRegint, SBit>::execute(
                 Proc.write_srint(r[0], Proc.read_Ri(r[1]));
                 break;
               case CONVSINTSBIT:
-                Proc.convert_sint_to_sbit(r[1], r[0], P);
+                Proc.convert_sint_to_sbit(r[1], r[0], P, OCD);
                 break;
               case CONVSBITSINT:
                 Proc.convert_sbit_to_sint(r[1], r[0], P);

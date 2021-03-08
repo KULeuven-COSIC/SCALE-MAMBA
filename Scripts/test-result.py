@@ -1,12 +1,11 @@
 #!/usr/bin/python2
 
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 
 import struct
 import inspect
-import gmpy2
 import sys
 import operator
 import math
@@ -14,6 +13,23 @@ from optparse import OptionParser
 from Compiler.core import *
 from Compiler.core import _sfix, _cfix
 from Compiler import types, util
+
+
+def extended_gcd(aa, bb):
+    lastremainder, remainder = abs(aa), abs(bb)
+    x, lastx, y, lasty = 0, 1, 1, 0
+    while remainder:
+        lastremainder, (quotient, remainder) = remainder, divmod(lastremainder, remainder)
+        x, lastx = lastx - quotient*x, x
+        y, lasty = lasty - quotient*y, y
+    return lastremainder, lastx * (-1 if aa < 0 else 1), lasty * (-1 if bb < 0 else 1)
+
+def modinv(a, m):
+    g, x, y = extended_gcd(a, m)
+    if g != 1:
+        raise ValueError
+    return x % m
+
 
 usage = "usage: %prog [options] sourcefile"
 parser = OptionParser(usage=usage)
@@ -32,7 +48,8 @@ byte_length = int(math.ceil(param / 64.0)) * 8
 print 'byte_length = %d' % byte_length
 #print byte_length
 R = 2 ** (8 * byte_length) % p
-R_inv = gmpy2.invert(R, p)
+R_inv = modinv(R, p)
+assert (R_inv * R % p) == 1
 #print "R = %s" % hex(R)
 
 program.P = p
@@ -59,24 +76,27 @@ mem.seek(size_c * byte_length, 1)
 #print hex(mem.tell())
 size_s = int(mem.readline())
 int_base = mem.tell()
+print 'size_c = %d  size_s =%d\n' % (size_c, size_s)
 
 def read_modp(address):
-    #print address
+    # print '\tread_modp'
+    # print '\ta %d' % address
     mem.seek(base + address * byte_length)
-    #print hex(mem.tell())
+    # print '\tb %s' % hex(mem.tell())
     n = 0
     for i in range(byte_length / 8):
         n += struct.unpack('<Q', mem.read(8))[0] << (i * 64)
-        #print hex(n)
+        # print '\tc %d %s' %(i,hex(n))
     res = n * R_inv % p
     if res > p / 2:
         res -= p
     return res
 
 def read_int(address):
-    #print address
+    # print '\tread_int'
+    # print '\ta %d' % address
     mem.seek(int_base + address * 8)
-    #print hex(mem.tell())
+    # print '\tb %s' % hex(mem.tell())
     return struct.unpack('<q', mem.read(8))[0]
 
 def read_mem(address, value=None):

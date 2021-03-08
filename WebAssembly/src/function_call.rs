@@ -1,3 +1,6 @@
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use scasm::{
     asm::{Instruction, Jump, JumpMode, Terminator},
     lexer::RegisterKind,
@@ -12,8 +15,9 @@ use walrus::{
 };
 
 use crate::{
+    error::Error,
     stack::{AsRegisterKind, PersistentKind},
-    CurrentBlockHandler, Error,
+    CurrentBlockHandler,
 };
 
 impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {

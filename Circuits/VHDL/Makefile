@@ -12,6 +12,6 @@ clean:
 	-rm -r BODY
 	-rm -r PACK
 	-rm -r alib-52
-	-cd SHA-3 ; make clean
-	-cd AES ; make clean
+	-cd SHA-3 ; $(MAKE) clean
+	-cd AES ; $(MAKE) clean
 

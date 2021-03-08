@@ -1,6 +1,6 @@
 
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 ##
 # @file
@@ -500,7 +500,6 @@ def sqrt_fx(x_l, k, f):
 # 3*k - 2 *f < x.f (x.f by default is 20)
 # @param x: fractional input (sfix).
 #
-# @return  returns the aTan of x (sifx).
 def sqrt(x, k = types.sfix.k, f = types.sfix.f):
 
     if (3 *k -2 * f >= types.sfix.f):

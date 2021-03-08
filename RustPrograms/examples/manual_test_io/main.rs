@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 //! This program is NOT meant to be run in the test environment
 //! You should compile it and run it with three players to see
 //! what happens (also you can check the asm prodcued)
@@ -5,14 +9,7 @@
 #![no_main]
 #![feature(const_evaluatable_checked)]
 
-scale::main! {
-    I64_MEMORY = 0;
-    SECRET_I64_MEMORY = 0;
-    SECRET_MODP_MEMORY = 0;
-    CLEAR_MODP_MEMORY = 0;
-    KAPPA = 40;
-}
-
+#[scale::main(KAPPA = 40)]
 #[inline(always)]
 fn main() {
     let v: i64 = 1;

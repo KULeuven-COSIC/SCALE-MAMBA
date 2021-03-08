@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use documentation_parser::instructions;
 use std::collections::HashMap;
 
@@ -281,6 +285,24 @@ instructions! {
                                            Open the sbit in sbj and assign it to ri.
                                            XXXX We will want to change this in future XXXXX"## & "c2"
   },
+  "Memory Management "{
+  NEWC & 0xA4 & (dest: rw, value: r) & vectorizable mem_read & r##"NEWC ri, rj \newline
+                                    Allocated rj locations of cint memory and returns the location in register ri.  "## & ""
+  NEWS & 0xA5 & (dest: rw, value: r) & vectorizable mem_read & r##"NEWS ri, rj \newline
+                                    Allocated rj locations of sint memory and returns the location in register ri.  "## & ""
+  NEWINT & 0xA6 & (dest: rw, value: r) & vectorizable mem_read & r##"NEWINT ri, rj \newline
+                                    Allocated rj locations of regint memory and returns the location in register ri.  "## & ""
+  NEWSINT & 0xA7 & (dest: rw, value: r) & vectorizable mem_read & r##"NEWSINT ri, rj \newline
+                                    Allocated rj locations of sregint memory and returns the location in register ri.  "## & ""
+  DELETEC & 0xA8 & (value: r) & vectorizable mem_write & r##"DELETEC ri \newline
+                                    Deletes the cint memory pointed to by regint register ri "## & ""
+  DELETES & 0xA9 & (value: r) & vectorizable mem_write & r##"DELETES ri \newline
+                                    Deletes the sint memory pointed to by regint register ri "## & ""
+  DELETEINT & 0xAA & (value: r) & vectorizable mem_write & r##"DELETEINT ri \newline
+                                    Deletes the regint memory pointed to by regint register ri "## & ""
+  DELETESINT & 0xAB & (value: r) & vectorizable mem_write & r##"DELETESINT ri \newline
+                                    Deletes the sregint memory pointed to by regint register ri "## & ""
+  },
   "Data access" {
   TRIPLE & 0x50 & (dest_reg_i: sw, dest_reg_j: sw, dest_reg_k: sw) & vectorizable & r##"TRIPLE si sj sk \newline
                                         Load secret registers si, sj and sk with the next multiplication triple."## & ""
@@ -422,6 +444,8 @@ instructions! {
                                      Multiplication of regint registers ri=rj * rk. "## & ""
   DIVINT & 0x9E  & (dest: rw, left: r, right: r) & vectorizable & r##"DIVINT ri rj rk \newline
                                      Division of regint registers ri=rj / rk. "## & ""
+  MODINT & 0x9F  & (dest: rw, left: r, right: r) & vectorizable & r##"MODINT ri rj rk \newline
+                                     Modular reduction of regint registers ri=rj % rk. "## & ""
   },
   "Conversion" {
   CONVINT & 0xC0 & (dest: cw, value: r) & vectorizable & r##"CONVINT ci rj \newline
@@ -582,25 +606,25 @@ instructions! {
                                  Replaces the data item pointed to by register ri on the thread-local secret local stack with the contents of register sj."## & ""
  GETSPS & 0x119 & (dest: rw) & mem_read & r##"GETSPS ri \newline
                                  Assigns the current stack pointer on the secret stack to register ri."## & ""
-  RPEEKINT & 0x120 & (dest: rw, value: r) & vectorizable mem_read & r##"PEEKINT ri, rj \newline
+  RPEEKINT & 0x120 & (dest: rw, value: r) & vectorizable mem_read & r##"RPEEKINT ri, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local regint stack and assigns to regint register ri."## & ""
-  RPOKEINT & 0x121 & (dest_ptr: r, value: r) & vectorizable mem_write & r##"POKEINT ri, rj \newline
+  RPOKEINT & 0x121 & (dest_ptr: r, value: r) & vectorizable mem_write & r##"RPOKEINT ri, rj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local regint local stack with the contents of register rj."## & ""
-  RPEEKSINT & 0x122 & (dest: srw, value: r) & vectorizable mem_read & r##"PEEKSINT si, rj \newline
+  RPEEKSINT & 0x122 & (dest: srw, value: r) & vectorizable mem_read & r##"RPEEKSINT si, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local secret regint stack and assigns to secret regint register si."## & ""
-  RPOKESINT & 0x123 & (dest_ptr: r, value: sr) & vectorizable mem_write & r##"POKESINT ri, sj \newline
+  RPOKESINT & 0x123 & (dest_ptr: r, value: sr) & vectorizable mem_write & r##"RPOKESINT ri, sj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local secret regint local stack with the contents of register sj."## & ""
-  RPEEKSBIT & 0x124 & (dest: sbw, value: r) & vectorizable mem_read & r##"PEEKSBIT sbi, rj \newline
+  RPEEKSBIT & 0x124 & (dest: sbw, value: r) & vectorizable mem_read & r##"RPEEKSBIT sbi, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local secret bit stack and assigns to secret bit register sbi."## & ""
-  RPOKESBIT & 0x125 & (dest_ptr: r, value: sb) & vectorizable mem_write & r##"POKESBIT ri, sbj \newline
+  RPOKESBIT & 0x125 & (dest_ptr: r, value: sb) & vectorizable mem_write & r##"RPOKESBIT ri, sbj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local secret bit local stack with the contents of register sbj."## & ""
-  RPEEKC & 0x126 & (dest: cw, value: r) & vectorizable mem_read & r##"PEEKC ci, rj \newline
+  RPEEKC & 0x126 & (dest: cw, value: r) & vectorizable mem_read & r##"RPEEKC ci, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local clear stack and assigns to clear register ci."## & ""
-  RPOKEC & 0x127 & (dest_ptr: r, value: c) & vectorizable mem_write & r##"POKEC ri, cj \newline
+  RPOKEC & 0x127 & (dest_ptr: r, value: c) & vectorizable mem_write & r##"RPOKEC ri, cj \newline
                                  Replaces the data item pointed to by ri on the thread-local clear local stack with the contents of register cj."## & ""
-  RPEEKS & 0x128 & (dest: sw, value: r) & vectorizable mem_read & r##"PEEKS si, rj \newline
+  RPEEKS & 0x128 & (dest: sw, value: r) & vectorizable mem_read & r##"RPEEKS si, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local secret stack and assigns to secret register si."## & ""
-  RPOKES & 0x129 & (dest_ptr: r, value: s) & vectorizable mem_write & r##"POKES ri, sj \newline
+  RPOKES & 0x129 & (dest_ptr: r, value: s) & vectorizable mem_write & r##"RPOKES ri, sj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local secret local stack with the contents of register sj."## & ""
 },
 

@@ -1,0 +1,101 @@
+a = regint()
+b = regint()
+c = regint()
+d = regint()
+e = regint()
+f = regint()
+g = regint()
+h = regint()
+i = regint()
+j = regint()
+k = regint()
+l = regint()
+m = regint()
+n = regint()
+p = regint()
+
+# http://sandbox.mc.edu/~bennet/cs404b/outl/buddy.html
+# The allocation should be...
+
+# a=0
+# b=4096
+# c=6144
+# d=8192
+# e=12288
+# f=10240
+# g=4096
+# h=0
+# i=8192
+# j=9216
+# k=12288
+# l=14336
+# m=0
+# n=4096
+# p=6144
+
+
+newc(a,regint(3600))
+print_ln("a = %s",a)
+
+newc(b,regint(1500))
+print_ln("b = %s",b)
+
+newc(c,regint(1200))
+print_ln("c = %s",c)
+newc(d,regint(1900))
+print_ln("d = %s",d)
+newc(e,regint(2700))
+print_ln("e = %s",e)
+
+deletec(c)
+
+deletec(b)
+
+newc(f,regint(1500))
+print_ln("f = %s",f)
+newc(g,regint(1600))
+print_ln("g = %s",g)
+
+deletec(d)
+deletec(a)
+deletec(g)
+
+newc(h,regint(6800))
+print_ln("h = %s",h)
+
+deletec(e)
+
+newc(i,regint(850))
+print_ln("i = %s",i)
+
+newc(j,regint(610))
+print_ln("j = %s",j)
+
+newc(k,regint(1600))
+print_ln("k = %s",k)
+
+newc(l,regint(750))
+print_ln("l = %s",l)
+
+deletec(h)
+
+newc(m,regint(3900))
+print_ln("m = %s",m)
+
+newc(n,regint(1700))
+print_ln("n = %s",n)
+
+deletec(l)
+deletec(f)
+
+deletec(k)
+
+newc(p,regint(670))
+print_ln("p = %s",p)
+
+deletec(i)
+
+deletec(n)
+deletec(j)
+
+

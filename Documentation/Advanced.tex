@@ -1056,18 +1056,16 @@ c, v = FixedPt.Norm(b, b.k, b.f, kappa, True)
     \item $\sshare{v} \asn \sum_{i=0}^{k-1} 2^{k-i-1} \cdot \sshare{z_i}$.
     \item $\sshare{c} \asn \sshare{b} \cdot \sshare{v}$.
     \item $\sshare{m} \asn \sum_{i=0}^{k-1} (i+1) \cdot \sshare{z_i}$.
-          %z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
-    \item For $i \in [1,\ldots,k/2]$ do
+    \item For $i \in [1,\ldots,k/2)$ do
           \begin{enumerate}
             \item $\sshare{w_i}=\sshare{z_{2\cdot i-1}}+\sshare{z_{2\cdot i}}$.
           \end{enumerate}
-    \item $\sshare{w_0} \asn 0$.
-    \item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
+    \item $\sshare{w} \asn \sum_{i=1}^{k/2-1} 2^i \cdot \sshare{w_i}$.
     \item Return $\sshare{c}, \sshare{v}, \sshare{m}, \sshare{w}$.
   \end{enumerate}
 
   \msubsubsection{$\mathsf{SimplifiedNormSQ}(\sshare{b},k):$}
-  Same as above, but in this case we only return $m$, and $w$, together with a $\{0,1\}$ bit signaling whether m is odd.
+  Same as above, but in this case we only return $w$, together with a $\{0,1\}$ bit signaling whether $m$ is odd.
   This algorithm is used in the Fixed Point sqrt routine later.
 
   \begin{enumerate}
@@ -1076,21 +1074,18 @@ c, v = FixedPt.Norm(b, b.k, b.f, kappa, True)
     \item $\sshare{m} \asn \sum_{i=0}^{k-1} (i+1) \cdot \sshare{z_i}$.
     \item For $i \in [0,\ldots,k-1]$ do
           \begin{enumerate}
-            \item $\sshare{m}=\sshare{m}+ (i+1) +\sshare{z_{i}}$.
             \item If $(i \quad \% \quad 2 == 0)$:
                   \begin{enumerate}
                     \item $\sshare{m_{odd}} \asn m_{odd} + \sshare{z_{i}}$
                   \end{enumerate}
           \end{enumerate}
-          %z[2 * i - 1-(1 -k%2)] + z[2 * i- (1 -k%2)]
-    \item For $i \in [1,\ldots,k/2]$ do
+    \item For $i \in [1,\ldots,k/2)$ do
           \begin{enumerate}
             \item $\sshare{w_i}=\sshare{z_{2\cdot i-1}}+\sshare{z_{2\cdot i}}$.
           \end{enumerate}
-    \item $\sshare{w_0} \asn 0$.
-    \item $\sshare{w} \asn \sum_{i=0}^{k/2} 2^i \cdot \sshare{w_i}$.
+    \item $\sshare{w} \asn \sum_{i=1}^{k/2-1} 2^i \cdot \sshare{w_i}$.
 
-    \item Return $\sshare{m_{odd}}, \sshare{m}, \sshare{w}$.
+    \item Return $\sshare{m_{odd}}, \sshare{w}$.
   \end{enumerate}
 
   \msubsubsection{$\mathsf{MSB}(\sshare{b},k):$}
@@ -1102,7 +1097,6 @@ c, v = FixedPt.Norm(b, b.k, b.f, kappa, True)
     \item $\sshare{x_{k-1}},\ldots,\sshare{x_0} \asn \mathsf{BitDec}(\sshare{x},k,k)$.
     \item $\sshare{y_{k-1}},\ldots,\sshare{y_0} \asn \mathsf{PreOp}(\mathsf{OR},\sshare{x_{k-1}},\ldots,\sshare{x_0},k)$.
     \item For $i \in [0,\ldots,k-1]$ do
-    \item $z \asn (\sshare(0_{1}),...,\sshare(0_{k + 1 - k \quad \% \quad 2}))$
           \begin{enumerate}
             \item $\sshare{z_i} \asn \sshare{y_i}-\sshare{y_{i+1}}$.
           \end{enumerate}
@@ -1645,7 +1639,7 @@ The algorithm work on the precision of the system and can solve values on any ra
 \begin{enumerate}
   \item $\theta \asn \max{(\ceil{\log_2(k)},6)}$.
   \item $\sshare{m_{odd}}, \sshare{w} \asn \mathsf{SimplifiedNormSQ}(\sshare{x},k)$.
-  \item $\sshare{m_{odd}} \asn (1 - 2 \cdot \sshare{m_{odd}}) \cdot f$.
+  \item $\sshare{m_{odd}} \asn (1 - 2 \cdot \sshare{m_{odd}}) \cdot (f \quad \% \quad 2)$.
   \item $\sshare{w} \asn (2 \cdot \sshare{w} -\sshare{w}) \cdot (1 - \sshare{m_{odd}}) \cdot (f \quad \% \quad 2) + \sshare{w}$.
   \item $\sshare{w} \asn sfix( \sshare{w} \cdot 2 ^{\frac{f - f \quad \% \quad 2}{2}})$.
   \item $\sshare{w} \asn (\sqrt{2}\cdot \sshare{w} - \sshare{w})\cdot \sshare{m_{odd}} + \sshare{w}$.
@@ -1732,7 +1726,7 @@ However we corrected the typos from the original work, the result is as follows:
   \item $\sshare{m} \asn \mathsf{Mod2}(\sshare{m},\ceil{\log_2 k})$.
   \item $\sshare{w} \asn \sshare{w} \cdot \sshare{W} \cdot \sshare{v}$.
   \item $\sshare{w} \asn \mathsf{FxDiv}(\sshare{w},2^{f/2},w.k,w.f)$.
-  \item $\sshare{w} \asn \mathsf{FxDiv}(\sshare{w},3 \cdot k - 2 \cdot f,w.k,w.f)$.
+  \item $\sshare{w} \asn \mathsf{FxDiv}(\sshare{w},2^{3 \cdot k - 2 \cdot f},w.k,w.f)$.
         %\item $\sshare{w} \asn \mathsf{TruncPr}(\sshare{w},3\cdot k, 3 \cdot k - 2 \cdot f)$.
   \item $\sshare{w} \asn (1-\sshare{m}) \cdot \sshare{w} \cdot 2^f
           +(\sqrt{2} \cdot 2^f) \cdot \sshare{m}\cdot \sshare{w}$.
@@ -2013,7 +2007,7 @@ by the following table
   \item $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})
           \asn \mathsf{Fx2FL}(\mathsf{a},k,f,k,k)$.
   \item $\sshare{a} \asn \mathsf{FxPade}(P_{2524},Q_{2524},\sshare{v},k,k)$.
-  \item $\sshare{a} \asn \sshare{a}+\sshare{p}$.
+  \item $\sshare{a} \asn \sshare{a}+\sshare{p} + f$.
   \item $\sshare{a} \asn \sshare{a} \cdot (1-\sshare{z}) \cdot (1-\sshare{s}) \cdot (1-\cdot \sshare{\err})$.
   \item Return $\sshare{a}$.
 \end{enumerate}
@@ -2035,7 +2029,7 @@ Thus, you need to set up \verb+sfloat+ and \verb+sfix+ correctly for this to wor
 In particular if you look deep inside the code there is the following cryptic remark in relation to \verb+log2_fx+...
 \begin{verbatim}
      # Note that sfloat and sfix sizes have to be parametrized correctly,
-     # such that sfix vlen > sfloat vlen. This is not the case by default.
+     # such that sfix k > sfix.f >= sfloat vlen. This is not the case by default.
 \end{verbatim}
 
 

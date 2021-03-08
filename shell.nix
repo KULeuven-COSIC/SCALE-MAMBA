@@ -1,7 +1,7 @@
 let
   sources = import ./nix/sources.nix;
-  rust = import ./nix/rust.nix { inherit sources; };
   pkgs = import sources.nixpkgs { config = import ./nix/config.nix; };
+  unstable = import sources.unstable { config = { allowUnfree = true; }; };
 in pkgs.mkShell {
   # this env var can be removed when
   # https://github.com/wbhart/mpir/issues/288
@@ -15,15 +15,17 @@ in pkgs.mkShell {
     zlib
     gcc10
     openssl
-    rust
     cmake
     doxygen
     python2
     killall
     binaryen
     wabt
+    rustup
+    unstable.rust-analyzer
     clang-tools
     pkg-config
     python27Packages.gmpy2
+    graphviz
   ];
 }

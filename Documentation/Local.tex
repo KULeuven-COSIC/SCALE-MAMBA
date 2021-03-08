@@ -62,6 +62,63 @@ On the byte-code side of system we have one instruction
 \verb|LF| which takes a single argument, namely the
 number of the local function being called.
 
+\subsection{Floating Point Examples}
+These functions (in most cases) load in values from the 
+\verb|regint| stack, treat them as floating point values, 
+process the operation, and then push them back to the \verb|regint| 
+stack.
+The first ones mirror the equivalent functions in the
+\verb|GC| routines, and thus have the same numbers.
+\begin{center}
+\begin{tabular}{c|l}
+Number & Function \\
+\hline
+120 & IEEE floating point (double) addition \\
+121 & IEEE floating point (double) multiplication \\
+122 & IEEE floating point (double) division \\
+123 & IEEE floating point (double) equality \\
+124 & IEEE floating point (double) to sregint \\
+125 & sregint to IEEE floating point (double) \\
+126 & IEEE floating point (double) sqrt \\
+127 & IEEE floating point (double) lt \\
+128 & IEEE floating point (double) floor \\
+129 & IEEE floating point (double) ceil \\
+\hline
+200 & IEEE floating point (double) acos \\
+201 & IEEE floating point (double) asin \\
+202 & IEEE floating point (double) atan \\
+203 & IEEE floating point (double) cos \\
+204 & IEEE floating point (double) cosh \\
+205 & IEEE floating point (double) sin \\
+206 & IEEE floating point (double) sinh \\
+207 & IEEE floating point (double) tanh \\
+208 & IEEE floating point (double) exp \\
+209 & IEEE floating point (double) log \\
+210 & IEEE floating point (double) log10 \\
+211 & IEEE floating point (double) fabs \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Floating Point Conversion}
+We also have local routines that convert between IEEE format
+and \verb|cfix| and \verb|cfloat| format.
+In the following table we mark the types of the arguments
+and outputs with `i' for \verb|regint| and `p' for \verb|cint|.
+The left most argument is at the bottom of the stack
+in each case.
+\begin{center}
+\begin{tabular}{c|l|l}
+Number & Function & Args \\
+\hline
+	500 & IEEE $\rightarrow$ cfix & (x: i, k: i, f: i) $\rightarrow$ (a: p) \\
+	501 & cfix$\rightarrow$IEEE & (x: p, k: i, f: i) $\rightarrow$ (a: i) \\
+	502 & IEEE$\rightarrow$cfloat & (x: i, vlen: i, plen: i) $\rightarrow$ (v: p, p: p, z: p, s: p, err: p) \\
+	503 & cfloat$\rightarrow$IEEE & (v: p, p: p, z: p, s: p, err: p) $\rightarrow$ (x: i) \\
+\hline
+\end{tabular}
+\end{center}
+
 \subsection{BLAS Examples}
 In our Basic Linear Algebra System (BLAS) we provide currently four
 routines

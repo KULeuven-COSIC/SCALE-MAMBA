@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use scasm::lexer::{Operand, Register, RegisterKind, RegisterStruct};
 use std::collections::HashMap;
 use tracing::{instrument, trace};
@@ -120,7 +124,6 @@ impl Stack {
             return r;
         }
         let persistent_reg = self.temp(RegisterKind::Regint);
-        self.push(persistent_reg);
         self.globals.insert(global, persistent_reg);
         persistent_reg
     }

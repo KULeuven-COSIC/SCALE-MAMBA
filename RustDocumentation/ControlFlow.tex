@@ -4,9 +4,17 @@ support.
 
 \subsection{If-then-else}
 Branching on clear data is possible via the standard
-rust if-then-else construct. In contrast to Mamba, if you
-need to access data which has been altered within the
-if clauses you do not need to store these in memory.
+rust if-then-else construct.
+If $c$ is a $\ints$ variable, then to branch on $c=1$
+you need to do
+\begin{lstlisting}
+  if c == 1 {
+	  ...
+  }
+\end{lstlisting}
+In contrast to Mamba, if you need to access data which has been 
+altered within the if clauses you do not need to store these in 
+memory.
 Instead you can just use the standard Rust local variables
 and everything will work as expected.
 For example

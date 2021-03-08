@@ -1,15 +1,12 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 #![no_std]
 #![no_main]
 #![feature(const_evaluatable_checked)]
 
-scale::main! {
-    I64_MEMORY = 0;
-    SECRET_I64_MEMORY = 0;
-    SECRET_MODP_MEMORY = 0;
-    CLEAR_MODP_MEMORY = 0;
-    KAPPA = 40;
-}
-
+#[scale::main(KAPPA = 40)]
 #[inline(always)]
 fn main() {
     let a = 5424;
@@ -21,7 +18,6 @@ fn main() {
 
     let ca = ClearModp::from(a);
     let cb = ClearModp::from(b);
-    print!("hello ", ca, " world ", cb, "\n");
     let sa = SecretModp::from(a);
     let sb = SecretModp::from(b);
 
@@ -63,17 +59,17 @@ fn main() {
     (sa * const_b).test();
     (const_a * sb).test();
 
-    (ConstI32::<42>-ca).test();
-    (ConstI32::<42>+ca).test();
-    (ConstI32::<42>-sa).test();
-    (ConstI32::<42>+sa).test();
-    (ca-ConstI32::<42>).test();
-    (ca+ConstI32::<42>).test();
-    (sb-ConstI32::<42>).test();
-    (sb+ConstI32::<42>).test();
+    (ConstI32::<42> - ca).test();
+    (ConstI32::<42> + ca).test();
+    (ConstI32::<42> - sa).test();
+    (ConstI32::<42> + sa).test();
+    (ca - ConstI32::<42>).test();
+    (ca + ConstI32::<42>).test();
+    (sb - ConstI32::<42>).test();
+    (sb + ConstI32::<42>).test();
 
     let divisible = a - a % b;
-    let const_divisible = ConstI32::<{A - A % B}>;
+    let const_divisible = ConstI32::<{ A - A % B }>;
     let cdivisible = ClearModp::from(divisible);
     let sdivisible = SecretModp::from(divisible);
     (cdivisible / cb).test();

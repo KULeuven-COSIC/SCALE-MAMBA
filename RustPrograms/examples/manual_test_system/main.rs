@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 //! This program is NOT meant to be run in the test environment
 //! You should just compile it with -A and then check the assembler
 //! is correct
@@ -5,14 +9,7 @@
 #![no_main]
 #![feature(const_evaluatable_checked)]
 
-scale::main! {
-    I64_MEMORY = 0;
-    SECRET_I64_MEMORY = 0;
-    SECRET_MODP_MEMORY = 0;
-    CLEAR_MODP_MEMORY = 0;
-    KAPPA = 40;
-}
-
+#[scale::main(KAPPA = 40)]
 #[inline(always)]
 fn main() {
     start_clock(ConstU32::<3>);
@@ -24,8 +21,8 @@ fn main() {
     clear_memory();
     clear_registers();
 
-    let a =ClearModp::from(4);
-    let c =a.digest();
+    let a = ClearModp::from(4);
+    let c = a.digest();
     let m = black_box(10);
     let d = m.rand();
 }

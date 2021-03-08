@@ -1,6 +1,10 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use crate::{
     ClearModp, ConstU32, LoadFromMem, Reveal, SecretBit, SecretI64, SecretModp, Test, TestMem,
-    TestValue, BYTE_LENGTH, CLEAR_MODP_MEMORY, I64_MEMORY, TEST_MEMORY_OFFSET,
+    TestValue, BYTE_LENGTH, TEST_MEMORY_OFFSET,
 };
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
@@ -14,13 +18,7 @@ struct Memory {
 }
 
 #[no_mangle]
-fn set_i64_max_memory(_: u32) {}
-#[no_mangle]
-fn set_secret_i64_max_memory(_: u32) {}
-#[no_mangle]
-fn set_clear_modp_max_memory(_: u32) {}
-#[no_mangle]
-fn set_secret_modp_max_memory(_: u32) {}
+fn init_wasm_heap_memory() {}
 
 fn bits_to_bignum(bits: &[bool]) -> BigInt {
     let bytes = bits
@@ -110,8 +108,7 @@ impl Test for i64 {
     #[track_caller]
     fn test(self) {
         let loc = core::panic::Location::caller();
-        let vm = read_int(i64::from(loc.line()) + unsafe { I64_MEMORY } + TEST_MEMORY_OFFSET);
-        println!("{} {}", loc, vm);
+        let vm = read_int(i64::from(loc.line()) + TEST_MEMORY_OFFSET);
         assert_eq!(
             self, vm,
             "value at {} differs between emulation and VM execution",
@@ -131,8 +128,7 @@ impl Test for ClearModp {
     #[track_caller]
     fn test(self) {
         let loc = core::panic::Location::caller();
-        let vm =
-            read_clear(i64::from(loc.line()) + unsafe { CLEAR_MODP_MEMORY } + TEST_MEMORY_OFFSET);
+        let vm = read_clear(i64::from(loc.line()) +  TEST_MEMORY_OFFSET);
         println!("{} {}", loc, BigInt::from(vm));
         assert_eq!(
             BigInt::from(self) % &*P,
@@ -182,8 +178,7 @@ impl TestValue for ClearModp {
     #[track_caller]
     fn test_value(self, val: Self) {
         let loc = core::panic::Location::caller();
-        let vm =
-            read_clear(i64::from(loc.line()) + unsafe { CLEAR_MODP_MEMORY } + TEST_MEMORY_OFFSET);
+        let vm = read_clear(i64::from(loc.line()) + TEST_MEMORY_OFFSET);
         println!("{} {} {}", loc, BigInt::from(vm), BigInt::from(vm) % &*P);
         assert_eq!(
             BigInt::from(val) % &*P,
@@ -205,7 +200,7 @@ impl TestValue for i64 {
     #[track_caller]
     fn test_value(self, val: i64) {
         let loc = core::panic::Location::caller();
-        let vm = read_int(i64::from(loc.line()) + unsafe { I64_MEMORY } + TEST_MEMORY_OFFSET);
+        let vm = read_int(i64::from(loc.line()) + TEST_MEMORY_OFFSET);
         println!("{} {} {}", loc, vm, val);
         assert_eq!(
             vm, val,

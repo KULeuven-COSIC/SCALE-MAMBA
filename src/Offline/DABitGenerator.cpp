@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -185,13 +185,13 @@ void SmallPrimeDABitGenerator<SBit>::provide_random_inputs(vector<vector<Share>>
       if (player == P.whoami())
         {
           (*this).timers["Sending input bits"].start();
-          P.send_all((*this).buff.get_buffer(), (*this).num_dabits, 2, false);
+          P.send_all((*this).buff.get_buffer(), (*this).num_dabits * ( 1+gfp::size()), 2, false);
           (*this).timers["Sending input bits"].stop();
         }
       else
         {
           (*this).timers["Receiving input bits"].start();
-          // Receive via Channel 1
+          // Receive via Channel 2
           unsigned int len;
           const uint8_t *P_buff= P.receive_from_player(player, len, 2, false);
           unsigned int pos= 0;

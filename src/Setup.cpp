@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -57,8 +57,7 @@ void init_secret_sharing_inner(std::istream &cin)
   int lg2p= -1;
   switch (lsss)
     {
-      case Full:
-        {
+        case Full: {
           int answer= -1;
           while (answer != 0 && answer != 1)
             {
@@ -86,8 +85,7 @@ void init_secret_sharing_inner(std::istream &cin)
         }
       case Shamir:
       case Replicated:
-      case Q2MSP:
-        {
+        case Q2MSP: {
           while (p < 2)
             {
               cout << "\nWhat modulus do you want to use for secret sharing?" << endl;
@@ -111,8 +109,7 @@ void init_secret_sharing_inner(std::istream &cin)
 
   switch (lsss)
     {
-      case Shamir:
-        {
+        case Shamir: {
           unsigned int bd= n / 2;
           if ((n & 1) == 1)
             {
@@ -125,8 +122,7 @@ void init_secret_sharing_inner(std::istream &cin)
             }
           break;
         }
-      case Q2MSP:
-        {
+        case Q2MSP: {
           cout << "Enter number of shares per player" << endl;
           unsigned int nr= 0;
           for (unsigned int i= 0; i < n; i++)
@@ -155,8 +151,7 @@ void init_secret_sharing_inner(std::istream &cin)
             }
           break;
         }
-      case Replicated:
-        {
+        case Replicated: {
           cout << "How do you want to initialize the secret sharing scheme?\n";
           cout << "\t 1) Set of unqualified sets\n";
           cout << "\t 2) Set of qualified sets\n";

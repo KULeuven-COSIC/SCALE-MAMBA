@@ -1,7 +1,7 @@
 \subsection{Operators}
 
 \subsubsection{Unary Operators}
-The following unary operations are allowed on $\SecretBit$, $\SecretI64$.
+The following unary operations are allowed on $\SecretBit$, $\SecretI$.
 \begin{verbatim}
      !
 \end{verbatim}
@@ -38,9 +38,9 @@ types:
 \begin{verbatim}
      /
 \end{verbatim}
-The output is of type $\SecretModp$ if any of the first operand is
+The output is of type $\SecretModp$ if the first operand is
 $\SecretModp$s, otherwise the output type is a $\ClearModp$.
-     {\bf Note:} The second operand must be a $\ClearModp$ or a $ConstI32$ at present.
+     {\bf Note:} The second operand must be a $\ClearModp$ or a \verb|ConstI32| at present.
 
 ~ \\
 
@@ -79,7 +79,7 @@ on the resulting condition etc.
 \noindent
 Between an $\SecretI$, $\SecretModp$ or $\ClearModp$ and an immediate operand (an \verb|ConstU32|)
 you can execute shift-left and shift-right operations. These operators also exist if both operands
-are $i64$.
+are $\ints$.
 \begin{verbatim}
      <<    >>
 \end{verbatim}
@@ -96,8 +96,3 @@ the end result.
    let c = a << b
 \end{lstlisting}
 
-
-~ \\
-
-\todo{These discuss native operands, what about non-native?
-     We will get to them when we have the arith routines done}

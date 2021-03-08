@@ -21,4 +21,4 @@ LIB = ../src/libMPC.a
 	- mv $@ ../
 
 clean:
-	- rm *.o 
+	- rm *.o *.x

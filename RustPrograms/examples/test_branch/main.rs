@@ -1,15 +1,12 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 #![no_std]
 #![no_main]
 #![feature(const_evaluatable_checked)]
 
-scale::main! {
-    I64_MEMORY = 60;
-    SECRET_I64_MEMORY = 60;
-    SECRET_MODP_MEMORY = 60;
-    CLEAR_MODP_MEMORY = 60;
-    KAPPA = 40;
-}
-
+#[scale::main(KAPPA = 40)]
 #[inline(always)]
 fn main() {
     /* This program has some weird assign to
@@ -106,7 +103,7 @@ fn main() {
             }
         }
     }
-    let t = ClearModp::from(ConstI32::<{23 * 35}>);
+    let t = ClearModp::from(ConstI32::<{ 23 * 35 }>);
     t.test_mem(ConstU32::<10>);
     (t * t + ConstI32::<11>).test_mem(ConstU32::<11>);
 
@@ -131,6 +128,6 @@ fn main() {
             }
         }
     }
-    let t = ClearModp::from(ConstI32::<{23 * 35}>);
+    let t = ClearModp::from(ConstI32::<{ 23 * 35 }>);
     (t * t * t).test_mem(ConstU32::<12>);
 }

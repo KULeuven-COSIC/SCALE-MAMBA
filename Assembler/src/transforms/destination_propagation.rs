@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 //! Replace
 //!
 //! ```asm
@@ -11,102 +15,174 @@
 //! addint r4, r2, r3
 //! ```
 
-use std::collections::{hash_map::Entry, HashMap};
 
 use crate::{asm::Instruction, Compiler};
 use crate::{
-    asm::{Body, Terminator},
+    asm::{Body},
     lexer::{Operand, Register},
 };
+use crate::span::*;
 
 #[derive(Default)]
 pub struct Pass;
 
+
+// Returns 
+//    false: if there is more than one instruction which reads this source register
+//           and more than one instruction which writes this destination register
+//    true: if only one which reads
+fn is_removable<'a>(cx: &'a Compiler, body: &Body<'a>, source: Register, destination: Register) 
+    -> bool
+{
+  let mut cnts=0;
+  let mut cntd=0;
+  for block in &body.blocks {
+    for stmt in &block.stmts {
+        for x in stmt.read_registers_base(cx) {
+            if x == source {
+              if cnts==0 { cnts=1 }
+              else       { return false; }
+            }
+        }
+        for x in stmt.write_registers_base(cx) {
+            if x == destination {
+              if cntd==0 { cntd=1 }
+              else       { return false; }
+            }
+        }
+    }
+  }
+  return true;
+}
+
 impl super::Pass for Pass {
     fn apply<'a>(&mut self, cx: &'a Compiler, body: &mut Body<'a>) {
-        struct MultipleReads;
-        let mut single_read_registers: HashMap<Register, Result<(), MultipleReads>> =
-            HashMap::new();
-        for block in &body.blocks {
-            for stmt in &block.stmts {
-                if let Instruction::Assign { value, .. } = stmt.instr {
-                    if let Operand::Register(value) = value.elem {
-                        match single_read_registers.entry(value) {
-                            Entry::Occupied(mut entry) => {
-                                let _ = entry.insert(Err(MultipleReads));
-                            }
-                            Entry::Vacant(entry) => {
-                                entry.insert(Ok(()));
-                            }
-                        }
-                    }
-                } else {
-                    for reg in stmt.read_registers(cx) {
-                        let _ = single_read_registers.insert(reg, Err(MultipleReads));
-                    }
-                }
-            }
-            match &block.terminator.elem {
-                Terminator::Jump(jmp) => match &jmp.mode {
-                    crate::asm::JumpMode::Goto => {}
-                    crate::asm::JumpMode::Conditional(cond) => {
-                        single_read_registers.insert(cond.register.elem.into(), Err(MultipleReads));
-                    }
-                    crate::asm::JumpMode::Call { .. } => {}
-                },
-                Terminator::Restart { .. } => {}
-                Terminator::Crash { .. } => {}
-                Terminator::Return { .. } => {}
-                Terminator::Done => {}
-            }
-        }
+       let mut count=0;
+       let mut total=0;
+       // First count the total number of instructions
+       for block in &body.blocks {
+         for _stmt in &block.stmts {
+             total=total+1;
+         }
+       }
+       // If total too big then ignore this optimization
+       //   - This is a pity, but is due to us not being able to just search within a block
+       //     for a read once, as a register could be read later than in a block
+       if total>20000 {
+           println!("\tIgnoring destination propagation optimization due to there being a total of  {} instructions",total);
+           return;
+       }
 
-        // The actual optimization runs only within a block for now, handling multi-block
-        // is not easy to do.
-        for block in body.blocks.iter_mut() {
-            // We look for an operation that outputs to a single-use register and remember that
-            // in `candidates`. If there is a read or write to the register that we would use as
-            // a replacement, we cancel the optimization. This is to prevent
-            // ```rust
-            // addint r1, r2, r3
-            // mov r5, r4
-            // mov r4, r1
-            // ```
-            // which would end up having the wrong value for `r5` if we assigned to `r4` during
-            // the addition operation.
-            let mut candidates: HashMap<Register, usize> = HashMap::new();
-            let mut optimizations = Vec::new();
-            for (stmt_id, stmt) in block.stmts.iter_mut().enumerate() {
-                let span = trace_span!("statement", stmt = %stmt.relex(cx).0.display(cx));
-                let _guard = span.enter();
-                if let Instruction::Assign { destination, value } = stmt.instr {
-                    if let Operand::Register(reg) = value.elem {
-                        if let Some(pos) = candidates.remove(&reg) {
-                            // A candidate is now upgraded to be an optimization.
-                            optimizations.push((pos, stmt_id, destination.elem, reg));
+       // First remove unnessary conversions by converting them into mov instructions
+       // Do this first, before we remove mov instructions
+       for b in 0..body.blocks.len() {
+         for i in 0..body.blocks[b].stmts.len() {
+             let forward_instr = &body.blocks[b].stmts[i].instr;
+             match forward_instr 
+                { Instruction::General { instruction, destinations, values, } => { 
+                     let back_instr = match *instruction {
+                         "convsintsreg" => { "convsregsint" }  // s->sr
+                         "convsregsint" => { "convsintsreg" }  // sr->s
+                         "convsintsbit" => { "convsbitsint" }  // s->sb
+                         "convsbitsint" => { "convsintsbit" }  // sb->s
+                         _ => { "none"   }
+                     };
+                     if back_instr != "none" {
+                        let destination = destinations[0].elem;
+                        let mut destination2 = destinations[0].elem; // This will be the new destination reg
+                        let source = values[0].elem;
+                        // The conversion should have a desination register that is read only once
+                        // and that should be by the back_instr
+                        let mut cnt=0;
+                        let mut bj=0;
+                        let mut ij=0;
+                        let mut ok=true;
+                        for b1 in 0..body.blocks.len() {
+                           if !ok { break; }
+                           for i1 in 0..body.blocks[b1].stmts.len() {
+                               if !ok { break; }
+                               for x in body.blocks[b1].stmts[i1].read_registers_base(cx) {
+                                  if x == destination {
+                                     if cnt==0 { 
+                                       cnt=1;
+                                       bj=b1;
+                                       ij=i1;
+                                       match body.blocks[b1].stmts[i1].instr 
+                                           { Instruction::General { instruction, .. } => {
+                                                if back_instr!=instruction { 
+                                                    ok=false; 
+                                                }
+                                                else {
+                                                  destination2=*body.blocks[b1].stmts[i1].write_registers_base(cx).first().unwrap();
+                                                }
+                                             },
+                                             _ => { ok=false; }
+                                           }
+                                     }
+                                     else { 
+                                        ok=false; 
+                                     }
+                                  }
+                               }
+                           }
                         }
+                        if ok {
+                           // Convert first function to a MOV and second to a NOP
+                           let dest: Spanned<Register> = Spanned::from(destination2);
+                           let src: Spanned<Operand> = Spanned::from(source);
+                           body.blocks[b].stmts[i].instr = Instruction::Assign { destination: dest , value: src};
+                           body.blocks[bj].stmts[ij].instr = Instruction::Nop;
+                           count=count+1;
+                        }
+                     }
+                  }
+                  _ => {  }
+                };
+         } 
+       }
+
+       for b in 0..body.blocks.len() {
+         for i in 0..body.blocks[b].stmts.len() {
+           if let Instruction::Assign { destination, value, .. } = body.blocks[b].stmts[i].instr {
+               if let Operand::Register(value) = value.elem {
+                   // These instructions should be mov* instructions
+                 // Find out if more than one instruction reads this source register 
+                 // and if more than one writes this destingation register
+                 //   - Should not need to do the latter as we should be in SSA form
+                 //     But for some reason we are not
+                 let flag = is_removable(cx, body, value, destination.elem);
+                 // If only one instruction reads this register then we can remove it
+                 if flag {
+                    // Search through and replace the write to value with destination
+                    // This should never be more than 1, again due to SSA form
+                    // But sometimes it is (which is why we cannot early terminate this loop)
+                    // This is because we have some instructions which write to source, 
+                    // whose value is never used (as we know source is only read once, 
+                    // [by this mov]
+                    let mut cnt=0;
+                    for block1 in &mut body.blocks {
+                      for stmt in &mut block1.stmts {
+                        let mut flag=false;
+                        for x in stmt.write_registers_base(cx) {
+                            if x==value {
+                                flag=true;
+                            }
+                        }
+                        if flag {
+                           cnt=cnt+1;
+                           stmt.replace_registers(cx, |r| if r == value { destination.elem } else { r });
+                        }
+                      }
                     }
-                }
-                // Clear anything touching a current candidate.
-                for reg in stmt
-                    .read_registers(cx)
-                    .into_iter()
-                    .chain(stmt.write_registers(cx))
-                {
-                    candidates.remove(&reg);
-                }
-                for reg in stmt.write_registers(cx) {
-                    if let Some(Ok(())) = single_read_registers.get(&reg) {
-                        candidates.insert(reg, stmt_id);
-                    }
-                }
-            }
-            for (opt, remove, new, old) in optimizations {
-                block.stmts[remove].instr = Instruction::Nop;
-                block.stmts[opt].replace_registers(cx, |r| if r == old { new } else { r });
-            }
-            block.stmts.retain(|s| !matches!(s.instr, Instruction::Nop));
-        }
+                    body.blocks[b].stmts[i].instr = Instruction::Nop;
+                    count=count+1;
+                 }
+               }
+           }
+         }
+       }
+    println!("\tDestination propagation deleted {} instructions out of {}",count,total);
+
     }
     fn name(&self) -> &'static str {
         "destination_propagation"

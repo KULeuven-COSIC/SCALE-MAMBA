@@ -1,3 +1,6 @@
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use std::convert::{TryFrom, TryInto};
 
 use scasm::{
@@ -21,17 +24,21 @@ use walrus::{
     FunctionKind, GlobalId,
 };
 
-use crate::{stack::AsRegisterKind, stack::PersistentKind, CurrentBlockHandler, Error};
+use crate::{error::Error, stack::AsRegisterKind, stack::PersistentKind, CurrentBlockHandler};
 
 impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
-    #[allow(dead_code)]
-    // FIXME: use this
-    fn global_default(&self, global: GlobalId, module: &walrus::Module) -> Value {
-        match &module.globals.get(global).kind {
-            walrus::GlobalKind::Local(walrus::InitExpr::Value(val)) => *val,
-            this => unimplemented!("{:?}", this),
-        }
+    pub(crate) fn global_set(&mut self, val: Operand, global: GlobalId) {
+        let reg = self.stack.global(global);
+        let instr = Instruction::Assign {
+            destination: reg.into(),
+            value: val.into(),
+        };
+        let comment = self
+            .bh
+            .comment(|f| write!(f, "read from global {}: {}", global.index(), reg));
+        self.push_stmt(Statement::from_instr_with_comment(instr, comment));
     }
+
     pub fn wasm_val_to_op(&mut self, val: Value) -> Operand {
         match val {
             Value::I64(i) if i32::try_from(i).is_ok() => Operand::Value(Const::Int(i as i32)),
@@ -102,6 +109,9 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 }
             }
             Instr::Unop(Unop {
+                op: UnaryOp::I64ExtendSI32,
+            })
+            | Instr::Unop(Unop {
                 op: UnaryOp::I64ExtendUI32,
             }) => {
                 // Do nothing, we'd just pop and push back again anyway
@@ -183,6 +193,9 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 op: op @ BinaryOp::I64ShrU,
             })
             | Instr::Binop(Binop {
+                op: op @ BinaryOp::I32Or,
+            })
+            | Instr::Binop(Binop {
                 op: op @ BinaryOp::I64Or,
             }) => {
                 let b = self.stack.pop();
@@ -203,7 +216,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         "xorint"
                     }
                     BinaryOp::I64And | BinaryOp::I32And => "andint",
-                    BinaryOp::I64Or => "orint",
+                    BinaryOp::I64Or | BinaryOp::I32Or => "orint",
                     BinaryOp::I64Shl | BinaryOp::I32Shl => "shlint",
                     BinaryOp::I64ShrS | BinaryOp::I32ShrU | BinaryOp::I64ShrU => "shrint",
                     _ => unreachable!(),
@@ -211,21 +224,27 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 let a = self.val_to_reg(a);
                 let b = self.val_to_reg(b);
                 let result = self.binop(a, b, RegisterKind::Regint, instruction, Span::DUMMY);
+                let result = self.wrap_if_32_bit(result, op);
                 self.stack.push(result);
             }
             Instr::Binop(Binop {
-                op: _op @ BinaryOp::I32RemU,
+                op: op @ BinaryOp::I32RemS,
             })
             | Instr::Binop(Binop {
-                op: _op @ BinaryOp::I64RemU,
+                op: op @ BinaryOp::I64RemS,
+            }) 
+            | Instr::Binop(Binop {
+                op: op @ BinaryOp::I32RemU,
+            })
+            | Instr::Binop(Binop {
+                op: op @ BinaryOp::I64RemU,
             }) => {
                 let b = self.stack.pop();
                 let a = self.stack.pop();
                 let a = self.val_to_reg(a);
                 let b = self.val_to_reg(b);
-                let divres = self.binop(a, b, RegisterKind::Regint, "divint", Span::DUMMY);
-                let mulres = self.binop(divres, b, RegisterKind::Regint, "mulint", Span::DUMMY);
-                let result = self.binop(a, mulres, RegisterKind::Regint, "subint", Span::DUMMY);
+                let result = self.binop(a, b, RegisterKind::Regint, "modint", Span::DUMMY);
+                let result = self.wrap_if_32_bit(result, op);
                 self.stack.push(result);
             }
             Instr::Binop(Binop {
@@ -616,15 +635,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             }
             Instr::GlobalSet(GlobalSet { global }) => {
                 let val = self.stack.pop();
-                let reg = self.stack.global(*global);
-                let instr = Instruction::Assign {
-                    destination: reg.into(),
-                    value: val.into(),
-                };
-                let comment = self
-                    .bh
-                    .comment(|f| write!(f, "read from global {}: {}", global.index(), reg));
-                self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+                self.global_set(val, *global);
             }
             Instr::GlobalGet(GlobalGet { global }) => {
                 let reg = self.stack.global(*global);
@@ -640,56 +651,141 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             }
             Instr::Store(Store { memory, kind, arg }) => {
                 let value = self.stack.pop();
-                let address = match self.stack.pop() {
-                    Operand::Value(Const::Int(i)) => i as u32,
-                    _ => unimplemented!(),
+                match self.stack.pop() {
+                    Operand::Value(Const::Int(address)) => {
+                        assert_eq!(memory.index(), 0);
+                        match kind {
+                            StoreKind::I64 { .. } => {}
+                            _ => unimplemented!("memory store for {:?}", kind),
+                        }
+                        let offset = arg.offset + address as u32;
+                        let offset = offset / 8;
+                        let offset = offset
+                            + self
+                                .offset_addr_val
+                                .expect("must have an offset address set");
+
+                        // FIXME: get rid of this hack with https://github.com/rust-lang/rust/blob/38030ffb4e735b26260848b744c0910a5641e1db/compiler/rustc_target/src/spec/wasm32_base.rs#L17
+                        let instr = Instruction::General {
+                            instruction: "stmint",
+                            destinations: vec![],
+                            values: vec![
+                                Span::DUMMY.with(self.val_to_reg(value).into()),
+                                Span::DUMMY
+                                    .with(Operand::Value(Const::Int(offset.try_into().unwrap()))),
+                            ],
+                        };
+                        self.push_stmt(instr);
+                    }
+                    Operand::Register(reg) => {
+                        // ((reg - arg.offset) / 8) + heap + 1000
+                        let offset = self.val_to_reg(Operand::Value(Const::Int(arg.offset as i32)));
+                        let real_offset = self.binop(
+                            Operand::Register(reg),
+                            offset,
+                            RegisterKind::Regint,
+                            "subint",
+                            Span::DUMMY,
+                        );
+
+                        let eight = self.val_to_reg(Operand::Value(Const::Int(8)));
+                        let offset = self.binop(
+                            Operand::Register(real_offset),
+                            eight,
+                            RegisterKind::Regint,
+                            "divint",
+                            Span::DUMMY,
+                        );
+
+                        let wasm_heap_offset_reg = self.val_to_reg(Operand::Value(Const::Int(
+                            self.offset_addr_val.unwrap() as i32,
+                        )));
+
+                        let offset = self.binop(
+                            Operand::Register(offset),
+                            Operand::Register(wasm_heap_offset_reg),
+                            RegisterKind::Regint,
+                            "addint",
+                            Span::DUMMY,
+                        );
+
+                        let instruction = match kind {
+                            StoreKind::I64 { .. } => "stminti",
+                            StoreKind::F32 => "stmsi",
+                            StoreKind::I32 { .. } => {
+                                unimplemented!()
+                            }
+                            StoreKind::F64 => {
+                                unimplemented!()
+                            }
+                            StoreKind::V128 => {
+                                unimplemented!()
+                            }
+                            StoreKind::I32_8 { .. } => {
+                                unimplemented!()
+                            }
+                            StoreKind::I32_16 { .. } => {
+                                unimplemented!()
+                            }
+                            StoreKind::I64_8 { .. } => {
+                                unimplemented!()
+                            }
+                            StoreKind::I64_16 { .. } => {
+                                unimplemented!()
+                            }
+                            StoreKind::I64_32 { .. } => {
+                                unimplemented!()
+                            }
+                        };
+
+                        let instr = Instruction::General {
+                            instruction,
+                            destinations: vec![],
+                            values: vec![
+                                Span::DUMMY.with(self.val_to_reg(value).into()),
+                                Span::DUMMY.with(Operand::Register(offset)),
+                            ],
+                        };
+                        self.push_stmt(instr);
+                    }
+                    other => unimplemented!("this operand {:?} is not implemented", other),
                 };
-                assert_eq!(memory.index(), 0);
-                match kind {
-                    StoreKind::I64 { .. } => {}
-                    _ => unimplemented!("memory store for {:?}", kind),
-                }
-                let offset = arg.offset + address;
-                // FIXME: get rid of this hack with https://github.com/rust-lang/rust/blob/38030ffb4e735b26260848b744c0910a5641e1db/compiler/rustc_target/src/spec/wasm32_base.rs#L17
-                let offset = (offset - 1024 * 1024) / 8 + self.memory_limits[&RegisterKind::Regint];
-                let instr = Instruction::General {
-                    instruction: "stmint",
-                    destinations: vec![],
-                    values: vec![
-                        Span::DUMMY.with(self.val_to_reg(value).into()),
-                        Span::DUMMY.with(Operand::Value(Const::Int(offset.try_into().unwrap()))),
-                    ],
-                };
-                self.push_stmt(instr);
             }
             Instr::Load(Load { memory, kind, arg }) => {
                 assert_eq!(memory.index(), 0);
-                assert_eq!(
-                    arg.offset, 0,
-                    "wasm should have optimized away any static offsets to memory accesses"
-                );
                 let eight = self.val_to_reg(Operand::Value(Const::Int(8)));
-                let (instruction, address, sub_offset) = match self.stack.pop() {
+                let (instruction, address, sub_offset, dest_register_kind) = match self.stack.pop()
+                {
                     Operand::Value(Const::Int(i)) => {
+                        assert_eq!(
+                            arg.offset, 0,
+                            "wasm should have optimized away any static offsets to memory accesses"
+                        );
                         let offset = i as u32;
 
                         // The address may not be a multiple of `8`, so we need to do a partial load.
                         // This mainly happens for `i32.load`, the LoadKind match below handles that.
-                        let sub_offset = (offset - 1024 * 1024) % 8;
-                        let offset =
-                            (offset - 1024 * 1024) / 8 + self.memory_limits[&RegisterKind::Regint];
+                        let sub_offset = offset % 8;
+                        let offset = offset / 8;
+                        let offset = offset
+                            + self
+                                .offset_addr_val
+                                .expect("must have an offset address set");
+
                         trace!(?offset);
                         (
                             "ldmint",
                             Operand::Value(Const::Int(offset.try_into().unwrap())),
                             Operand::Value(Const::Int(sub_offset as i32)),
+                            RegisterKind::Regint,
                         )
                     }
                     Operand::Register(reg) => {
-                        let million = self.val_to_reg(Operand::Value(Const::Int(1024 * 1024)));
+                        let arg_offset =
+                            self.val_to_reg(Operand::Value(Const::Int(arg.offset as i32)));
                         let real_offset = self.binop(
                             Operand::Register(reg),
-                            million,
+                            arg_offset,
                             RegisterKind::Regint,
                             "subint",
                             Span::DUMMY,
@@ -701,6 +797,19 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             "divint",
                             Span::DUMMY,
                         );
+
+                        let wasm_heap_offset_reg = self.val_to_reg(Operand::Value(Const::Int(
+                            self.offset_addr_val.unwrap() as i32,
+                        )));
+
+                        let offset = self.binop(
+                            Operand::Register(offset),
+                            Operand::Register(wasm_heap_offset_reg),
+                            RegisterKind::Regint,
+                            "addint",
+                            Span::DUMMY,
+                        );
+
                         // offset % 8 operation, look at the const case above.
                         // We don't have a `modint` operation, so we multiply the divison
                         // result by the divisor and subtract it from the original value.
@@ -719,25 +828,36 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             "subint",
                             Span::DUMMY,
                         );
-                        let mem_limit = self.val_to_reg(Operand::Value(Const::Int(
-                            self.memory_limits[&RegisterKind::Regint] as i32,
-                        )));
-                        let offset = self.binop(
-                            Operand::Register(offset),
-                            mem_limit,
-                            RegisterKind::Regint,
-                            "addint",
-                            Span::DUMMY,
-                        );
+
+                        let (instruction, dest_register_kind) = match kind {
+                            LoadKind::I64 { .. }
+                            | LoadKind::I32_8 { .. }
+                            | LoadKind::I32_16 { .. }
+                            | LoadKind::I64_8 { .. }
+                            | LoadKind::I64_16 { .. }
+                            | LoadKind::I64_32 { .. } => ("ldminti", RegisterKind::Regint),
+                            LoadKind::F32 => ("ldmsi", RegisterKind::Secret),
+                            LoadKind::I32 { .. } => {
+                                unimplemented!()
+                            }
+                            LoadKind::F64 => {
+                                unimplemented!()
+                            }
+                            LoadKind::V128 => {
+                                unimplemented!()
+                            }
+                        };
+
                         (
-                            "ldminti",
+                            instruction,
                             Operand::Register(offset),
                             Operand::Register(sub_offset),
+                            dest_register_kind,
                         )
                     }
                     _ => unimplemented!(),
                 };
-                let destination = self.stack.push_temp(RegisterKind::Regint);
+                let destination = self.stack.push_temp(dest_register_kind);
                 let instr = Instruction::General {
                     instruction,
                     destinations: vec![destination.into()],
@@ -811,7 +931,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         };
                         self.stack.push(Operand::Register(dest));
                     }
-                    LoadKind::F32 | LoadKind::F64 | LoadKind::V128 => {
+                    LoadKind::F32 => {}
+                    LoadKind::F64 | LoadKind::V128 => {
                         unimplemented!("memory load for {:?}", kind)
                     }
                 }

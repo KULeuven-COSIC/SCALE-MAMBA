@@ -31,20 +31,20 @@ synth:
 	mv $(Target)$(N).v $(OutputPath)/$(Target)$(N).v
 
 common:
-	make synth Target=MADD N=32
-	make synth Target=MADD N=64
-	make synth Target=MSUB N=32
-	make synth Target=MSUB N=64
-	make synth Target=MMUL N=32
-	make synth Target=MMUL N=64
-	make synth Target=MHMUL N=32
-	make synth Target=MHMUL N=64
-	make synth Target=MLT N=32
-	make synth Target=MLT N=64
-	make synth Target=MUDIV N=64
-	make synth Target=MSDIV N=64
-	make synth Target=MNegate N=64
-	make synth Target=MZeroEqual N=64
+	$(MAKE) synth Target=MADD N=32
+	$(MAKE) synth Target=MADD N=64
+	$(MAKE) synth Target=MSUB N=32
+	$(MAKE) synth Target=MSUB N=64
+	$(MAKE) synth Target=MMUL N=32
+	$(MAKE) synth Target=MMUL N=64
+	$(MAKE) synth Target=MHMUL N=32
+	$(MAKE) synth Target=MHMUL N=64
+	$(MAKE) synth Target=MLT N=32
+	$(MAKE) synth Target=MLT N=64
+	$(MAKE) synth Target=MUDIV N=64
+	$(MAKE) synth Target=MSDIV N=64
+	$(MAKE) synth Target=MNegate N=64
+	$(MAKE) synth Target=MZeroEqual N=64
 
 clean:
 	rm -rf *.svf *.log alib-52 WORK

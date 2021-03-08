@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -130,6 +130,10 @@ void Base_Circuits::initialize(const bigint &p)
   location.insert(make_pair(126, "Circuits/Bristol/FP-sqrt.txt"));
   loaded.insert(make_pair(127, false));
   location.insert(make_pair(127, "Circuits/Bristol/FP-lt.txt"));
+  loaded.insert(make_pair(128, false));
+  location.insert(make_pair(128, "Circuits/Bristol/FP-floor.txt"));
+  loaded.insert(make_pair(129, false));
+  location.insert(make_pair(129, "Circuits/Bristol/FP-ceil.txt"));
 
   /* Now any user defined ones */
 

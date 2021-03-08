@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -648,7 +648,7 @@ public:
   // Converts a sint register i0 to a sbit register i1
   // Programmer must guarantee that i0 only contains a bit
   //   Uses the daBits
-  void convert_sint_to_sbit(int i0, int i1, Player &P);
+  void convert_sint_to_sbit(int i0, int i1, Player &P, offline_control_data &OCD);
 
   // Converts an sbit register i0 to an sint register i1
   //   Uses the daBits

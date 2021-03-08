@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -24,10 +24,10 @@ void Machine<SRegint, SBit>::SetUp_Memory(unsigned int whoami, const string &mem
   Mr.set_default(Integer(0));
   Msr.set_default(SRegint(0));
 
-  Mc.minimum_size(8192, "init", verbose);
-  Ms.minimum_size(8192, "init", verbose);
-  Mr.minimum_size(8192, "init", verbose);
-  Msr.minimum_size(8192, "init", verbose);
+  Mc.initialize(verbose);
+  Ms.initialize(verbose);
+  Mr.initialize(verbose);
+  Msr.initialize(verbose);
 
   // Initialize the global memory
   if (memtype.compare("old") == 0)
@@ -52,21 +52,6 @@ void Machine<SRegint, SBit>::SetUp_Memory(unsigned int whoami, const string &mem
 template<class SRegint, class SBit>
 void Machine<SRegint, SBit>::Dump_Memory(unsigned int whoami)
 {
-  // Reduce memory size to speed up
-  int max_size= 1 << 20;
-  if (Mc.size() > max_size)
-    {
-      Mc.reduce_size(max_size);
-    }
-  if (Ms.size() > max_size)
-    {
-      Ms.reduce_size(max_size);
-    }
-  if (Mr.size() > max_size)
-    {
-      Mr.reduce_size(max_size);
-    }
-
   // Write out the memory to use next time
   char filename[2048];
   sprintf(filename, "Data/Memory-P%d", whoami);

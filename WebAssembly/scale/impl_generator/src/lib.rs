@@ -1,4 +1,11 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
+mod attrs;
+
 extern crate proc_macro;
+use attrs::AssignAttrs;
 use documentation::{Arg, ArgTy, RegisterKind, RegisterMode};
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -7,6 +14,7 @@ use num_traits::sign::Signed;
 use proc_macro::TokenStream;
 use quote::quote;
 use std::convert::TryFrom;
+use syn::Error;
 
 fn asm_ty(ty: &ArgTy) -> proc_macro2::TokenStream {
     match ty {
@@ -386,7 +394,10 @@ pub fn impls(_: TokenStream) -> TokenStream {
             }
         });
 
-    let sshare = std::fs::read_to_string(env!("SHARING_DATA")).unwrap();
+    let sshare =
+        std::fs::read_to_string(option_env!("SHARING_DATA").unwrap_or("./SharingData.txt"))
+            .expect("SharingData.txt as specified in the SHARING_DATA env var does not exist");
+
     let p = BigInt::parse_bytes(sshare.lines().next().unwrap().as_bytes(), 10).unwrap();
     let param = (p.bits() as f64 / 8.0).ceil() * 8.0;
     let byte_length = ((param / 64.0).ceil() as usize) * 8;
@@ -394,6 +405,8 @@ pub fn impls(_: TokenStream) -> TokenStream {
     let r_inv = mod_inverse(&r, &p).unwrap_or_default();
 
     let p = bigint_to_bits(p);
+    assert!(!p.is_empty());
+    assert!(p.iter().any(|&b| b));
     let byte_length = u32::try_from(byte_length).unwrap();
     let r = bigint_to_bits(r);
     let r_inv = bigint_to_bits(r_inv);
@@ -530,4 +543,31 @@ fn split_args(all: &[Arg]) -> Option<(&[Arg], &[Arg])> {
         return Some((arg, ret));
     }
     Some((&[], all))
+}
+
+#[proc_macro_attribute]
+pub fn main(attrs: TokenStream, item: TokenStream) -> TokenStream {
+    let fn_ = syn::parse_macro_input!(item as syn::ItemFn);
+
+    let assign_attrs: AssignAttrs = match syn::parse(attrs) {
+        Ok(attrs) => attrs,
+        Err(_) => {
+            return TokenStream::from(
+                Error::new_spanned(fn_, "cannot parse attributes").to_compile_error(),
+            );
+        }
+    };
+
+    let left = assign_attrs.left;
+    let right = assign_attrs.right;
+
+    let res = quote! {
+        scale::__main!{
+            #(#left = #right;)*
+        }
+
+        #fn_
+    };
+
+    TokenStream::from(res)
 }

@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use super::*;
 use core::ops::Mul;
 use core::ops::Not;
@@ -52,7 +56,7 @@ impl core::ops::Div<SecretI64> for i64 {
     }
 }
 
-impl SecretCmp<Self> for SecretI64 {
+impl ScaleCmp<Self, SecretBit> for SecretI64 {
     #[inline(always)]
     fn lt(self, other: Self) -> SecretBit {
         unsafe { __ltzsint(self - other) }.to_real()
@@ -79,7 +83,7 @@ impl SecretCmp<Self> for SecretI64 {
     }
 }
 
-impl SecretCmpZ for SecretI64 {
+impl ScaleCmpZ<SecretBit> for SecretI64 {
     #[inline(always)]
     fn ltz(self) -> SecretBit {
         unsafe { __ltzsint(self).to_real() }
@@ -106,7 +110,7 @@ impl SecretCmpZ for SecretI64 {
     }
 }
 
-impl SecretCmp<i64> for SecretI64 {
+impl ScaleCmp<i64, SecretBit> for SecretI64 {
     #[inline(always)]
     fn lt(self, other: i64) -> SecretBit {
         unsafe { __ltzsint(self - other).to_real() }
@@ -133,7 +137,7 @@ impl SecretCmp<i64> for SecretI64 {
     }
 }
 
-impl SecretCmp<SecretI64> for i64 {
+impl ScaleCmp<SecretI64, SecretBit> for i64 {
     #[inline(always)]
     fn lt(self, other: SecretI64) -> SecretBit {
         other.lt(self)

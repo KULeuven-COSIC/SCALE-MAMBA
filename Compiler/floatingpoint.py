@@ -1,6 +1,6 @@
 
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 ##
 # @file
@@ -113,7 +113,9 @@ def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
     s = (1 - overflow) * t + overflow * t / 2
     return s, overflow
 
+
 def Int2FL(a, gamma, l, kappa):
+    #from Compiler.library import print_ln, print_str
     lam = gamma - 1
     s = types.sint()
     AdvInteger.LTZ(s, a, gamma, kappa)

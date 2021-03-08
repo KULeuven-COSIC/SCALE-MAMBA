@@ -1,13 +1,8 @@
-use super::*;
 
-impl Test for i64 {
-    #[track_caller]
-    #[inline(always)]
-    fn test(self) {
-        let loc = core::panic::Location::caller();
-        unsafe { self.store_in_mem(i64::from(loc.line()) + I64_MEMORY + TEST_MEMORY_OFFSET) }
-    }
-}
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
+use super::*;
 
 impl TestValue for i64 {
     #[track_caller]
@@ -65,10 +60,13 @@ impl Test for bool {
     }
 }
 
-impl TestMem for i64 {
+impl Test for i64 {
     #[track_caller]
     #[inline(always)]
-    fn test_mem<const I: u32>(self, _t_location: ConstU32<I>) {}
+    fn test(self) {
+        let loc = core::panic::Location::caller();
+        unsafe { self.store_in_mem(i64::from(loc.line()) + TEST_MEMORY_OFFSET) }
+    }
 }
 
 impl Test for ClearModp {
@@ -76,8 +74,14 @@ impl Test for ClearModp {
     #[inline(always)]
     fn test(self) {
         let loc = core::panic::Location::caller();
-        unsafe { self.store_in_mem(i64::from(loc.line()) + CLEAR_MODP_MEMORY + TEST_MEMORY_OFFSET) }
+        unsafe { self.store_in_mem(i64::from(loc.line()) + TEST_MEMORY_OFFSET) }
     }
+}
+
+impl TestMem for i64 {
+    #[track_caller]
+    #[inline(always)]
+    fn test_mem<const I: u32>(self, _t_location: ConstU32<I>) {}
 }
 
 impl TestMem for ClearModp {

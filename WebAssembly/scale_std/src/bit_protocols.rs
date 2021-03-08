@@ -1,3 +1,6 @@
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use crate::array::*;
 use crate::iter::CompileTimeLengthIterator;
 use crate::slice::*;
@@ -9,9 +12,14 @@ use scale::*;
 ####################################
 */
 #[inline(always)]
-pub fn or_op(a: SecretModp, b: SecretModp) -> SecretModp {
+pub fn secret_or_op(a: SecretModp, b: SecretModp) -> SecretModp {
     return a + b - a * b;
 }
+
+pub fn clear_or_op(a: ClearModp, b: ClearModp) -> ClearModp {
+    return a + b - a * b;
+}
+
 #[inline(always)]
 pub fn mul_op(a: SecretModp, b: SecretModp) -> SecretModp {
     return a * b;
@@ -33,17 +41,23 @@ pub fn reg_carry(
 ) -> Array<SecretModp, 2> {
     let mut ans: Array<SecretModp, 2> = Array::uninitialized();
     if compute_p {
-        ans.set(0, &(a.get(0) * b.get(0)));
+        ans.set(0, &(*a.get_unchecked(0) * *b.get_unchecked(0)));
     }
-    ans.set(1, &(a.get(1) + a.get(0) * b.get(1)));
+    ans.set(
+        1,
+        &(*a.get_unchecked(1) + *a.get_unchecked(0) * *b.get_unchecked(1)),
+    );
     ans
 }
 
 #[inline(always)]
 pub fn carry(b: Array<SecretModp, 2>, a: Array<SecretModp, 2>) -> Array<SecretModp, 2> {
     let mut ans: Array<SecretModp, 2> = Array::uninitialized();
-    ans.set(0, &(a.get(0) * b.get(0)));
-    ans.set(1, &(a.get(1) + a.get(0) * b.get(1)));
+    ans.set(0, &(*a.get_unchecked(0) * *b.get_unchecked(0)));
+    ans.set(
+        1,
+        &(*a.get_unchecked(1) + *a.get_unchecked(0) * *b.get_unchecked(1)),
+    );
     ans
 }
 
@@ -141,36 +155,47 @@ pub fn modp_two_power(n: u64) -> ClearModp {
 }
 
 #[inline(always)]
-pub fn bits(a: ClearModp, m: u64) -> Slice<ClearModp> {
+#[allow(non_snake_case)]
+pub fn BitDec_ClearModp(a: ClearModp, m: u64) -> Slice<ClearModp> {
     let mut ab: Slice<ClearModp> = Slice::uninitialized(m);
-    let mut a_helper: Slice<ClearModp> = Slice::uninitialized(m);
     ab.set(0, &(a % ClearModp::from(2)));
-    a_helper.set(0, &a);
+    let mut temp = a;
     for i in 1..m {
-        a_helper.set(
-            i,
-            &((a_helper.get(i - 1) - ab.get(i - 1)) / ClearModp::from(2)),
-        );
-        ab.set(i, &(a_helper.get(i) % ClearModp::from(2)));
+        temp = (temp - *ab.get_unchecked(i - 1)) / ClearModp::from(2);
+        ab.set(i, &(temp % ClearModp::from(2)));
     }
     return ab;
 }
 
 #[inline(always)]
+#[allow(non_snake_case)]
+pub fn BitDec_i64(a: i64, m: u64) -> Slice<i64> {
+    let mut ab: Slice<i64> = Slice::uninitialized(m);
+    ab.set(0, &(a % 2));
+    let mut temp = a;
+    for i in 1..m {
+        temp = (temp - *ab.get_unchecked(i - 1)) / 2;
+        ab.set(i, &(temp % 2));
+    }
+    return ab;
+}
+
+/* Produces an array expressing 2<<bitlen-p */
+#[inline(always)]
 pub fn get_primecompl(bitlen: u64) -> Slice<ClearModp> {
     /* Uses P (in big endian) to output the two's complement (in little endian) */
-    let mut pb: Slice<i64> = Slice::uninitialized(bitlen + 1);
-    for i in 1..bitlen + 1 {
-        pb.set(i - 1, &(!P[(bitlen - i) as usize] as i64));
+    let mut pb: Array<i64, BITLENP> = Array::uninitialized();
+    for i in 0u64..BITLENP {
+        pb.set(i, &i64::from(1 - P[(BITLEN - 1 - i) as usize] as i64));
     }
     let mut result: Slice<ClearModp> = Slice::uninitialized(bitlen);
     let mut carry: i64 = 1;
     for index in 0..bitlen {
         if carry != 1 {
-            result.set(index, &ClearModp::from(pb.get(index)));
+            result.set(index, &ClearModp::from(*pb.get_unchecked(index)));
         } else {
-            let bit = pb.get(index);
-            if bit == 1 {
+            let bit = pb.get_unchecked(index);
+            if *bit == 1 {
                 result.set(index, &ClearModp::from(0));
             } else {
                 result.set(index, &ClearModp::from(1));
@@ -204,7 +229,7 @@ pub fn KOpL(
 ) -> SecretModp {
     let l: u64 = s.len();
     if l == 1 {
-        return s.get(0);
+        return *s.get_unchecked(0);
     }
     let t1: SecretModp = KOpL(op, &s.slice(..l / 2));
     let t2: SecretModp = KOpL(op, &s.slice(l / 2..));
@@ -214,7 +239,7 @@ pub fn KOpL(
 #[inline(always)]
 #[allow(non_snake_case)]
 pub fn KOr(a: &Slice<SecretModp>) -> SecretModp {
-    return KOpL(or_op, a);
+    return KOpL(secret_or_op, a);
 }
 
 /* Uses algorithm from SecureSCM WP9 deliverable.
@@ -222,16 +247,16 @@ pub fn KOr(a: &Slice<SecretModp>) -> SecretModp {
 */
 #[inline(always)]
 #[allow(non_snake_case)]
-pub fn PreOpL(
-    op: impl Fn(SecretModp, SecretModp) -> SecretModp + Copy,
-    items: &Slice<SecretModp>,
-) -> Slice<SecretModp> {
+pub fn PreOpL<T>(op: impl Fn(T, T) -> T + Copy, items: &Slice<T>) -> Slice<T>
+where
+    T: Modp<SecretModp> + Copy,
+{
     let k: u64 = items.len();
     let logk: u64 = ceil_log_2(k as u32).into();
     let kmax: u64 = two_power(logk);
-    let mut output: Slice<SecretModp> = Slice::uninitialized(k);
+    let mut output: Slice<T> = Slice::uninitialized(k);
     for i in 0..k {
-        output.set(i, &items.get(i));
+        output.set(i, &*items.get_unchecked(i));
     }
     for i in 0u64..logk {
         for j in 0u64..(kmax / two_power(i + 1)) {
@@ -239,7 +264,10 @@ pub fn PreOpL(
             let zmax: u64 = two_power(i) + 1;
             for z in 1u64..zmax {
                 if y + z < k {
-                    output.set(y + z, &op(output.get(y), output.get(y + z)));
+                    output.set(
+                        y + z,
+                        &op(*output.get_unchecked(y), *output.get_unchecked(y + z)),
+                    );
                 }
             }
         }
@@ -260,10 +288,14 @@ pub fn PreOpL2(
     let k: u64 = items.len();
     let logk: u64 = ceil_log_2(k as u32).into();
     let kmax: u64 = two_power(logk);
-    let output: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k);
+    let mut output: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k);
     for i in 0..k {
-        output.get(i).set(0, &items.get(i).get(0));
-        output.get(i).set(1, &items.get(i).get(1));
+        output
+            .get_mut_unchecked(i)
+            .set(0, &*items.get_unchecked(i).get_unchecked(0));
+        output
+            .get_mut_unchecked(i)
+            .set(1, &*items.get_unchecked(i).get_unchecked(1));
     }
     for i in 0u64..logk {
         for j in 0u64..(kmax / two_power(i + 1)) {
@@ -271,9 +303,17 @@ pub fn PreOpL2(
             let zmax: u64 = two_power(i) + 1;
             for z in 1u64..zmax {
                 if y + z < k {
-                    let res_op: Array<SecretModp, 2> = op(output.get(y), output.get(y + z), j != 0);
-                    output.get(y + z).set(0, &res_op.get(0));
-                    output.get(y + z).set(1, &res_op.get(1));
+                    let res_op: Array<SecretModp, 2> = op(
+                        output.get_unchecked(y).clone(),
+                        output.get_unchecked(y + z).clone(),
+                        j != 0,
+                    );
+                    output
+                        .get_mut_unchecked(y + z)
+                        .set(0, &*res_op.get_unchecked(0));
+                    output
+                        .get_mut_unchecked(y + z)
+                        .set(1, &*res_op.get_unchecked(1));
                 }
             }
         }
@@ -281,10 +321,25 @@ pub fn PreOpL2(
     output
 }
 
-#[inline(always)]
-#[allow(non_snake_case)]
-pub fn PreOr(a: &Slice<SecretModp>) -> Slice<SecretModp> {
-    return PreOpL(or_op, a);
+pub trait PreOr {
+    #[allow(non_snake_case)]
+    fn PreOr(self) -> Self;
+}
+
+impl PreOr for Slice<SecretModp> {
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn PreOr(self) -> Slice<SecretModp> {
+        PreOpL(secret_or_op, &self)
+    }
+}
+
+impl PreOr for Slice<ClearModp> {
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    fn PreOr(self) -> Slice<ClearModp> {
+        PreOpL(clear_or_op, &self)
+    }
 }
 
 /* Takes a vector of SecretModpModp things, which are
@@ -297,7 +352,7 @@ pub fn SumBits(xb: &Slice<SecretModp>) -> SecretModp {
     let mut v: Slice<SecretModp> = Slice::uninitialized(k);
     let mut twop = ClearModp::from(1);
     for i in 0..k {
-        v.set(i, &(xb.get(i) * twop));
+        v.set(i, &(*xb.get_unchecked(i) * twop));
         twop = twop + twop;
     }
     return KOpL(addition_op, &v);
@@ -317,6 +372,9 @@ pub fn PRandInt(k: u64) -> SecretModp {
     }
 }
 
+/* As the next function should always be inlined the multiple
+ * return values should work
+ */
 #[inline(always)]
 #[allow(non_snake_case)]
 pub fn PRandM<const K: u64, const M: u64, const KAPPA: u64>(
@@ -338,25 +396,27 @@ pub fn CarryOutAux(a: &Slice<Array<SecretModp, 2>>) -> SecretModp {
     let mut k: u64 = a.len();
     let mut offset: u64 = 0;
     if k == 1 {
-        return a.get(0).get(1);
+        return *a.get_unchecked(0).get_unchecked(1);
     }
     if k % 2 == 1 {
         offset = 1;
         k += 1;
     }
-    let u: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k / 2);
+    let mut u: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k / 2);
     for i in offset..k / 2 {
         let arr: Array<SecretModp, 2> = reg_carry(
-            a.get(2 * i + 1 - offset),
-            a.get(2 * i - offset),
+            a.get_unchecked(2 * i + 1 - offset).clone(),
+            a.get_unchecked(2 * i - offset).clone(),
             i != k / 2 - 1,
         );
-        u.get(i).set(0, &arr.get(0));
-        u.get(i).set(1, &arr.get(1));
+        u.get_mut_unchecked(i).set(0, &*arr.get_unchecked(0));
+        u.get_mut_unchecked(i).set(1, &*arr.get_unchecked(1));
     }
     if offset == 1 {
-        u.get(0).set(0, &a.get(0).get(0));
-        u.get(0).set(1, &a.get(0).get(1));
+        u.get_mut_unchecked(0)
+            .set(0, &*a.get_unchecked(0).get_unchecked(0));
+        u.get_mut_unchecked(0)
+            .set(1, &*a.get_unchecked(0).get_unchecked(1));
     }
     return CarryOutAux(&u);
 }
@@ -365,71 +425,89 @@ pub fn CarryOutAux(a: &Slice<Array<SecretModp, 2>>) -> SecretModp {
 #[allow(non_snake_case)]
 pub fn CarryOut(a: &Slice<ClearModp>, b: &Slice<SecretModp>, c: ClearModp) -> SecretModp {
     let k: u64 = a.len();
-    let d: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k);
+    let mut d: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k);
     for i in 0u64..k {
-        d.get(i).set(1, &(a.get(i) * b.get(i)));
-        d.get(i)
-            .set(0, &(a.get(i) + b.get(i) - ConstI32::<2> * d.get(i).get(1)));
+        d.get_mut_unchecked(i)
+            .set(1, &(*a.get_unchecked(i) * *b.get_unchecked(i)));
+        let resp = *a.get_unchecked(i) + *b.get_unchecked(i)
+            - ConstI32::<2> * *d.get_unchecked(i).get_unchecked(1);
+        d.get_mut_unchecked(i).set(0, &resp);
     }
-    d.get(k - 1)
-        .set(1, &(d.get(k - 1).get(1) + c * d.get(k - 1).get(0)));
+    let resp =
+        *d.get_unchecked(k - 1).get_unchecked(1) + c * *d.get_unchecked(k - 1).get_unchecked(0);
+    d.get_mut_unchecked(k - 1).set(1, &resp);
     return CarryOutAux(&d);
 }
 
 #[inline(always)]
 #[allow(non_snake_case)]
-pub fn BitAdd<T: Modp<U>, U: Modp<T>>(ab: &Slice<T>, bb: &Slice<U>) -> Slice<SecretModp> {
+pub fn BitAdd<T, U>(ab: &Slice<T>, bb: &Slice<U>) -> Slice<SecretModp>
+where
+    T: Modp<U> + Copy,
+    U: Modp<T> + Copy,
+{
     let k: u64 = ab.len();
-    let d: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k);
+    let mut d: Slice<Array<SecretModp, 2>> = Slice::uninitialized(k);
     for i in 0..k {
-        d.get(i).set(1, &(ab.get(i) * bb.get(i)).into());
-        d.get(i).set(
-            0,
-            &(ab.get(i) + bb.get(i) - d.get(i).get(1) - d.get(i).get(1)).into(),
-        );
+        d.get_mut_unchecked(i)
+            .set(1, &(*ab.get_unchecked(i) * *bb.get_unchecked(i)).into());
+        let resp = *ab.get_unchecked(i) + *bb.get_unchecked(i)
+            - *d.get_unchecked(i).get_unchecked(1)
+            - *d.get_unchecked(i).get_unchecked(1);
+        d.get_mut_unchecked(i).set(0, &resp.into());
     }
 
     let c: Slice<Array<SecretModp, 2>> = PreOpL2(reg_carry, &d);
     let mut s: Slice<SecretModp> = Slice::uninitialized(k + 1);
     s.set(
         0,
-        &(ab.get(0) + bb.get(0) - c.get(0).get(1) - c.get(0).get(1)),
+        &(*ab.get_unchecked(0) + *bb.get_unchecked(0)
+            - *c.get_unchecked(0).get_unchecked(1)
+            - *c.get_unchecked(0).get_unchecked(1)),
     );
     for i in 1..k {
         s.set(
             i,
             &(SecretModp::from(
-                ab.get(i) + bb.get(i) + c.get(i - 1).get(1) - c.get(i).get(1) - c.get(i).get(1),
+                *ab.get_unchecked(i)
+                    + *bb.get_unchecked(i)
+                    + *c.get_unchecked(i - 1).get_unchecked(1)
+                    - *c.get_unchecked(i).get_unchecked(1)
+                    - *c.get_unchecked(i).get_unchecked(1),
             )),
         );
     }
-    s.set(k, &c.get(k - 1).get(1));
+    s.set(k, &*c.get_unchecked(k - 1).get_unchecked(1));
     return s;
 }
 
 #[inline(always)]
-pub fn bitincrement<const K: u64>(ab: &Array<SecretModp, K>) -> Slice<SecretModp> {
-    let d: Slice<Array<SecretModp, 2>> = Slice::uninitialized(K);
-    d.get(0).set(1, &(ab.get(0)));
-    d.get(0).set(0, &(SecretModp::from(1) - ab.get(0)));
+#[allow(non_snake_case)]
+pub fn BitIncrement<const K: u64>(ab: &Array<SecretModp, K>) -> Slice<SecretModp> {
+    let mut d: Slice<Array<SecretModp, 2>> = Slice::uninitialized(K);
+    d.get_mut_unchecked(0).set(1, &(*ab.get_unchecked(0)));
+    d.get_mut_unchecked(0)
+        .set(0, &(SecretModp::from(1) - *ab.get_unchecked(0)));
     for i in 1..K {
-        d.get(i).set(1, &(SecretModp::from(0)));
-        d.get(i).set(0, &(ab.get(i)));
+        d.get_mut_unchecked(i).set(1, &(SecretModp::from(0)));
+        d.get_mut_unchecked(i).set(0, &(*ab.get_unchecked(i)));
     }
     let c: Slice<Array<SecretModp, 2>> = PreOpL2(reg_carry, &d);
 
     let mut s: Slice<SecretModp> = Slice::uninitialized(K + 1);
     s.set(
         0,
-        &(ab.get(0) + SecretModp::from(1) - ConstI32::<2> * c.get(0).get(1)),
+        &(*ab.get_unchecked(0) + SecretModp::from(1)
+            - ConstI32::<2> * *c.get_unchecked(0).get_unchecked(1)),
     );
     for i in 1..K {
         s.set(
             i,
-            &(ab.get(i) + c.get(i - 1).get(1) - ConstI32::<2> * c.get(i).get(1)),
+            &(*ab.get_unchecked(i) + *c.get_unchecked(i - 1).get_unchecked(1)
+                - ConstI32::<2> * *c.get_unchecked(i).get_unchecked(1)),
         );
     }
-    s.set(K, &c.get(K - 1).get(1));
+    s.set(K, &*c.get_unchecked(K - 1).get_unchecked(1));
     return s;
 }
 
@@ -440,19 +518,12 @@ pub fn BitLT<const K: u64>(
     bb: impl IntoIterator<Item = SecretModp> + CompileTimeLengthIterator<K>,
 ) -> SecretModp {
     let mut ab: Array<ClearModp, K> = Array::uninitialized();
-    let mut a_helper: Array<ClearModp, K> = Array::uninitialized();
     let mut sb: Array<SecretModp, K> = Array::uninitialized();
     ab.set(K - 1, &(a % ClearModp::from(ConstI32::<2>)));
-    a_helper.set(0, &a);
+    let mut temp = a;
     for i in 1..K {
-        a_helper.set(
-            i,
-            &((a_helper.get(i - 1) - ab.get(K - i)) / ClearModp::from(ConstI32::<2>)),
-        );
-        ab.set(
-            K - i - 1,
-            &(a_helper.get(i) % ClearModp::from(ConstI32::<2>)),
-        );
+        temp = (temp - *ab.get_unchecked(K - i)) / ClearModp::from(ConstI32::<2>);
+        ab.set(K - i - 1, &(temp % ClearModp::from(ConstI32::<2>)));
     }
     for (i, v) in bb.into_iter().enumerate() {
         sb.set(K - 1 - i as u64, &(ConstI32::<1> - v));
@@ -462,26 +533,35 @@ pub fn BitLT<const K: u64>(
 }
 
 #[inline(always)]
-pub fn bitltfull<T: Modp<U>, U: Modp<T>>(ab: &Slice<T>, bb: &Slice<U>) -> SecretModp {
+#[allow(non_snake_case)]
+pub fn BitLTFull<T, U>(ab: &Slice<T>, bb: &Slice<U>) -> SecretModp
+where
+    T: Modp<U> + Copy,
+    U: Modp<T> + Copy,
+{
     let k: u64 = ab.len();
     let mut e: Slice<SecretModp> = Slice::uninitialized(k);
     let mut g: Slice<SecretModp> = Slice::uninitialized(k);
-    let mut h: Slice<SecretModp> = Slice::uninitialized(k);
     for i in 0..k {
         e.set(
             k - 1 - i,
-            &((ab.get(i) + bb.get(i) - ab.get(i) * bb.get(i) * ConstI32::<2>).into()),
+            &((*ab.get_unchecked(i) + *bb.get_unchecked(i)
+                - *ab.get_unchecked(i) * *bb.get_unchecked(i) * ConstI32::<2>)
+                .into()),
         );
     }
-    let f: Slice<SecretModp> = PreOr(&e);
-    g.set(k - 1, &f.get(0));
+    let f: Slice<SecretModp> = e.PreOr();
+    g.set(k - 1, &*f.get_unchecked(0));
     for i in 0..k - 1 {
-        g.set(i, &(f.get(k - 1 - i) - f.get(k - 2 - i)));
+        g.set(
+            i,
+            &(*f.get_unchecked(k - 1 - i) - *f.get_unchecked(k - 2 - i)),
+        );
     }
     let mut ans = SecretModp::from(0);
     for i in 0..k {
-        h.set(i, &((bb.get(i) * g.get(i)).into()));
-        ans = ans + h.get(i);
+        let temp = *bb.get_unchecked(i) * *g.get_unchecked(i);
+        ans = ans + temp;
     }
     return ans;
 }
@@ -495,94 +575,111 @@ pub fn BitDec<const K: u64, const M: u64, const KAPPA: u64>(a: SecretModp) -> Sl
     let rb: Array<SecretModp, M> = random.2;
     let cons: ClearModp = modp_two_power(K) + modp_two_power(K + KAPPA);
     let sc: SecretModp = a + cons - modp_two_power(M) * r_prime - r;
-    let c = sc.reveal();
-    let cb: Slice<ClearModp> = bits(c, M);
+    let c = sc.clone().reveal().clone();
+    let cb: Slice<ClearModp> = BitDec_ClearModp(c, M);
     return BitAdd(&cb, &rb.slice(..)).slice(..M);
 }
 
+const BITLEN: u64 = P.len() as u64;
+
+const BITLENP: u64 = {
+    let mut a = BITLEN;
+    while !P[(BITLEN - a + 1) as usize - 1] {
+        a = a - 1;
+    }
+    a
+};
+
 #[inline(always)]
-pub fn bitdecfullbig(a: SecretModp) -> Slice<SecretModp> {
+#[allow(non_snake_case)]
+pub fn BitDecFullBig(a: SecretModp) -> Array<SecretModp, BITLENP> {
     // Returns secret shared bit decomposition of
-    let bitlen: u64 = P.len() as u64;
-    let mut abits: Slice<SecretModp> = Slice::uninitialized(bitlen);
-    let mut bbits: Slice<SecretModp> = Slice::uninitialized(bitlen);
-    let mut pbits: Slice<ClearModp> = Slice::uninitialized(bitlen + 1);
-    for i in 0u64..bitlen {
-        pbits.set(i + 1, &ClearModp::from(P[(bitlen - 1 - i) as usize] as i64));
+    let mut abits: Array<SecretModp, BITLENP> = Array::uninitialized();
+    let mut bbits: Array<SecretModp, BITLENP> = Array::uninitialized();
+    let mut pbits: Array<ClearModp, { BITLENP + 1 }> = Array::uninitialized();
+    for i in 0u64..BITLENP {
+        pbits.set(i, &ClearModp::from(P[(BITLEN - 1 - i) as usize] as i64));
     }
     // Loop until we get some random integers less than p
     let mut cond: i64 = 0;
     while cond == 0 {
-        for i in 0u64..bitlen {
+        for i in 0u64..BITLENP {
             bbits.set(i, &SecretModp::get_random_bit());
         }
-        cond = i64::from(bitltfull(&bbits, &pbits).reveal());
+        // FIXME: make `BitLTFull` accept `Array`s
+        let v = BitLTFull(&bbits.slice(..), &pbits.slice(..)).reveal();
+        cond = i64::from(v);
     }
-    let b: SecretModp = SumBits(&bbits);
+    // FIXME: make `SumBits` accept `Array`s
+    let b: SecretModp = SumBits(&bbits.slice(..));
     let c: ClearModp = (a - b).reveal();
-    let czero = SecretModp::from((i64::from(c) == 0) as i64);
-    let d: Slice<SecretModp> = BitAdd(&bits(c, bitlen), &bbits);
-    let q: SecretModp = bitltfull(&pbits, &d);
-    let f: Slice<ClearModp> = get_primecompl(bitlen);
-    let mut g: Slice<SecretModp> = Slice::uninitialized(bitlen + 1);
-    for i in 0..bitlen {
-        g.set(i, &(f.get(i) * q));
+    let czero = ClearModp::from((i64::from(c) == 0) as i64);
+    // FIXME: make `BitAdd` accept `Array`s
+    let d: Slice<SecretModp> = BitAdd(&BitDec_ClearModp(c, BITLENP), &bbits.slice(..));
+    // FIXME: make `BitLTFull` accept `Array`s
+    let q: SecretModp = BitLTFull(&pbits.slice(..), &d);
+    let f: Slice<ClearModp> = get_primecompl(BITLENP);
+    let mut g: Slice<SecretModp> = Slice::uninitialized(BITLENP + 1);
+    for i in 0..BITLENP {
+        g.set(i, &(*f.get_unchecked(i) * q));
     }
     let h: Slice<SecretModp> = BitAdd(&d, &g);
-    for i in 0..bitlen {
+    for i in 0..BITLENP {
         abits.set(
             i,
-            &(h.get(i) * (ConstI32::<1> - czero) + bbits.get(i) * czero),
+            &(*h.get_unchecked(i) * (ConstI32::<1> - czero) + *bbits.get_unchecked(i) * czero),
         );
     }
     return abits;
 }
 
 #[inline(always)]
-pub fn bitdecfull(a: SecretModp) -> Slice<SecretModp> {
-    let bitlen: u64 = P.len() as u64;
-    if bitlen > 63 {
-        return bitdecfullbig(a);
+#[allow(non_snake_case)]
+pub fn BitDecFull(a: SecretModp) -> Array<SecretModp, BITLENP> {
+    if BITLEN > 63 {
+        return BitDecFullBig(a);
     }
-    let mut abits: Slice<SecretModp> = Slice::uninitialized(bitlen);
-    let mut bbits: Slice<SecretModp> = Slice::uninitialized(bitlen);
-    let mut pbits: Slice<SecretModp> = Slice::uninitialized(bitlen + 1);
+    let mut abits: Array<SecretModp, BITLENP> = Array::uninitialized();
+    let mut bbits: Array<SecretModp, BITLENP> = Array::uninitialized();
+    let mut pbits: Array<ClearModp, { BITLENP + 1 }> = Array::uninitialized();
     let mut p: i64 = 0;
-    for i in 0u64..bitlen {
-        pbits.set(
-            i + 1,
-            &SecretModp::from(P[(bitlen - 1 - i) as usize] as i64),
-        );
-        p += (two_power(i) * (P[(bitlen - 1 - i) as usize] as u64)) as i64;
+    for i in 0u64..BITLENP {
+        pbits.set(i, &ClearModp::from(P[(BITLEN - 1 - i) as usize] as i64));
+        p += (two_power(i) * (P[(BITLEN - 1 - i) as usize] as u64)) as i64;
     }
     // Loop until we get some random integers less than p
     let mut cond: i64 = 0;
     while cond == 0 {
-        for i in 0u64..bitlen {
+        for i in 0u64..BITLENP {
             bbits.set(i, &SecretModp::get_random_bit());
         }
-        cond = i64::from(bitltfull(&bbits, &pbits).reveal());
+        cond = i64::from(BitLTFull(&bbits.slice(..), &pbits.slice(..)).reveal());
     }
-    let b: SecretModp = SumBits(&bbits);
+    let b: SecretModp = SumBits(&bbits.slice(..));
     let mut c: i64 = i64::from((a - b).reveal());
     let bit: i64 = (c < 0) as i64;
-    c = c + (p * bit) as i64;
-    let czero = SecretModp::from((c == 0) as i64);
-    let t: Slice<ClearModp> = bits(ClearModp::from(p - c), bitlen);
-    //let mut ts: Slice<SecretModp> = Slice::uninitialized(bitlen);
-    //for i in 0..bitlen {ts.set(i,&SecretModp::from(t.get(i)));}
-    let q: SecretModp = ConstI32::<1> - bitltfull(&bbits, &t);
-    let fbar: Slice<ClearModp> = bits(ClearModp::from((1 << bitlen) + c - p), bitlen);
-    let fbard: Slice<ClearModp> = bits(ClearModp::from(c), bitlen);
-    let mut g: Slice<SecretModp> = Slice::uninitialized(bitlen);
-    for i in 0..bitlen {
-        g.set(i, &((fbar.get(i) - fbard.get(i)) * q + fbard.get(i)));
+    c = c + (p * bit);
+    let czero = ClearModp::from((c == 0) as i64);
+    let t: Slice<ClearModp> = BitDec_ClearModp(ClearModp::from(p - c), BITLENP);
+    //let mut ts: Slice<SecretModp> = Slice::uninitialized(BITLEN);
+    //for i in 0..BITLENP {ts.set(i,&SecretModp::from(t.get(i)));}
+    let q: SecretModp = ClearModp::from(1) - BitLTFull(&bbits.slice(..), &t);
+    // BITLENP > 63 is handled above
+    #[allow(arithmetic_overflow)]
+    let vv = i64_two_power(BITLENP) + c - p;
+    let fbar: Slice<i64> = BitDec_i64(vv, BITLENP);
+    let fbard: Slice<i64> = BitDec_i64(c, BITLENP);
+    let mut g: Slice<SecretModp> = Slice::uninitialized(BITLENP);
+    for i in 0..BITLENP {
+        let temp1 = *fbar.get_unchecked(i) - *fbard.get_unchecked(i);
+        let temp2 = ClearModp::from(temp1) * q + ClearModp::from(*fbard.get_unchecked(i));
+        g.set(i, &temp2);
     }
-    let h: Slice<SecretModp> = BitAdd(&bbits, &g);
-    for i in 0..bitlen {
+    let h: Slice<SecretModp> = BitAdd(&bbits.slice(..), &g);
+    for i in 0..BITLENP {
         abits.set(
             i,
-            &((ConstI32::<1> - czero) * h.get(i) + czero * bbits.get(i)),
+            &((ClearModp::from(1) - czero) * *h.get_unchecked(i) + czero * *bbits.get_unchecked(i)),
         );
     }
     return abits;

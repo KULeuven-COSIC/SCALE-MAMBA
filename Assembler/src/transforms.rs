@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 //! Optimizations and other transformations of the basic block datastructures
 
 use crate::asm::Body;
@@ -35,6 +39,7 @@ fn mk_pass<T: Pass + Default + 'static>() -> Box<dyn Pass> {
 
 const PASSES: &[fn() -> Box<dyn Pass>] = &[
     mk_pass::<validate::Pass>,
+    mk_pass::<destination_propagation::Pass>,
     mk_pass::<nop::Pass>,
     mk_pass::<print::Pass>,
     mk_pass::<print_merge::Pass>,
@@ -46,12 +51,12 @@ const PASSES: &[fn() -> Box<dyn Pass>] = &[
     mk_pass::<goto_chain_collapse::Pass>,
     mk_pass::<dead_block_removal::Pass>,
     mk_pass::<move_done_block_to_end::Pass>,
-    mk_pass::<destination_propagation::Pass>,
     mk_pass::<register_reuse::Pass>,
     mk_pass::<nop_removal::Pass>,
     mk_pass::<cond_flip::Pass>,
     mk_pass::<validate::Pass>,
 ];
+
 
 pub fn apply_default_optimization_pipeline<'a>(
     cx: &'a Compiler,
@@ -61,6 +66,7 @@ pub fn apply_default_optimization_pipeline<'a>(
     for pass in PASSES {
         let mut pass = pass();
         info!("opt pass: {}", pass.name());
+        println!("apply_default_optimization_pipeline: {}", pass.name());
         pass.apply(cx, body);
         if let Some(dump) = &dump {
             dump_pass(cx, body, dump, pass.name());
@@ -99,6 +105,7 @@ pub fn run_optimizations<'a>(
         .collect();
     for pass in optimizations {
         let mut pass = (passes.get(pass.as_str()).expect("unknown pass"))();
+        println!("run_optimizations: {}", pass.name());
         info!("opt pass: {}", pass.name());
         pass.apply(cx, body);
         if let Some(dump) = &dump {

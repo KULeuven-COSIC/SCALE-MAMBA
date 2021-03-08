@@ -148,21 +148,13 @@ by forming
 ~
 
 \noindent{\bf sint to sbit conversion:}
-To do this we make a number of assumptions;
-\[ \mathsf{conv\_stat\_sec}+1 < \min \{ 64, \log_2 p \}.  \]
-If these do not hold then the run-time system will abort.
-It is also assumed that the programmer is sure that the \verb|sint|
-does in fact hold a shared bit.
-If this is not true, then information on the value in the
-\verb|sint| value $\sshare{x}_p$ may leak to the adversary.
-To perform the method we generate $1+\mathsf{conv\_stat\_sec}$ random
-daBits $r_i$ and form the value
-$r = \sum_{i=0}^{\mathsf{conv\_stat\_sec}} r_i \cdot 2^i$.
-We now compute $\sshare{v}_p \asn \sshare{x}_p + \sshare{r}_p$.
-It is guaranteed that $\sshare{v}_p$ holds a $64$-bit unsigned integer,
-so we open it.
-Then using a Garbled Circuit we subtract $\sshare{r}_2$ from $x+r$,
-which requires at most a $64$-bit subtraction.
+The method here is the same, but in the other direction.
+We take a single daBit $r$ and then XOR it into the \verb|sint| $x$
+by computing
+\[  \sshare{v}_p = \sshare{x}_p + \sshare{r}_p - 2 \cdot \sshare{x}_p \cdot \sshare{r}_p, \]
+which requires consuming another Beaver triple.
+Then the value $\sshare{v}_p$ is opened, and XOR'd on
+the bit $\sshare{x}_2$.
 
 ~
 
@@ -716,8 +708,8 @@ One can also raise a \verb|sfix| value to another \verb|sfix| value using the
 function \verb|mpc_math.pow_fx|. However, when doing this the routine uses
 \verb|sfloat| variables internally, thus you need to ensure the two types
 are parametrized correctly.
-In particular you must have \verb|k| parameter for \verb|sfix| being greater than
-the \verb|vlen| for \verb|sfloat|.
+In particular you must have \verb|k| and \verb|f| parameters 
+for \verb|sfix| being greater than the \verb|vlen| parameter for \verb|sfloat|.
 
 \paragraph{Comparisons (Inequality Tests):}
 We have in-built operators for comparisons as well.

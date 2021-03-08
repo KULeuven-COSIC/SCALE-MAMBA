@@ -1,0 +1,16 @@
+# This program is to test between the Mamba and Rust pipelines
+
+x=sint(23)
+
+
+# Following should be 2 or 3
+t1=AdvInteger.TruncPr(x, 6, 3, 40)
+print_ln("\t %s",t1.reveal())
+
+# The following should be 2
+t2=sint()
+AdvInteger.Trunc(t2, x, 6, 3, 40, True)
+print_ln("\t %s",t2.reveal())
+
+
+

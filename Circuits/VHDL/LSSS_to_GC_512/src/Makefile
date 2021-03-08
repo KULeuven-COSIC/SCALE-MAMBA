@@ -23,11 +23,11 @@ LibPath := ../../MpcLib/VHDL
 Here := $(shell pwd);
 
 get:
-	cd $(LibPath); make synth Target=MLT N=513 OutputPath=$(Here)
-	cd $(LibPath); make synth Target=MADD N=513 OutputPath=$(Here)
-	cd $(LibPath); make synth Target=MSUB N=513 OutputPath=$(Here)
-	cd $(LibPath); make synth Target=M21MUX N=513 OutputPath=$(Here)
-	cd $(LibPath); make synth Target=M21MUX N=64 OutputPath=$(Here)
-	cd $(LibPath); make synth Target=MADD N=64 OutputPath=$(Here)
-	cd $(LibPath); make clean
+	cd $(LibPath); $(MAKE) synth Target=MLT N=513 OutputPath=$(Here)
+	cd $(LibPath); $(MAKE) synth Target=MADD N=513 OutputPath=$(Here)
+	cd $(LibPath); $(MAKE) synth Target=MSUB N=513 OutputPath=$(Here)
+	cd $(LibPath); $(MAKE) synth Target=M21MUX N=513 OutputPath=$(Here)
+	cd $(LibPath); $(MAKE) synth Target=M21MUX N=64 OutputPath=$(Here)
+	cd $(LibPath); $(MAKE) synth Target=MADD N=64 OutputPath=$(Here)
+	cd $(LibPath); $(MAKE) clean
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 use crate::array::Array;
 use scale::*;
 
@@ -67,6 +70,8 @@ const FP_F2I: u32 = 124;
 const FP_I2F: u32 = 125;
 const FP_SQRT: u32 = 126;
 const FP_LT: u32 = 127;
+const FP_FLOOR: u32 = 128;
+const FP_CEIL: u32 = 129;
 
 #[inline(always)]
 #[allow(non_snake_case)]
@@ -121,5 +126,19 @@ pub fn IEEE_sqrt(input: SecretI64) -> SecretI64 {
 #[allow(non_snake_case)]
 pub fn IEEE_lt(input: [SecretI64; 2]) -> SecretI64 {
     let ans = unsafe { execute_garbled_circuit!(FP_LT(input) -> SecretI64) };
+    ans
+}
+
+#[inline(always)]
+#[allow(non_snake_case)]
+pub fn IEEE_floor(input: SecretI64) -> SecretI64 {
+    let ans = unsafe { execute_garbled_circuit!(FP_FLOOR(input) -> SecretI64) };
+    ans
+}
+
+#[inline(always)]
+#[allow(non_snake_case)]
+pub fn IEEE_ceil(input: SecretI64) -> SecretI64 {
+    let ans = unsafe { execute_garbled_circuit!(FP_CEIL(input) -> SecretI64) };
     ans
 }

@@ -1,5 +1,5 @@
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 from math import log, floor, ceil
 from Compiler.instructions import *
@@ -95,6 +95,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
 # Produces the fixed point division of a by b.
 # Uses the Goldschmidt method as presented in Catrina10,
 def Div(a, b, k, f, kappa, simplex_flag=False):
+    #from Compiler.library import print_ln, print_str
     theta = int(ceil(log(k/3.5) / log(2)))
     alpha = AdvInteger.two_power(2*f)
     w = AppRcr(b, k, f, kappa, simplex_flag)

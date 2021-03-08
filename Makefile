@@ -1,35 +1,36 @@
 all:
-	make progs
-	make test
-	make doc
+	$(MAKE) progs
+	$(MAKE) test
+	$(MAKE) doc
 
 progs:
-	-cd src ; make
+	-cd src ; $(MAKE)
 
 test:
-	-cd Test ; make
+	-cd Test ; $(MAKE)
 
 doc:
-	-cd Documentation ; make
+	-cd Documentation ; $(MAKE)
+	-cd RustDocumentation ; $(MAKE)
 	-cd Compiler ; doxygen doxy.config
 
 circuits:
-	-cd Circuits ; make ; ./convert.sh
+	-cd Circuits ; $(MAKE) ; ./convert.sh
 
 clean:
 	-rm SetupBinary.x PlayerBinary.x
-	-cd src ; make clean
-	-cd Test ; make clean
-	-cd Circuits ; make clean
+	-cd src ; $(MAKE) clean
+	-cd Test ; $(MAKE) clean
+	-cd Circuits ; $(MAKE) clean
 
 pclean:
 	-cd Programs ; rm */*.bc ; rm */*.sch ; rm */*.asm
 	-cd Scripts ; rm -r logs
 
 vclean:
-	- make clean
-	- make pclean
-	- cd Documentation ; make clean
+	- $(MAKE) clean
+	- $(MAKE) pclean
+	- cd Documentation ; $(MAKE) clean
 
 format:
 	- clang-format -i */*.cpp

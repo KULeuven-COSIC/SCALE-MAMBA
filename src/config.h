@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -176,5 +176,15 @@ All rights reserved
 #include <time.h>
 extern struct timespec time_s;
 #define sleep_val 250000000L
+
+// This defines the memory size as 2^MEMSIZE for the different
+// memory types
+//   Should be at least 20
+#define SINT_MEMSIZE 20
+#define CINT_MEMSIZE 20
+// This needs to be quite high as we need a higher value to cope with the Rust heap
+#define REGINT_MEMSIZE 22 
+// This has to be a lot smaller to avoid memory overload in the HSS case
+#define SREGINT_MEMSIZE 14
 
 #endif

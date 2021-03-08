@@ -1,7 +1,3 @@
 [workspace]
 members = ["Assembler", "WebAssembly", "Documentation", "src"]
 exclude = ["WebAssembly/demos/*"]
-
-[patch.crates-io]
-# waiting for https://github.com/Storyyeller/stable_deref_trait/pull/13 to get a published version
-stable_deref_trait = { git = "https://github.com/Storyyeller/stable_deref_trait.git"}

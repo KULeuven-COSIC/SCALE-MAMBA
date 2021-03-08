@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -9,8 +9,11 @@ All rights reserved
 #include "GC/Garbled.h"
 #include "GC/Q2_Evaluate.h"
 #include "Offline/DABitMachine.h"
+#include "Tools/util_containers.h"
 
 extern Base_Circuits Global_Circuit_Store;
+extern vector<sacrificed_data> SacrificeD;
+
 
 template<class SRegint, class SBit>
 Processor<SRegint, SBit>::Processor(int thread_num, unsigned int nplayers,
@@ -520,52 +523,75 @@ void Processor<SRegint, SBit>::convert_sbit_to_sint(int i0, int i1, Player &P)
   write_Sp(i1, apr);
 }
 
+
 template<class SRegint, class SBit>
-void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P)
+void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P,
+                                                    offline_control_data &OCD)
 {
-  unsigned int psize= numBits(gfp::pr());
-  if (1 + conv_stat_sec >= sreg_bitl || psize <= 1 + conv_stat_sec)
-    {
-      throw cannot_do_conversion();
-    }
+  Share apr;
+  SBit a2r;
 
-  unsigned int size= 1 + conv_stat_sec;
-
-  // Get a set of size daBits
-  vector<Share> bpr(size);
-  vector<SBit> b2r(size);
+  /* Get a single daBit */
   auto &daBitGen= get_generator();
-  daBitV.get_daBits(bpr, b2r, daBitGen, P);
+  daBitV.get_daBit(apr, a2r, daBitGen, P);
 
-  // Now create the integer r
-  Share r(P.whoami());
-  SRegint r2, z;
-  r.assign_zero();
-  r2.assign_zero();
-  for (int i= size - 1; i >= 0; i--)
-    {
-      r.add(r); // r=2*r
-      r.add(bpr[i]);
-      r2.set_bit(i, b2r[i]);
-    }
+  /* Multiply apr by the input register */
 
-  // Now form x+r
-  vector<Share> S_xr(1);
-  S_xr[0].add(read_Sp(i0), r);
+  // First get the triple
+  list<Share> la,lb,lc;
+  Wait_For_Preproc(TRIPLE, 1, online_thread_num, OCD);
+  OCD.mul_mutex[online_thread_num].lock();
+  Split_Lists(la, SacrificeD[online_thread_num].TD.ta, 1);
+  Split_Lists(lb, SacrificeD[online_thread_num].TD.tb, 1);
+  Split_Lists(lc, SacrificeD[online_thread_num].TD.tc, 1);
+  OCD.mul_mutex[online_thread_num].unlock();
 
-  // Now open x+r
-  vector<gfp> gfp_xr(1);
-  P.OP->Open_To_All_Begin(gfp_xr, S_xr, P, 2);
-  P.OP->Open_To_All_End(gfp_xr, S_xr, P, 2);
+  // Now compute rho and sigma
+  vector<Share> rho_sigma(2);
+  Share a=la.front();
+  Share b=lb.front();
+  Share c=lc.front();
 
-  // Now add z=(x+r)-r in the GC routines
-  bigint bi_xr;
-  to_bigint(bi_xr, gfp_xr[0]);
-  z.sub(bi_xr.get_ui(), r2, P, online_thread_num);
+  rho_sigma[0].sub(read_Sp(i0),a);
+  rho_sigma[1].sub(apr,b);
 
-  // Write back into the processor, we only need the last bit
-  write_sbit(i1, z.get_bit(0));
+  // Open rho and sigma
+  vector<gfp> gfp_rho_sigma(2);
+  P.OP->Open_To_All_Begin(gfp_rho_sigma, rho_sigma, P, 2);
+  P.OP->Open_To_All_End(gfp_rho_sigma, rho_sigma, P, 2);
+
+  // Compute the product
+  Share te1,te2,product=c;
+  gfp te3;
+  te3.mul(gfp_rho_sigma[0],gfp_rho_sigma[1]);
+  te1.mul(b,gfp_rho_sigma[0]);
+  te2.mul(a,gfp_rho_sigma[1]);
+ 
+  product.add(te1);
+  product.add(te2);
+  product.add(product, te3, P.get_mac_keys());
+
+  // Now compute the shared bit on the modp side of apr xor Sp[i0]
+  vector<Share> bit(1);
+  bit[0].add(apr,read_Sp(i0));
+  bit[0].sub(product);
+  bit[0].sub(product);
+
+  // Open this bit
+  vector<gfp> gfp_bit(1);
+  P.OP->Open_To_All_Begin(gfp_bit, bit, P, 2);
+  P.OP->Open_To_All_End(gfp_bit, bit, P, 2);
+
+  // Xor the bit on the gf2 side
+  bigint ans;
+  to_bigint(ans,gfp_bit[0]);
+  a2r.add(ans.get_ui());
+
+  // Write back into the processor
+  write_sbit(i1, a2r);
+
 }
+
 
 /* Arguments are obtained from the srint stack, and then outputs
  * are pushed back onto the srint stack

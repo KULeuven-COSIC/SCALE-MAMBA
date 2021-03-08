@@ -2,7 +2,7 @@
 
 \subsection{Installation}
 You {\bf may} need to be on the Rust nightly build and
-you probably also need to add wasm support by typing
+you probably also need to add \verb|wasm| support by typing
 \begin{verbatim}
     rustup target add wasm32-unknown-unknown
 \end{verbatim}
@@ -45,32 +45,18 @@ Your Rust programs should start with the following preamble:
     #![no_main]
     #![feature(const_evaluatable_checked)]
 
-    scale::main! {
-        I64_MEMORY = 0;
-        SECRET_I64_MEMORY = 0;
-        SECRET_MODP_MEMORY = 0;
-        CLEAR_MODP_MEMORY = 0;
-	KAPPA = 40;
-    }
-
+    #[scale::main(KAPPA = 40)]
     #[inline(always)]
     fn main() {
        // your code goes here
     }
 \end{lstlisting}
-The \verb|main!| part defines how much of the SCALE runtime memory you
-reserve for your own program. The rest will be used by the Rust compiler
-to allocate variables and so-forth when compiling your program.
-\warning{The memory you need to reserve here includes the memory
-you use in $\mathsf{Array}$ types which are stored in memory.
-If you need to increase the amount of user memory, the compiler will
-crash and let you know this.
-At some point we aim to make this go-away in an easier manner.}
-
-The \verb|KAPPA| parameter specifies the global statistical security 
+The \verb|main!| part defines the \verb|KAPPA| parameter,
+which is the global statistical security 
 parameter which your program will use. Unlike in Mamba we define a
-single such parameter which is used for all operations (for
-\verb|sfloat|, \verb|sfix| etc when they end up being defined).
+single such parameter which is used for all operations;
+e.g. the \verb|SecretInteger| and \verb|SecretFixed| types
+(and for the \verb|sfloat| when it ends up being defined).
 
 
 \subsection{Testing}
@@ -93,16 +79,16 @@ is being tested.
 defined, unique, line. Thus you cannot place a test function call
 within a loop. All test operations should be executed within
 the main function.
-In your tested program you may only access memory locations
-which are less than 1000 in index. The reason is that all
-other memory locations are reserved for the testing itself.
+The line number needs to be less than 1000; if you execute
+a test instruction on a line number greater than 1000 then
+undefined behaviour can occur.
 
 To compile and run the test target you invoke
 \begin{verbatim}
    ./Scripts/test_wasm.sh <program name>
 \end{verbatim}
 which will take all \verb|*.rs| files in \verb|RustPrograms/examples/<program name>|,
-convert them to \verb|wasm| and then to scale assembly and then run
+convert them to \verb|wasm|, and then to scale assembly and then run
 them in the SCALE test environment. After that it will run the
 same programs in the clear and compare their approprate \verb|test| calls.
 
@@ -127,13 +113,24 @@ Currently you cannot access from Rust the following features of Scale
      \item More than one online thread.
      \item Vectorized (i.e. SIMD) instructions.
      \item Some native SCALE printing operations.
-     \item \verb|sfix|, \verb|cfix|, \verb|sfloat|, \verb|cfloat|.
+     \item \verb|sfloat|, \verb|cfloat|.
 \end{itemize}
 We are currently working on fixing the above.
 
 \subsubsection{Working}
-In comparison to Mamba the following work in our Rust compilation pipeline.
+In comparison to Mamba the following work or are improvements
+in our Rust compilation pipeline.
 \begin{itemize}
+     \item You cannot directly access comparison etc operations on 
+	     \verb|ClearModp|/\verb|SecretModp| types, after all what
+	      does comparison of two integers modulo $p$ mean mathematically?
+	      Instead these operations are available via the
+	      \verb|ClearInteger<K>|/\verb|SecretInteger<K>| types.
+	      Thus you need to coerce your value into one of these
+	      types first (which costs nothing), and then apply 
+	      the desired operation. This avoids programmer errors,
+	      as the programmer needs to know how big an integer is
+	      before it can be compared to another.
      \item Recursive function calls.
      \item Automatic assignment of mutable local variables across
 	     conditional basic blocks; avoiding the need to manually
@@ -143,6 +140,20 @@ In comparison to Mamba the following work in our Rust compilation pipeline.
 	   by the compiler as an optimization.
      \item Conveniently allocating memory instead of having to keep 
 	   track of it manually in the code.
+     \item Dynamic memory allocation and deletion for arrays etc is done 
+	     automatically.
+     \item Full math library for the \verb|ClearIEEE| and \verb|SecretIEEE|
+	     types (none of which are available in Mamba).
+     \item In working through the code we found lots of assumptions which
+	     Mamba makes which are not strictly true. For example when doing
+	     integer comparison of objects modulo $p$ it (sometimes) assumes that the
+	     underlying integer is less than 64-bits in size.
+	     Whilst for a lot of code this might be perfectly correct, for 
+	     some use cases it is not (for example fixed point arithmetic
+	     of high precision for large numbers). Thus when making the libraries for
+	     arithmetic we have assumed all possible use cases are possible.
+	     Thus code may be less efficient than Mamba, but it will be hopefully
+	     more correct.
 \end{itemize}
 
 
@@ -151,7 +162,7 @@ In comparison to Mamba the following work in our Rust compilation pipeline.
 \noindent
 {\bf{Wasm}} is a stack based assembly language.
 There are no registers. Instead, all instruction arguments are pushed and popped on a stack.
-As an example, take $42 + 3$ in wasm. First $42$ is pushed to the stack, then $3$ is pushed to the
+As an example, take $42 + 3$ in \verb|wasm|. First $42$ is pushed to the stack, then $3$ is pushed to the
 stack and finally $add$ pops two values off the stack, adds them and pushes the result back onto the stack.
 
 \begin{lstlisting}
@@ -164,7 +175,7 @@ stack and finally $add$ pops two values off the stack, adds them and pushes the 
 
 \noindent
 {\bf{Scale}} is a register based assembly language.
-While it does have a stack, meaning we could emulate wasm 1:1 by generating
+While it does have a stack, meaning we could emulate \verb|wasm| 1:1 by generating
 
 \begin{lstlisting}
     ldint r0 42
@@ -183,7 +194,7 @@ But that would be very inefficient.
 ~ \\
 
 \noindent{\bf{Basic Transpilation}}
-What we do instead is to essentially execute the wasm, just like mamba did with its source. So when we see
+What we do instead is to essentially execute the \verb|wasm|, just like mamba did with its source. So when we see
 \begin{lstlisting}
     i32.const 42
 \end{lstlisting}
@@ -217,27 +228,27 @@ The next operation can then pop the value off the stack in order to obtain its a
 \subsubsection{Local variables}
 
 Sometimes a stack based approach makes certain code very complex or nearly impossible to write.
-For this reason wasm has function-local variables.
-Every function declares at the start which local variables it has and of which type they are. Unfortunately wasm only has
+For this reason \verb|wasm| has function-local variables.
+Every function declares at the start which local variables it has and of which type they are. Unfortunately \verb|wasm| only has
 \verb|i32 i64 f32 f64 i128| available to us.
 Technically there is also an externref meta-type that allows code to create
 its own types, but LLVM (and thus Rust) does not support this yet.
-This means that while we have 5 wasm types that could map to the five SCALE types (where here we use their Rust names)
+This means that while we have 5 \verb|wasm| types that could map to the five SCALE types (where here we use their Rust names)
 \verb|i64 SecretI64 ClearModp SecretModp SecretBit|.
-The wasm types have no relation to the types used from Rust, beyond that \verb|i64| in Rust is also
-\verb|i64| in wasm. Unfortunately \verb|u64| in Rust is also \verb|i64| in wasm, and the only way
-to notice this in wasm is that there are some unsigned operations on \verb|i64|. We can ignore all this for most of the time.
+The \verb|wasm| types have no relation to the types used from Rust, beyond that \verb|i64| in Rust is also
+\verb|i64| in \verb|wasm|. Unfortunately \verb|u64| in Rust is also \verb|i64| in \verb|wasm|, and the only way
+to notice this in \verb|wasm| is that there are some unsigned operations on \verb|i64|. We can ignore all this for most of the time.
 
 The interesting part is that \verb|SecretModp|, \verb|SecretI64|, and \verb|ClearModp| are all encoded as
 \verb|f64|, \verb|f32| and \verb|i128|, without ever using them as such.
-The reason this works out at all is that we do not translate operations on these types to wasm operations,
+The reason this works out at all is that we do not translate operations on these types to \verb|wasm| operations,
 but instead translate them to extern function calls which we will lower to the appropriate instructions directly.
 \verb|SecretBit| is encoded as \verb|SecretI64| by being converted to and from \verb|SecretI64| at all use sites.
 This is not very efficient, but we will get efficiency back once LLVM and Rust permit us to declare externref types.
 
 \subsubsection{Extern function calls}
 
-Operations on anything but \verb|i64| as well as any SCALE instructions that just does not have an equivalent in wasm
+Operations on anything but \verb|i64| as well as any SCALE instructions that just does not have an equivalent in \verb|wasm|
 are represented as extern function calls. As an example, take the adds instruction. Its arguments as per the documentation are
 \verb|(dest: sw, left: s, right: s).|
 From this, the transpiler automatically figures out that there is one return (output) value and two arguments.
@@ -247,17 +258,17 @@ In Rust, this generates a
         fn __adds(left: Secret, right: Secret) -> Secret;
     }
 \end{lstlisting}
-Any call to \verb|__adds| will cause the wasm code to leave two values on the wasm stack and expect that after
-the call the return value will be on the wasm stack. So, similarly to the builtin addition for \verb|i64|,
+Any call to \verb|__adds| will cause the \verb|wasm| code to leave two values on the \verb|wasm| stack and expect that after
+the call the return value will be on the \verb|wasm| stack. So, similarly to the builtin addition for \verb|i64|,
 we will pop two values off the stack, make sure they are registers by optionally generating
 \verb|lds| instructions and then push the return register onto the stack.
 
 Some SCALE instructions have multiple output/return values. Examples are the triple and square instructions.
 Unfortunately Rust/LLVM does not really support this yet, so we had to work around it a bit.
 For these functions we generate a \verb|push_multi_arg_triple| function which has no return values at all.
-This function pushes values onto the transpiler stack, even though the wasm stack would not contain any values.
+This function pushes values onto the transpiler stack, even though the \verb|wasm| stack would not contain any values.
      {\bf Remember:} The transpiler stack has nothing to do with the SCALE stack at all,
-it is just equivalent to the wasm stack most of the time, unless we do hacks as described in this section.
+it is just equivalent to the \verb|wasm| stack most of the time, unless we do hacks as described in this section.
 Now, after these values are on the stack, we use transpiler stack manipulation functions (extern functions by themselves)
 to get the values back. In essence, the \verb|__triple| `extern' function is thus not an extern function but looks like
 \begin{lstlisting}
@@ -276,36 +287,19 @@ to get the values back. In essence, the \verb|__triple| `extern' function is thu
 \noindent
 {\bf Function calls:}
 Most function calls in Rust do not actually end up with a function call in
-wasm. This is because usually the optimizer inlines function calls aggressively.
+\verb|wasm|. This is because usually the optimizer inlines function calls aggressively.
 In some cases we do want function calls instead of aggressive inlining.
 In the future there will be a way to force the compiler to generate a function call at
 specific sites.
 
 \subsubsection{Memory Management}
-{\bf The Current Status}
-
-At the start of each program, the developer declares the amount of memory they expect to use (with a different amount possible for each memory bank). They can manually use this memory directly with the store/load instructions, or automatically by using Array or Slice. If the automatic allocation runs out of memory (it never deallocates!) by hitting the user defined limit, the program crashes.
-
-The compiler uses the memory after the given memory sizes for its own purposes like for storing global variables and static memory.
-
-~ \\
-
-\noindent
-{\bf Future design}
-
-\begin{itemize}
-\item {\bf No manual memory usage:}
-We remove all capabilities for manual management (or at least make them unsafe and document that they are not meant to be used except for writing new primitives).
+Memory is allocated by use of the \verb|New| and \verb|Delete| operations in the
+SCALE runtime.
+This is mainly hidden from the user, and the user should probably not use these
+(just as a C++ programmer should probably avoid \verb|new| and \verb|delete|
+and stick to the STL).
 
 For single value allocations, we have the \verb|scale_std::heap::Box| that works similarly to Array, but has no indices on its operations. We should analyze whether we need any other memory datastructures and how much users should be able to nest them (array of slices of boxes or similar).
 
-\item {\bf Deallocations:}
-Instead of using a simple incrementing memory counter, we could use a real memory allocator that can then also free (and thus automatically reuse) memory once it’s not needed anymore.
-
-\item {\bf Safety mode: all allocations at program start:}
-Instead of allowing allocations at any point in the program, performance sensitive code may want to ensure that no memory allocations happen in the middle of it. We can add a function that whenn called freezes the memory allocator and will cause errors if memory allocation is attempted from there on
-
-\item {\bf Use registers for the memory allocator instead of going through static memory:}
 Right now we use regular Rust globals for the memory allocator. This has the disadvantage of requiring memory itself (in the compiler-used memory region). This makes various operations very verbose (10-20 instructions for a single memor allcation invocation). If we add special functions that handle the memory allocations for us in wasca, we can optimize all this to just use a single register per memory bank.
 
-\end{itemize}

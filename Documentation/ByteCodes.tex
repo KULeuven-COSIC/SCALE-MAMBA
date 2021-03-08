@@ -19,9 +19,9 @@ Each thread has a seperate set of five types of registers, as
 well as a stack for each register type.
 To allow the saving of state, or the transfer of data
 between threads, there is a global memory.
-This global memory (or at least the first $2^{20}$
-values) are saved whenever the SCALE system gracefully
-shuts down.
+This global memory for the \verb|cint|, \verb|sint| and \verb|regint| types
+(or at least the first $2^{20}$ values) are saved whenever the 
+SCALE system gracefully shuts down.
 The loading of this saved memory into a future run of the
 system is controlled by the command line arguments
 passed to the \verb+Player.x+ program.
@@ -358,11 +358,22 @@ We have one basic instruction for the secret bit type \verb+sbit+ denoted as
 \paragraph{Loading to/from Memory in $\modn$:}
 For secret types we have the following instructions: \verb+LDMSINT+, \verb+LDMSINTI+, \verb+STMSINT+ and \verb+STMSINTI+. For clear registers we have the following: \verb+LDMINT+, \verb+STMINT+, \verb+LDMINTI+ and \verb+STMINTI+.
 
-\paragraph{Resizing Memory:}
-Memory is automatically resized if you try to read or write to
-a location which is not yet accessed. However, this could involve
-quite a lot of resizing if you are not careful. It could also
-blow up the machine if you resize to too large a value.
+\paragraph{Allocating and Deallocating Memory:}
+You can allocate and deallocate memory using the 
+instructions:
+  \verb+NEWC+,
+  \verb+NEWS+,
+  \verb+NEWINT+,
+  \verb+NEWSINT+,
+  \verb+DELETEC+,
+  \verb+DELETES+,
+  \verb+DELETEINT+,
+  \verb+DELETESINT+.
+Note loads and stores are not checked to come from allocated memory.
+New and Delete are thread locking, but loads and stores are not.
+The value of the memory location returned by a \verb|NEW| instruction
+is not gauranteed to be the same for different players (although
+it will be for single threaded execution).
 
 \subsubsection{Stack Control Instructions:}
 There are five instructions for each of the five different stacks.
@@ -530,6 +541,7 @@ theoretic functions. The instructions are the following:
     \verb+DIVINT+,
     \verb+MODC+,
     \verb+MODCI+.
+    \verb+MODINT+,
     \verb+LEGENDREC+,
 and
     \verb+DIGESTC+.

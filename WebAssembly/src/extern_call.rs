@@ -1,4 +1,5 @@
-use std::convert::TryInto;
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
 use scasm::{
     asm::Instruction, asm::Statement, asm::Terminator, binary::instructions::name2instr,
@@ -6,108 +7,132 @@ use scasm::{
     lexer::Operand, lexer::RegisterKind, span::Span,
 };
 use tracing::{debug, instrument, trace};
-use walrus::{ir::Value, ActiveDataLocation, DataKind, Type};
+use walrus::{ir::Value, ActiveDataLocation, DataKind, ExportItem, GlobalKind, InitExpr, Type};
 
-use crate::{CurrentBlockHandler, Error};
+use crate::{error::Error, CurrentBlockHandler};
+
+const TEST_MEMORY_OFFSET: u32 = 1000;
 
 impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
     #[instrument(skip(self))]
     pub fn handle_extern_call(&mut self, name: &str, fn_ty: &Type) -> Result<(), Error> {
         match name {
-            "set_i64_max_memory"
-            | "set_secret_i64_max_memory"
-            | "set_clear_modp_max_memory"
-            | "set_secret_modp_max_memory" => {
-                assert_eq!(fn_ty.params().len(), 1);
+            "init_wasm_heap_memory" => {
+                assert_eq!(fn_ty.params().len(), 0);
                 assert_eq!(fn_ty.results().len(), 0);
-                let arg = match self.stack.pop() {
-                    Operand::Value(Const::Int(i)) => i,
-                    _ => unreachable!(),
-                };
-                let reg = match name {
-                    "set_i64_max_memory" => RegisterKind::Regint,
-                    "set_secret_i64_max_memory" => RegisterKind::SecretRegint,
-                    "set_clear_modp_max_memory" => RegisterKind::Clear,
-                    "set_secret_modp_max_memory" => RegisterKind::Secret,
-                    _ => unreachable!(),
-                };
-                if name == "set_i64_max_memory" {
-                    // Write the initial memory state
-                    if let Some(memory) = self.module.memories.iter().next() {
-                        assert!(
-                            self.module.memories.iter().nth(1).is_none(),
-                            "we don't support multiple memories yet"
-                        );
-                        let mut last_segment_end = None;
-                        for &segment in &memory.data_segments {
-                            let segment = self.module.data.get(segment);
-                            let start = match &segment.kind {
-                                DataKind::Active(act) => match act.location {
-                                    ActiveDataLocation::Absolute(start) => start,
-                                    ActiveDataLocation::Relative(_) => unimplemented!(),
-                                },
-                                DataKind::Passive => unimplemented!(),
-                            };
-                            // FIXME: look for data from previous segments that may overlap here instead of just panicking
-                            if let Some(last_segment_end) = last_segment_end {
-                                assert!(
-                                    start / 8 > last_segment_end / 8,
-                                    "{} > {}",
-                                    start,
-                                    last_segment_end
-                                );
-                            }
-                            last_segment_end = Some(start + segment.value.len() as u32);
-                            trace!(start, arg);
-                            let mut start = start - 1024 * 1024;
-                            let mut alignment = start as usize % 8;
-                            if alignment == 0 {
-                                alignment = 8;
-                            } else {
-                                start += 8;
-                            }
-                            let start = (start / 8) + arg as u32;
 
-                            trace!(start, alignment, "adjusted start");
-                            trace!(n = segment.value.len());
-                            let mut data = [0; 8];
-                            // The first bytes may not exist, so we leave them as zero
-                            for (dest, src) in data[alignment..].iter_mut().zip(&segment.value) {
-                                *dest = *src;
+                let global_heap_base_id = self
+                    .module
+                    .exports
+                    .iter()
+                    .find_map(|export| {
+                        if let ExportItem::Global(global_id) = export.item {
+                            if export.name == "__heap_base" {
+                                return Some(global_id);
                             }
+                        }
 
-                            let mut write_val = |idx, data| {
-                                let data = u64::from_le_bytes(data);
-                                let data = self.wasm_val_to_op(Value::I64(data as i64));
-                                let data = self.val_to_reg(data);
-                                let addr = Operand::Value(Const::Int(idx as i32 + start as i32));
-                                self.push_stmt(Instruction::General {
-                                    instruction: "stmint",
-                                    destinations: vec![],
-                                    values: vec![
-                                        Span::DUMMY.with(data.into()),
-                                        Span::DUMMY.with(addr),
-                                    ],
-                                });
-                            };
+                        None
+                    })
+                    .expect("cannot find the heap memory start address");
+                let mut wasm_heap_start_address =
+                    match self.module.globals.get(global_heap_base_id).kind {
+                        GlobalKind::Import(_) => {
+                            unimplemented!();
+                        }
+                        GlobalKind::Local(local) => match local {
+                            InitExpr::Value(value) => self.wasm_val_to_op(value),
+                            _ => unimplemented!(),
+                        },
+                    };
+                if let Operand::Value(Const::Int(wasm_heap_address)) = &mut wasm_heap_start_address
+                {
+                    // heap_base is in bytes and regint can store 8 bytes
+                    *wasm_heap_address /= 8;
+                    self.offset_addr_val = Some(*wasm_heap_address as u32 + TEST_MEMORY_OFFSET);
+                }
 
-                            if let Some(rest) = segment.value.get((8 - alignment)..) {
-                                // We iterate over up to 8 bytes at a time and write them to memory as a `u64`
-                                for (idx, slice) in rest.chunks(8).enumerate() {
-                                    let mut data = [0; 8];
-                                    // The last bytes may not exist, so we leave them as zero.
-                                    data[..slice.len()].copy_from_slice(slice);
-                                    write_val(idx, data)
-                                }
+                let wasm_heap_start_address = self.val_to_reg(wasm_heap_start_address);
+                let base_wasmp_heap_reg = self.stack.temp(RegisterKind::Regint);
+                self.push_stmt(Instruction::General {
+                    instruction: "newint",
+                    destinations: vec![base_wasmp_heap_reg.into()],
+                    values: vec![Span::DUMMY.with(wasm_heap_start_address.into())],
+                });
+
+                // Write the initial memory state
+                if let Some(memory) = self.module.memories.iter().next() {
+                    assert!(
+                        self.module.memories.iter().nth(1).is_none(),
+                        "we don't support multiple memories yet"
+                    );
+                    let mut last_segment_end = None;
+                    for &segment in &memory.data_segments {
+                        let segment = self.module.data.get(segment);
+                        let mut start = match &segment.kind {
+                            DataKind::Active(act) => match act.location {
+                                ActiveDataLocation::Absolute(start) => start,
+                                ActiveDataLocation::Relative(_) => unimplemented!(),
+                            },
+                            DataKind::Passive => unimplemented!(),
+                        };
+                        // FIXME: look for data from previous segments that may overlap here instead of just panicking
+                        if let Some(last_segment_end) = last_segment_end {
+                            assert!(
+                                start / 8 > last_segment_end / 8,
+                                "{} > {}",
+                                start,
+                                last_segment_end
+                            );
+                        }
+                        last_segment_end = Some(start + segment.value.len() as u32);
+                        trace!(start);
+                        let mut alignment = start as usize % 8;
+                        if alignment == 0 {
+                            alignment = 8;
+                        } else {
+                            start += 8;
+                        }
+                        let start = start / 8;
+                        let start = start + self.offset_addr_val.unwrap();
+
+                        trace!(start, alignment, "adjusted start");
+                        trace!(n = segment.value.len());
+                        let mut data = [0; 8];
+                        // The first bytes may not exist, so we leave them as zero
+                        for (dest, src) in data[alignment..].iter_mut().zip(&segment.value) {
+                            *dest = *src;
+                        }
+
+                        let mut write_val = |idx: i32, data| {
+                            trace!(?idx, ?data, "write val");
+                            let data = u64::from_le_bytes(data);
+                            if data == 0 {
+                                return;
+                            }
+                            let data = self.wasm_val_to_op(Value::I64(data as i64));
+                            let data = self.val_to_reg(data);
+                            let addr = Operand::Value(Const::Int(idx + start as i32));
+                            self.push_stmt(Instruction::General {
+                                instruction: "stmint",
+                                destinations: vec![],
+                                values: vec![Span::DUMMY.with(data.into()), Span::DUMMY.with(addr)],
+                            });
+                        };
+
+                        write_val(-1, data);
+
+                        if let Some(rest) = segment.value.get((8 - alignment)..) {
+                            // We iterate over up to 8 bytes at a time and write them to memory as a `u64`
+                            for (idx, slice) in rest.chunks(8).enumerate() {
+                                let mut data = [0; 8];
+                                // The last bytes may not exist, so we leave them as zero.
+                                data[..slice.len()].copy_from_slice(slice);
+                                write_val(idx as i32, data)
                             }
                         }
                     }
                 }
-                assert!(self
-                    .bh
-                    .memory_limits
-                    .insert(reg, arg.try_into().unwrap())
-                    .is_none());
 
                 Ok(())
             }
@@ -117,7 +142,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 assert_eq!(fn_ty.results().len(), 1);
                 let comment = self.comment(|f| write!(f, "function call: {}", name));
                 let instr = Instruction::Assign {
-                    value: Span::DUMMY.with(self.stack.pop().into()),
+                    value: Span::DUMMY.with(self.stack.pop()),
                     destination: Span::DUMMY.with(self.stack.push_temp(RegisterKind::Regint)),
                 };
                 self.push_stmt(Statement::from_instr_with_comment(instr, comment));

@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 #![warn(clippy::all)]
 #![allow(clippy::trivial_regex)]
 #![deny(rust_2018_idioms)]
@@ -61,6 +65,12 @@ fn main(args: Args) -> std::io::Result<()> {
                     std::io::stderr().write_all(&output.stderr)?;
                     std::io::stderr().flush()?;
                     std::process::exit(1);
+                }
+                else {
+                    std::io::stdout().write_all(&output.stdout)?;
+                    std::io::stdout().flush()?;
+                    std::io::stderr().write_all(&output.stderr)?;
+                    std::io::stderr().flush()?;
                 }
                 if args.show_optimization {
                     let mut cmd = escargot::CargoBuild::new()

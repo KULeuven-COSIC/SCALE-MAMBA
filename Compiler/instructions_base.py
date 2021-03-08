@@ -1,6 +1,6 @@
 
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 import itertools
 from random import randint
@@ -100,6 +100,16 @@ opcodes = dict(
   OPENSINT= 0xA2,
   OPENSBIT= 0xA3,
 
+  # Memory Management
+  NEWC = 0xA4,
+  NEWS = 0xA5,
+  NEWINT = 0xA6,
+  NEWSINT = 0xA7,
+  DELETEC = 0xA8,
+  DELETES = 0xA9,
+  DELETEINT = 0xAA,
+  DELETESINT = 0xAB,
+
   # Data access
   TRIPLE= 0x50,
   BIT= 0x51,
@@ -170,6 +180,7 @@ opcodes = dict(
   SUBINT= 0x9C,
   MULINT= 0x9D,
   DIVINT= 0x9E,
+  MODINT= 0x9F,
 
   # Conversion
   CONVINT= 0xC0,

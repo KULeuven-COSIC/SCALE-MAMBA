@@ -88,6 +88,8 @@ sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/LSSS_to_GC.net
 ./process.x i2f
 ./process.x eq
 ./process.x lt
+./process.x floor
+./process.x ceil
 
 ./make-mand.x adder64
 ./make-mand.x aes_128
@@ -103,6 +105,8 @@ sed -i ':begin;$!N;s/, \n      /, /;tbegin;P;D' VHDL/LSSS_to_GC.net
 ./make-mand.x FP-lt
 ./make-mand.x FP-mul
 ./make-mand.x FP-sqrt
+./make-mand.x FP-floor
+./make-mand.x FP-ceil
 ./make-mand.x Keccak_f
 ./make-mand.x LSSS_to_GC
 ./make-mand.x ModAdd512

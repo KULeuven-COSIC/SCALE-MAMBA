@@ -1,6 +1,6 @@
 
 # Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-# Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+# Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 """ This module is for classes of actual assembly instructions.
         Details:
@@ -90,6 +90,16 @@
   OPENSINT= 0xA2,
   OPENSBIT= 0xA3,
 
+  # Memory Management
+  NEWC = 0xA4,
+  NEWS = 0xA5,
+  NEWINT = 0xA6,
+  NEWSINT = 0xA7,
+  DELETEC = 0xA8,
+  DELETES = 0xA9,
+  DELETEINT = 0xAA,
+  DELETESINT = 0xAB,
+
   # Data access
   TRIPLE= 0x50,
   BIT= 0x51,
@@ -160,6 +170,7 @@
   SUBINT= 0x9C,
   MULINT= 0x9D,
   DIVINT= 0x9E,
+  MODINT= 0x9F,
 
   # Conversion
   CONVINT= 0xC0,
@@ -1957,6 +1968,16 @@ class divint(base.Instruction):
     arg_format = ['rw', 'r', 'r']
     code = base.opcodes['DIVINT']
 
+@base.vectorize
+class modint(base.Instruction):
+    r""" MODINT i j k
+         Modular remainder of regint registers r_i=r_j % r_k.
+         This instruction is vectorizable
+    """
+    __slots__ = []
+    arg_format = ['rw', 'r', 'r']
+    code = base.opcodes['MODINT']
+
 
 #
 # Clear comparison instructions
@@ -2134,6 +2155,87 @@ class stop_clock(base.Instruction):
      """
     code = base.opcodes['STOP_CLOCK']
     arg_format = ['i']
+
+#
+# Memory Management Instructions
+#
+
+@base.vectorize
+class newc(base.ReadMemoryInstruction):
+    r""" NEWC i j
+         Allocated r_j locations of cint memory and returns
+         the location in register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['NEWC']
+    arg_format = ['rw', 'r']
+
+@base.vectorize
+class deletec(base.WriteMemoryInstruction):
+    r""" DELETEC i
+         Deletes the cint memory pointed to by regint register r_i
+         This instruction is vectorizable
+     """
+    code = base.opcodes['DELETEC']
+    arg_format = ['r']
+
+
+@base.vectorize
+class news(base.ReadMemoryInstruction):
+    r""" NEWS i j
+         Allocated r_j locations of sint memory and returns
+         the location in register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['NEWS']
+    arg_format = ['rw', 'r']
+
+@base.vectorize
+class deletes(base.WriteMemoryInstruction):
+    r""" DELETES i
+         Deletes the sint memory pointed to by regint register r_i
+         This instruction is vectorizable
+     """
+    code = base.opcodes['DELETES']
+    arg_format = ['r']
+
+@base.vectorize
+class newint(base.ReadMemoryInstruction):
+    r""" NEWINT i j
+         Allocated r_j locations of regint memory and returns
+         the location in register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['NEWINT']
+    arg_format = ['rw', 'r']
+
+@base.vectorize
+class deleteint(base.WriteMemoryInstruction):
+    r""" DELETEINT i
+         Deletes the regint memory pointed to by regint register r_i
+         This instruction is vectorizable
+     """
+    code = base.opcodes['DELETEINT']
+    arg_format = ['r']
+
+@base.vectorize
+class newsint(base.ReadMemoryInstruction):
+    r""" NEWSINT i j
+         Allocated r_j locations of sregint memory and returns
+         the location in register r_i.
+         This instruction is vectorizable
+     """
+    code = base.opcodes['NEWSINT']
+    arg_format = ['rw', 'r']
+
+@base.vectorize
+class deletesint(base.WriteMemoryInstruction):
+    r""" DELETESINT i
+         Deletes the sregint memory pointed to by regint register r_i
+         This instruction is vectorizable
+     """
+    code = base.opcodes['DELETESINT']
+    arg_format = ['r']
 
 
 #

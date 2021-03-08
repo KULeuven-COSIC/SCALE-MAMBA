@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 */
@@ -42,6 +42,7 @@ class XOR_Machine
 
   bool bit_equality(const gfp &x, const word &y);
 
+
 public:
   XOR_Machine(Player &P, offline_control_data &OCD, int online_thread);
 
@@ -60,6 +61,10 @@ public:
 
   void consistency_check(const vector<vector<Share>> &Shp,
                          const vector<vector<SBit>> &Sh2, const vector<int> &perm, int left_out);
+
+  /* A routine for testing all dabits */
+  void check_debug(const vector<vector<Share>> &combinedp, 
+		   const vector<vector<SBit>> &combined2);
 };
 
 #endif /* SRC_OFFLINE_XOR_MACHINE_H_ */

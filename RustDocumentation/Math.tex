@@ -1,0 +1,169 @@
+\mainsection{Math Library}
+Eventually we expect every floating point type to
+have a full set of math functions. 
+Remember the \verb|ClearIEEE| type is must faster than
+the \verb|ClearFixed<K,F>| type, but the \verb|SecretFixed<K,F>| 
+is generally much faster than the \verb|SecretIEEE| type.
+To include the functions in the math library use
+\begin{lstlisting}
+    use scale_std::math::*;
+\end{lstlisting}
+This captures traits \verb|Floor|, \verb|FAbs|
+and \verb|Sqrt| (implementing member functions
+\verb|floor()|, \verb|fabs()| and \verb|sqrt()| respectively), 
+plus also a supertrait called
+\verb|Float| which captures much of the properties
+common to all floating point types.
+
+Currently the following are available (we comment the
+function out if it is not yet fully tested/implemented):
+
+\subsection{Generic Routines}
+
+\func{poly_eval(poly, x)}
+This generic function with signature
+\begin{lstlisting}
+  pub fn poly_eval<S, C, const N: u64>(poly: Array<C, N>, x: S) -> S
+  where
+    S: Float,
+    S: Add<C, Output = S>,
+    S: Mul<S, Output = S>,
+    C: Float,
+\end{lstlisting}
+allows one to evaluate a polynomial in type \verb|C| 
+(a clear floating point type) at a value of type 
+\verb|S| (which is either the {\em same} clear floating
+point type, or its {\em associated} secret variant).
+
+\func{Pade(P, Q, x)}
+This generic function with signature
+\begin{lstlisting}
+  pub fn Pade<S, C, const N: u64>
+   (poly_p: Array<C, N>, poly_q: Array<C, N>, x: S) -> S
+  where
+    S: Float,
+    S: Add<S, Output = S>,
+    S: Mul<S, Output = S>,
+    S: Div<S, Output = S>,
+    S: Mul<C, Output = S>,
+    S: From<C>,
+    C: Float,
+\end{lstlisting}
+allows one to evaluate the Pade approximation given
+by polynomials $P$ and $Q$ in type \verb|C|
+(a clear floating point type) at a value of type
+\verb|S| (which is either the {\em same} clear floating
+point type, or its {\em associated} secret variant).
+The polynomials $P$ and $Q$ must have the same degree.
+
+
+All floating point types \verb|T| have predefined constants
+\begin{lstlisting}
+   T::two_pi();
+   T::pi();
+   T::half_pi();
+   T::ln2();
+   T::e();
+\end{lstlisting}
+
+
+\subsection{ClearIEEE}
+The following are all implemented via a local function call
+to the SCALE C++ runtime; thus are relatively fast.
+\begin{lstlisting}
+    let c = ClearIEEE::from(0.5431);
+    let t = c.acos();
+    let t = c.asin();
+    let t = c.atan();
+    let t = c.cos();
+    let t = c.cosh();
+    let t = c.sin();
+    let t = c.sinh();
+    let t = c.tan();
+    let t = c.tanh();
+    let t = c.exp();
+    let t = c.exp2()
+    let t = c.log();
+    let t = c.log2();
+    let t = c.log10();
+    let t = c.ceil();
+    let t = c.fabs();
+    let t = c.floor();
+    let t = c.sqrt();
+\end{lstlisting}
+Note, \verb|exp2()| computes the function $2^x$.
+
+\subsection{SecretIEEE}
+The following functions are implemented
+\begin{lstlisting}
+    let s = SecretIEEE::from(0.5431);
+    let t = s.acos();
+    let t = s.asin();
+    let t = s.atan();
+    let t = s.cos();
+    let t = s.cosh();
+    let t = s.sin();
+    let t = s.sinh();
+    let t = s.tan();
+    let t = s.tanh();
+    let t = s.exp();
+    let t = s.exp2()
+    let t = s.log();
+    let t = s.log2();
+    let t = s.log10();
+    let t = s.ceil();
+    let t = s.fabs();
+    let t = s.floor();
+    let t = s.sqrt();
+\end{lstlisting}
+Note logarithms of negative values result in undefined
+behaviour.
+
+\subsection{ClearFixed}
+The following functions are implemented
+\begin{lstlisting}
+    let c: ClearFixed<40,20>= ClearFixed::from(0.5431);
+    let t = c.acos();
+    let t = c.asin();
+    let t = c.atan();
+    let t = c.cos();
+    let t = c.cosh();
+    let t = c.sin();
+    let t = c.sinh();
+    let t = c.tan();
+    let t = c.tanh();
+    let t = c.exp();
+    let t = c.exp2()
+    let t = c.log();
+    let t = c.log2();
+    let t = c.log10();
+    let t = c.ceil();
+    let t = c.fabs();
+    let t = c.floor();
+    let t = c.sqrt();
+\end{lstlisting}
+
+\subsection{SecretFixed}
+The following functions are implemented
+\begin{lstlisting}
+    let s: SecretFixed<40,20>= SecretFixed::from(0.5431);
+    let s = c.acos();
+    let s = c.asin();
+    let s = c.atan();
+    let s = c.cos();
+    let s = c.cosh();
+    let s = c.sin();
+    let s = c.sinh();
+    let s = c.tan();
+    let s = c.tanh();
+    let s = c.exp();
+    let s = c.exp2()
+    let s = c.log();
+    let s = c.log2();
+    let s = c.log10();
+    let s = c.ceil();
+    let s = c.fabs();
+    let s = c.floor();
+    let s = c.sqrt();
+\end{lstlisting}
+

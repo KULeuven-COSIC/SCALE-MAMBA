@@ -95,6 +95,13 @@ Currently, only strings and $\ClearModp$ types can be output in this way.
     let cb = ClearModp::from(2);
     print!("hello ", ca, " world ", cb, "\n");
 \end{lstlisting}
+If you cannot be bothered to add the newline at the end 
+you can also use \verb|println!|
+\begin{lstlisting}
+    let ca = ClearModp::from(1);
+    let cb = ClearModp::from(2);
+    println!("hello ", ca, " world ", cb);
+\end{lstlisting}
 
 
 \subsection{Circuits and Local Functions}
@@ -110,7 +117,8 @@ new functions to the underlying system.
 
 \subsubsection{Inbuilt Circuits}
 The inbuilt circuits shipped with SCALE can be called using the
-following function signatures:
+following function signatures (the ones associated to floating point
+operations can be accessed via the \verb|SecretIEEE| type).
 \begin{lstlisting}
     pub fn AES128( key128: [SecretI64; 2], mess: [SecretI64; 2]) 
                   -> [SecretI64; 2]
@@ -218,7 +226,8 @@ The caller code is given by
     let C = Matrix_Mul_CC(&A, &B);
 \end{lstlisting}
 Currently there are four Local Functions defined, with
-the signatures:
+the signatures  (the ones in the main SCALE manual associated to floating point
+operations can be accessed via the \verb|ClearIEEE| type directly).
 \begin{lstlisting}
     pub fn Matrix_Mul_CC<const N: u64, const L: u64, const M: u64>
                     ( A: &Matrix::<ClearModp, N, L>,

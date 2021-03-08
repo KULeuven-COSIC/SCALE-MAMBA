@@ -1,3 +1,6 @@
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 #![no_std]
 #![no_main]
 #![feature(const_evaluatable_checked)]
@@ -6,14 +9,7 @@
 use scale_std::array::Array;
 use scale_std::circuits::*;
 
-scale::main! {
-    I64_MEMORY = 50;
-    SECRET_I64_MEMORY = 75;
-    SECRET_MODP_MEMORY = 0;
-    CLEAR_MODP_MEMORY = 0;
-    KAPPA = 40;
-}
-
+#[scale::main(KAPPA = 40)]
 #[inline(always)]
 fn main() {
     let zero = SecretI64::from(ConstI32::<0>);
@@ -86,9 +82,18 @@ fn main() {
         print!("State ", i as i64, "  = ", val, "\n");
     }
 
-    costate1.get(24).test_value(0xe7dde140798f25f1_u64 as i64);
-    costate1.get(23).test_value(0x8a47c033f9ccd584_u64 as i64);
-    costate1.get(22).test_value(0xeea95aa61e2698d5_u64 as i64);
+    costate1
+        .get(24)
+        .unwrap()
+        .test_value(0xe7dde140798f25f1_u64 as i64);
+    costate1
+        .get(23)
+        .unwrap()
+        .test_value(0x8a47c033f9ccd584_u64 as i64);
+    costate1
+        .get(22)
+        .unwrap()
+        .test_value(0xeea95aa61e2698d5_u64 as i64);
 
     let ostate2 = SHA3(ostate1);
 
@@ -98,7 +103,16 @@ fn main() {
         print!("State ", i as i64, "  = ", val, "\n");
     }
 
-    costate2.get(24).test_value(0x3ccb6ef94d955c2d_u64 as i64);
-    costate2.get(23).test_value(0x6db55770d02c336a_u64 as i64);
-    costate2.get(22).test_value(0x6c6bd770128d3d09_u64 as i64);
+    costate2
+        .get(24)
+        .unwrap()
+        .test_value(0x3ccb6ef94d955c2d_u64 as i64);
+    costate2
+        .get(23)
+        .unwrap()
+        .test_value(0x6db55770d02c336a_u64 as i64);
+    costate2
+        .get(22)
+        .unwrap()
+        .test_value(0x6c6bd770128d3d09_u64 as i64);
 }

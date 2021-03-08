@@ -3,9 +3,9 @@ clean:
 	-cd tests/scasm-tests ; rm -f *.bc
 
 scasm-tests:
-	-make clean
+	-$(MAKE) clean
 	cargo run --bin scasm_tests --release
 
 tests:
-	-make clean
+	-$(MAKE) clean
 	cargo test

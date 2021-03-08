@@ -5,6 +5,7 @@ OSSL = /users/cosic/nsmart/local/openssl/
 #   SH_DEBUG = Share debugging (for development only)
 #   DEBUG = Checks for reads before writes on register access
 #   DETERMINISTIC = Removes all randomness, gain for debugging
+#   DEBUGMEM = Turns on some memory debugging (really only meant for Rust pipeline)
 
 # MAX_MOD = 7 should be OK for 128 bit based FHE operations
 MAX_MOD = 7

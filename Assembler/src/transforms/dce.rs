@@ -1,3 +1,7 @@
+
+// Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+// Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
+
 //! Remove instructions that write to a register which is never read.
 
 use std::collections::HashSet;
@@ -52,7 +56,9 @@ impl super::Pass for Pass {
                         Instruction::General { instruction, .. } => match name2instr(instruction) {
                             None => return true,
                             // Barrier instructions have side effects, do not optimize them away
-                            Some(instr) if instr.barrier => return true,
+                            Some(instr) if instr.barrier || instruction.starts_with("new") => {
+                                return true
+                            }
                             Some(_) => {}
                         },
                         Instruction::Assign { .. } => {}

@@ -32,7 +32,8 @@ else
         OPTS= run_test $test
     done
     # Deliberately not calling test_recursion and test_call here
-    for test in test_modp test_sregint test_stacks test_GC test_memory test_local_functions test_branch test_array test_ieee; do
+    # Do not call any routines here which requires a big prime
+    for test in test_array test_bitdecfull test_GC test_memory test_sfloat test_ieee test_modp test_branch test_local_functions test_stacks; do
 	run_test $test
     done
     printf "\n\n\n\n\n\n\n\n\n\n"
