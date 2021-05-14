@@ -247,6 +247,9 @@ public:
   {
     return eval_circuit_bit(Zero_Equal, *this, P, online_thread_no);
   }
+
+  /* Randomize */
+  void randomize(unsigned int online_thread_no, Player &P);
 };
 
 /* Expand 64 bits in aBitVector into an array of 64 bits */

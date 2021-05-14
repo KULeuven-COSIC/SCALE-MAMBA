@@ -1,7 +1,6 @@
 
 all: $(wildcard *.tex)
 	pdflatex RustDocumentation.tex
-	bibtex RustDocumentation
 	pdflatex RustDocumentation.tex
 	pdflatex RustDocumentation.tex
 

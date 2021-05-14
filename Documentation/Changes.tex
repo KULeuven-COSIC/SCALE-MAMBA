@@ -6,8 +6,8 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.12} of the SCALE and MAMBA software.
-There are two main components to the system, a run time system called
+This is currently {\bf version 1.13} of the SCALE and MAMBA software.
+There are {\bf three} main components to the system, a run time system called
 SCALE,
 \begin{center}
   Secure Computation Algorithms from LEuven
@@ -18,6 +18,8 @@ and a Python-like programming language called MAMBA
 \end{center}
 Note, that MAMBA is a type of snake (like a Python), a snake
 has scales, and an argot is a ``secret language''.
+We also have a Rust based programming language which will slowly
+replace MAMBA as the main programming language for the system.
 
 \vspace{5mm}
 
@@ -25,6 +27,32 @@ has scales, and an argot is a ``secret language''.
 The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.13 from 1.12}
+Apart from the usual minor bug fixes the main changes
+are now focused on supporting a better compilation pipeline
+for Rust.
+\begin{enumerate}
+\item The syntax of the \verb|TRIPLE| and \verb|SQUARE| byte-codes
+has changed. This enables the \verb|scasm| assembler to merge
+such instructions together, much like is already done for the
+\verb|STARTOPEN| and \verb|STOPOPEN| byte-codes. This is part
+of the new design for Rust programs to avoid the need for
+using vectorized instructions.
+\item Memory based vectorized private input and output and output
+instructions have been added. This makes the inputting
+and outputing of Arrays and Slices of type \verb|SecretModp| much more
+efficient in the Rust pipeline.
+\item Memory based vector arithmetic routines have been added. This is 
+to enable efficient vectorized Array and Slice operations in the Rust pipeline,
+and to improve the performance of the Scale-Rust standard library.
+These not only provide arithmetic, but provide efficient C++ implementations
+of local computations that were previously done via byte-codes.
+\item Renumbered some opcodes for the relative peek and poke instructions.
+\item Some extra opcodes for random number generation have been added to support the functionality in the Rust pipeline.
+\end{enumerate}
+
+
 
 \subsection{Changes in version 1.12 from 1.11}
 Apart from the usual minor bug fixes...
@@ -36,7 +64,7 @@ of the system. No longer (as since version 1.7)
 does the memory dynamically increase as your
 program asks for more.
 \item Memory can be allocated/deallocated in the runtime
-	using the \verb|NEW| and \verb|DELETE| byte codes.
+	using the \verb|NEW| and \verb|DELETE| byte-codes.
 	This is not really used in the MAMBA pipeline, but
 	is used in the Rust pipeline to simplify memory
 	management and reduce memory consumption.

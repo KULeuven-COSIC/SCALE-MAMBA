@@ -106,8 +106,8 @@ unsigned int Memory<T>::New(unsigned int sz)
       mp[temp.first]= temp.second - temp.first + 1;
 
 #ifdef DEBUGMEM
-         printf("\n New %s memory of size %d at position %d\n", T::type_string().c_str(), sz, temp.first);
-         fflush(stdout);
+      printf("\n New %s memory of size %d at position %d\n", T::type_string().c_str(), sz, temp.first);
+      fflush(stdout);
 #endif
 
       memory_mutex.unlock();
@@ -138,7 +138,7 @@ unsigned int Memory<T>::New(unsigned int sz)
   i--;
 
   // Switch to signed looping as n could be zero
-  for (int ii=i; ii >= n; ii--)
+  for (int ii= i; ii >= n; ii--)
     {
       // Divide block into two halves
       pair<unsigned int, unsigned int> pair1, pair2;
@@ -233,22 +233,20 @@ void Memory<T>::Delete(unsigned int pos)
   memory_mutex.unlock();
 }
 
-
 template<class T>
 bool Memory<T>::check_allocated(unsigned int pos)
-{ 
+{
   map<unsigned int, unsigned int>::iterator it;
 
-  for (it = mp.begin(); it != mp.end(); it++)
+  for (it= mp.begin(); it != mp.end(); it++)
     {
-       if (pos>=it->first && pos<(it->first+it->second))
-         { 
-	   return true;
-	 }
+      if (pos >= it->first && pos < (it->first + it->second))
+        {
+          return true;
+        }
     }
   return false;
 }
-
 
 template<class T>
 ostream &operator<<(ostream &s, const Memory<T> &M)

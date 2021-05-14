@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -176,21 +175,14 @@ pub fn augment_block<'a>(
             // If we get here we can deal with this instruction now
             //   - So we do so.
 
-            // Load from memory instructions
-            if stmt.memory_read(cx) {
-                let id = cmp::max(mem_i_depth, max_instr_depth) + 1;
-                let rd = cmp::max(mem_r_depth, max_rnd_depth);
-                for x in write_regs {
-                    register_instr_depth.insert(x, id);
-                    register_round_depth.insert(x, rd);
-                }
-                instruction_depth = id;
-                round_depth = rd;
-            }
-            // Store to memory instructions
-            else if stmt.memory_write(cx) {
+            // Instructions which both load or store
+            if stmt.memory_write(cx) || stmt.memory_read(cx) {
                 mem_i_depth = cmp::max(mem_i_depth, max_instr_depth) + 1;
                 mem_r_depth = cmp::max(mem_r_depth, max_rnd_depth);
+                for x in write_regs {
+                    register_instr_depth.insert(x, mem_i_depth);
+                    register_round_depth.insert(x, mem_r_depth);
+                }
                 instruction_depth = mem_i_depth;
                 round_depth = mem_r_depth;
             }

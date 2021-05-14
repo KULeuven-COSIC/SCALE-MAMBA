@@ -8,6 +8,9 @@ All rights reserved
 #include "aBit.h"
 #include "Exceptions/Exceptions.h"
 #include "LSSS/Open_Protocol2.h"
+#include "OT_Thread_Data.h"
+
+extern OT_Thread_Data OTD;
 
 unsigned int aBit::n;
 unsigned int aBit::whoami;
@@ -187,4 +190,13 @@ void check_Bits(const list<aBit> &xL, Player &P)
   xB.reserve(sz);
   copy(begin(xL), end(xL), back_inserter(xB));
   P.OP2->Open_Bits(x, xB, P);
+}
+
+void aBit::randomize(unsigned int online_thread_no, Player &P)
+{
+  OTD.check();
+  *this= OTD.aBD.get_aShare(online_thread_no);
+#ifdef BENCH_OFFLINE
+  P.abits+= 1;
+#endif
 }

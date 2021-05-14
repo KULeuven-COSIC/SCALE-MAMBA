@@ -59,6 +59,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     destinations: vec![base_wasmp_heap_reg.into()],
                     values: vec![Span::DUMMY.with(wasm_heap_start_address.into())],
                 });
+                self.heap_dest_reg = Some(base_wasmp_heap_reg);
 
                 // Write the initial memory state
                 if let Some(memory) = self.module.memories.iter().next() {
@@ -161,6 +162,59 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 }
                 Ok(())
             }
+            "__bit" => {
+                assert_eq!(fn_ty.params().len(), 0);
+                assert_eq!(fn_ty.results().len(), 1);
+                let comment = self.comment(|f| write!(f, "function call: {}", name));
+                let instr = Instruction::DataInstr {
+                    instruction: "bit",
+                    registers: vec![Span::DUMMY
+                        .with(self.stack.push_temp(RegisterKind::Secret))
+                        .require(self.cx)],
+                };
+                self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+                Ok(())
+            }
+            "__square" => {
+                assert_eq!(fn_ty.params().len(), 0);
+                assert_eq!(fn_ty.results().len(), 0); // results are handled via the pop functions
+                let comment = self.comment(|f| write!(f, "function call: {}", name));
+
+                // Reverse order pushing so that the popping in Rust works in the right order.
+                let b = self.stack.push_temp(RegisterKind::Secret);
+                let a = self.stack.push_temp(RegisterKind::Secret);
+
+                let instr = Instruction::DataInstr {
+                    instruction: "square",
+                    registers: vec![
+                        Span::DUMMY.with(a).require(self.cx),
+                        Span::DUMMY.with(b).require(self.cx),
+                    ],
+                };
+                self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+                Ok(())
+            }
+            "__triple" => {
+                assert_eq!(fn_ty.params().len(), 0);
+                assert_eq!(fn_ty.results().len(), 0); // results are handled via the pop functions
+                let comment = self.comment(|f| write!(f, "function call: {}", name));
+
+                // Reverse order pushing so that the popping in Rust works in the right order.
+                let c = self.stack.push_temp(RegisterKind::Secret);
+                let b = self.stack.push_temp(RegisterKind::Secret);
+                let a = self.stack.push_temp(RegisterKind::Secret);
+
+                let instr = Instruction::DataInstr {
+                    instruction: "triple",
+                    registers: vec![
+                        Span::DUMMY.with(a).require(self.cx),
+                        Span::DUMMY.with(b).require(self.cx),
+                        Span::DUMMY.with(c).require(self.cx),
+                    ],
+                };
+                self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+                Ok(())
+            }
             "reveal" => {
                 assert_eq!(fn_ty.params().len(), 1);
                 assert_eq!(fn_ty.results().len(), 1);
@@ -188,14 +242,13 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 let x = self.r(RegisterKind::Secret);
                 let y = self.r(RegisterKind::Secret);
                 let z = self.r(RegisterKind::Secret);
-                let instr = Instruction::General {
+                let instr = Instruction::DataInstr {
                     instruction: "triple",
-                    destinations: [x, y, z]
+                    registers: [x, y, z]
                         .iter()
                         .copied()
                         .map(|reg| Span::DUMMY.with(reg).require(self.cx))
                         .collect(),
-                    values: vec![],
                 };
                 self.push_stmt(Statement::from_instr_with_comment(instr, comment));
                 // subs s6, s0, s3
@@ -262,6 +315,25 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             }
                         }
                         "restart" => {
+                            // Clean the heap memory
+                            self.push_stmt(Instruction::General {
+                                instruction: "deleteint",
+                                destinations: vec![],
+                                values: vec![Span::DUMMY.with(self.heap_dest_reg.unwrap().into())],
+                            });
+                            // Clean the test memory
+                            let zero = self.val_to_reg(Operand::Value(Const::Int(0)));
+                            self.push_stmt(Instruction::General {
+                                instruction: "deleteint",
+                                destinations: vec![],
+                                values: vec![Span::DUMMY.with(zero.into())],
+                            });
+                            self.push_stmt(Instruction::General {
+                                instruction: "deletec",
+                                destinations: vec![],
+                                values: vec![Span::DUMMY.with(zero.into())],
+                            });
+
                             *self.terminator_mut() = Terminator::Restart {
                                 comment: Span::DUMMY,
                             }

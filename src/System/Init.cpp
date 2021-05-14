@@ -234,12 +234,14 @@ void init_replicated(ShareData &SD, ShareData2 &SD2, unsigned int n, Replication
   switch (mode)
     {
       case ReplicationMode::QualifiedSets:
-        case ReplicationMode::UnqualifiedSets: {
+      case ReplicationMode::UnqualifiedSets:
+        {
           bool unqualified= mode == ReplicationMode::UnqualifiedSets;
           AS.assign(Sets, unqualified);
           break;
         }
-        case ReplicationMode::Threshold: {
+      case ReplicationMode::Threshold:
+        {
           cout << "Threshold..." << endl;
           AS.assign(n, t);
           cout << "AS = " << AS << endl;
@@ -278,14 +280,16 @@ SecretSharing init_secret_sharing(ShareType v, bigint &p, int lg2p,
 
   switch (v)
     {
-        case Full: {
+      case Full:
+        {
           init_FHE(p, lg2p, n); // This internally calls gfp::init_field(p) and sets p
           break;
         }
 
       case Shamir:
       case Replicated:
-        case Q2MSP: {
+      case Q2MSP:
+        {
           // gfp::init_field(p) has already been called (or should have been)
           break;
         }

@@ -195,3 +195,13 @@ void aBitVector::SHR(const aBitVector &a, unsigned int n)
       x[sreg_bitl - n + i].assign_zero();
     }
 }
+
+void aBitVector::randomize(unsigned int online_thread_no, Player &P)
+{
+  OTD.check();
+  list<aBit> List_aBits= OTD.aBD.get_aShares(online_thread_no, sreg_bitl);
+#ifdef BENCH_OFFLINE
+  P.abits+= sreg_bitl;
+#endif
+  copy(List_aBits.begin(), List_aBits.end(), x.begin());
+}

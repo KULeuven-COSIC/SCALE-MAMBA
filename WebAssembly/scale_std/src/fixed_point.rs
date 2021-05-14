@@ -194,6 +194,7 @@ impl<const K: u64, const F: u64, const KAPPA: u64> From<SecretInteger<K, KAPPA>>
     }
 }
 
+#[inline(always)]
 pub const fn abs_sub(a: u64, b: u64) -> u64 {
     if a > b {
         a - b
@@ -206,10 +207,8 @@ pub const fn abs_sub(a: u64, b: u64) -> u64 {
  * - Assumes user knows what they are doing
  */
 impl<const K: u64, const F: u64> ClearFixed<K, F> {
-    pub unsafe fn recast<const K2: u64, const F2: u64>(self) -> ClearFixed<K2, F2>
-    where
-        ConstU64<{ abs_sub(F, F2) }>: ,
-    {
+    #[inline(always)]
+    pub unsafe fn recast<const K2: u64, const F2: u64>(self) -> ClearFixed<K2, F2> {
         // First cast to the new size of integer
         let mut ans: ClearInteger<K2> = self.x.recast();
         // Now scale up/down
@@ -218,17 +217,15 @@ impl<const K: u64, const F: u64> ClearFixed<K, F> {
             let cpow_i: ClearInteger<K2> = ClearInteger::from(cpow);
             ans = ans.mul(cpow_i);
         } else {
-            ans = ans.Trunc(ConstU64::<{ abs_sub(F, F2) }>, ConstBool::<true>);
+            ans = ans.Trunc(abs_sub(F, F2), true);
         }
         ClearFixed { x: ans }
     }
 }
 
 impl<const K: u64, const F: u64, const KAPPA: u64> SecretFixed<K, F, KAPPA> {
-    pub unsafe fn recast<const K2: u64, const F2: u64>(self) -> SecretFixed<K2, F2, KAPPA>
-    where
-        ConstU64<{ abs_sub(F, F2) }>: ,
-    {
+    #[inline(always)]
+    pub unsafe fn recast<const K2: u64, const F2: u64>(self) -> SecretFixed<K2, F2, KAPPA> {
         // First cast to the new size of integer
         let mut ans: SecretInteger<K2, KAPPA> = self.x.recast();
         // Now scale up/down
@@ -237,7 +234,7 @@ impl<const K: u64, const F: u64, const KAPPA: u64> SecretFixed<K, F, KAPPA> {
             let cpow_i: ClearInteger<K2> = ClearInteger::from(cpow);
             ans = ans.mul_clear(cpow_i);
         } else {
-            ans = ans.Trunc(ConstU64::<{ abs_sub(F, F2) }>, ConstBool::<true>);
+            ans = ans.Trunc(abs_sub(F, F2), true);
         }
         SecretFixed { x: ans }
     }
@@ -306,6 +303,30 @@ impl<const K: u64, const F: u64, const KAPPA: u64> SecretFixed<K, F, KAPPA> {
     pub fn set_modp(v: SecretModp) -> Self {
         Self {
             x: SecretInteger::set(v),
+        }
+    }
+}
+
+/* Randomization
+ *  - Assumes K>=F
+ */
+impl<const K: u64, const F: u64> Randomize for ClearFixed<K, F> {
+    #[inline(always)]
+    fn randomize() -> ClearFixed<K, F> {
+        let a = modp_two_power(F);
+        let b = ClearModp::randomize() % a;
+        Self {
+            x: ClearInteger::set(b),
+        }
+    }
+}
+
+impl<const K: u64, const F: u64, const KAPPA: u64> Randomize for SecretFixed<K, F, KAPPA> {
+    #[inline(always)]
+    fn randomize() -> SecretFixed<K, F, KAPPA> {
+        let a = PRandInt(F);
+        Self {
+            x: SecretInteger::set(a),
         }
     }
 }
@@ -464,7 +485,7 @@ where
     fn mul(self, other: ClearFixed<K, F>) -> Self::Output {
         let v = self.x.rep() * other.x.rep();
         let u = ClearInteger::<{ 2 * K }>::from(v);
-        let w = u.Trunc(ConstU64::<F>, ConstBool::<true>);
+        let w = u.Trunc(F, true);
         let ans: ClearInteger<K> = ClearInteger::set(w.rep());
         ClearFixed::set(ans)
     }
@@ -479,7 +500,7 @@ where
     fn mul(self, other: SecretFixed<K, F, KAPPA>) -> Self::Output {
         let v = self.x.rep() * other.x.rep();
         let u = SecretInteger::<{ 2 * K }, KAPPA>::from(v);
-        let w = u.TruncPr(ConstU64::<F>, ConstBool::<true>);
+        let w = u.TruncPr(F, true);
         let ans: SecretInteger<K, KAPPA> = SecretInteger::set(w.rep());
         SecretFixed::set(ans)
     }
@@ -494,7 +515,7 @@ where
     fn mul(self, other: SecretFixed<K, F, KAPPA>) -> Self::Output {
         let v = self.x.rep() * other.x.rep();
         let u = SecretInteger::<{ 2 * K }, KAPPA>::from(v);
-        let w = u.TruncPr(ConstU64::<F>, ConstBool::<true>);
+        let w = u.TruncPr(F, true);
         let ans: SecretInteger<K, KAPPA> = SecretInteger::set(w.rep());
         SecretFixed::set(ans)
     }
@@ -637,8 +658,9 @@ where
     }
 }
 
+#[inline(always)]
 fn twos_complement<const K: u64>(x: ClearModp, _: ConstU64<K>) -> ClearModp {
-    let bits: Slice<ClearModp> = BitDec_ClearModp(x, K);
+    let bits: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(x, K);
     let mut twos_result = ClearModp::from(0);
     for i in 0..K {
         twos_result =
@@ -647,6 +669,7 @@ fn twos_complement<const K: u64>(x: ClearModp, _: ConstU64<K>) -> ClearModp {
     twos_result + ClearModp::from(1)
 }
 
+#[inline(always)]
 fn approximate_reciprocal<const K: u64, const F: u64, const THETA: u64>(
     divisor: ClearModp,
     _: ConstU64<K>,
@@ -656,7 +679,7 @@ fn approximate_reciprocal<const K: u64, const F: u64, const THETA: u64>(
 where
     ConstI32<{ f_as_i32(K) }>: ,
 {
-    let bits: Slice<ClearModp> = BitDec_ClearModp(divisor, K);
+    let bits: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(divisor, K);
     let mut cnt_leading_zeros = ClearModp::from(0);
     let mut flag: i64 = 0;
     let mut normalized_divisor = divisor;
@@ -729,6 +752,7 @@ where
     ConstI32<{ f_as_i32(K) }>: ,
 {
     type Output = Self;
+    #[inline(always)]
     fn div(self, other: ClearFixed<K, F>) -> Self::Output {
         let two = ClearModp::from(2) * modp_two_power(F);
 
@@ -771,6 +795,7 @@ where
     ConstI32<{ f_as_i32(K) }>: ,
 {
     type Output = Self;
+    #[inline(always)]
     fn div(self, other: ClearFixed<K, F>) -> Self::Output {
         let two = ClearModp::from(2) * modp_two_power(F);
 
@@ -791,7 +816,7 @@ where
 
         for _i in 1..Self::THETA {
             let temp: SecretInteger<{ 2 * K }, KAPPA> = SecretInteger::from(a0 * w0);
-            a0 = temp.TruncPr(ConstU64::<F>, ConstBool::<true>).rep();
+            a0 = temp.TruncPr(F, true).rep();
             b0 = (b0 * w0) >> ConstI32::<{ f_as_i32(F) }>;
             w0 = two - b0;
         }
@@ -804,6 +829,7 @@ where
         2^{k-1} <= c < 2^k and c = b*v_prime
 */
 #[allow(non_snake_case)]
+#[inline(always)]
 fn Norm<const K: u64, const KAPPA: u64>(
     b: SecretModp,
     _: ConstU64<K>,
@@ -820,25 +846,20 @@ where
 
     let bits_order = BitDec::<K, K, KAPPA>(absolute_val);
     // Invert bits
-    let mut bits: Slice<SecretModp> = Slice::uninitialized(K);
-    for i in 0..K {
-        bits.set(i, &*bits_order.get_unchecked(K - 1 - i));
-    }
+    let bits = bits_order.reverse();
     let suffixes = bits.PreOr();
 
     let mut z: Array<SecretModp, K> = Array::uninitialized();
     for i in 0..(K - 1) {
         z.set(
-            i,
+            K - 1 - i,
             &(*suffixes.get_unchecked(K - 1 - i) - *suffixes.get_unchecked(K - 2 - i)),
         );
     }
-    z.set(K - 1, &*suffixes.get_unchecked(0));
+    z.set(0, &*suffixes.get_unchecked(0));
 
-    let mut acc = SecretModp::from(0);
-    for i in 0..K {
-        acc = acc + modp_two_power(K - i - 1) * *z.get_unchecked(i);
-    }
+    let acc = z.evaluate(ClearModp::from(2));
+
     let mut ans: Array<SecretModp, 2> = Array::uninitialized();
     ans.set(0, &(absolute_val * acc));
     ans.set(1, &(sign * acc));
@@ -846,6 +867,7 @@ where
 }
 
 #[allow(non_snake_case)]
+#[inline(always)]
 fn AppRcr<const K: u64, const F: u64, const KAPPA: u64>(
     b: SecretModp,
     _: ConstU64<K>,
@@ -853,7 +875,6 @@ fn AppRcr<const K: u64, const F: u64, const KAPPA: u64>(
     _: ConstU64<KAPPA>,
 ) -> SecretModp
 where
-    ConstU64<{ 2 * (K - F) }>: ,
     ConstU64<{ 2 * K }>: ,
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
@@ -866,9 +887,7 @@ where
     let v = *Nm.get_unchecked(1);
     let d = alpha - c - c;
     let w_int: SecretInteger<{ 2 * K }, KAPPA> = SecretInteger::from(d * v);
-    let w = w_int
-        .TruncPr(ConstU64::<{ 2 * (K - F) }>, ConstBool::<true>)
-        .rep();
+    let w = w_int.TruncPr(2 * (K - F), true).rep();
     w
 }
 
@@ -878,14 +897,13 @@ where
 impl<const K: u64, const F: u64, const KAPPA: u64> Div<SecretFixed<K, F, KAPPA>>
     for SecretFixed<K, F, KAPPA>
 where
-    ConstU64<{ 2 * F }>: ,
     ConstU64<{ 2 * K }>: ,
     ConstU64<{ Self::THETA }>: ,
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
-    ConstU64<{ 2 * (K - F) }>: ,
 {
     type Output = Self;
+    #[inline(always)]
     fn div(self, other: SecretFixed<K, F, KAPPA>) -> Self::Output {
         let a = self.x.rep();
         let b = other.x.rep();
@@ -894,15 +912,15 @@ where
         let mut x: SecretInteger<{ 2 * K }, KAPPA> = SecretInteger::from(alpha.rep() - b * w);
 
         let mut y: SecretInteger<{ 2 * K }, KAPPA> = SecretInteger::from(a * w);
-        y = y.TruncPr(ConstU64::<F>, ConstBool::<true>);
+        y = y.TruncPr(F, true);
         for _i in 0..Self::THETA {
             y = unsafe { x.add_clear(alpha).mul(y) };
             x = unsafe { x.mul(x) };
-            y = y.TruncPr(ConstU64::<{ 2 * F }>, ConstBool::<true>);
-            x = x.TruncPr(ConstU64::<{ 2 * F }>, ConstBool::<true>);
+            y = y.TruncPr(2 * F, true);
+            x = x.TruncPr(2 * F, true);
         }
         y = unsafe { x.add_clear(alpha).mul(y) };
-        y = y.TruncPr(ConstU64::<{ 2 * F }>, ConstBool::<true>);
+        y = y.TruncPr(2 * F, true);
         let ans: SecretInteger<K, KAPPA> = SecretInteger::set(y.rep());
         SecretFixed { x: ans }
     }
@@ -921,6 +939,7 @@ where
     ConstU64<{ SecretFixed::<K, F, KAPPA>::THETA }>: ,
 {
     type Output = SecretFixed<K, F, KAPPA>;
+    #[inline(always)]
     fn div(self, other: SecretFixed<K, F, KAPPA>) -> Self::Output {
         let numerator = SecretFixed::from(self);
         let ans = numerator / other;

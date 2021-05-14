@@ -61,8 +61,10 @@ pub struct Context<'a, 'wasm> {
     module: &'wasm walrus::Module,
     /// The maximum reqbl seen during transpilation.
     reqbl: Option<i32>,
-    /// These 2 values are the address offset computed including the wasm heap and the testing memory
+    /// This value are the address offset computed including the wasm heap
     offset_addr_val: Option<u32>,
+    /// This register store the destination address where the heap memory is allocated
+    heap_dest_reg: Option<Register>,
     #[allow(dead_code)]
     // FIXME: use this
     exports: HashMap<String, &'wasm ExportItem>,
@@ -84,6 +86,7 @@ impl<'a, 'wasm> Context<'a, 'wasm> {
             cx,
             reqbl: None,
             offset_addr_val: None,
+            heap_dest_reg: None,
             exports,
             module,
             to_process: Default::default(),
@@ -588,6 +591,17 @@ pub fn transpile_wasm_function_body_to_scale<'a, 'wasm>(
         );
     }
 
+    // Execute clear_register instruction [hack to avoid problems
+    // due to weird DEBUG issue XXXX]
+    context.body.blocks[0].stmts.push(
+        Instruction::General {
+            instruction: "clear_registers",
+            destinations: vec![],
+            values: vec![],
+        }
+        .into(),
+    );
+
     // Allocate test memory for clear modp
     let input_reg = context.stack.temp(RegisterKind::Regint);
     let tmp_reg = context.stack.temp(RegisterKind::Regint);
@@ -721,13 +735,16 @@ pub fn main(args: Args) -> Result<(), Error> {
 
     let opts = vec![
         "validate".to_string(),
-        "destination_propagation".to_string(),
         "nop_removal".to_string(),
         "print_merge".to_string(),
         "start_stop_open".to_string(),
+        "merge_instructions".to_string(),
+        "nop_removal".to_string(),
+        "destination_propagation".to_string(),
         "assignment_chain".to_string(),
         "cmp".to_string(),
         "dce".to_string(),
+        "nop_removal".to_string(),
         "goto_chain_collapse".to_string(),
         "dead_block_removal".to_string(),
         "move_done_block_to_end".to_string(),

@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -24,6 +23,13 @@ impl Rand for i64 {
     #[inline(always)]
     fn rand(self) -> i64 {
         unsafe { __rand(self) }
+    }
+}
+
+impl Randomize for i64 {
+    #[inline(always)]
+    fn randomize() -> i64 {
+        unsafe { __randint() }
     }
 }
 

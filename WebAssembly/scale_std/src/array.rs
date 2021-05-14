@@ -6,8 +6,10 @@ use super::heap::Box;
 use crate::iter::CompileTimeLengthIterator;
 use crate::slice::Slice;
 use core::marker::PhantomData;
+use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{Bound, RangeBounds};
 use scale::alloc::GetAllocator;
+use scale::*;
 use scale::{alloc::Allocate, LoadFromMem, Reveal, Stack, StackAddress, StoreInMem};
 
 /// An array datastructure that allocates memory and never frees it
@@ -182,7 +184,7 @@ where
 }
 
 impl<T: GetAllocator, const N: u64> Array<T, N> {
-    fn addr(&self, i: u64) -> i64 {
+    pub fn addr(&self, i: u64) -> i64 {
         (self.first_element.address + i * T::Allocator::N) as i64
     }
 }
@@ -281,5 +283,1176 @@ where
         }
 
         uninit_array
+    }
+}
+
+impl<const N: u64> Array<SecretModp, N> {
+    #[inline(always)]
+    pub fn private_input<const P: u32, const C: u32>(_: Player<P>, _: Channel<C>) -> Self {
+        let array = Self::uninitialized();
+        unsafe { __mprivate_input(array.first_element.address as i64, N as i64, P, C) }
+        array
+    }
+
+    #[inline(always)]
+    pub fn private_output<const P: u32, const C: u32>(self, _: Player<P>, _: Channel<C>) {
+        unsafe {
+            __mprivate_output(self.first_element.address as i64, N as i64, P, C);
+        }
+    }
+}
+
+/* Operator Versions of Arithmetic Operations */
+
+// a_add_cc_t = &ca_arr + cb_arr.clone();
+impl<'a, const N: u64> Add<Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __maddc(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_add_cc_t = ca_arr.clone + &cb_arr;
+impl<'a, const N: u64> Add<&'a Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __maddc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_add_cc_t = &ca_arr + &cb_arr;
+impl<'a, const N: u64> Add<&'a Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __maddc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_cc_t = ca_arr.clone() + cb_arr.clone();
+impl<const N: u64> Add<Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __maddc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_add_sc_t = &sa_arr + cb_arr.clone();
+impl<'a, const N: u64> Add<Array<ClearModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_sc_t = sa_arr.clone + &cb_arr;
+impl<'a, const N: u64> Add<&'a Array<ClearModp, N>> for Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __maddm(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_add_sc_t = &sa_arr + &cb_arr;
+impl<'a, const N: u64> Add<&'a Array<ClearModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_sc_t = sa_arr.clone() + cb_arr.clone();
+impl<const N: u64> Add<Array<ClearModp, N>> for Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __maddm(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_add_cs_t = &ca_arr + sb_arr.clone();
+impl<'a, const N: u64> Add<Array<SecretModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __maddm(
+                other.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_add_cs_t = ca_arr.clone + &sb_arr;
+impl<'a, const N: u64> Add<&'a Array<SecretModp, N>> for Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_cs_t = &ca_arr + &sb_arr;
+impl<'a, const N: u64> Add<&'a Array<SecretModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_sc_t = ca_arr.clone() + sb_arr.clone();
+impl<const N: u64> Add<Array<SecretModp, N>> for Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<SecretModp, N>) -> Self::Output {
+        let array: Array<SecretModp, N> = Array::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_ss_t = &sa_arr + sb_arr.clone();
+impl<'a, const N: u64> Add<Array<SecretModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __madds(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_add_ss_t = sa_arr.clone + &sb_arr;
+impl<'a, const N: u64> Add<&'a Array<SecretModp, N>> for Array<SecretModp, N> {
+    type Output = Self;
+    #[inline(always)]
+    fn add(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __madds(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_add_ss_t = &sa_arr + &sb_arr;
+impl<'a, const N: u64> Add<&'a Array<SecretModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn add(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __madds(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_add_ss_t = sa_arr.clone() + sb_arr.clone();
+impl<const N: u64> Add<Array<SecretModp, N>> for Array<SecretModp, N> {
+    type Output = Self;
+    #[inline(always)]
+    fn add(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __madds(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_sub_cc_t = &ca_arr - cb_arr.clone();
+impl<'a, const N: u64> Sub<Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __msubc(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_sub_cc_t = ca_arr.clone - &cb_arr;
+impl<'a, const N: u64> Sub<&'a Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __msubc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_sub_cc_t = &ca_arr - &cb_arr;
+impl<'a, const N: u64> Sub<&'a Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __msubc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_cc_t = ca_arr.clone() - cb_arr.clone();
+impl<const N: u64> Sub<Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __msubc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_sub_sc_t = &sa_arr - cb_arr.clone();
+impl<'a, const N: u64> Sub<Array<ClearModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __msubml(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_sc_t = sa_arr.clone - &cb_arr;
+impl<'a, const N: u64> Sub<&'a Array<ClearModp, N>> for Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __msubml(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_sub_sc_t = &sa_arr - &cb_arr;
+impl<'a, const N: u64> Sub<&'a Array<ClearModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __msubml(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_sc_t = sa_arr.clone() - cb_arr.clone();
+impl<const N: u64> Sub<Array<ClearModp, N>> for Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __msubml(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_sub_cs_t = &ca_arr - sb_arr.clone();
+impl<'a, const N: u64> Sub<Array<SecretModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __msubmr(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_sub_cs_t = ca_arr.clone - &sb_arr;
+impl<'a, const N: u64> Sub<&'a Array<SecretModp, N>> for Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __msubmr(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_cs_t = &ca_arr - &sb_arr;
+impl<'a, const N: u64> Sub<&'a Array<SecretModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __msubmr(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_sc_t = ca_arr.clone() - sb_arr.clone();
+impl<const N: u64> Sub<Array<SecretModp, N>> for Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<SecretModp, N>) -> Self::Output {
+        let array: Array<SecretModp, N> = Array::uninitialized();
+        unsafe {
+            __msubmr(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_ss_t = &sa_arr - sb_arr.clone();
+impl<'a, const N: u64> Sub<Array<SecretModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __msubs(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_sub_ss_t = sa_arr.clone - &sb_arr;
+impl<'a, const N: u64> Sub<&'a Array<SecretModp, N>> for Array<SecretModp, N> {
+    type Output = Self;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __msubs(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_sub_ss_t = &sa_arr - &sb_arr;
+impl<'a, const N: u64> Sub<&'a Array<SecretModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn sub(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __msubs(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_sub_ss_t = sa_arr.clone() - sb_arr.clone();
+impl<const N: u64> Sub<Array<SecretModp, N>> for Array<SecretModp, N> {
+    type Output = Self;
+    #[inline(always)]
+    fn sub(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __msubs(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+/* Operator Versions of Arithmetic Operations */
+
+// a_mul_cc_t = &ca_arr * cb_arr.clone();
+impl<'a, const N: u64> Mul<Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn mul(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmulc(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_mul_cc_t = ca_arr.clone * &cb_arr;
+impl<'a, const N: u64> Mul<&'a Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn mul(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmulc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mul_cc_t = &ca_arr * &cb_arr;
+impl<'a, const N: u64> Mul<&'a Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn mul(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mmulc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mul_cc_t = ca_arr.clone() * cb_arr.clone();
+impl<const N: u64> Mul<Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn mul(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmulc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mul_sc_t = &sa_arr * cb_arr.clone();
+impl<'a, const N: u64> Mul<Array<ClearModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mul_sc_t = sa_arr.clone * &cb_arr;
+impl<'a, const N: u64> Mul<&'a Array<ClearModp, N>> for Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmulm(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mul_sc_t = &sa_arr * &cb_arr;
+impl<'a, const N: u64> Mul<&'a Array<ClearModp, N>> for &'a Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mul_sc_t = sa_arr.clone() * cb_arr.clone();
+impl<const N: u64> Mul<Array<ClearModp, N>> for Array<SecretModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmulm(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mul_cs_t = &ca_arr * sb_arr.clone();
+impl<'a, const N: u64> Mul<Array<SecretModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: Array<SecretModp, N>) -> Self::Output {
+        unsafe {
+            __mmulm(
+                other.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_mul_cs_t = ca_arr.clone * &sb_arr;
+impl<'a, const N: u64> Mul<&'a Array<SecretModp, N>> for Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mul_cs_t = &ca_arr * &sb_arr;
+impl<'a, const N: u64> Mul<&'a Array<SecretModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: &'a Array<SecretModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mul_sc_t = ca_arr.clone() * &sb_arr.clone();
+impl<const N: u64> Mul<Array<SecretModp, N>> for Array<ClearModp, N> {
+    type Output = Array<SecretModp, N>;
+    #[inline(always)]
+    fn mul(self, other: Array<SecretModp, N>) -> Self::Output {
+        let array: Array<SecretModp, N> = Array::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_div_cc_t = &ca_arr / cb_arr.clone();
+impl<'a, const N: u64> Div<Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn div(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mdivc(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_mod_cc_t = ca_arr.clone / &cb_arr;
+impl<'a, const N: u64> Div<&'a Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn div(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mdivc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mod_cc_t = &ca_arr / &cb_arr;
+impl<'a, const N: u64> Div<&'a Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn div(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mdivc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mod_cc_t = ca_arr.clone() / cb_arr.clone();
+impl<const N: u64> Div<Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn div(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mdivc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mod_cc_t = &ca_arr % cb_arr.clone();
+impl<'a, const N: u64> Rem<Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn rem(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmodc(
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        other
+    }
+}
+
+// a_mod_cc_t = ca_arr.clone % &cb_arr;
+impl<'a, const N: u64> Rem<&'a Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn rem(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmodc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+// a_mod_cc_t = &ca_arr % &cb_arr;
+impl<'a, const N: u64> Rem<&'a Array<ClearModp, N>> for &'a Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn rem(self, other: &'a Array<ClearModp, N>) -> Self::Output {
+        let array = Array::uninitialized();
+        unsafe {
+            __mmodc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// a_mod_cc_t = ca_arr.clone() % cb_arr.clone();
+impl<const N: u64> Rem<Array<ClearModp, N>> for Array<ClearModp, N> {
+    type Output = Array<ClearModp, N>;
+    #[inline(always)]
+    fn rem(self, other: Array<ClearModp, N>) -> Self::Output {
+        unsafe {
+            __mmodc(
+                self.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        self
+    }
+}
+
+/* Member function versions of artihemtic operations */
+
+impl<const N: u64> Array<ClearModp, N> {
+    #[inline(always)]
+    pub fn add_clear(&self, other: &Array<ClearModp, N>) -> Array<ClearModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __maddc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn add_secret(&self, other: &Array<SecretModp, N>) -> Array<SecretModp, N> {
+        let array: Array<SecretModp, N> = Array::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn sub_clear(&self, other: &Array<ClearModp, N>) -> Array<ClearModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __msubc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn sub_secret(&self, other: &Array<SecretModp, N>) -> Array<SecretModp, N> {
+        let array: Array<SecretModp, N> = Array::uninitialized();
+        unsafe {
+            __msubmr(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn mul_clear(&self, other: &Array<ClearModp, N>) -> Array<ClearModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __mmulc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn mul_secret(&self, other: &Array<SecretModp, N>) -> Array<SecretModp, N> {
+        let array: Array<SecretModp, N> = Array::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                other.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn div_clear(&self, other: &Array<ClearModp, N>) -> Array<ClearModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __mdivc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn mod_clear(&self, other: &Array<ClearModp, N>) -> Array<ClearModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __mmodc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+impl<const N: u64> Array<SecretModp, N> {
+    #[inline(always)]
+    pub fn add_clear(&self, other: &Array<ClearModp, N>) -> Array<SecretModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __maddm(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn add_secret(&self, other: &Array<SecretModp, N>) -> Array<SecretModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __madds(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn sub_clear(&self, other: &Array<ClearModp, N>) -> Array<SecretModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __msubml(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn sub_secret(&self, other: &Array<SecretModp, N>) -> Array<SecretModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __msubs(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+    #[inline(always)]
+    pub fn mul_clear(&self, other: &Array<ClearModp, N>) -> Array<SecretModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __mmulm(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                other.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// Reverse an array
+
+impl<const N: u64> Array<ClearModp, N> {
+    #[inline(always)]
+    pub fn reverse(&self) -> Array<ClearModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __mrevc(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+impl<const N: u64> Array<SecretModp, N> {
+    #[inline(always)]
+    pub fn reverse(&self) -> Array<SecretModp, N> {
+        let array = Self::uninitialized();
+        unsafe {
+            __mrevs(
+                array.first_element.address as i64,
+                self.first_element.address as i64,
+                N as i64,
+            );
+        }
+        array
+    }
+}
+
+// Evaluate a polynomial represented by an array at a value x
+//
+impl<const N: u64> Array<ClearModp, N> {
+    #[inline(always)]
+    pub fn evaluate(&self, x: ClearModp) -> ClearModp {
+        unsafe { __mevalcc(self.first_element.address as i64, N as i64, x) }
+    }
+}
+
+impl<const N: u64> Array<SecretModp, N> {
+    #[inline(always)]
+    pub fn evaluate(&self, x: ClearModp) -> SecretModp {
+        unsafe { __mevalsc(self.first_element.address as i64, N as i64, x) }
+    }
+}
+
+impl<const N: u64> Array<ClearModp, N> {
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    pub fn bit_decomposition_ClearModp(val: ClearModp) -> Self {
+        let array = Self::uninitialized();
+        unsafe { __mbitdecc(array.first_element.address as i64, val, N as i64) }
+        array
+    }
+}
+
+impl<const N: u64> Array<i64, N> {
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    pub fn bit_decomposition_i64(val: i64) -> Self {
+        let array = Self::uninitialized();
+        unsafe { __mbitdecint(array.first_element.address as i64, val, N as i64) }
+        array
     }
 }

@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -54,7 +53,7 @@ pub enum ArgTy {
     /// Integer value
     Int {
         signed: bool,
-        /// A static offset from the value in asm/bytecode to the actual value of the argument
+        /// A static offset from the value in asm/byte-code to the actual value of the argument
         offset: i32,
     },
     Register(RegisterKind, RegisterMode),
@@ -243,9 +242,9 @@ instructions! {
                                              Truncated hash computation on a clear register ci = H(cj)."## & ""
   },
   "IO" {
- OUTPUT_CLEAR & 0x40 & (value: c, channel: ch) & vectorizable barrier thread_0_only & r##"OUTPUT\_CLEAR ci n \newline
+  OUTPUT_CLEAR & 0x40 & (value: c, channel: ch) & vectorizable barrier thread_0_only & r##"OUTPUT\_CLEAR ci n \newline
                                             Public output of clear register ci to IO class on channel n. "## & ""
- INPUT_CLEAR & 0x41 & (dest: cw, channel: ch) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci n \newline
+  INPUT_CLEAR & 0x41 & (dest: cw, channel: ch) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci n \newline
 					    Gets clear public input ci from the IO class on channel n.
                                             Public inputs need to be the same for all players running the protocol, otherwise a crash will occur. "## & ""
   OUTPUT_SHARES & 0x42 &  (n + 1: int, channel: ch, shares: [s; n]) & vectorizable barrier thread_0_only & r##"OUTPUT\_SHARES n+1 ch si1 ... sin \newline
@@ -272,11 +271,15 @@ instructions! {
 					  Closes channel number n for reading/writing on the IO class.
                                           This is provided as some IO classes may require this to be called
             explicitly, the default one does not need this. "## & ""
+  MPRIVATE_INPUT & 0x4C & (value: r, value: r, player: p, channel: ch) & mem_read mem_write vectorizable barrier thread_0_only & r##"MPRIVATE\_INPUT ri p m n\newline
+                                  Private input of n items from player p on channel m assigning the result to sint memory [ri+k] for k=0...rj-1. "## & r##"c1"##
+  MPRIVATE_OUTPUT & 0x4D  & (value: r, value: r, player: p, channel: ch) & mem_read mem_write vectorizable barrier thread_0_only & r##"MPRIVATE\_OUTPUT ri rj p m\newline
+                                  Private output of n items from player p on channel m outputing the values in sint memory [ri+k] for k=0...rj-1. "## & r##"c1"##
   },
   "Open" {
   STARTOPEN & 0xA0 & (n: int, registers: [s; n]) & vectorizable & r##"STARTOPEN n, s1,...,sn \newline
                                          Start opening secret register si."## & "c0"
-  STOPOPEN & 0xA1 & (n: int, registers: [cw; n]) & vectorizable & r##" STOPOPEN n, c1, ..., cn \newline
+  STOPOPEN & 0xA1 & (n: int, registers: [cw; n]) & vectorizable & r##" STOPOPEN n, c1,..., cn \newline
                                           Store previous opened value in clear register ci."## & "c0"
   OPENSINT & 0xA2 & (dest: rw, value: sr) & vectorizable & r##"OPENSINT ri srj \newline
                                            Open the secret regint in srj and assign it to ri.
@@ -304,12 +307,12 @@ instructions! {
                                     Deletes the sregint memory pointed to by regint register ri "## & ""
   },
   "Data access" {
-  TRIPLE & 0x50 & (dest_reg_i: sw, dest_reg_j: sw, dest_reg_k: sw) & vectorizable & r##"TRIPLE si sj sk \newline
-                                        Load secret registers si, sj and sk with the next multiplication triple."## & ""
-  BIT & 0x51  & (dest_reg: sw) & vectorizable & r##"BIT si \newline
-                                 Load secret register si with the next secret bit."## & ""
-  SQUARE & 0x52 & (dest_reg_i: sw, dest_reg_j: sw) & vectorizable & r##"SQUARE si sj \newline
-                                        Load secret registers si and sj with the next square pair."## & ""
+  TRIPLE & 0x50 & (n: int, registers: [sw; n]) & vectorizable & r##"TRIPLE n, s1,...,sn \newline
+                                       Load sint registers s_{3i+1}, s_{3i+2} and s_{3i+3} with the next multiplication triple, for i=0,..,n/3-1. "## & ""
+  BIT & 0x51 & (n: int, registers: [sw; n]) & vectorizable & r##"BIT n, s1,...,sn \newline
+                                    Load sint register si with the next secret bit."## & ""
+  SQUARE & 0x52 & (n: int, registers: [sw; n]) & vectorizable & r##"SQUARE n, s1,...,sn \newline
+                                     Load sint registers s_{2i+1}, s_{2i+2} with the next square tuple, for i=0,..,n/2-1."## & ""
   DABIT & 0x53 & (dest_reg_i: sw, dest_reg_j: sbw) & vectorizable & r##" DABIT si sbj \newline
                                          Load secret, sbit registers si and sbj with the next secret dabit."## & ""
   },
@@ -344,21 +347,21 @@ instructions! {
   LDSBIT & 0x7D & (dest: sbw, value: i) & vectorizable & r##"LDSBIT sri n \newline
                                     Assrigns sbit register sri a share of the value n."## & ""
   ADDSINT & 0x66 & (dest: srw, left: sr, right: sr) & vectorizable & r##"ADDSINT sri srj srk \newline
-                                            Adds secret regint registers sri=srj+srk."## & ""
+                                            Adds secret regint registers sri=srj+srk."## & "c2"
   ADDSINTC & 0x67 & (dest: srw, left: sr, right: r) & vectorizable & r##"ADDSINTC sri srj rk \newline
-                                         Adds secret and clear registers sri=srj+rk."## & ""
+                                         Adds secret and clear registers sri=srj+rk."## &  "c2"
   SUBSINT & 0x68 & (dest: srw, left: sr, right: sr) & vectorizable & r##"SUBSINT sri srj srk \newline
-                                            Subtracts secret regint registers sri=srj-srk."## & ""
+                                            Subtracts secret regint registers sri=srj-srk."## & "c2"
   SUBSINTC & 0x69 & (dest: srw, left: sr, right: r) & vectorizable & r##"SUBSINTC sri srj rk \newline
-                                         Subtracts clear from secret register sri=srj-rk."## & ""
+                                         Subtracts clear from secret register sri=srj-rk."## & "c2"
   SUBCINTS & 0x6A  & (dest: srw, left: r, right: sr) & vectorizable & r##"SUBSINTC sri srj rk \newline
-                                         Subtracts secret from clear register sri=rj-srk."## & ""
+                                         Subtracts secret from clear register sri=rj-srk."## & "c2"
   MULSINT & 0x6B & (dest: srw, left: sr, right: sr) & vectorizable & r##"MULSINT sri srj srk \newline
-                                            Multiplies secret regint registers sri=srj * srk."## & ""
+                                            Multiplies secret regint registers sri=srj * srk."## & "c2"
   MULSINTC & 0x6C & (dest: srw, left: sr, right: r) & vectorizable & r##"MULSINTC sri srj rk \newline
-                                            Multiplies secret and clear regint registers sri=srj * rk."## & ""
+                                            Multiplies secret and clear regint registers sri=srj * rk."## & "c2"
   DIVSINT & 0x6D & (dest: srw, left: sr, right: sr) & vectorizable & r##"DIVSINT sri srj srk \newline
-                                            Divisrion of secret regint registers sri=srj * srk."## & ""
+                                            Divisrion of secret regint registers sri=srj * srk."## & "c2"
   SHLSINT & 0x6E & (dest: srw, left: sr, right: int) & vectorizable & r##"SHLSINT sri srj k \newline
                                             Shift an sregint register left by k values"## & ""
   SHRSINT & 0x6F & (dest: srw, left: sr, right: int) & vectorizable & r##"SHRSINT sri srj k \newline
@@ -381,15 +384,15 @@ instructions! {
                                        This takes the integer representation of the clear register cj,
                                        flips all the bits, adds $2^n$ and then converts back to clear modp register ci."## & ""
   NEG & 0x77 & (dest: srw, value: sr) & vectorizable & r##"NEG sri srj \newline
-                                       Negation of an sregint sri=-srj"## & ""
+                                       Negation of an sregint sri=-srj"## & "c2"
   SAND & 0x78 & (dest: srw, left: sr, right: sb) & vectorizable & r##"SAND sri srj sbk \newline
-                                        ANDs the sregint with the sbit (in all bit positions) sri= srj and sbk."## & ""
+                                        ANDs the sregint with the sbit (in all bit positions) sri= srj and sbk."## & "c2"
   XORSB & 0x79 & (dest: sbw, left: sb, right: sb) & vectorizable & r##"XORSB sbi sbj sbk \newline
                                       Secret XOR of sbit registers sbi = (sbj xor sbk)."## & ""
   ANDSB & 0x7A & (dest: sbw, left: sb, right: sb) & vectorizable & r##"ANDSB sbi sbj sbk \newline
-                                      Secret AND of sbit registers sbi = (sbj and sbk)."## & ""
+                                      Secret AND of sbit registers sbi = (sbj and sbk)."## & "c2"
   ORSB & 0x7B & (dest: sbw, left: sb, right: sb) & vectorizable & r##"ORSB sbi sbj sbk \newline
-                                      Secret OR of sbit registers sbi = (sbj or sbk)."## & ""
+                                      Secret OR of sbit registers sbi = (sbj or sbk)."## & "c2"
   NEGB & 0x7C & (dest: sbw, value: sb) & vectorizable & r##"NEGB sbi sbj \newline
                                        Secret NEG of sbit register sbi = 1-sbj."## & ""
   },
@@ -503,17 +506,17 @@ instructions! {
   },
   "Comparison of sregints" {
   EQZSINT  & 0xD0 & (dest: sbw, value: sr) & vectorizable & r##"EQZSINT sbi, sj \newline
-                                   Equality test to zero of secret register sbi = (sj == 0)."## & ""
+                                   Equality test to zero of secret register sbi = (sj == 0)."## & "c2"
   LTZSINT  & 0xD1 & (dest: sbw, value: sr) & vectorizable & r##"EQZSINT sbi, sj \newline
                                    Less than test to zero of secret register sbi = (sj < 0)."## & ""
   },
   "Bitwise logical operations on sregints" {
   ANDSINT  & 0xD3 & (dest: srw, left: sr, right: sr) & vectorizable & r##"ANDSINT sri srj srk \newline
-                                       Bitwise ANDs secret registers sri= srj and srk."## & ""
+                                       Bitwise ANDs secret registers sri= srj and srk."## & "c2"
   ANDSINTC  & 0xD4  & (dest: srw, left: sr, right: r) & vectorizable & r##"ANDSINT sri srj rk \newline
                                        Bitwise ANDs secret register with a clear sri= srj and rk."## & ""
   ORSINT  & 0xD5  & (dest: srw, left: sr, right: sr) & vectorizable & r##"ORSINT sri srj srk \newline
-                                       Bitwise ORs secret registers sri= srj or srk."## & ""
+                                       Bitwise ORs secret registers sri= srj or srk."## & "c2"
   ORSINTC  & 0xD6 & (dest: srw, left: sr, right: r) & vectorizable & r##"ORSINT sri srj rk \newline
                                        Bitwise ORs secret register with a clear sri= srj or rk."## & ""
   XORSINT  & 0xD7 & (dest: srw, left: sr, right: sr) & vectorizable & r##"XORSINT sri srj srk \newline
@@ -549,6 +552,26 @@ instructions! {
   STOP_CLOCK & 0xE2 & (timer_id: i) & barrier & r##"STOP\_CLOCK n \newline
                                  Prints, to stdout (note {\bf not} the IO class) the time since the last initialization of timer n.
                                  "## & ""
+  RANDC & 0xE3 & (dest: cw) & vectorizable & r##"RANDC ci \newline
+                            Writes to the cint register ci a random value mod p
+                            The random value is the same for all players, so in particular it
+                            is not really random.
+                            More useful for randomization for Monte-Carlo algorithms"## & ""
+  RANDINT & 0xE4 & (dest: rw) & vectorizable & r##"RANDINT ri \newline
+                            Writes to the regint register ri a random value in the range $[0,..,2^{64}-1]$
+                            The random value is the same for all players, so in particular it
+                            is not really random.
+                            More useful for randomization for Monte-Carlo algorithms"## & ""
+  RANDSINT & 0xE5 & (dest: srw) & vectorizable & r##"RANDSINT sri \newline
+                            Writes to the sregint register ri a (secret) random value in the 
+                            range $[0,..,2^{64}-1]$ "## & ""
+  RANDFLOAT & 0xE6 & (dest: rw) & vectorizable & r##"RANDFLOAT ri \newline
+                            Writes to the regint register ri the IEEE representation of a floating point value in the range [0,1)
+                            The random value is the same for all players, so in particular it
+                            is not really random.
+                            More useful for randomization for Monte-Carlo algorithms"## & ""
+  RANDSBIT & 0xE7 & (dest: sbw) & vectorizable & r##"RANDSBIT sbi \newline
+                            Writes to the sregint register sbi a (secret) random bit"## & ""
 },
 "Local functions" {
   LF & 0xDE &  (i: int) & mem_read mem_write & r##"
@@ -606,26 +629,61 @@ instructions! {
                                  Replaces the data item pointed to by register ri on the thread-local secret local stack with the contents of register sj."## & ""
  GETSPS & 0x119 & (dest: rw) & mem_read & r##"GETSPS ri \newline
                                  Assigns the current stack pointer on the secret stack to register ri."## & ""
-  RPEEKINT & 0x120 & (dest: rw, value: r) & vectorizable mem_read & r##"RPEEKINT ri, rj \newline
+  RPEEKINT & 0x1F0 & (dest: rw, value: r) & vectorizable mem_read & r##"RPEEKINT ri, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local regint stack and assigns to regint register ri."## & ""
-  RPOKEINT & 0x121 & (dest_ptr: r, value: r) & vectorizable mem_write & r##"RPOKEINT ri, rj \newline
+  RPOKEINT & 0x1F1 & (dest_ptr: r, value: r) & vectorizable mem_write & r##"RPOKEINT ri, rj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local regint local stack with the contents of register rj."## & ""
-  RPEEKSINT & 0x122 & (dest: srw, value: r) & vectorizable mem_read & r##"RPEEKSINT si, rj \newline
+  RPEEKSINT & 0x1F2 & (dest: srw, value: r) & vectorizable mem_read & r##"RPEEKSINT si, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local secret regint stack and assigns to secret regint register si."## & ""
-  RPOKESINT & 0x123 & (dest_ptr: r, value: sr) & vectorizable mem_write & r##"RPOKESINT ri, sj \newline
+  RPOKESINT & 0x1F3 & (dest_ptr: r, value: sr) & vectorizable mem_write & r##"RPOKESINT ri, sj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local secret regint local stack with the contents of register sj."## & ""
-  RPEEKSBIT & 0x124 & (dest: sbw, value: r) & vectorizable mem_read & r##"RPEEKSBIT sbi, rj \newline
+  RPEEKSBIT & 0x1F4 & (dest: sbw, value: r) & vectorizable mem_read & r##"RPEEKSBIT sbi, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local secret bit stack and assigns to secret bit register sbi."## & ""
-  RPOKESBIT & 0x125 & (dest_ptr: r, value: sb) & vectorizable mem_write & r##"RPOKESBIT ri, sbj \newline
+  RPOKESBIT & 0x1F5 & (dest_ptr: r, value: sb) & vectorizable mem_write & r##"RPOKESBIT ri, sbj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local secret bit local stack with the contents of register sbj."## & ""
-  RPEEKC & 0x126 & (dest: cw, value: r) & vectorizable mem_read & r##"RPEEKC ci, rj \newline
+  RPEEKC & 0x1F6 & (dest: cw, value: r) & vectorizable mem_read & r##"RPEEKC ci, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local clear stack and assigns to clear register ci."## & ""
-  RPOKEC & 0x127 & (dest_ptr: r, value: c) & vectorizable mem_write & r##"RPOKEC ri, cj \newline
+  RPOKEC & 0x1F7 & (dest_ptr: r, value: c) & vectorizable mem_write & r##"RPOKEC ri, cj \newline
                                  Replaces the data item pointed to by ri on the thread-local clear local stack with the contents of register cj."## & ""
-  RPEEKS & 0x128 & (dest: sw, value: r) & vectorizable mem_read & r##"RPEEKS si, rj \newline
+  RPEEKS & 0x1F8 & (dest: sw, value: r) & vectorizable mem_read & r##"RPEEKS si, rj \newline
                                  Peeks at position pointed to by stack_pointer-rj from the thread-local secret stack and assigns to secret register si."## & ""
-  RPOKES & 0x129 & (dest_ptr: r, value: s) & vectorizable mem_write & r##"RPOKES ri, sj \newline
+  RPOKES & 0x1F9 & (dest_ptr: r, value: s) & vectorizable mem_write & r##"RPOKES ri, sj \newline
                                  Replaces the data item pointed to by stack_pointer-ri on the thread-local secret local stack with the contents of register sj."## & ""
 },
-
+"Memory Based Array Instructions" {
+  MADDC & 0x120 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MADDC ri rj rk rn \newline
+                                 C[ri+t] = C[rj+t] + C[rk+t] for t=0...(rn-1).  "## & ""
+  MADDS & 0x121 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MADDS ri rj rk rn \newline
+                                 S[ri+t] = S[rj+t] + S[rk+t] for t=0...(rn-1).  "## & ""
+  MADDM & 0x122 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MADDM ri rj rk rn \newline
+                                 S[ri+t] = S[rj+t] + C[rk+t] for t=0...(rn-1).  "## & ""
+  MSUBC & 0x125 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MSUBC ri rj rk rn \newline
+                                 C[ri+t] = C[rj+t] - C[rk+t] for t=0...(rn-1).  "## & ""
+  MSUBS & 0x126 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MSUBS ri rj rk rn \newline
+                                 S[ri+t] = S[rj+t] - S[rk+t] for t=0...(rn-1).  "## & ""
+  MSUBML & 0x127 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MSUBML ri rj rk rn \newline
+                                 S[ri+t] = S[rj+t] - C[rk+t] for t=0...(rn-1).  "## & ""
+  MSUBMR & 0x128 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MSUBMR ri rj rk rn \newline
+                                 S[ri+t] = C[rj+t] - S[rk+t] for t=0...(rn-1).  "## & ""
+  MMULC & 0x130 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MMULC ri rj rk rn \newline
+                                 C[ri+t] = C[rj+t] * C[rk+t] for t=0...(rn-1).  "## & ""
+  MMULM & 0x131 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MMULM ri rj rk rn \newline
+                                 S[ri+t] = S[rj+t] * C[rk+t] for t=0...(rn-1).  "## & ""
+  MDIVC & 0x134 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MDIVC ri rj rk rn \newline
+                                 C[ri+t] = C[rj+t] / C[rk+t] for t=0...(rn-1).  "## & ""
+  MMODC & 0x136 & (value: r , value: r, value: r, value: r) & mem_read mem_write & r##"MMODC ri rj rk rn \newline
+                                 C[ri+t] = C[rj+t] \% C[rk+t] for t=0...(rn-1).  "## & ""
+  MREVC & 0x138 & (value: r, value: r, value: r) & mem_read mem_write & r##"MREVC ri rj rn \newline
+                                 Reverses the array, as in C[ri+t] = C[rj+rn-1-t] for t=0...(rn-1).  "## & ""
+  MREVS & 0x139 & (value: r, value: r, value: r) & mem_read mem_write & r##"MREVS ri rj rn \newline
+                                 Reverses the array, as in S[ri+t] = S[rj+rn-1-t] for t=0...(rn-1).  "## & ""
+  MEVALCC & 0x13A & (dest: cw, value: r, value: r, value: c) & mem_read & r##"MEVALCC ci rj rn ck \newline
+                                 Evaluates the polynomial \verb|ci = sum_{t=0}^{rn-1} C[rj+t]*ck^t|. "## & ""
+  MEVALSC & 0x13B & (dest: sw, value: r, value: r, value: c) & mem_read & r##"MEVALSC si rj rn ck \newline
+                                 Evaluates the polynomial \verb|si = sum_{t=0}^{rn-1} S[rj+t]*ck^t|. "## & ""
+  MBITDECC & 0x13C & (value: r, value: c, value: r) & mem_write & r##"MBITDECC ri cj rk \newline
+                                 Takes cint register cj and decomposes it into rk bits and places them in C[ri+t] for t=0...rk-1. "## & ""
+  MBITDECINT & 0x13D & (value: r, value: r, value: r) & mem_write & r##"MBITDECC ri rj rk \newline
+                                 Takes register rj and decomposes it into rk bits and places them in R[ri+t] for t=0...rk-1. "## & ""
+},
 }

@@ -256,6 +256,9 @@ public:
   {
     return input((uint8_t *) s.c_str() + pos);
   }
+
+  /* Randomize */
+  void randomize(unsigned int online_thread_no, Player &P);
 };
 
 #endif

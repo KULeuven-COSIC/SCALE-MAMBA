@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -145,6 +144,20 @@ impl From<SecretBit> for SecretModp {
         #[cfg(not(feature = "emulate"))]
         {
             val.0
+        }
+    }
+}
+
+impl Randomize for SecretBit {
+    #[inline(always)]
+    fn randomize() -> SecretBit {
+        #[cfg(feature = "emulate")]
+        {
+            SecretBit(0)
+        }
+        #[cfg(not(feature = "emulate"))]
+        {
+            unsafe { SecretBit(__convsbitsint(__randsbit())) }
         }
     }
 }

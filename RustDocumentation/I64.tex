@@ -49,6 +49,12 @@ algorithms where the algorithm needs to make a random choice.
    let r = x.rand();
 \end{lstlisting}
 
+\func{i64::randomize()}
+Produces a random number in the range $[0,\ldots,2^{64}-1]$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+    let a = i64::randomize();
+\end{lstlisting}
 
 \subsubsection{Memory Access}
 \func{a.store_in_mem(x)}

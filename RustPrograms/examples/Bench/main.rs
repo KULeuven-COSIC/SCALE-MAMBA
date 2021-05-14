@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -18,12 +17,12 @@ fn main() {
     let b: SecretInteger<6> = SecretInteger::from(a);
 
     // Answer should be 2 or 3
-    let t1 = b.TruncPr(ConstU64::<3>, ConstBool::<true>);
+    let t1 = b.TruncPr(3, true);
 
     print!("\t ", t1.reveal(), "\n");
 
     // Answer should be 2
-    let t2 = b.Trunc(ConstU64::<3>, ConstBool::<true>);
+    let t2 = b.Trunc(3, true);
 
     print!("\t ", t2.reveal(), "\n");
 }

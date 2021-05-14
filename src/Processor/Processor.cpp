@@ -14,7 +14,6 @@ All rights reserved
 extern Base_Circuits Global_Circuit_Store;
 extern vector<sacrificed_data> SacrificeD;
 
-
 template<class SRegint, class SBit>
 Processor<SRegint, SBit>::Processor(int thread_num, unsigned int nplayers,
                                     Machine<SRegint, SBit> &machine, Player &P)
@@ -121,6 +120,14 @@ void Processor<SRegint, SBit>::clear_registers()
   for (unsigned int i= 0; i < Ri.size(); i++)
     {
       Ri[i]= 0;
+    }
+  for (unsigned int i= 0; i < srint.size(); i++)
+    {
+      srint[i].assign_zero();
+    }
+  for (unsigned int i= 0; i < sbit.size(); i++)
+    {
+      sbit[i].assign_zero();
     }
 
 #ifdef DEBUG
@@ -523,7 +530,6 @@ void Processor<SRegint, SBit>::convert_sbit_to_sint(int i0, int i1, Player &P)
   write_Sp(i1, apr);
 }
 
-
 template<class SRegint, class SBit>
 void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P,
                                                     offline_control_data &OCD)
@@ -538,7 +544,7 @@ void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P,
   /* Multiply apr by the input register */
 
   // First get the triple
-  list<Share> la,lb,lc;
+  list<Share> la, lb, lc;
   Wait_For_Preproc(TRIPLE, 1, online_thread_num, OCD);
   OCD.mul_mutex[online_thread_num].lock();
   Split_Lists(la, SacrificeD[online_thread_num].TD.ta, 1);
@@ -548,12 +554,12 @@ void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P,
 
   // Now compute rho and sigma
   vector<Share> rho_sigma(2);
-  Share a=la.front();
-  Share b=lb.front();
-  Share c=lc.front();
+  Share a= la.front();
+  Share b= lb.front();
+  Share c= lc.front();
 
-  rho_sigma[0].sub(read_Sp(i0),a);
-  rho_sigma[1].sub(apr,b);
+  rho_sigma[0].sub(read_Sp(i0), a);
+  rho_sigma[1].sub(apr, b);
 
   // Open rho and sigma
   vector<gfp> gfp_rho_sigma(2);
@@ -561,19 +567,19 @@ void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P,
   P.OP->Open_To_All_End(gfp_rho_sigma, rho_sigma, P, 2);
 
   // Compute the product
-  Share te1,te2,product=c;
+  Share te1, te2, product= c;
   gfp te3;
-  te3.mul(gfp_rho_sigma[0],gfp_rho_sigma[1]);
-  te1.mul(b,gfp_rho_sigma[0]);
-  te2.mul(a,gfp_rho_sigma[1]);
- 
+  te3.mul(gfp_rho_sigma[0], gfp_rho_sigma[1]);
+  te1.mul(b, gfp_rho_sigma[0]);
+  te2.mul(a, gfp_rho_sigma[1]);
+
   product.add(te1);
   product.add(te2);
   product.add(product, te3, P.get_mac_keys());
 
   // Now compute the shared bit on the modp side of apr xor Sp[i0]
   vector<Share> bit(1);
-  bit[0].add(apr,read_Sp(i0));
+  bit[0].add(apr, read_Sp(i0));
   bit[0].sub(product);
   bit[0].sub(product);
 
@@ -584,14 +590,12 @@ void Processor<SRegint, SBit>::convert_sint_to_sbit(int i0, int i1, Player &P,
 
   // Xor the bit on the gf2 side
   bigint ans;
-  to_bigint(ans,gfp_bit[0]);
+  to_bigint(ans, gfp_bit[0]);
   a2r.add(ans.get_ui());
 
   // Write back into the processor
   write_sbit(i1, a2r);
-
 }
-
 
 /* Arguments are obtained from the srint stack, and then outputs
  * are pushed back onto the srint stack

@@ -33,9 +33,9 @@ fn main() {
     sb.set(1, &SecretModp::from(0));
     sb.set(2, &SecretModp::from(1));
 
-    let v_ca_sb = BitAdd(&ca, &sb);
-    let v_sa_cb = BitAdd(&sa, &cb);
-    let v_sa_sb = BitAdd(&sa, &sb);
+    let v_ca_sb = BitAdd(&ca, &sb, ca.len() + 1);
+    let v_sa_cb = BitAdd(&sa, &cb, sa.len() + 1);
+    let v_sa_sb = BitAdd(&sa, &sb, sa.len() + 1);
 
     v_ca_sb
         .get(0)
@@ -100,10 +100,14 @@ fn main() {
         .reveal()
         .test_value(ClearModp::from(1));
 
+    let mut sas: Slice<SecretModp> = Slice::uninitialized(3);
     let mut saa: Array<SecretModp, 3> = Array::uninitialized();
     saa.set(0, &SecretModp::from(1));
     saa.set(1, &SecretModp::from(1));
     saa.set(2, &SecretModp::from(1));
+    sas.set(0, &SecretModp::from(1));
+    sas.set(1, &SecretModp::from(1));
+    sas.set(2, &SecretModp::from(1));
     let v_inc_sa = BitIncrement(&saa);
 
     v_inc_sa
@@ -127,11 +131,11 @@ fn main() {
         .reveal()
         .test_value(ClearModp::from(1));
 
-    saa.set(1, &SecretModp::from(0));
+    sas.set(1, &SecretModp::from(0));
     let four = ClearModp::from(4);
     let six = ClearModp::from(6);
-    let cmp_four = BitLT(four, saa.iter());
-    let cmp_six = BitLT(six, saa.iter());
+    let cmp_four = BitLT(four, &sas, sas.len());
+    let cmp_six = BitLT(six, &sas, sas.len());
 
     cmp_four.reveal().test_value(ClearModp::from(1));
     cmp_six.reveal().test_value(ClearModp::from(0));

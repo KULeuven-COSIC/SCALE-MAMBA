@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -182,6 +181,11 @@ impl<'a> Statement<'a> {
                 }
             }
             Instruction::StopOpen { registers } => {
+                for reg in registers {
+                    reg.map_all_values(cx, &mut f);
+                }
+            }
+            Instruction::DataInstr { registers, .. } => {
                 for reg in registers {
                     reg.map_all_values(cx, &mut f);
                 }

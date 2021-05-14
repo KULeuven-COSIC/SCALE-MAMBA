@@ -41,7 +41,7 @@ void Gen_Checked_Triples(Player &P, PRSS2 &prss,
 void check_triples(vector<vector<Share2>> &triples, Player &P);
 
 /* Used to multiply two Share2's using a single Triple T 
- *  - This assumes we the Share2's hold single bits!!!!!
+ *  - This assumes the Share2's hold single bits!!!!!
  */
 void Mult_Bit(Share2 &z, const Share2 &x, const Share2 &y,
               const vector<Share2> &T, Player &P);

@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -19,7 +18,7 @@ fn main() -> eyre::Result<()> {
                 std::io::stdout().flush()?;
                 let mut buf = String::new();
                 std::io::stdin().read_line(&mut buf)?;
-                let ans = buf.parse::<u8>()?;
+                let ans = buf.trim().parse::<u8>()?;
                 if ans < 1 || ans > 4 {
                     continue;
                 }

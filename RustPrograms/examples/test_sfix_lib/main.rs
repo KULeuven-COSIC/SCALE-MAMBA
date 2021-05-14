@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -21,7 +20,6 @@ where
     ok
 }
 
-
 /* This test a relative error */
 fn test_ratio<const K: u64, const F: u64>(a: ClearFixed<K, F>, val: ClearFixed<K, F>) -> ClearModp
 where
@@ -36,23 +34,20 @@ where
     ConstI32<{ f_as_i32(F) }>: ,
     ConstI32<{ f_as_i32(K) }>: ,
 {
-    let test = a/val;
-    let lower = ClearFixed::from(0.9995);
-    let upper = ClearFixed::from(1.0005);
+    let test = a / val;
+    let lower = ClearFixed::from(0.999);
+    let upper = ClearFixed::from(1.001);
     let ok = test.gt(lower) & test.lt(upper);
     ok
 }
 
-
-
-
 #[scale::main(KAPPA = 40)]
 #[inline(always)]
 fn main() {
-
+    start_clock(ConstI32::<1>);
     print!("\n\n Test the math ClearFixed library \n");
-    let c : ClearFixed<40, 20> = ClearFixed::from(0.5431);
-    let mc : ClearFixed<40, 20> = ClearFixed::from(-0.5431);
+    let c: ClearFixed<40, 20> = ClearFixed::from(0.5431);
+    let mc: ClearFixed<40, 20> = ClearFixed::from(-0.5431);
 
     let t = c.acos();
     print!("acos(", c.reveal(), ") = ", t, "\n");
@@ -185,8 +180,8 @@ fn main() {
     ok.test_value(ClearModp::from(1));
 
     print!("\n\n Test the math SecretFixed library \n");
-    let c : SecretFixed<40, 20> = SecretFixed::from(0.5431);
-    let mc : SecretFixed<40, 20> = SecretFixed::from(-0.5431);
+    let c: SecretFixed<40, 20> = SecretFixed::from(0.5431);
+    let mc: SecretFixed<40, 20> = SecretFixed::from(-0.5431);
 
     let t = c.acos().reveal();
     print!("acos(", c.reveal(), ") = ", t, "\n");
@@ -337,12 +332,16 @@ fn main() {
     let t3 = SQ3 * SQ3;
     let t4 = SQ4 * SQ4;
 
+    println!(t1.reveal(), " =  ", a1);
     let ok = test_ratio(t1.reveal(), a1);
     ok.test_value(ClearModp::from(1));
+    println!(t2.reveal(), " =  ", a2);
     let ok = test_ratio(t2.reveal(), a2);
     ok.test_value(ClearModp::from(1));
+    println!(t3.reveal(), " =  ", a3);
     let ok = test_ratio(t3.reveal(), a3);
     ok.test_value(ClearModp::from(1));
+    println!(t4.reveal(), " =  ", a4);
     let ok = test_ratio(t4.reveal(), a4);
     ok.test_value(ClearModp::from(1));
 
@@ -355,14 +354,17 @@ fn main() {
     let t3 = SQ3 * SQ3;
     let t4 = SQ4 * SQ4;
 
+    println!(t1.reveal(), " =  ", a1);
     let ok = test_ratio(t1, a1);
     ok.test_value(ClearModp::from(1));
+    println!(t2.reveal(), " =  ", a2);
     let ok = test_ratio(t2, a2);
     ok.test_value(ClearModp::from(1));
     let ok = test_ratio(t3, a3);
+    println!(t3.reveal(), " =  ", a3);
     ok.test_value(ClearModp::from(1));
     let ok = test_ratio(t4, a4);
+    println!(t4.reveal(), " =  ", a4);
     ok.test_value(ClearModp::from(1));
-
+    stop_clock(ConstI32::<1>);
 }
-

@@ -11,12 +11,15 @@ All rights reserved
 #include "LSSS/Open_Protocol2.h"
 #include "Online/Machine.h"
 
+#include "Local/Float.h"
 #include "Mod2Engine/aBitVector2.h"
 #include "OT/aAND.h"
 #include "OT/aBitVector.h"
 #include "Offline/DABitGenerator.h"
 #include "Processor_IO.h"
 #include "Program.h"
+
+long convert_to_long(double x);
 
 #include <stack>
 using namespace std;
@@ -620,9 +623,24 @@ public:
                Machine<SRegint, SBit> &machine,
                offline_control_data &OCD);
 
-  unsigned int get_random_uint()
+  word get_random_word()
   {
-    return prng.get_uint();
+    return prng.get_word();
+  }
+
+  gfp get_random_gfp()
+  {
+    gfp a;
+    a.randomize(prng);
+    return a;
+  }
+
+  long get_random_float()
+  {
+    unsigned int seed= prng.get_uint();
+    srand48(seed);
+    double f= drand48();
+    return convert_to_long(f);
   }
 
   // Add rounds up and add data sent in

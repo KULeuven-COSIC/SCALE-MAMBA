@@ -2,7 +2,6 @@
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
 use crate::array::*;
-use crate::bit_protocols::*;
 use crate::fixed_point::*;
 use crate::ieee::*;
 use crate::integer::*;
@@ -130,6 +129,7 @@ where
 /* Code for generic atan, asin and acos */
 
 // The Kernel atan Routine
+#[inline(never)]
 pub fn kernel_atan<S, C, O>(x: S) -> S
 where
     S: Float,
@@ -193,6 +193,7 @@ where
 }
 
 // The Kernel asin Routine
+#[inline(always)]
 pub fn kernel_asin<S, C, O>(x: S) -> S
 where
     S: Float,
@@ -221,6 +222,7 @@ where
 }
 
 // The Kernel acos Routine
+#[inline(always)]
 pub fn kernel_acos<S, C, O>(x: S) -> S
 where
     S: Float,
@@ -296,13 +298,9 @@ where
 impl<const K: u64, const F: u64, const KAPPA: u64> Pow2 for SecretFixed<K, F, KAPPA>
 where
     ConstI32<{ f_as_i32(F) }>: ,
-    ConstU64<{ CeilLog2::<K>::RESULT }>: ,
 {
     fn pow2(self) -> SecretFixed<K, F, KAPPA> {
-        let v = self
-            .rep()
-            .Trunc(ConstU64::<{ F }>, ConstBool::<false>)
-            .rep();
+        let v = self.rep().Trunc(F, false).rep();
         let pow = v + ClearModp::from(f_as_i32(F) as i64);
         let y = Pow2::<K, KAPPA>(pow);
         let z: SecretInteger<K, KAPPA> = SecretInteger::from(y);

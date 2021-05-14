@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -173,6 +172,17 @@ impl<'a> Statement<'a> {
             ),
             Instruction::StopOpen { registers } => (
                 "stopopen",
+                std::iter::once(self.span.with(Operand::Value(Const::Int(
+                    registers.len().try_into().unwrap(),
+                ))))
+                .chain(registers.iter().map(|x| x.map(Into::into)))
+                .collect(),
+            ),
+            Instruction::DataInstr {
+                instruction,
+                registers,
+            } => (
+                *instruction,
                 std::iter::once(self.span.with(Operand::Value(Const::Int(
                     registers.len().try_into().unwrap(),
                 ))))

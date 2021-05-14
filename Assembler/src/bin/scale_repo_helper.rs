@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -65,8 +64,7 @@ fn main(args: Args) -> std::io::Result<()> {
                     std::io::stderr().write_all(&output.stderr)?;
                     std::io::stderr().flush()?;
                     std::process::exit(1);
-                }
-                else {
+                } else {
                     std::io::stdout().write_all(&output.stdout)?;
                     std::io::stdout().flush()?;
                     std::io::stderr().write_all(&output.stderr)?;

@@ -85,6 +85,8 @@ arrays etc
 + INPUT_INT= 0x49,         manual_test_io.rs
 + OPEN_CHANNEL= 0x4A,      manual_test_io.rs
 + CLOSE_CHANNEL= 0x4B,     manual_test_io.rs
++ MPRIVATE_INPUT= 0x4C,    manual_test_io.rs
++ MPRIVATE_OUTPUT= 0x4D,   manual_test_io.rs
 
   # Open
 + STARTOPEN= 0xA0,           test_modp.rs
@@ -187,7 +189,7 @@ arrays etc
   # Debug Printing
   PRINT_MEM= 0xB0,
 + PRINT_REG= 0xB2,          test_modp.rs
-  PRINT_CHAR= 0xB3,
++ PRINT_CHAR= 0xB3,         manual_test_io
   PRINT_CHAR4= 0xB4,
 + PRINT_CHAR_REGINT= 0xB5,  test_modp.rs
   PRINT_CHAR4_REGINT= 0xB6,
@@ -254,17 +256,32 @@ arrays etc
 + POKES= 0x118,             test_stacks.rs
 + GETSPS= 0x119,            test_stacks.rs
 
+  # Memory based vector addition/subtraction
++ MADDC= 0x120,             test_array_arith.rs
++ MADDS= 0x121,             test_array_arith.rs
++ MADDM= 0x122,             test_array_arith.rs
++ MSUBC= 0x125,             test_array_arith.rs
++ MSUBS= 0x126,             test_array_arith.rs
++ MSUBML= 0x127,            test_array_arith.rs
++ MSUBMR= 0x128,            test_array_arith.rs
+
+  # Memory based multiplication/division arithmetic
++ MMULC= 0x130,             test_array_arith.rs
++ MMULM= 0x131,             test_array_arith.rs
++ MDIVC= 0x134,             test_array_arith.rs
++ MMODC= 0x136,             test_array_arith.rs
+
   # Relative peek and poke
-+ RPEEKINT= 0x120,          test_stacks.rs
-+ RPOKEINT= 0x121,          test_stacks.rs
-+ RPEEKSINT= 0x122,         test_stacks.rs
-+ RPOKESINT= 0x123,         test_stacks.rs
-+ RPEEKSBIT= 0x124,         test_stacks.rs
-+ RPOKESBIT= 0x125,         test_stacks.rs
-+ RPEEKC= 0x126,            test_stacks.rs
-+ RPOKEC= 0x127,            test_stacks.rs
-+ RPEEKS= 0x128,            test_stacks.rs
-+ RPOKES= 0x129,            test_stacks.rs
++ RPEEKINT= 0x1F0,          test_stacks.rs
++ RPOKEINT= 0x1F1,          test_stacks.rs
++ RPEEKSINT= 0x1F2,         test_stacks.rs
++ RPOKESINT= 0x1F3,         test_stacks.rs
++ RPEEKSBIT= 0x1F4,         test_stacks.rs
++ RPOKESBIT= 0x1F5,         test_stacks.rs
++ RPEEKC= 0x1F6,            test_stacks.rs
++ RPOKEC= 0x1F7,            test_stacks.rs
++ RPEEKS= 0x1F8,            test_stacks.rs
++ RPOKES= 0x1F9,            test_stacks.rs
 
 
 

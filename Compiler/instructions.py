@@ -83,6 +83,8 @@
   INPUT_INT= 0x49,
   OPEN_CHANNEL= 0x4A,
   CLOSE_CHANNEL= 0x4B,
+  MPRIVATE_INPUT = 0x4C,
+  MPRIVATE_OUTPUT = 0x4D,
 
   # Open
   STARTOPEN= 0xA0,
@@ -221,6 +223,12 @@
   START_CLOCK= 0xE1,
   STOP_CLOCK= 0xE2,
 
+  RANDC = 0xE3,
+  RANDINT = 0xE4,
+  RANDSINT = 0xE5,
+  RANDFLOAT = 0xE6,
+  RANDSBIT = 0xE7,
+
   # Stack operations
   PUSHINT= 0x100,
   POPINT= 0x101,
@@ -252,18 +260,68 @@
   POKES= 0x118,
   GETSPS= 0x119,
 
-  # Relative peek and poke
-  RPEEKINT= 0x120,
-  RPOKEINT= 0x121,
-  RPEEKSINT= 0x122,
-  RPOKESINT= 0x123,
-  RPEEKSBIT= 0x124,
-  RPOKESBIT= 0x125,
-  RPEEKC= 0x126,
-  RPOKEC= 0x127,
-  RPEEKS= 0x128,
-  RPOKES= 0x129,
+  # Memory based vector addition/subtraction
+  MADDC= 0x120,
+  MADDS= 0x121,
+  MADDM= 0x122,
+  MSUBC= 0x125,
+  MSUBS= 0x126,
+  MSUBML= 0x127,
+  MSUBMR= 0x128,
 
+  # Memory based multiplication/division arithmetic
+  MMULC= 0x130,
+  MMULM= 0x131,
+  MDIVC= 0x134,
+  MMODC= 0x136,
+
+  # Vector manipulation operations
+  MREVC   = 0x138,
+  MREVS   = 0x139,
+  MEVALCC = 0x13A,
+  MEVALSC = 0x13B,
+  MBITDECC = 0x13C,
+  MBITDECINT = 0x13D,
+
+  # Relative peek and poke
+  RPEEKINT= 0x1F0,
+  RPOKEINT= 0x1F1,
+  RPEEKSINT= 0x1F2,
+  RPOKESINT= 0x1F3,
+  RPEEKSBIT= 0x1F4,
+  RPOKESBIT= 0x1F5,
+  RPEEKC= 0x1F6,
+  RPOKEC= 0x1F7,
+  RPEEKS= 0x1F8,
+  RPOKES= 0x1F9,
+
+The memory based vector add/sub/mult instructions are not
+accessable from Mamba. There syntax is
+  INSTR i j k n
+Where the size of the vector is in register rn
+  ri, rj and rk point to the start of the vectors 
+We then execute
+    MEM[ri+t] = MEM[rj+t] op MEM[rk+t] t=0...rn-1
+
+MINV* and MEVAL* are also not used in Mamba
+
+   MREVC i j k
+Takes memory pointed to by rj of length rk and puts it
+in the reverse order in position ri
+
+   MEVALSC i j k t
+Takes S memory pointed to by rj of length rk and a
+C variable ct and evaluates the poly in ct, returning
+the result in register si
+
+   MBITDECC i j k
+Takes cint register cj and decomposes it into rk bits
+and places them in C[ri+t] for t=0...rk-1
+
+  MBITDECINT i j k
+Takes register rj and decomposes it into rk bits
+and places them in R[ri+t] for t=0...rk-1
+ 
 
 Many instructions can be vectorized, this is done by taking the opcode
 being a 32 bit value. The last nine bits being the base opcode and previous
@@ -1610,26 +1668,27 @@ class shrci(base.ClearShiftInstruction):
 #
 
 @base.vectorize
-class triple(base.DataInstruction):
-    r""" TRIPLE i j k
-         Load sint registers s_i, s_j and s_k with the next multiplication triple.
+class triple(base.DataInstruction, base.VarArgsInstruction):
+    r""" TRIPLE n, s1,...,sn
+         Load sint registers s_{3i+1}, s_{3i+2} and s_{3i+3} with the next 
+         multiplication triple, for i=0,..,n/3-1
          This instruction is vectorizable
      """
     __slots__ = ['data_type']
     code = base.opcodes['TRIPLE']
-    arg_format = ['sw', 'sw', 'sw']
+    arg_format = itertools.repeat('sw')
     data_type = 'triple'
 
 
 @base.vectorize
-class bit(base.DataInstruction):
-    r""" BIT i
+class bit(base.DataInstruction, base.VarArgsInstruction):
+    r""" BIT n, s1,...,sn
          Load sint register s_i with the next secret bit.
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['BIT']
-    arg_format = ['sw']
+    arg_format = itertools.repeat('sw')
     data_type = 'bit'
 
 @base.vectorize
@@ -1644,14 +1703,15 @@ class dabit(base.DataInstruction):
     data_type = 'dabit'
 
 @base.vectorize
-class square(base.DataInstruction):
-    r""" SQUARE i j
-         Load sint registers s_i and s_j with the next squaring tuple.
+class square(base.DataInstruction, base.VarArgsInstruction):
+    r""" SQUARE n, s1,...,sn
+         Load sint registers s_{2i+1}, s_{2i+2} with the next square tuple,
+         for i=0,..,n/2-1
          This instruction is vectorizable
      """
     __slots__ = []
     code = base.opcodes['SQUARE']
-    arg_format = ['sw', 'sw']
+    arg_format = itertools.repeat('sw')
     data_type = 'square'
 
 
@@ -1668,6 +1728,18 @@ class private_input(base.IOInstruction):
     __slots__ = []
     code = base.opcodes['PRIVATE_INPUT']
     arg_format = ['sw', 'p','int']
+
+@base.vectorize
+class mprivate_input(base.IOInstruction):
+    r""" MPRIVATE_INPUT i j p m 
+         Private input of n items from player p on channel m 
+         assign the result to sint memory [r_i+k] for k=0...rj-1
+         When vectorized ri increases, but rj stays the same.
+         Can only be executed in thread zero.
+     """
+    __slots__ = []
+    code = base.opcodes['MPRIVATE_INPUT']
+    arg_format = ['r', 'r',  'p','int']
 
 
 @base.vectorize
@@ -1897,6 +1969,21 @@ class private_output(base.IOInstruction):
     code = base.opcodes['PRIVATE_OUTPUT']
     arg_format = ['s', 'p', 'i']
 
+
+@base.vectorize
+class mprivate_output(base.IOInstruction):
+    r""" MPRIVATE_OUTPUT i j p m 
+         Private output of n items from player p on channel m
+         outputing the values in sint memory [r_i+k] for k=0...rj-1
+         When vectorized ri increases, but rj stays the same.
+         Can only be executed in thread zero.
+     """
+    __slots__ = []
+    code = base.opcodes['MPRIVATE_OUTPUT']
+    arg_format = ['r', 'r', 'p','int']
+
+  
+
 # Others
 
 @base.vectorize
@@ -1909,6 +1996,56 @@ class rand(base.Instruction):
     code = base.opcodes['RAND']
     arg_format = ['rw', 'r']
 
+@base.vectorize
+class randc(base.Instruction):
+    r""" RANDC i 
+         Writes to the cint register c_i a random value mod p
+         The random value is the same for all players, so in particular it is not really random.
+     """
+    __slots__ = []
+    code = base.opcodes['RANDC']
+    arg_format = ['cw']
+
+@base.vectorize
+class randint(base.Instruction):
+    r""" RANDINT i
+         Writes to the regint register r_i a random value (mod 2^64)
+         The random value is the same for all players, so in particular it is not really random.
+     """
+    __slots__ = []
+    code = base.opcodes['RANDINT']
+    arg_format = ['rw']
+
+
+@base.vectorize
+class randsint(base.Instruction):
+    r""" RANDSINT i
+         Writes to the sregint register sr_i a random value (mod 2^64)
+         The random value is the same for all players, so in particular it is not really random.
+     """
+    __slots__ = []
+    code = base.opcodes['RANDSINT']
+    arg_format = ['srw']
+
+@base.vectorize
+class randfloat(base.Instruction):
+    r""" RANDFLOAT i
+         Writes to the regint register r_i a random value representing a float in the range [0,..,1]
+         The random value is the same for all players, so in particular it is not really random.
+     """
+    __slots__ = []
+    code = base.opcodes['RANDFLOAT']
+    arg_format = ['rw']
+
+@base.vectorize
+class randsbit(base.Instruction):
+    r""" RANDSBIT i
+         Writes to the sbit register sb_i a random value 
+         The random value is the same for all players, so in particular it is not really random.
+     """
+    __slots__ = []
+    code = base.opcodes['RANDSBIT']
+    arg_format = ['sbw']
 
 #
 # Integer operations

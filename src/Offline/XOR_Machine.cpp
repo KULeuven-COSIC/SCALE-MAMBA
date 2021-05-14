@@ -27,7 +27,7 @@ XOR_Machine<SBit>::XOR_Machine(Player &P, offline_control_data &OCD, int thread)
 template<class SBit>
 void XOR_Machine<SBit>::check_debug(const vector<vector<Share>> &combinedp, const vector<vector<SBit>> &combined2)
 {
-	cout << "In CHECK DEBUG" << endl;
+  cout << "In CHECK DEBUG" << endl;
   unsigned int total= combinedp[0].size();
 
   allShp.clear();
@@ -58,7 +58,7 @@ void XOR_Machine<SBit>::check_debug(const vector<vector<Share>> &combinedp, cons
       if (!bit_equality(valuesp[i], values2[i]))
         throw Sacrifice_Check_Error("daBit check_debug!");
     }
-  	cout << "Finished CHECK_DEBUG" << endl;
+  cout << "Finished CHECK_DEBUG" << endl;
 }
 
 // Opens MANY bits according the the CNC parameters
@@ -96,7 +96,7 @@ void XOR_Machine<SBit>::consistency_check(const vector<vector<Share>> &Shp,
 
   // Check bit consistency in both fields
   for (int i= 0; i < total_cnc; ++i)
-    { 
+    {
       if (!bit_equality(valuesp[i], values2[i]))
         {
           throw Sacrifice_Check_Error("daBit consistency error!");
@@ -259,12 +259,12 @@ void XOR_Machine<SBit>::combine(vector<Share> &combinedp, vector<SBit> &combined
     }
   // Deal with GF2n case
   for (size_t pnum= 0; pnum < P.nplayers(); pnum++)
-  {
-    for (int i= 0; i < num_bits; ++i)
-      { 
-        combined2[i].add(Sh2[pnum * num_bits + i]); 
-      }
-  }
+    {
+      for (int i= 0; i < num_bits; ++i)
+        {
+          combined2[i].add(Sh2[pnum * num_bits + i]);
+        }
+    }
 }
 
 template<class SBit>

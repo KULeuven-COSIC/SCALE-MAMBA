@@ -232,7 +232,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             })
             | Instr::Binop(Binop {
                 op: op @ BinaryOp::I64RemS,
-            }) 
+            })
             | Instr::Binop(Binop {
                 op: op @ BinaryOp::I32RemU,
             })
@@ -711,6 +711,11 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
 
                         let instruction = match kind {
                             StoreKind::I64 { .. } => "stminti",
+                            StoreKind::I32_8 { .. }
+                            | StoreKind::I32_16 { .. }
+                            | StoreKind::I64_8 { .. }
+                            | StoreKind::I64_16 { .. }
+                            | StoreKind::I64_32 { .. } => "stminti",
                             StoreKind::F32 => "stmsi",
                             StoreKind::I32 { .. } => {
                                 unimplemented!()
@@ -719,21 +724,6 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                                 unimplemented!()
                             }
                             StoreKind::V128 => {
-                                unimplemented!()
-                            }
-                            StoreKind::I32_8 { .. } => {
-                                unimplemented!()
-                            }
-                            StoreKind::I32_16 { .. } => {
-                                unimplemented!()
-                            }
-                            StoreKind::I64_8 { .. } => {
-                                unimplemented!()
-                            }
-                            StoreKind::I64_16 { .. } => {
-                                unimplemented!()
-                            }
-                            StoreKind::I64_32 { .. } => {
                                 unimplemented!()
                             }
                         };
@@ -830,8 +820,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         );
 
                         let (instruction, dest_register_kind) = match kind {
-                            LoadKind::I64 { .. }
-                            | LoadKind::I32_8 { .. }
+                            LoadKind::I64 { .. } => ("ldminti", RegisterKind::Regint),
+                            LoadKind::I32_8 { .. }
                             | LoadKind::I32_16 { .. }
                             | LoadKind::I64_8 { .. }
                             | LoadKind::I64_16 { .. }

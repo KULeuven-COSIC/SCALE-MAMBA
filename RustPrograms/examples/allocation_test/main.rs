@@ -3,7 +3,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(const_evaluatable_checked)]
 
 use scale_std::array::Array;
 use scale_std::slice::Slice;

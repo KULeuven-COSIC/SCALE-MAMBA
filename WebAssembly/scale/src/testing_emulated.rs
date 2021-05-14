@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -128,7 +127,7 @@ impl Test for ClearModp {
     #[track_caller]
     fn test(self) {
         let loc = core::panic::Location::caller();
-        let vm = read_clear(i64::from(loc.line()) +  TEST_MEMORY_OFFSET);
+        let vm = read_clear(i64::from(loc.line()) + TEST_MEMORY_OFFSET);
         println!("{} {}", loc, BigInt::from(vm));
         assert_eq!(
             BigInt::from(self) % &*P,

@@ -417,10 +417,10 @@ void FP_to_float(Processor<SRegint, SBit> &Proc)
       bigint twop= 2;
       mpz_pow_ui(twop.get_mpz_t(), twop.get_mpz_t(), vlen);
 
-      if (vi == twop)
+      while (vi >= twop)
         {
-          pp++;
           vi>>= 1;
+          pp++;
         }
       if (pp < (-(1 << (plen - 1))))
         { // Truncate towards zero

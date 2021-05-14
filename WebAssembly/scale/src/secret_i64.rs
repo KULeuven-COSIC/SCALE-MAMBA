@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -28,6 +27,13 @@ impl RevealIfSecret for SecretI64 {
     type Output = i64;
     fn reveal_if_secret(&self) -> i64 {
         self.reveal()
+    }
+}
+
+impl Randomize for SecretI64 {
+    #[inline(always)]
+    fn randomize() -> SecretI64 {
+        unsafe { __randsint() }
     }
 }
 

@@ -189,6 +189,36 @@ impl<const K: u64, const F: u64> From<ClearFixed<K, F>> for ClearIEEE {
     }
 }
 
+impl Randomize for SecretIEEE {
+    #[inline(always)]
+    fn randomize() -> SecretIEEE {
+        let mut v = unsafe { __randsint() };
+        let zero: SecretBit = SecretBit::from(false);
+        let one: SecretBit = SecretBit::from(true);
+        v = v.set_bit(zero, ConstU32::<63>);
+        v = v.set_bit(zero, ConstU32::<62>);
+        v = v.set_bit(one, ConstU32::<61>);
+        v = v.set_bit(one, ConstU32::<60>);
+        v = v.set_bit(one, ConstU32::<59>);
+        v = v.set_bit(one, ConstU32::<58>);
+        v = v.set_bit(one, ConstU32::<57>);
+        v = v.set_bit(one, ConstU32::<56>);
+        v = v.set_bit(one, ConstU32::<55>);
+        v = v.set_bit(one, ConstU32::<54>);
+        v = v.set_bit(one, ConstU32::<53>);
+        v = v.set_bit(zero, ConstU32::<52>);
+        Self { val: v }
+    }
+}
+
+impl Randomize for ClearIEEE {
+    #[inline(always)]
+    fn randomize() -> ClearIEEE {
+        let v = unsafe { __randfloat() };
+        Self { val: v }
+    }
+}
+
 /* Reveal */
 
 // This is a NOP to make certain generic operations work

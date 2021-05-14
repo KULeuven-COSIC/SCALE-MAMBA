@@ -18,6 +18,7 @@ All rights reserved
 using namespace std;
 
 #include "ShareData2.h"
+#include "System/Player.h"
 
 class Share2
 {
@@ -268,6 +269,9 @@ public:
    * with those of bit j in the second share
    */
   friend void swap_shares(Share2 &S1, Share2 &S2, unsigned int i, unsigned int j);
+
+  /* Randomize */
+  void randomize(unsigned int online_thread_no, Player &P);
 };
 
 // Make a random sharing of a single gf2 value val.

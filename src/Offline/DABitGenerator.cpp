@@ -185,7 +185,7 @@ void SmallPrimeDABitGenerator<SBit>::provide_random_inputs(vector<vector<Share>>
       if (player == P.whoami())
         {
           (*this).timers["Sending input bits"].start();
-          P.send_all((*this).buff.get_buffer(), (*this).num_dabits * ( 1+gfp::size()), 2, false);
+          P.send_all((*this).buff.get_buffer(), (*this).num_dabits * (1 + gfp::size()), 2, false);
           (*this).timers["Sending input bits"].stop();
         }
       else

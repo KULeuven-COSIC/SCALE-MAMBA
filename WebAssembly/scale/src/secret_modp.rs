@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -110,6 +109,14 @@ impl SecretModp {
     #[inline(always)]
     pub fn get_random_triple() -> (Self, Self, Self) {
         __triple()
+    }
+}
+
+impl Randomize for SecretModp {
+    #[inline(always)]
+    fn randomize() -> SecretModp {
+        let (a, _b) = SecretModp::get_random_square();
+        a
     }
 }
 

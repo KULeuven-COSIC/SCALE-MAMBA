@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -18,6 +17,7 @@ mod dce;
 mod dead_block_removal;
 mod destination_propagation;
 mod goto_chain_collapse;
+mod merge_instructions;
 mod move_done_block_to_end;
 mod nop;
 mod nop_removal;
@@ -39,11 +39,13 @@ fn mk_pass<T: Pass + Default + 'static>() -> Box<dyn Pass> {
 
 const PASSES: &[fn() -> Box<dyn Pass>] = &[
     mk_pass::<validate::Pass>,
-    mk_pass::<destination_propagation::Pass>,
     mk_pass::<nop::Pass>,
     mk_pass::<print::Pass>,
     mk_pass::<print_merge::Pass>,
     mk_pass::<optimizer_step1::Pass>,
+    mk_pass::<merge_instructions::Pass>,
+    mk_pass::<nop_removal::Pass>,
+    mk_pass::<destination_propagation::Pass>,
     mk_pass::<assignment_chain::Pass>,
     mk_pass::<cmp::Pass>,
     mk_pass::<dce::Pass>,
@@ -56,7 +58,6 @@ const PASSES: &[fn() -> Box<dyn Pass>] = &[
     mk_pass::<cond_flip::Pass>,
     mk_pass::<validate::Pass>,
 ];
-
 
 pub fn apply_default_optimization_pipeline<'a>(
     cx: &'a Compiler,

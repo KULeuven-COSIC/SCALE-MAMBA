@@ -107,7 +107,7 @@ public:
   const T &read(unsigned int i, int verbose)
   {
 #ifdef DEBUGMEM
-    if (check_allocated(i)==false)
+    if (check_allocated(i) == false)
       {
         throw memory_access_error();
       }
@@ -119,7 +119,7 @@ public:
       }
 #ifdef DEBUGMEM
     stringstream ss;
-    M[i].output(ss,true);
+    M[i].output(ss, true);
     printf("\t Reading data %s in memory %s position %lu \n", ss.str().c_str(), T::type_string().c_str(), i);
     fflush(stdout);
 #endif
@@ -129,12 +129,12 @@ public:
   void write(unsigned int i, const T &x, int verbose, int PC= -1)
   {
 #ifdef DEBUGMEM
-    if (check_allocated(i)==false)
+    if (check_allocated(i) == false)
       {
         throw memory_access_error();
       }
     stringstream ss;
-    x.output(ss,true);
+    x.output(ss, true);
     printf("\t Storing data %s in memory %s position %lu \n", ss.str().c_str(), T::type_string().c_str(), i);
     fflush(stdout);
 #endif

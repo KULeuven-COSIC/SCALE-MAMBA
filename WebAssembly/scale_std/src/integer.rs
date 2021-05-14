@@ -139,6 +139,26 @@ impl<const K: u64> Print for ClearInteger<K> {
     }
 }
 
+/* Randomization */
+impl<const K: u64> Randomize for ClearInteger<K> {
+    #[inline(always)]
+    fn randomize() -> ClearInteger<K> {
+        let adiv2 = modp_two_power(K - 1);
+        let a = adiv2 + adiv2;
+        let b = ClearModp::randomize() % a - adiv2;
+        Self { x: b }
+    }
+}
+
+impl<const K: u64, const KAPPA: u64> Randomize for SecretInteger<K, KAPPA> {
+    #[inline(always)]
+    fn randomize() -> SecretInteger<K, KAPPA> {
+        let adiv2 = modp_two_power(K - 1);
+        let a = PRandInt(K) - adiv2;
+        Self { x: a }
+    }
+}
+
 /* Reveal Operation */
 
 impl<const K: u64, const KAPPA: u64> Reveal for SecretInteger<K, KAPPA> {
@@ -158,11 +178,7 @@ impl<const K: u64, const KAPPA: u64> Reveal for SecretInteger<K, KAPPA> {
 impl<const K: u64> ClearInteger<K> {
     #[inline(always)]
     #[allow(non_snake_case)]
-    pub fn Mod2m<const M: u64, const SIGNED: bool>(
-        self,
-        _: ConstU64<M>,
-        _: ConstBool<SIGNED>,
-    ) -> ClearInteger<K> {
+    pub fn Mod2m(self, M: u64, SIGNED: bool) -> ClearInteger<K> {
         scale::assert!(M < K);
         let twom = modp_two_power(M);
         let mut val = self.x;
@@ -175,7 +191,7 @@ impl<const K: u64> ClearInteger<K> {
 
     #[inline(always)]
     #[allow(non_snake_case)]
-    pub fn Mod2<const SIGNED: bool>(self, _: ConstBool<SIGNED>) -> ClearInteger<K> {
+    pub fn Mod2(self, SIGNED: bool) -> ClearInteger<K> {
         let two = ClearModp::from(2);
         let mut val = self.x;
         if SIGNED {
@@ -188,13 +204,9 @@ impl<const K: u64> ClearInteger<K> {
 impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
     #[inline(always)]
     #[allow(non_snake_case)]
-    pub fn Mod2m<const M: u64, const SIGNED: bool>(
-        self,
-        _: ConstU64<M>,
-        _: ConstBool<SIGNED>,
-    ) -> Self {
+    pub fn Mod2m(self, M: u64, SIGNED: bool) -> Self {
         scale::assert!(M < K);
-        let (r_dprime, r, rb) = PRandM::<K, M, KAPPA>();
+        let (r_dprime, r, rb) = PRandM_Slice(K, M, KAPPA);
         let c2m = modp_two_power(M);
         let t0 = r_dprime * c2m;
         let mut t1 = self.x;
@@ -208,7 +220,7 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
         let c_prime = c % c2m;
         let ans: SecretModp;
         if M != 1 {
-            let u = BitLT(c_prime, rb.iter());
+            let u = BitLT(c_prime, &rb, rb.len());
             let t4 = u * c2m;
             let t5 = c_prime - r;
             ans = t5 + t4;
@@ -221,8 +233,8 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
 
     #[inline(always)]
     #[allow(non_snake_case)]
-    pub fn Mod2<const SIGNED: bool>(self, signed: ConstBool<SIGNED>) -> Self {
-        self.Mod2m(ConstU64::<1>, signed)
+    pub fn Mod2(self, signed: bool) -> Self {
+        self.Mod2m(1, signed)
     }
 }
 
@@ -363,14 +375,10 @@ impl<const K: u64, const KAPPA: u64> Neg for SecretInteger<K, KAPPA> {
     }
 }
 
-impl<const K: u64, const KAPPA: u64> ScaleCmpZ<SecretModp> for SecretInteger<K, KAPPA>
-where
-    ConstU64<{ K - 1 }>: ,
-    ConstU64<{ K + 1 }>: ,
-{
+impl<const K: u64, const KAPPA: u64> ScaleCmpZ<SecretModp> for SecretInteger<K, KAPPA> {
     #[inline(always)]
     fn ltz(self) -> SecretModp {
-        let t = self.Trunc(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let t = self.Trunc(K - 1, true);
         -t.x
     }
     #[inline(always)]
@@ -387,16 +395,16 @@ where
     }
     #[inline(always)]
     fn gez(self) -> SecretModp {
-        let t = self.Trunc(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let t = self.Trunc(K - 1, true);
         ClearModp::from(1) + t.x
     }
     #[inline(always)]
     fn eqz(self) -> SecretModp {
-        let (r_dprime, r, rb) = PRandM::<K, K, KAPPA>();
+        let (r_dprime, r, rb) = PRandM_Slice(K, K, KAPPA);
         let twok = modp_two_power(K);
         let t = self.x + r_dprime * twok + self.x + r;
         let c = t.reveal();
-        let cb: Slice<ClearModp> = BitDec_ClearModp(c, K);
+        let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(c, K);
         let mut d: Slice<SecretModp> = Slice::uninitialized(K);
         for i in 0..K {
             let v = *cb.get_unchecked(i) * *rb.get_unchecked(i);
@@ -410,14 +418,10 @@ where
     }
 }
 
-impl<const K: u64> ScaleCmpZ<ClearModp> for ClearInteger<K>
-where
-    ConstU64<{ K - 1 }>: ,
-    ConstU64<{ K + 1 }>: ,
-{
+impl<const K: u64> ScaleCmpZ<ClearModp> for ClearInteger<K> {
     #[inline(always)]
     fn ltz(self) -> ClearModp {
-        let t = self.Trunc(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let t = self.Trunc(K - 1, true);
         -t.x
     }
     #[inline(always)]
@@ -434,12 +438,12 @@ where
     }
     #[inline(always)]
     fn gez(self) -> ClearModp {
-        let t = self.Trunc(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let t = self.Trunc(K - 1, true);
         ClearModp::from(1) + t.x
     }
     #[inline(always)]
     fn eqz(self) -> ClearModp {
-        let cb: Slice<ClearModp> = BitDec_ClearModp(self.x, K);
+        let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(self.x, K);
         let one = ClearModp::from(1);
         let mut d = one;
         for i in 0..K {
@@ -456,7 +460,6 @@ where
 impl<const K: u64> Add<ClearInteger<K>> for ClearInteger<K>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = Self;
     #[inline(always)]
@@ -464,7 +467,7 @@ where
         let v = ClearInteger::<{ K + 1 }>::from(self.x + other.x);
         //let b = v.ltz();  XXXX FIX LATER XXXX
         let b = ClearModp::from(1);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>).rep() - b * modp_two_power(K - 1);
+        let w = v.Mod2m(K - 1, true).rep() - b * modp_two_power(K - 1);
         Self::from(w)
     }
 }
@@ -472,14 +475,13 @@ where
 impl<const K: u64, const KAPPA: u64> Add<SecretInteger<K, KAPPA>> for ClearInteger<K>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = SecretInteger<K, KAPPA>;
     #[inline(always)]
     fn add(self, other: SecretInteger<K, KAPPA>) -> Self::Output {
         // XXXX NEEDS FIXING
         let v = SecretInteger::<{ K + 1 }, KAPPA>::from(self.x + other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::Output::from(w.x)
     }
 }
@@ -487,14 +489,13 @@ where
 impl<const K: u64, const KAPPA: u64> Add<SecretInteger<K, KAPPA>> for SecretInteger<K, KAPPA>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = Self;
     #[inline(always)]
     fn add(self, other: SecretInteger<K, KAPPA>) -> Self::Output {
         // XXXX NEEDS FIXING
         let v = SecretInteger::<{ K + 1 }, KAPPA>::from(self.x + other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::from(w.x)
     }
 }
@@ -502,7 +503,6 @@ where
 impl<const K: u64, const KAPPA: u64> Add<ClearInteger<K>> for SecretInteger<K, KAPPA>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = SecretInteger<K, KAPPA>;
     #[inline(always)]
@@ -514,14 +514,13 @@ where
 impl<const K: u64> Sub<ClearInteger<K>> for ClearInteger<K>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = Self;
     #[inline(always)]
     fn sub(self, other: ClearInteger<K>) -> Self::Output {
         // XXXX NEEDS FIXING
         let v = ClearInteger::<{ K + 1 }>::from(self.x - other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::from(w.x)
     }
 }
@@ -529,14 +528,13 @@ where
 impl<const K: u64, const KAPPA: u64> Sub<SecretInteger<K, KAPPA>> for ClearInteger<K>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = SecretInteger<K, KAPPA>;
     #[inline(always)]
     fn sub(self, other: SecretInteger<K, KAPPA>) -> Self::Output {
         // XXXX NEEDS FIXING
         let v = SecretInteger::<{ K + 1 }, KAPPA>::from(self.x - other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::Output::from(w.x)
     }
 }
@@ -550,7 +548,7 @@ where
     fn sub(self, other: SecretInteger<K, KAPPA>) -> Self::Output {
         // XXXX NEEDS FIXING
         let v = SecretInteger::<{ K + 1 }, KAPPA>::from(self.x - other.x);
-        let w = v.Mod2m(ConstU64::<K>, ConstBool::<true>);
+        let w = v.Mod2m(K, true);
         Self::from(w.x)
     }
 }
@@ -558,7 +556,6 @@ where
 impl<const K: u64, const KAPPA: u64> Sub<ClearInteger<K>> for SecretInteger<K, KAPPA>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = SecretInteger<K, KAPPA>;
     #[inline(always)]
@@ -570,14 +567,13 @@ where
 impl<const K: u64> Mul<ClearInteger<K>> for ClearInteger<K>
 where
     ConstU64<{ 2 * K }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = Self;
     #[inline(always)]
     fn mul(self, other: ClearInteger<K>) -> Self::Output {
-        // XXXX NEEDS CHECKING RE - NUMBERS
+        // XXXX NEEDS CHECKING RE NEGATIVE NUMBERS
         let v = ClearInteger::<{ 2 * K }>::from(self.x * other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::from(w.x)
     }
 }
@@ -585,14 +581,13 @@ where
 impl<const K: u64, const KAPPA: u64> Mul<SecretInteger<K, KAPPA>> for ClearInteger<K>
 where
     ConstU64<{ 2 * K }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = SecretInteger<K, KAPPA>;
     #[inline(always)]
     fn mul(self, other: SecretInteger<K, KAPPA>) -> Self::Output {
-        // XXXX NEEDS CHECKING RE - NUMBERS
+        // XXXX NEEDS CHECKING RE NEGATIVE NUMBERS
         let v = SecretInteger::<{ 2 * K }, KAPPA>::from(self.x * other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::Output::from(w.x)
     }
 }
@@ -600,14 +595,13 @@ where
 impl<const K: u64, const KAPPA: u64> Mul<SecretInteger<K, KAPPA>> for SecretInteger<K, KAPPA>
 where
     ConstU64<{ 2 * K }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = Self;
     #[inline(always)]
     fn mul(self, other: SecretInteger<K, KAPPA>) -> Self::Output {
-        // XXXX NEEDS CHECKING RE - NUMBERS
+        // XXXX NEEDS CHECKING RE NEGATIVE NUMBERS
         let v = SecretInteger::<{ 2 * K }, KAPPA>::from(self.x * other.x);
-        let w = v.Mod2m(ConstU64::<{ K - 1 }>, ConstBool::<true>);
+        let w = v.Mod2m(K - 1, true);
         Self::from(w.x)
     }
 }
@@ -615,7 +609,6 @@ where
 impl<const K: u64, const KAPPA: u64> Mul<ClearInteger<K>> for SecretInteger<K, KAPPA>
 where
     ConstU64<{ 2 * K }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     type Output = SecretInteger<K, KAPPA>;
     #[inline(always)]
@@ -627,19 +620,21 @@ where
 /* Compute 2^a when a \in [0...k) */
 #[inline(always)]
 #[allow(non_snake_case)]
-pub fn Pow2<const K: u64, const KAPPA: u64>(a: SecretModp) -> SecretModp
-where
-    ConstU64<{ CeilLog2::<K>::RESULT }>: ,
-{
-    let mut d = BitDec::<{ CeilLog2::<K>::RESULT }, { CeilLog2::<K>::RESULT }, KAPPA>(a);
-    for i in 0..CeilLog2::<K>::RESULT {
+pub fn Pow2<const K: u64, const KAPPA: u64>(a: SecretModp) -> SecretModp {
+    if K >= 512 {
+        core::panic!("K too large")
+    }
+    let len = ceil_log_2(K as u32) as u64;
+    // We do a bit of overkill computation here, but it avoids a const issue in Rust
+    let mut d = BitDec::<9, 9, KAPPA>(a);
+    for i in 0..len {
         d.set(
             i,
             &(modp_two_power(1 << i) * *d.get_unchecked(i) + ClearModp::from(1)
                 - *d.get_unchecked(i)),
         );
     }
-    KOpL(mul_op, &d)
+    KOpL(mul_op, d.addr(0), len as i64)
 }
 
 /* As the next function should always be inlined the multiple
@@ -648,15 +643,12 @@ where
 /* For a in [0..k) this converts it into unary form */
 #[inline(always)]
 #[allow(non_snake_case)]
-pub fn B2U<const K: u64, const KAPPA: u64>(a: SecretModp) -> (Slice<SecretModp>, SecretModp)
-where
-    ConstU64<{ CeilLog2::<K>::RESULT }>: ,
-{
+pub fn B2U<const K: u64, const KAPPA: u64>(a: SecretModp) -> (Slice<SecretModp>, SecretModp) {
     let pow2a = Pow2::<K, KAPPA>(a);
-    let random = PRandM::<K, K, KAPPA>();
+    let random = PRandM_Slice(K, K, KAPPA);
     let v = pow2a + modp_two_power(K) * random.0 + random.1;
     let c = v.reveal();
-    let cb: Slice<ClearModp> = BitDec_ClearModp(c, K);
+    let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(c, K);
     let mut x: Slice<SecretModp> = Slice::uninitialized(K);
     for i in 0..K {
         let v = *cb.get_unchecked(i) * *random.2.get_unchecked(i);
@@ -675,11 +667,7 @@ where
 impl<const K: u64> ClearInteger<K> {
     #[inline(always)]
     #[allow(non_snake_case)]
-    pub fn Trunc<const M: u64, const SIGNED: bool>(
-        self,
-        _: ConstU64<M>,
-        _: ConstBool<SIGNED>,
-    ) -> Self {
+    pub fn Trunc(self, M: u64, SIGNED: bool) -> Self {
         let c2m = modp_two_power(M);
         let mut t = self.x;
         if SIGNED {
@@ -694,12 +682,8 @@ impl<const K: u64> ClearInteger<K> {
 
 impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
     #[allow(non_snake_case)]
-    pub fn TruncPr<const M: u64, const SIGNED: bool>(
-        self,
-        _: ConstU64<M>,
-        _: ConstBool<SIGNED>,
-    ) -> Self {
-        let (r_dprime, r, _rb) = PRandM::<K, M, KAPPA>();
+    pub fn TruncPr(self, M: u64, SIGNED: bool) -> Self {
+        let (r_dprime, r, _rb) = PRandM_Slice(K, M, KAPPA);
         let c2m = modp_two_power(M);
         let mut t = r_dprime * c2m + self.x + r;
         if SIGNED {
@@ -714,32 +698,21 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
     }
 
     #[allow(non_snake_case)]
-    pub fn Trunc<const M: u64, const SIGNED: bool>(
-        self,
-        _: ConstU64<M>,
-        _: ConstBool<SIGNED>,
-    ) -> Self {
-        let a_dash = self.Mod2m(ConstU64::<M>, ConstBool::<SIGNED>);
+    pub fn Trunc(self, M: u64, SIGNED: bool) -> Self {
+        let a_dash = self.Mod2m(M, SIGNED);
         let c2m = modp_two_power(M);
         let d = (self.x - a_dash.x) / c2m;
         Self { x: d }
     }
 
     #[allow(non_snake_case)]
-    pub fn TruncRoundNearest<const M: u64, const SIGNED: bool>(
-        self,
-        _: ConstU64<M>,
-        _: ConstBool<SIGNED>,
-    ) -> Self
-    where
-        ConstU64<{ M - 1 }>: ,
-    {
+    pub fn TruncRoundNearest(self, M: u64, SIGNED: bool) -> Self {
         let a: SecretModp;
         if M == 1 {
-            let b = self.Mod2(ConstBool::<true>);
+            let b = self.Mod2(true);
             a = (self.x + b.x) / ClearModp::from(2);
         } else {
-            let (r_dprime, r_prime, r) = PRandM::<K, M, KAPPA>();
+            let (r_dprime, r_prime, r) = PRandM_Slice(K, M, KAPPA);
             let two = ClearModp::from(2);
             let c2m = modp_two_power(M);
             let c2m1 = modp_two_power(M - 1);
@@ -750,7 +723,7 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
             }
             let c = t.reveal();
             let c_prime = c % c2m1;
-            let u = BitLT(c_prime, r.static_slice_from_start::<1>().iter());
+            let u = BitLT(c_prime, &r, r.len() - 1);
             let bit = ((c - c_prime) / c2m1) % two;
             let xor = bit + u - two * bit * u;
             let prod = xor * *r.get_unchecked(M - 1);
@@ -764,12 +737,7 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
     }
 
     #[allow(non_snake_case)]
-    pub fn ObliviousTrunc(self, m: SecretModp) -> Self
-    where
-        ConstU64<{ CeilLog2::<K>::RESULT }>: ,
-        ConstU64<{ K + 1 }>: ,
-        ConstU64<{ K - 1 }>: ,
-    {
+    pub fn ObliviousTrunc(self, m: SecretModp) -> Self {
         if K == 1 {
             let ans = Self {
                 x: self.x * (ClearModp::from(1) - m),
@@ -803,9 +771,8 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
             c_dprime = c_dprime + ci * (*x.get_unchecked(i - 1) - *x.get_unchecked(i));
             twop = twop * two;
         }
-        let lhs: SecretInteger<K, KAPPA> = SecretInteger::from(c_dprime);
-        let rhs: SecretInteger<K, KAPPA> = SecretInteger::from(r_prime);
-        let d = lhs.lt(rhs);
+        let test: SecretInteger<K, KAPPA> = SecretInteger::from(c_dprime - r_prime);
+        let d = test.ltz();
         let pow2inv = Inv(pow2m);
         let b = (self.x - c_dprime + r_prime) * pow2inv - d;
         Self { x: b }
@@ -815,7 +782,6 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
 impl<const K: u64, const KAPPA: u64> ScaleCmp<Self, SecretModp> for SecretInteger<K, KAPPA>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     #[inline(always)]
     fn lt(self, other: Self) -> SecretModp {
@@ -852,7 +818,6 @@ where
 impl<const K: u64> ScaleCmp<Self, ClearModp> for ClearInteger<K>
 where
     ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
 {
     #[inline(always)]
     fn lt(self, other: Self) -> ClearModp {

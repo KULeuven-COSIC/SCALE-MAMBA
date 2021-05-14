@@ -111,11 +111,17 @@ One should think of Mamba not as a language, but as a high-level assembler.
 Currently you cannot access from Rust the following features of Scale
 \begin{itemize}
      \item More than one online thread.
-     \item Vectorized (i.e. SIMD) instructions.
      \item Some native SCALE printing operations.
      \item \verb|sfloat|, \verb|cfloat|.
 \end{itemize}
 We are currently working on fixing the above.
+
+The vectorized (i.e. SIMD) instructions in SCALE will not be
+supported by the Rust pipeline. To access them the programmer
+would need to use special constructs etc, which make using them
+difficult. The gain is marginal, over program complexity, and we
+can achieve the same effect by other changes in the runtime which
+can apply to a wider class of programs.
 
 \subsubsection{Working}
 In comparison to Mamba the following work or are improvements

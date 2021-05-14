@@ -118,3 +118,14 @@ void aBitVector2::Bitwise_AND(const aBitVector2 &a, const aBitVector2 &b,
   P.mod2s+= 64;
 #endif
 }
+
+void aBitVector2::randomize(unsigned int online_thread_no, Player &P)
+{
+  MTD.check();
+  vector<Share2> T(3);
+  MTD.get_Triple(T, online_thread_no);
+#ifdef BENCH_OFFLINE
+  P.mod2s+= sreg_bitl;
+#endif
+  x= T[0];
+}

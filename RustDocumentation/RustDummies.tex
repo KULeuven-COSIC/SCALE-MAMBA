@@ -1,0 +1,188 @@
+\mainsection{Rust Dummies Guide}
+Using Rust has some advantages in that we have strong typing and the
+programming language has been designed to be safe in terms of stopping
+programmers making errors.
+However, these advantages come at a disadvantage (especially if you 
+are used to Python or C++). 
+So in this section we give an informal overview of how these differences
+affect programming in our Rust system, and in particular with relevance
+to SCALE.
+
+\subsection{Strong Typing}
+We take advantage of strong typing to ensure that the types correspond
+to mathematically what they represent.
+For efficiency we give access to the basic SCALE internal types
+$\ints$, $\ClearModp$, $\SecretModp$, $\SecretI$ and $\SecretBit$.
+But in MAMBA you could do something like
+\begin{lstlisting}
+    program.bit_length = 16
+    program.security = 40
+
+    a = sint(4)
+    b = sint(5)
+    c = a<b
+\end{lstlisting}
+But this is mathematically meaningless, what is meant here is that
+you are going to `think' of \verb|sint| values as integers of bit
+size sixteen and then do the comparison assuming that the numbers
+are indeed of size bounded by $2^{16}$. After all a comparison
+of values in the finite field $\F_p$ really makes no mathematical
+sense.
+
+In our Rust system we want to avoid such implicit assumptions
+that a reader of your code needs to make. Thus we provide types
+which help capture what you really want to do.
+So the above MAMBA code would become
+\begin{lstlisting}
+   let a: SecretInteger<16> = SecretInteger::from(4);
+   let b: SecretInteger<16> = SecretInteger::from(5);
+   let c = a.lt(b);
+\end{lstlisting}
+The type of the value \verb|c| is a $\SecretModp$ value.
+We use the member function notation \verb|a.lt(b)| instead
+of \verb|a<b| to force the programmer to realise that you cannot
+use the output of the comparison in an \verb|if|-statement.
+
+Another aspect of this strong typing is the above use of the
+\verb|from| command. This is used to convert one type to another,
+which needs to be done explicitly in almost all case.
+
+\subsection{Mutable vs Non-Mutable}
+Common problems in programs are that people accidentally re-assign
+a variable and then want the old value again. This is because in
+languages like C++ or python all variables are mutable by default.
+In C++ it is usually considered good practice to define all inputs
+to a function to be \verb|const| if they are not going to be returned
+as changed for this reason.
+Rust goes one step further and assumes all variables are non-mutable 
+by default. Thus you cannot do
+\begin{lstlisting}
+    let a = 3;
+    if some_condition {
+       a = a + 1;
+    }
+\end{lstlisting}
+To enable this you explicitly have to signal that the variable
+is going to be changed by writing
+\begin{lstlisting}
+    let mut a = 3;
+    if some_condition {
+       a = a + 1;
+    }
+\end{lstlisting}
+
+\subsection{Container Types}
+Container types are really important in programming, yet in Rust
+they can be a bit confusing mainly due to the mutability issue
+above, and the need to maintain safety of the language.
+The \verb|Array| and \verb|Slice| types we define are very similar
+to the standard \verb|Vec| type in Rust, and hopefully eventually
+they will be the same.
+The difference between an  \verb|Array| and a \verb|Slice|  is that
+the size of an  \verb|Array| is known at compile time, whereas
+a \verb|Slice| size may not.
+This distinction enables us to do some optimizations.
+
+Suppose you have an array of ten $\ClearModp$ values
+\begin{lstlisting}
+    let mut a: Array<ClearModp, 10> = Array::uninitialized();
+\end{lstlisting}
+You may want to assign values to the array elements, or use them
+later. There are {\em four} ways of getting an array element:
+\begin{enumerate}
+  \item \verb|A.get(i)| returns a reference to the array and performs
+        an out of bounds check.
+  \item \verb|A.get_unchecked(i)| returns a reference to the array and 
+        does not perform an out of bounds check.
+  \item \verb|A.get_mut(i)| returns a mutable reference to the array and performs
+        an out of bounds check.
+  \item \verb|A.get_mut_unchecked(i)| returns a mutable reference to the array and 
+        does not perform an out of bounds check.
+\end{enumerate}
+When accessing the reference it comes wrapped in an \verb|Option| when
+using the checked values, thus you need to \verb|unwrap| this option before
+using the item. 
+The unwrapping itself produces a guarded object, to remove the \verb|Guard| you 
+need to de-reference it.
+
+Thus when you use a \verb|get|, but not a \verb|get_unchecked|, 
+you need to unwrap the result, then in both cases you should de-reference,
+i.e. you do
+\begin{lstlisting}
+   println!(" a[2] = ",*a.get(2).unwrap());
+   println!(" a[2] = ",*a.get_unchecked(2));
+\end{lstlisting}
+However, for printing we have added some code to make the following more
+syntactically nicer code work,
+\begin{lstlisting}
+   println!(" a[2] = ",a.get(2).unwrap());
+   println!(" a[2] = ",a.get_unchecked(2));
+\end{lstlisting}
+
+If you want to access an element {\em and not change it} you should use
+one of the non-mutable \verb|get| operations, if you want to change an
+element you should access one of the mutable, i.e. \verb|get_mut|, operations.
+This is particularly relevant when the internal object is another \verb|Array| or
+\verb|Slice|.
+\begin{lstlisting}
+    let mut a: Slice<Array<i64, 2>> = Slice::uninitialized(5);
+    for i in 0..5 {
+        for j in 0..2 {
+            a.get_mut(i).unwrap().set(j, &((i * 2 + j) as i64));
+        }
+    }
+\end{lstlisting}
+To modify elements in a simple \verb|Array| or \verb|Slice| use.
+\begin{lstlisting}
+    let mut a: Array<ClearModp, 10> = Array::uninitialized();
+    a.set(2, &ClearModp::from(1));
+    a.set(3, &ClearModp::from(4));
+\end{lstlisting}
+Now suppose you have a \verb|Slice| of \verb|Array|s
+\begin{lstlisting}
+    let mut S: Slice<Array<ClearModp, 2>> = Slice::uninitialized(5);
+\end{lstlisting}
+and after some processing you would like to take the fourth element of the
+\verb|Slice|.
+\begin{lstlisting}
+    let mut A = *S.get_mut(4).unwrap();
+\end{lstlisting}
+The value \verb|A| is now an \verb|Array| of length two.
+What you really want is for \verb|A| to be a \verb|Copy| of \verb|S|.
+But not all types in Rust enable copying, whilst our basic types do
+the \verb|Array| and \verb|Slice| types do not.
+Thus in C++ terms in the above code the \verb|A| value is really just a `pointer' 
+to the fourth \verb|Array| in the \verb|Slice| \verb|S|.
+Thus the effect would be that if you changed elements in \verb|A| then you 
+also change the elements in \verb|S|.
+In addition if \verb|S| goes out of scope and gets deleted then so will \verb|A|.
+
+To avoid this problem you need to \verb|clone| the output of the \verb|get| as in
+\begin{lstlisting}
+    let mut A = S.get(4).unwrap().clone();
+\end{lstlisting}
+But you only need to do this as the \verb|Array| type is not copyable.
+If you had the following 
+\begin{lstlisting}
+    let mut A : Array<ClearModp, 10> = Array::uninitialized();
+    a.set(3, ClearModp::from(4));
+    let mut a = *A.get(3).unwrap();
+    a = a + 3;
+\end{lstlisting}
+then \verb|a| really is a copy of the entry in \verb|A|. So
+at the end we have $a=7$ and $A[3]=4$.
+
+The \verb|unchecked| versions of the \verb|get| operations should only be
+used if you know what you are doing. However, the checked versions do have
+a performance cost; they require a run-time branch which may impact the
+optimizers ability to reduce the total number of rounds of communication.
+
+For more details on \verb|Option|s see
+\begin{itemize}
+        \item \url{https://doc.rust-lang.org/std/option/}
+\end{itemize}
+
+
+
+
+

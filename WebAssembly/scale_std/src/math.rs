@@ -2,7 +2,6 @@
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
 use crate::array::*;
-use crate::bit_protocols::*;
 use crate::circuits::*;
 use crate::fixed_point::*;
 use crate::floating_point::*;
@@ -78,13 +77,10 @@ impl Float for SecretIEEE {}
 
 impl<const K: u64, const F: u64> Float for ClearFixed<K, F>
 where
-    ConstU64<{ K - F }>: ,
-    ConstU64<{ F + 1 }>: ,
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
     ConstU64<{ 2 * F }>: ,
     ConstU64<{ 2 * K }>: ,
-    ConstU64<{ 2 * (K - F) }>: ,
     ConstI32<{ f_as_i32(F) }>: ,
     ConstI32<{ f_as_i32(K) }>: ,
     ConstU64<{ ClearFixed::<K, F>::THETA }>: ,
@@ -93,13 +89,10 @@ where
 
 impl<const K: u64, const F: u64, const KAPPA: u64> Float for SecretFixed<K, F, KAPPA>
 where
-    ConstU64<{ K - F }>: ,
-    ConstU64<{ F + 1 }>: ,
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
     ConstU64<{ 2 * K }>: ,
     ConstU64<{ 2 * F }>: ,
-    ConstU64<{ 2 * (K - F) }>: ,
     ConstI32<{ f_as_i32(F) }>: ,
     ConstI32<{ f_as_i32(K) }>: ,
     ConstU64<{ SecretFixed::<K, F, KAPPA>::THETA }>: ,
@@ -400,11 +393,7 @@ impl SecretIEEE {
 /*           ClearFixed         */
 /********************************/
 
-impl<const K: u64, const F: u64> FAbs for ClearFixed<K, F>
-where
-    ConstU64<{ K + 1 }>: ,
-    ConstU64<{ K - 1 }>: ,
-{
+impl<const K: u64, const F: u64> FAbs for ClearFixed<K, F> {
     fn fabs(self) -> ClearFixed<K, F> {
         let s = self.rep().ltz();
         let v = (ClearModp::from(1) - s - s) * self.rep().rep();
@@ -413,12 +402,9 @@ where
     }
 }
 
-impl<const K: u64, const F: u64> Floor for ClearFixed<K, F>
-where
-    ConstU64<{ K - F }>: ,
-{
+impl<const K: u64, const F: u64> Floor for ClearFixed<K, F> {
     fn floor(self) -> Self {
-        let v = self.rep().Trunc(ConstU64::<{ K - F }>, ConstBool::<true>);
+        let v = self.rep().Trunc(K - F, true);
         ClearFixed::from(v)
     }
 }
@@ -431,7 +417,6 @@ where
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
     ConstU64<{ 2 * K }>: ,
-    ConstU64<{ K - F }>: ,
     ConstU64<{ 2 * (K - F) }>: ,
     ConstI32<{ f_as_i32(F) }>: ,
     ConstI32<{ f_as_i32(K) }>: ,
@@ -537,12 +522,12 @@ where
 
     // Computes log2(x)
     pub fn log2(self) -> Self {
-        let fl: ClearFloat<F, F> = ClearFloat::from(self);
-        let vv: ClearFixed<K, F> = ClearFixed::set(ClearInteger::set(fl.clone().v()));
+        let fl: ClearFloat<F, F, true> = ClearFloat::from(self);
+        let vv: ClearFixed<K, F> = ClearFixed::set(ClearInteger::set(fl.v()));
         let mut a = kernel_log2::<ClearFixed<K, F>, ClearFixed<K, F>>(vv);
-        let pp: ClearFixed<K, F> = ClearFixed::from(fl.clone().p() + ClearModp::from(F as i64));
+        let pp: ClearFixed<K, F> = ClearFixed::from(fl.p() + ClearModp::from(F as i64));
         a = a + pp;
-        let mask = (ClearModp::from(1) - fl.clone().z()) * (ClearModp::from(1) - fl.clone().s());
+        let mask = (ClearModp::from(1) - fl.z()) * (ClearModp::from(1) - fl.s());
         let t = a.rep().rep() * mask;
         ClearFixed::set(ClearInteger::set(t))
     }
@@ -577,19 +562,15 @@ where
     }
 }
 
-impl<const K: u64, const F: u64, const KAPPA: u64> Floor for SecretFixed<K, F, KAPPA>
-where
-    ConstU64<{ K - F }>: ,
-{
+impl<const K: u64, const F: u64, const KAPPA: u64> Floor for SecretFixed<K, F, KAPPA> {
     fn floor(self) -> Self {
-        let v = self.rep().Trunc(ConstU64::<{ K - F }>, ConstBool::<true>);
+        let v = self.rep().Trunc(K - F, true);
         SecretFixed::from(v)
     }
 }
 
 impl<const K: u64, const F: u64, const KAPPA: u64> SecretFixed<K, F, KAPPA>
 where
-    ConstU64<{ K - F }>: ,
     ConstU64<{ 2 * K }>: ,
     ConstU64<{ 2 * F }>: ,
     ConstU64<{ 2 * (K - F) }>: ,
@@ -601,7 +582,6 @@ where
     ConstI32<{ f_as_i32(K) }>: ,
     ConstU64<{ ClearFixed::<K, F>::THETA }>: ,
     ConstU64<{ SecretFixed::<K, F, KAPPA>::THETA }>: ,
-    ConstU64<{ CeilLog2::<K>::RESULT }>: ,
     ConstU64<{ K - F - 1 }>: ,
 {
     pub fn ceil(self) -> Self {
@@ -639,10 +619,14 @@ where
         );
         ans1 / ans2
     }
+    // For some reason there is a bug if this is not inline(always)
+    #[inline(always)]
     pub fn asin(self) -> Self {
         let ans = kernel_asin::<SecretFixed<K, F, KAPPA>, ClearFixed<K, F>, SecretModp>(self);
         ans
     }
+    // For some reason there is a bug if this is not inline(always)
+    #[inline(always)]
     pub fn acos(self) -> Self {
         let ans = kernel_acos::<SecretFixed<K, F, KAPPA>, ClearFixed<K, F>, SecretModp>(self);
         ans
@@ -703,13 +687,14 @@ where
 
     // Computes log2(x)
     pub fn log2(self) -> Self {
-        let fl: SecretFloat<F, F, KAPPA> = SecretFloat::from(self);
-        let vv: SecretFixed<K, F, KAPPA> = SecretFixed::set(SecretInteger::set(fl.clone().v()));
+        // Here we can set DETECT_OVERFLOW to false, as we only use fl for
+        // access, and no arithmetic.
+        let fl: SecretFloat<F, F, KAPPA, false> = SecretFloat::from(self);
+        let vv: SecretFixed<K, F, KAPPA> = SecretFixed::set(SecretInteger::set(fl.v()));
         let mut a = kernel_log2::<SecretFixed<K, F, KAPPA>, ClearFixed<K, F>>(vv);
-        let pp: SecretFixed<K, F, KAPPA> =
-            SecretFixed::from(fl.clone().p() + ClearModp::from(F as i64));
+        let pp: SecretFixed<K, F, KAPPA> = SecretFixed::from(fl.p() + ClearModp::from(F as i64));
         a = a + pp;
-        let mask = (ClearModp::from(1) - fl.clone().z()) * (ClearModp::from(1) - fl.s());
+        let mask = (ClearModp::from(1) - fl.z()) * (ClearModp::from(1) - fl.s());
         let t = a.rep().rep() * mask;
         SecretFixed::set(SecretInteger::set(t))
     }
@@ -724,5 +709,35 @@ where
     pub fn log10(self) -> Self {
         let v = self.log2() * ClearFixed::from(0.30102999566398119521373889472449302677);
         v
+    }
+}
+
+impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> FAbs
+    for ClearFloat<V, P, DETECT_OVERFLOW>
+{
+    #[inline(always)]
+    fn fabs(self) -> ClearFloat<V, P, DETECT_OVERFLOW> {
+        let mut param_new: Array<ClearModp, 5> = Array::uninitialized();
+        param_new.set(0, &self.v());
+        param_new.set(1, &self.p());
+        param_new.set(2, &self.z());
+        param_new.set(3, &(ClearModp::from(0)));
+        param_new.set(4, &self.err());
+        ClearFloat::set(param_new)
+    }
+}
+
+impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> FAbs
+    for SecretFloat<V, P, KAPPA, DETECT_OVERFLOW>
+{
+    #[inline(always)]
+    fn fabs(self) -> SecretFloat<V, P, KAPPA, DETECT_OVERFLOW> {
+        let mut param_new: Array<SecretModp, 5> = Array::uninitialized();
+        param_new.set(0, &self.v());
+        param_new.set(1, &self.p());
+        param_new.set(2, &self.z());
+        param_new.set(3, &(SecretModp::from(0)));
+        param_new.set(4, &self.err());
+        SecretFloat::set(param_new)
     }
 }

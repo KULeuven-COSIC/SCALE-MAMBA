@@ -25,8 +25,7 @@ Again does the obvious.
 
 
 \subsection{Arrays}
-This data type is implemented using the SCALE memory and not
-via the vectorized instructions.
+This data type is implemented using the SCALE memory.
 It is currently available for the following types
 $\ints$, $\SecretI$, $\ClearModp$, $\SecretModp$,
 \verb|ClearFixed<K,F>|, \verb|SecretFixed<K,F>|,
@@ -93,6 +92,13 @@ To iterate backwards use
 \end{lstlisting}
 For more details on using iterators see \url{https://doc.rust-lang.org/std/iter/trait.Iterator.html}.
 
+\func{a.addr(i)}
+This returns the address in memory of the $i$-th element in the array.
+
+\func{a.reverse()}
+Returns the same array, but with the elements in the reverse order, i.e.
+$a[i] = a[\ell-1-i]$ for $i=0,\ldots,\ell-1$.
+
 \func{a.reveal()}
 For the secret types this creates a non-secret version, as in.
 \begin{lstlisting}
@@ -127,8 +133,7 @@ These are called using the following convention
 \subsection{Slices}
 \label{sec:slices}
 This data type is equal to Arrays, the only difference being that the length of a slice is not known at compile time.
-Just like Arrays, this data type is implemented using the SCALE memory and not
-via the vectorized instructions.
+Just like Arrays, this data type is implemented using the SCALE memory.
 It is currently available for the following types
 $\ints$, $\SecretI$, $\ClearModp$, $\SecretModp$,
 \verb|ClearFixed<K,F>|, \verb|SecretFixed<K,F>|,
@@ -179,6 +184,13 @@ To iterate backwards use
     }
 \end{lstlisting}
 
+\func{s.addr(i)}
+This returns the address in memory of the $i$-th element in the slice.
+
+\func{s.reverse()}
+Returns the same slice, but with the elements in the reverse order, i.e.
+$s[i] = s[\ell-1-i]$ for $i=0,\ldots,\ell-1$.
+
 \func{s.reveal()}
 For the secret types this creates a non-secret version, as in.
 \begin{lstlisting}
@@ -197,10 +209,118 @@ Returns the length of the slice as a u64-number.
     let length: u64 = s.len();
 \end{lstlisting}
 
+\subsection{Arithmetic on Arrays and Slices}
+These operations only apply to special types of Arrays or Slices.
+
+\subsubsection{Private IO}
+Since private IO requires rounds of communication we provide helper functions
+for Arrays and Slices which use a constant number of rounds, irrespective of the
+size of the Array or Slice.
+
+\func{Array<SecretModp,N>::private_input(p,c)}
+\func{a.private_output(p,c)}
+\func{Slice<SecretModp>::private_input(N, p,c)}
+\func{s.private_output(p,c)}
+These are all called in the following manner
+\begin{lstlisting}
+    let a: Array<SecretModp, 5>=Array::private_input(Player::<1>, Channel::<10>);
+    a.private_output(Player::<2>, Channel::<10>);
+
+
+    let b: Slice<SecretModp>=Slice::private_input(6, Player::<1>, Channel::<10>);
+    b.private_output(Player::<2>, Channel::<10>);
+\end{lstlisting}
+
+\subsubsection{Addition/Subtraction/Multiplication}
+Vectorized addition, subtraction, multiplication, division and modular-remainder
+of Arrays and Slices of type $\ClearModp$ and $\SecretModp$ 
+are implemented via either an operator notation, or a member function notation.
+These are not implemented for secret-secret multiplication and the 
+division/modular-remainder are only implemented for clear-clear operations.
+The operator variants are often slower, as they can require a \verb|clone|
+before calling (depending on the usage of the arguments in other parts of
+the code).
+The member function variants never require a clone.
+We present an example for Arrays, an equivalent syntax applies to Slices,
+\begin{lstlisting}
+    const N: u64=200;
+    let mut ca_arr: Array<ClearModp, N> = Array::uninitialized();
+    let mut cb_arr: Array<ClearModp, N> = Array::uninitialized();
+    let mut sa_arr: Array<SecretModp, N> = Array::uninitialized();
+    let mut sb_arr: Array<SecretModp, N> = Array::uninitialized();
+
+    ...
+
+    // Operator notation (V slow)
+    let a_add_cc = ca_arr.clone() + cb_arr.clone();
+    let a_add_cs = ca_arr.clone() + sb_arr.clone();
+    let a_add_sc = sa_arr.clone() + cb_arr.clone();
+    let a_add_ss = sa_arr.clone() + sb_arr.clone();
+    let a_sub_cc = ca_arr.clone() - cb_arr.clone();
+    let a_sub_cs = ca_arr.clone() - sb_arr.clone();
+    let a_sub_sc = sa_arr.clone() - cb_arr.clone();
+    let a_sub_ss = sa_arr.clone() - sb_arr.clone();
+    let a_mul_cc = ca_arr.clone() * cb_arr.clone();
+    let a_mul_cs = ca_arr.clone() * sb_arr.clone();
+    let a_mul_sc = sa_arr.clone() * cb_arr.clone();
+    let a_div_cc = ca_arr.clone() / cb_arr.clone();
+    let a_mod_cc = ca_arr.clone() % cb_arr.clone();
+
+    
+    // Operator notation (slow)
+    let a_add_cc = &ca_arr + cb_arr.clone();
+    ...
+    let a_mod_cc = &ca_arr % cb_arr.clone();
+
+
+    // Operator notation (slow)
+    let a_add_cc = ca_arr.clone() + &cb_arr;
+    ...
+    let a_mod_cc = ca_arr.clone() % &cb_arr;
+
+
+    // Operator notation (fastest)
+    let a_add_cc = &ca_arr + &cb_arr;
+    ...
+    let a_mod_cc = &ca_arr % &cb_arr;
+
+
+    // Member function notation (fastest)
+    let a_add_cc_t = ca_arr.add_clear(&cb_arr);
+    let a_add_cs_t = ca_arr.add_secret(&sb_arr);
+    let a_add_sc_t = sa_arr.add_clear(&cb_arr);
+    let a_add_ss_t = sa_arr.add_secret(&sb_arr);
+    let a_sub_cc_t = ca_arr.sub_clear(&cb_arr);
+    let a_sub_cs_t = ca_arr.sub_secret(&sb_arr);
+    let a_sub_sc_t = sa_arr.sub_clear(&cb_arr);
+    let a_sub_ss_t = sa_arr.sub_secret(&sb_arr);
+    let a_mul_cc_t = ca_arr.mul_clear(&cb_arr);
+    let a_mul_cs_t = ca_arr.mul_secret(&sb_arr);
+    let a_mul_sc_t = sa_arr.mul_clear(&cb_arr);
+    let a_div_cc_t = ca_arr.div_clear(&cb_arr);
+    let a_mod_cc_t = ca_arr.mod_clear(&cb_arr);
+\end{lstlisting}
+The slice variants do not check whether the two source arrays have
+the same number of elements, the size is always taken to be that
+of \verb|*this|.
+
+\subsubsection{Advanced Arithmetic on Arrays and Slices}
+\func{a.evaluate(c)}
+Given an array or slice $a$ of length $\ell$ of type $\ClearModp$ or
+$\SecretModp$ this evaluates the polynomial $\sum_{i=0}^{\ell-1} a_i \cdot c^i$
+for the $\ClearModp$ value $c$.
+
+\func{Array<ClearModp,N>::bit_decomposition_ClearModp(c)}
+\func{Slice<ClearModp>::bit_decomposition_ClearModp(c, N)}
+\func{Array<i64,N>::bit_decomposition_i64(v)}
+\func{Slice<i64>::bit_decomposition_i64(v, N)}
+Given a $\ClearModp$ value $c$ or an $\ints$ value $v$, these functions
+compute the bit-decomposition of $c$ (resp. $v$) upto the $N$-th bit
+position. Returning the result as an Array or Slice.
+
 \subsection{Matrices}
 \label{sec:matrices}
-Again this data type is implemented using the SCALE memory and not
-via the vectorized instructions.
+Again this data type is implemented using the SCALE memory.
 It is thus only available for $\ints$, $\SecretI$, $\ClearModp$
 and $\SecretModp$ data types.
 To load the standard library version of Matrices use
@@ -292,6 +412,7 @@ The usage is demonstrated in the example below:
 \begin{lstlisting}
     use scale_std::ieee::*;
     #[inline(always)]
+    #[scale::main(KAPPA = 40)]
     fn main() {
       let c= ClearIEEE::from(3.141592);
       print!(c,"\n");
@@ -313,16 +434,23 @@ floating point value to a 64-bit integer (if possible).
      let ic=i64::from(c);
 \end{lstlisting}
 
-\func{rep()}
+\func{a.rep()}
 The internal representation as an $\ints$ can be obtained by the
 \verb|rep()| function.
 
-\func{set(x)}
+\func{a.set(x)}
 One can set the internal representation to a $\ints$ value using
 the \verb|set()| function.
 
 \func{ClearIEEE::NaN()}
 Returns a representation of IEEE NaN.
+
+\func{ClearIEEE::randomize()}
+Produces a random value in the range $[0,\ldots,1)$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a = ClearIEEE::randomize();
+\end{lstlisting}
 
 \subsubsection{Comparisons}
 The \verb|ClearIEEE| type implements the \verb|Eq|, \verb|PartialEq|
@@ -374,11 +502,11 @@ floating point value to a 64-bit integer (if possible).
 \end{lstlisting}
 
 
-\func{rep()}
+\func{a.rep()}
 The internal representation as a $\SecretI$ can be obtained by the
 \verb|rep()| function.
 
-\func{set(x)}
+\func{a.set(x)}
 One can set the internal representation to a $\SecretI$ value using
 the \verb|set()| function.
 
@@ -391,6 +519,12 @@ For the \verb|SecretIIEEE| type this creates a \verb|ClearIEEE| version, as in.
 \func{SecretIEEE::NaN()}
 Returns a representation of IEEE NaN.
 
+\func{SecretIEEE::randomize()}
+Produces a (secret) random value in the range $[0,\ldots,1)$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a = SecretIEEE::randomize();
+\end{lstlisting}
 
 
 \subsubsection{Comparisons}
@@ -452,21 +586,21 @@ of the incremeneted integer value.
     let v_inc_sa = BitIncrement(&sa);
 \end{lstlisting}
 
-\func{BitLT(C, A)}
-This takes a $\ClearModp$ value $C$ and an iteration on 
-an array of bits $A$, represented as $\SecretModp$ values.
+\func{BitLT(a, B, K)}
+This takes a $\ClearModp$ value $B$ and an Slice of $\SecretModp$
+values $A$, representing bits (of size at least $K$).
 It computes the $\SecretModp$ value representing the conditional
 $a < \sum_{i=0}^{K-1} b_i \cdot 2^i$.
 \begin{lstlisting}
-    let mut saa: Array<SecretModp, 3> = Array::uninitialized();
+    let mut saa: Slice<SecretModp> = Slice::uninitialized(3);
     saa.set(0,&SecretModp::from(1));
     saa.set(1,&SecretModp::from(0));
     saa.set(2,&SecretModp::from(1));
 
     let four = ClearModp::from(4);
     let six = ClearModp::from(6);
-    let cmp_four = BitLT(four, saa.iter());
-    let cmp_six = BitLT(six, saa.iter());
+    let cmp_four = BitLT(four, saa, 3);
+    let cmp_six = BitLT(six, saa, 3);
 \end{lstlisting}
 
 \func{BitLTFull(Slice<U> A, Slice<V> B))}
@@ -538,6 +672,7 @@ The usage is demonstrated in the example below:
 \begin{lstlisting}
     use scale_std::integer::*;
     #[inline(always)]
+    #[scale::main(KAPPA = 40)]
     fn main() {
       let c: ClearInteger<3>= ClearInteger::from(2 as i64);
       print!(c,"\n");
@@ -571,10 +706,11 @@ Sets the internal representation to be the \verb|ClearModp| value $v$.
 
 \func{a.Trunc(M,S)}
 Implements the deterministic trunction operation of rounding $a/2^M$.
+When $S=\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
 \begin{lstlisting}
-    let a = ClearModp::from(23);
-    let b: ClearInteger::<6> = ClearInteger::from(a);
-    let c = b.Trunc(ConstU64::<3>, ConstBool::<true>);
+    let a: ClearInteger::<6> = ClearInteger::from(23);
+    let b = a.Trunc(3, true);
 \end{lstlisting}
 
 \func{a.Mod2m(M,S)}
@@ -586,11 +722,19 @@ Mathematically this computes the expression
 Implicitly this assumes that $M < K$.
 \begin{lstlisting}
     let a: ClearInteger<10> = ClearInteger::from(-24);
-    let b = a.Mod2m(ConstU64::<5>, ConstBool::<true>);
+    let b = a.Mod2m(5, true);
 \end{lstlisting}
 
 \func{a.Mod2(S)}
 As above but takes $M=1$.
+
+
+\func{ClearInteger::randomize()}
+Produces a random value in $\Zk$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a: ClearInteger<20> = ClearInteger::randomize();
+\end{lstlisting}
 
 \subsubsection{Comparisons}
 The following `operators' can be applied between two \verb|ClearInteger<K>|
@@ -655,7 +799,7 @@ Mathematically this computes the expression
 Implicitly this assumes that $M < K$.
 \begin{lstlisting}
     let a: SecretInteger<10> = SecretInteger::from(-24);
-    let b = b.Mod2m(ConstU64::<5>, ConstBool::<true>);
+    let b = a.Mod2m(5, true);
 \end{lstlisting}
 
 \func{a.Mod2(S)}
@@ -671,27 +815,30 @@ the value $2^b$ as a \verb|SecretInteger<K>|
 
 \func{a.TruncPr(M,S)}
 Implements the probabilistic trunction operation of rounding $a/2^M$.
+When $S=\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
 \begin{lstlisting}
-    let a = SecretModp::from(23);
-    let b: SecretInteger::<6> = SecretInteger::from(a);
-    let c = b.TruncPr(ConstU64::<3>, ConstBool::<true>);
+    let a: SecretInteger::<6> = SecretInteger::from(23);
+    let b = a.TruncPr(3, true);
 \end{lstlisting}
 
 \func{a.Trunc(M,S)}
 Implements the deterministic trunction operation of rounding $a/2^M$.
+When $S=\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
 \begin{lstlisting}
-    let a = SecretModp::from(23);
-    let b: SecretInteger::<6> = SecretInteger::from(a);
-    let c = b.Trunc(ConstU64::<3>, ConstBool::<true>);
+    let a: SecretInteger::<6> = SecretInteger::from(23);
+    let b = a.Trunc(3, true);
 \end{lstlisting}
 
 \func{a.TruncRoundNearest(M,S)}
 Implements the deterministic rounding to the nearest integer operation
 of rounding $\lceil a/2^M \rfloor$.
+When $S=\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
 \begin{lstlisting}
-    let a = SecretModp::from(23);
-    let b: SecretInteger::<6> = SecretInteger::from(a);
-    let c = b.TruncRoundNearest(ConstU64::<3>, ConstBool::<true>);
+    let a: SecretInteger::<6> = SecretInteger::from(23);
+    let b = a.TruncRoundNearest(3, true);
 \end{lstlisting}
 
 \func{a.ObliviousTrunc(m)}
@@ -702,6 +849,14 @@ which lies in the range $[0,\ldots,K)$.
     let b: SecretInteger::<6> = SecretInteger::from(a);
     let m = SecretModp::from(3);
     let c = b.ObliviousTrunc(m);
+\end{lstlisting}
+
+
+\func{SecretInteger::randomize()}
+Produces a (secret) random value in $\Zk$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a: SecretInteger<20> = SecretInteger::randomize();
 \end{lstlisting}
 
 \subsubsection{Comparisons}
@@ -764,6 +919,7 @@ but this again is mainly for interaction/testing purposes.
 \begin{lstlisting}
     use scale_std::fixed_point::*;
     #[inline(always)]
+    #[scale::main(KAPPA = 40)]
     fn main() {
       let c: ClearFixed<40,20>= ClearFixed::from(3.141592);
       print!(c,"\n");
@@ -807,6 +963,16 @@ Sets the internal representation to be the \verb|ClearInteger<K>| value obtianed
 \verb|ClearInteger<K>| on the \verb|ClearModp| value $v$.
 
 
+\func{ClearFixed::randomize()}
+Produces a random value in the range $[0,\ldots,1)$, it
+assumes that $K > F$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a: ClearFixed<20,10> = ClearFixed::randomize();
+\end{lstlisting}
+
+
+
 \subsubsection{Comparisons}
 The following `operators' can be applied between two \verb|ClearFixed<K,F>|
 values,the output being a $\ClearModp$ value.
@@ -831,6 +997,7 @@ security gap \verb|KAPPA| defined in the pre-amble.
 \begin{lstlisting}
     use scale_std::fixed_point::*;
     #[inline(always)]
+    #[scale::main(KAPPA = 40)]
     fn main() {
       let c: SecretFixed<40,20>= SecretFixed::from(3.141592);
       print!(c,"\n");
@@ -867,6 +1034,15 @@ Sets the internal representation to be the \verb|SecretInteger<K>| value $v$.
 Sets the internal representation to be the \verb|SecretInteger<K>| value obtianed by calling \verb|set| for the type
 \verb|SecretInteger<K>| on the \verb|SecretModp| value $v$.
 
+
+\func{SecretFixed::randomize()}
+Produces a (secret) random value in the range $[0,\ldots,1)$, it
+assumes that $K > F$.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a: SecretFixed<20,10> = SecretFixed::randomize();
+\end{lstlisting}
+
 \subsubsection{Comparisons}
 The following `operators' can be applied between two \verb|SecretFixed<K,F>|
 values,the output being a $\SecretModp$ value.
@@ -891,30 +1067,64 @@ Clear and secret values can be combined to result in a secret
 value.
 
 \subsection{ClearFloat}
-A clear floating point number is represented by a an Array of 5 \verb|ClearModp|-elements: (v, p, z, s, err). They represent the value
-\[ u=(1-2\cdot s) \cdot (1-z) \cdot v \cdot 2^{p}. \]
+A clear floating point number is represented by a an Array of five 
+\verb|ClearModp|-elements: (v, p, z, s, err). 
+They represent the value
+\[ u=(1-2\cdot s) \cdot (1-z) \cdot v \cdot 2^{p}, \]
+with the convention that if $z=1$ then $s=0$.
 Note, that as Arrays do not implement \verb|Copy| neither does  \verb|ClearFloat|,
 it does however implement \verb|Clone|.
 The \verb|ClearFloat| type is meant for interacting with the \verb|SecretFloat| type. 
-The type comes with two parameters V and P, which describe the bitsize of the mantissa and the exponent respectively. 
-\todo{We will eventually provide a full math library for this type, but this is mainly for interaction/testing purposes at the moment.}
+It is very slow in comparison to the \verb|ClearIEEE| and \verb|ClearFixed| types.
 
+The type comes with two parameters $V$ and $P$, which describe the bitsize of the 
+mantissa and the exponent respectively. 
+An optional parameter is \verb|DETECT_OVERFLOW| (default value: $\true$), that indicates whether 
+mathematical operators should check if their output exceeds the bounds of $V$ and $P$.
+To set the  \verb|DETECT_OVERFLOW| value to $\false$ you should specify this in 
+the macro before the main call, as in....
 \begin{lstlisting}
     use scale_std::floating_point::*;
     #[inline(always)]
+    #[scale::main(KAPPA = 40, DETECT_OVERFLOW = false)]
     fn main() {
       let c: ClearFloat<40,10>= ClearFloat::from(3.141592);
       print!(c,"\n");
     }
 \end{lstlisting}
+If the value is not defined in the initial macro then the default value of
+$\true$ is taken:
+\begin{lstlisting}
+    use scale_std::floating_point::*;
+    #[inline(always)]
+    #[scale::main(KAPPA = 40)]
+    fn main() {
+      let c: ClearFloat<40,10>= ClearFloat::from(3.141592);
+      print!(c,"\n");
+    }
+\end{lstlisting}
+To avoid unnecessary cloning, the \verb|Print| trait also
+allows references to a \verb|ClearFloat| to be passed to it:
+\begin{lstlisting}
+    use scale_std::floating_point::*;
+    #[inline(always)]
+    #[scale::main(KAPPA = 40)]
+    fn main() {
+      let c: ClearFloat<40,10>= ClearFloat::from(3.141592);
+      print!(&c,"\n");
+    }
+\end{lstlisting}
+
 
 \func{ClearFloat::from(x)}
 You can convert a value of type \verb|f64|, $\ints$, \verb|ClearFixed<K,F>|,
 \verb|ClearInteger<K>|\footnote{Note here $K$ does not necessarily have to
-equal $P$.} or \verb|ClearIEEE| to \verb|ClearFloat|. 
+equal $V$.} or \verb|ClearIEEE| to \verb|ClearFloat|. 
 \begin{lstlisting}
     let two_as_cfloat: ClearFixed<40,10>= ClearFloat::from(2_f64);
 \end{lstlisting}
+Note that the \verb|K| for \verb|ClearInteger<K>| and the \verb|K| for \verb|ClearFixed<K,F>| 
+must be larger than the \verb|V| of \verb|ClearFloat<V,P>|.
 
 \func{ClearFloat::set(x)}
 Given an \verb|Array| of five $\ClearModp$ values this sets them 
@@ -923,17 +1133,56 @@ to be the representation of a \verb|ClearFloat| value.
 \func{a.v(), a.p(), a.z(), a.s(), a.err()}
 Gets the associated representation value as a $\ClearModp$.
 
+\subsubsection{Comparisons}
+The following `operators' can be applied between two \verb|ClearFloat<V,P>|
+values,the output being a $\ClearModp$ value.
+As the result of the operator cannot be used in a conditional branch,
+we use the member function notation for such `operators', as opposed
+to the operator notation. Thus syntactically the programmer is less
+likely to make a mistake.
+\func{a.gt(x), a.ge(x), a.lt(x), a.le(x), a.gt(x), a.eq(x), a.ne(x)}
+
+\noindent
+The following give variants which compare just to zero.
+\func{a.gtz(), a.gez(), a.ltz(), a.lez(), a.gtz(), a.eqz(), a.nez(x)}
+
+To be able to avoid costly cloning, the comparisons can be used on both 
+references and clones. All options for \verb|gt()| and \verb|gtz()| for  
+\verb|ClearModp| are presented in following example:
+\begin{lstlisting}
+    let ca: ClearFloat<40,20> = ClearFloat::from(123546);
+    let cb: ClearFloat<40,20> = ClearFloat::from(789);
+
+    let gtcc = ca.clone().gt(cb.clone());
+    let gtrc = (&ca).gt(cb.clone());
+    let gtcr = ca.clone().gt(&cb);
+    let gtrr = (&ca).gt(&cb);
+
+    let gtzc = ca.clone().gtz();
+    let gtzr = (&ca).gtz();
+\end{lstlisting}
+
+
 \subsection{SecretFloat}
-A secret floating point number is represented by an Array of five \verb|SecretModp|-values. Together they represent the value as follows:
-\[ u=(1-2\cdot s) \cdot (1-z) \cdot v \cdot 2^{p}. \]
-In this array, the mantissa $v$ has a bitsize \verb|V| and the exponent $p$ is of size \verb|P|. 
-Many operations on \verb|SecretFloat| values make use of the statistical security gap \verb|KAPPA| defined in the pre-amble. 
+A secret floating point number is represented by an Array of five 
+\verb|SecretModp|-values. 
+Together they represent the value as follows:
+\[ u=(1-2\cdot s) \cdot (1-z) \cdot v \cdot 2^{p}, \]
+again with the convention that if $z=1$ then $s=0$.
+In this array, the mantissa $v$ has a bitsize \verb|V| and the exponent 
+$p$ is of size \verb|P|. 
+Many operations on \verb|SecretFloat| values make use of the statistical 
+security gap \verb|KAPPA| defined in the pre-amble. 
+As for the \verb|ClearFloat| type, there is also a parameter \verb|DETECT_OVERFLOW|
+defined in the same manner.
 Note, that as Arrays do not implement \verb|Copy| neither does  \verb|SecretFloat|,
 it does however implement \verb|Clone|.
+
 
 \begin{lstlisting}
     use scale_std::floating_point::*;
     #[inline(always)]
+    #[scale::main(KAPPA = 40)]
     fn main() {
       let c: SecretFloat<40,20>= SecretFloat::from(3.141592);
       print!(c.reveal(),"\n");
@@ -947,6 +1196,8 @@ or \verb|SecretFixed<K,F>|  to
 \begin{lstlisting}
     let two_as_sfloat: SecretFloat<40,10> = SecretFloat::from(2_f64);
 \end{lstlisting}
+Note that the \verb|K| for \verb|SecretInteger<K>| and the \verb|K| for \verb|SecretFixed<K,F>| 
+must be larger than the \verb|V| of \verb|SecretFloat<V,P>|.
 
 \func{SecretFloat::set(x)}
 Given an \verb|Array| of five $\SecretModp$ values this sets them
@@ -959,6 +1210,75 @@ Gets the associated representation value as a $\SecretModp$.
 You can reveal a value of type \verb|SecretFloat| to a \verb|ClearFloat|-type value as follows:
 \begin{lstlisting}
     let cfa: ClearFloat<40,10> = sfa.reveal();
+\end{lstlisting}
+If the entered value is invalid (err == 0), \verb|reveal()| returns a \verb|ClearFloat| with all parameter values set to zero. This to avoid information leakage.
+
+\subsubsection{Comparisons}
+The following `operators' can be applied between two \verb|SecretFloat<V,P>|
+values,the output being a $\SecretModp$ value.
+As the result of the operator cannot be used in a conditional branch,
+we use the member function notation for such `operators', as opposed
+to the operator notation. Thus syntactically the programmer is less
+likely to make a mistake.
+\func{a.gt(x), a.ge(x), a.lt(x), a.le(x), a.gt(x), a.eq(x), a.ne(x)}
+
+\noindent
+The following give variants which compare just to zero.
+\func{a.gtz(), a.gez(), a.ltz(), a.lez(), a.gtz(), a.eqz(), a.nez(x)}
+
+To be able to avoid costly cloning, the comparisons can be used on both 
+references and clones. All options for \verb|gt()| and \verb|gtz()| for  
+\verb|SecretModp| are presented in following example:
+\begin{lstlisting}
+    let sa: SecretFloat<40,20> = SecretFloat::from(123546);
+    let sb: SecretFloat<40,20> = SecretFloat::from(789);
+
+    let gtcc = sa.clone().gt(sb.clone());
+    let gtrc = (&sa).gt(sb.clone());
+    let gtcr = sa.clone().gt(&sb);
+    let gtrr = (&sa).gt(&sb);
+
+    let gtzc = sa.clone().gtz();
+    let gtzr = (&sa).gtz();
+\end{lstlisting}
+
+\subsection{Arithmetic of ClearFixed and SecretFixed}
+Standard arithmetic operations $+, -, \times, /$ can be applied to
+types \verb|ClearFloat<V,P>| and \verb|SecretFloat<V,P>|.
+Depending on the flag parameter \verb|DETECT_OVERFLOW|, the results 
+of these operations is checked for overflow/underflow.
+Clear and secret values can be combined to result in a secret
+value.
+
+To avoid the costly \verb|.clone()| operation on every input to arithmetic 
+operations (and comparisons), the operators also accept references. This 
+allows the variable to be used in arithmetic without ending its lifetime.
+These are accessed as in the following example for addition.
+\begin{lstlisting}
+    let ca: ClearFloat<40,20>  = ClearFloat::from(123456);
+    let sa: SecretFloat<40,20> = SecretFloat::from(ca.clone());
+    let cb: ClearFloat<40,20>  = ClearFloat::from(789);
+    let sb: SecretFloat<40,20> = SecretFloat::from(cb.clone());
+
+    let sscr = sa.clone() + &sb;
+    let ssrr = &sa + &sb;
+    let ssrc = &sa + sb.clone();
+    let sscc = sa.clone() + sb.clone();
+
+    let sccr = sa.clone() + &cb;
+    let scrr = &sa + &cb;
+    let scrc = &sa + cb.clone();
+    let sccc = sa.clone() + cb.clone();
+
+    let cscr = ca.clone() + &sb;
+    let csrr = &ca + &sb;
+    let csrc = &ca + sb.clone();
+    let cscc = ca.clone() + sb.clone();
+
+    let cccr = ca.clone() + &cb;
+    let ccrr = &ca + &cb;
+    let ccrc = &ca + cb.clone();
+    let cccc = ca.clone() + cb.clone();
 \end{lstlisting}
 
 

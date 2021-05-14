@@ -9,6 +9,52 @@ for SCALE.
 \item Functions with multiple return values can cause a problem for the compiler, especially
 when they are not-inlined. Thus avoid these. If you get weird behaviour this might
 be the reason.
+\item When compiling some loops the Rust-to-Wasm compiler sometimes creates
+	registers which are `assumed' to be zero-assigned on first use.
+	No idea why this happens, but you can see it by compiling SCALE with
+	the flag \verb|-DDEBUG|. This seems to cause no effect for normal
+	programs, but will cause problems (possibly) for programs called
+	via the \verb|restart| mechanism. To avoid this problem we issue
+	a \verb|clear_register| command at the start of each program,
+	and a Rust \verb|restart| command deletes the memory allocated
+	for testing and the wasm stack before executing the SCALE
+	\verb|restart| opcode.
+\end{enumerate}
+
+\subsection{Changes in version 1.2 from 1.1}
+\begin{enumerate}
+\item Decision has been made to not port the vectorized instructions over
+	to Rust. The reason is that they require changes to the assembler,
+	the compiler {\em and} require the programmer to jump through hoops
+	to use them. Instead we are implementing optimization pipelines
+	and changes to the runtime to allow the same `effects', at
+	time critical components, to be applied to programs without the 
+	need for the user to explicitly work this out and program this
+	themselves.
+	The first change is a merging of \verb|TRIPLE| and \verb|SQUARE|
+	instructions, which is oblivious to the user, but gives for
+	some programs a ten percent performance improvement.
+\item  The second change is a `vectorized' private input and output
+	routine for Arrays and Slices, which under-the-hood works
+	via the SCALE memory (as opposed  to the usual SCALE method
+	of vectorizations by having contiguous register names).
+\item The third change is some more advanced operations on Arrays and Slices,
+	which have been propogated into our Rust standard library.
+\item The overall effect is that programs in the Rust pipeline
+	now are about as efficient as the equivalent programs in the
+       Mamba pipeline.
+\item Added data types \verb|ClearFloat<V,P>| and \verb|SecretFloat<V,P>|
+	to replicate the $\mathsf{cfloat}$ and $\mathsf{sfloat}$ in Mamba.
+	The maths library for these datatypes is not yet fully implemented.
+\item Almost all data types now have a means for generating random values
+	within them.
+\item Some operations on integers and bit operations have had their
+	API changed a little.
+\item Modified the way \verb|restart()| is compiled to avoid a bug when using the
+	restart functionality and rust programs, for a similar reason we issue a
+      \verb|clear_register| operation now at the start of each program.
+	See the `Known Bugs' section above. \nps{There is still a bug here.
+		Will fix soon}
 \end{enumerate}
 
 \subsection{Changes in version 1.1 from 1.0}

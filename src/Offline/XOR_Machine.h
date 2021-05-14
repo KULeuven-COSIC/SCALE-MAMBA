@@ -42,7 +42,6 @@ class XOR_Machine
 
   bool bit_equality(const gfp &x, const word &y);
 
-
 public:
   XOR_Machine(Player &P, offline_control_data &OCD, int online_thread);
 
@@ -63,8 +62,8 @@ public:
                          const vector<vector<SBit>> &Sh2, const vector<int> &perm, int left_out);
 
   /* A routine for testing all dabits */
-  void check_debug(const vector<vector<Share>> &combinedp, 
-		   const vector<vector<SBit>> &combined2);
+  void check_debug(const vector<vector<Share>> &combinedp,
+                   const vector<vector<SBit>> &combined2);
 };
 
 #endif /* SRC_OFFLINE_XOR_MACHINE_H_ */

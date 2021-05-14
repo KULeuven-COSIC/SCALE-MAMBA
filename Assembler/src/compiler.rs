@@ -1,4 +1,3 @@
-
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
@@ -144,6 +143,9 @@ impl Compiler {
         }
         let dl = DisplayList::from(err.print(self));
         writeln!(self.destination.as_ref().unwrap().borrow_mut(), "{}", dl,).unwrap();
+        if std::env::var("SCASM_CRASH_ON_ERROR").is_ok() {
+            panic!()
+        }
         span.with_error()
     }
     pub fn checked_from<

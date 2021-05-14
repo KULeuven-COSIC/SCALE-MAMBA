@@ -7,6 +7,10 @@ All rights reserved
 
 #include "Share2.h"
 
+#include "Mod2Engine/Mod2_Thread.h"
+
+extern Mod2_Thread_Data MTD;
+
 ShareData2 Share2::SD;
 
 void Share2::assign_zero()
@@ -324,4 +328,15 @@ void swap_shares(Share2 &S1, Share2 &S2, unsigned int i, unsigned int j)
       S1.a[k]^= b0;
       S2.a[k]^= a0;
     }
+}
+
+void Share2::randomize(unsigned int online_thread_no, Player &P)
+{
+  MTD.check();
+  vector<Share2> T(3);
+  MTD.get_Single_Triple(T, online_thread_no);
+#ifdef BENCH_OFFLINE
+  P.mod2s+= 1;
+#endif
+  *this= T[0];
 }

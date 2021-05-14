@@ -74,7 +74,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case MULM:
       case DIVC:
       case MODC:
-      case TRIPLE:
       case ANDC:
       case XORC:
       case ORC:
@@ -111,12 +110,29 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case XORINT:
       case SHLINT:
       case SHRINT:
+      case MREVC:
+      case MREVS:
+      case MBITDECC:
+      case MBITDECINT:
         r[0]= get_int(s);
         r[1]= get_int(s);
         r[2]= get_int(s);
         break;
-      // instructions with 4 integer operands
+      // instructions with 4 register (or integer) operands
       case RUN_TAPE:
+      case MADDC:
+      case MADDS:
+      case MADDM:
+      case MSUBC:
+      case MSUBS:
+      case MSUBML:
+      case MSUBMR:
+      case MMULC:
+      case MMULM:
+      case MDIVC:
+      case MMODC:
+      case MEVALCC:
+      case MEVALSC:
         r[0]= get_int(s);
         r[1]= get_int(s);
         r[2]= get_int(s);
@@ -134,7 +150,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case LDMINTI:
       case STMINTI:
       case LEGENDREC:
-      case SQUARE:
       case DABIT:
       case CONVINT:
       case LTZINT:
@@ -186,7 +201,6 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         r[1]= get_int(s);
         break;
       // instructions with 1 register operand
-      case BIT:
       case PRINT_REG:
       case LDTN:
       case LDARG:
@@ -216,6 +230,11 @@ void BaseInstruction::parse_operands(istream &s, int pos)
       case DELETES:
       case DELETEINT:
       case DELETESINT:
+      case RANDC:
+      case RANDINT:
+      case RANDSINT:
+      case RANDFLOAT:
+      case RANDSBIT:
         r[0]= get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
@@ -279,6 +298,14 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         p= get_int(s);
         m= get_int(s);
         break;
+      // instructions with 2 reg + 1 player + 1 integer
+      case MPRIVATE_INPUT:
+      case MPRIVATE_OUTPUT:
+        r[0]= get_int(s);
+        r[1]= get_int(s);
+        p= get_int(s);
+        m= get_int(s);
+        break;
       // instructions with 1 reg + 2 integer operand
       case PRINT_FIX:
       case JMPNE:
@@ -317,6 +344,9 @@ void BaseInstruction::parse_operands(istream &s, int pos)
         get_vector(5, start, s);
         break;
       // open instructions instructions with variable length args
+      case BIT:
+      case TRIPLE:
+      case SQUARE:
       case STARTOPEN:
       case STOPOPEN:
         num_var_args= get_int(s);
@@ -430,6 +460,9 @@ RegType BaseInstruction::get_reg_type() const
       case DELETES:
       case DELETEINT:
       case DELETESINT:
+      case RANDINT:
+      case RANDSINT:
+      case RANDFLOAT:
         return INT;
       case MOVSB:
       case XORSB:
@@ -447,6 +480,7 @@ RegType BaseInstruction::get_reg_type() const
       case RPOKESBIT:
       case CONVSINTSBIT:
       case LDSBIT:
+      case RANDSBIT:
         return SBIT;
       case STARG:
       case REQBL:
@@ -469,6 +503,7 @@ RegType BaseInstruction::get_reg_type() const
       case OUTPUT_SHARES:
       case OUTPUT_INT:
       case PRIVATE_OUTPUT:
+      case MPRIVATE_OUTPUT:
       case JMP:
       case JMPNE:
       case JMPEQ:
@@ -819,7 +854,7 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         s << "DIVC";
         break;
       case DIVCI:
-        s << "DICI";
+        s << "DIVCI";
         break;
       case MODC:
         s << "MODC";
@@ -832,6 +867,57 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         break;
       case DIGESTC:
         s << "DIGESTC";
+        break;
+      case MADDC:
+        s << "MADDC";
+        break;
+      case MADDS:
+        s << "MADDS";
+        break;
+      case MADDM:
+        s << "MADDM";
+        break;
+      case MSUBC:
+        s << "MSUBC";
+        break;
+      case MSUBS:
+        s << "MSUBS";
+        break;
+      case MSUBML:
+        s << "MSUBML";
+        break;
+      case MSUBMR:
+        s << "MSUBMR";
+        break;
+      case MMULC:
+        s << "MMULC";
+        break;
+      case MMULM:
+        s << "MMULM";
+        break;
+      case MDIVC:
+        s << "MDIVC";
+        break;
+      case MMODC:
+        s << "MMODC";
+        break;
+      case MREVC:
+        s << "MREVC";
+        break;
+      case MREVS:
+        s << "MREVS";
+        break;
+      case MEVALCC:
+        s << "MEVALCC";
+        break;
+      case MEVALSC:
+        s << "MEVALSC";
+        break;
+      case MBITDECC:
+        s << "MBITDECC";
+        break;
+      case MBITDECINT:
+        s << "MBITDECINT";
         break;
       case OUTPUT_CLEAR:
         s << "OUTPUT_CLEAR";
@@ -850,6 +936,12 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         break;
       case PRIVATE_OUTPUT:
         s << "PRIVATE_OUTPUT";
+        break;
+      case MPRIVATE_INPUT:
+        s << "MPRIVATE_INPUT";
+        break;
+      case MPRIVATE_OUTPUT:
+        s << "MPRIVATE_OUTPUT";
         break;
       case OUTPUT_INT:
         s << "OUTPUT_INT";
@@ -1000,6 +1092,21 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         break;
       case STOP_CLOCK:
         s << "STOP_CLOCK";
+        break;
+      case RANDC:
+        s << "RANDC";
+        break;
+      case RANDINT:
+        s << "RANDINT";
+        break;
+      case RANDSINT:
+        s << "RANDSINT";
+        break;
+      case RANDFLOAT:
+        s << "RANDFLOAT";
+        break;
+      case RANDSBIT:
+        s << "RANDSBIT";
         break;
       case LDMSINT:
         s << "LDMSINT";
@@ -1186,7 +1293,6 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       // instructions with 3 sint register operands */
       case ADDS:
       case SUBS:
-      case TRIPLE:
         s << "s_" << instr.r[0] << " ";
         s << "s_" << instr.r[1] << " ";
         s << "s_" << instr.r[2] << " ";
@@ -1205,6 +1311,9 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       case LTINT:
       case GTINT:
       case EQINT:
+      case MREVC:
+      case MREVS:
+      case MBITDECINT:
         s << "r_" << instr.r[0] << " ";
         s << "r_" << instr.r[1] << " ";
         s << "r_" << instr.r[2] << " ";
@@ -1220,6 +1329,23 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         s << "sr_" << instr.r[0] << " ";
         s << "sr_" << instr.r[1] << " ";
         s << "sr_" << instr.r[2] << " ";
+        break;
+      // instructions with 4 regint register operands */
+      case MADDC:
+      case MADDS:
+      case MADDM:
+      case MSUBC:
+      case MSUBS:
+      case MSUBML:
+      case MSUBMR:
+      case MMULC:
+      case MMULM:
+      case MDIVC:
+      case MMODC:
+        s << "r_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        s << "r_" << instr.r[2] << " ";
+        s << "r_" << instr.n << " ";
         break;
       // instructions with 3 sbit register operands */
       case XORSB:
@@ -1378,7 +1504,6 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         break;
       // instructions with 2 sint register operands
       case MOVS:
-      case SQUARE:
         s << "s_" << instr.r[0] << " ";
         s << "s_" << instr.r[1] << " ";
         break;
@@ -1419,10 +1544,10 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       case PRINT_REG:
       case POPC:
       case PUSHC:
+      case RANDC:
         s << "c_" << instr.r[0] << " ";
         break;
       // instructions with 1 sint register operands
-      case BIT:
       case POPS:
       case PUSHS:
         s << "s_" << instr.r[0] << " ";
@@ -1430,11 +1555,13 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       // instructions with 1 sbit register operands
       case POPSBIT:
       case PUSHSBIT:
+      case RANDSBIT:
         s << "sb_" << instr.r[0] << " ";
         break;
       // instructions with 1 srint register operands
       case POPSINT:
       case PUSHSINT:
+      case RANDSINT:
         s << "sr_" << instr.r[0] << " ";
         break;
       // instructions with 1 rint register operands
@@ -1458,6 +1585,8 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
       case GETSPSBIT:
       case CALLR:
       case JMPR:
+      case RANDINT:
+      case RANDFLOAT:
         s << "r_" << instr.r[0] << " ";
         break;
       // instructions with 2 cint + 1 integer operand
@@ -1539,6 +1668,14 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         s << instr.p << " ";
         s << instr.m << " ";
         break;
+      // instructions with 1 sint + 1 player + 2 integer operand
+      case MPRIVATE_INPUT:
+      case MPRIVATE_OUTPUT:
+        s << "r_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        s << instr.p << " ";
+        s << instr.m << " ";
+        break;
       // instructions with 1 sint + 2 integer operands
       case PRINT_FIX:
         s << "c_" << instr.r[0] << " ";
@@ -1581,6 +1718,24 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
         s << instr.r[2] << " ";
         s << instr.n << " ";
         break;
+      // Weird ones
+      case MEVALCC:
+        s << "c_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        s << "r_" << instr.r[2] << " ";
+        s << "c_" << instr.n << " ";
+        break;
+      case MEVALSC:
+        s << "s_" << instr.r[0] << " ";
+        s << "r_" << instr.r[1] << " ";
+        s << "r_" << instr.r[2] << " ";
+        s << "c_" << instr.n << " ";
+        break;
+      case MBITDECC:
+        s << "r_" << instr.r[0] << " ";
+        s << "c_" << instr.r[1] << " ";
+        s << "r_" << instr.r[2] << " ";
+        break;
       // Various variable length instructions
       case MUL2SINT:
         for (unsigned int i= 0; i < instr.start.size(); i++)
@@ -1596,6 +1751,9 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
           }
         break;
       case STARTOPEN:
+      case TRIPLE:
+      case SQUARE:
+      case BIT:
         for (unsigned int i= 0; i < instr.start.size(); i++)
           {
             s << "s_" << instr.start[i] << " ";
@@ -1618,63 +1776,139 @@ ostream &operator<<(ostream &s, const Instruction<SRegint, SBit> &instr)
 
 template<class SRegint, class SBit>
 void Instruction<SRegint, SBit>::execute_using_sacrifice_data(
+    Player &P,
     Processor<SRegint, SBit> &Proc, offline_control_data &OCD) const
 {
   int thread= Proc.get_thread_num();
-  // Check to see if we have to wait
-  Wait_For_Preproc(opcode, size, thread, OCD);
+  unsigned int num= size * start.size();
+  if (opcode == TRIPLE)
+    {
+      if ((num % 3) != 0)
+        {
+          throw bad_value();
+        }
+      num/= 3;
+    }
+  else if (opcode == SQUARE)
+    {
+      if ((num & 1) != 0)
+        {
+          throw bad_value();
+        }
+      num/= 2;
+    }
 
-  int r[3]= {this->r[0], this->r[1], this->r[2]};
+#ifdef BENCH_OFFLINE
+  switch (opcode)
+    {
+      case TRIPLE:
+        P.triples+= num;
+        break;
+      case SQUARE:
+        P.squares+= num;
+        break;
+      case BIT:
+        P.bits+= num;
+        break;
+    }
+#endif
+
+  // Check to see if we have to wait
+  Wait_For_Preproc(opcode, num, thread, OCD);
+
   list<Share> la, lb, lc;
 
+  unsigned int reg_num, count;
   switch (opcode)
     {
       case TRIPLE:
         OCD.mul_mutex[thread].lock();
-        Split_Lists(la, SacrificeD[thread].TD.ta, size);
-        Split_Lists(lb, SacrificeD[thread].TD.tb, size);
-        Split_Lists(lc, SacrificeD[thread].TD.tc, size);
+        Split_Lists(la, SacrificeD[thread].TD.ta, num);
+        Split_Lists(lb, SacrificeD[thread].TD.tb, num);
+        Split_Lists(lc, SacrificeD[thread].TD.tc, num);
         OCD.mul_mutex[thread].unlock();
+        reg_num= 0;
+        count= 0;
         for (list<Share>::const_iterator zz= la.begin(); zz != la.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[0])= *zz;
-            r[0]++;
+            Proc.get_Sp_ref(start[reg_num] + count)= *zz;
+            count++;
+            if (count == size)
+              {
+                count= 0;
+                reg_num+= 3;
+              }
           }
+        reg_num= 1;
+        count= 0;
         for (list<Share>::const_iterator zz= lb.begin(); zz != lb.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[1])= *zz;
-            r[1]++;
+            Proc.get_Sp_ref(start[reg_num] + count)= *zz;
+            count++;
+            if (count == size)
+              {
+                count= 0;
+                reg_num+= 3;
+              }
           }
+        reg_num= 2;
+        count= 0;
         for (list<Share>::const_iterator zz= lc.begin(); zz != lc.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[2])= *zz;
-            r[2]++;
+            Proc.get_Sp_ref(start[reg_num] + count)= *zz;
+            count++;
+            if (count == size)
+              {
+                count= 0;
+                reg_num+= 3;
+              }
           }
         break;
       case SQUARE:
         OCD.sqr_mutex[thread].lock();
-        Split_Lists(la, SacrificeD[thread].SD.sa, size);
-        Split_Lists(lb, SacrificeD[thread].SD.sb, size);
+        Split_Lists(la, SacrificeD[thread].SD.sa, num);
+        Split_Lists(lb, SacrificeD[thread].SD.sb, num);
         OCD.sqr_mutex[thread].unlock();
+        reg_num= 0;
+        count= 0;
         for (list<Share>::const_iterator zz= la.begin(); zz != la.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[0])= *zz;
-            r[0]++;
+            Proc.get_Sp_ref(start[reg_num] + count)= *zz;
+            count++;
+            if (count == size)
+              {
+                count= 0;
+                reg_num+= 2;
+              }
           }
+        reg_num= 1;
+        count= 0;
         for (list<Share>::const_iterator zz= lb.begin(); zz != lb.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[1])= *zz;
-            r[1]++;
+            Proc.get_Sp_ref(start[reg_num] + count)= *zz;
+            count++;
+            if (count == size)
+              {
+                count= 0;
+                reg_num+= 2;
+              }
           }
         break;
       case BIT:
         OCD.bit_mutex[thread].lock();
-        Split_Lists(lb, SacrificeD[thread].BD.bb, size);
+        Split_Lists(lb, SacrificeD[thread].BD.bb, num);
         OCD.bit_mutex[thread].unlock();
+        reg_num= 0;
+        count= 0;
         for (list<Share>::const_iterator zz= lb.begin(); zz != lb.end(); ++zz)
           {
-            Proc.get_Sp_ref(r[0])= *zz;
-            r[0]++;
+            Proc.get_Sp_ref(start[reg_num] + count)= *zz;
+            count++;
+            if (count == size)
+              {
+                count= 0;
+                reg_num++;
+              }
           }
         break;
       default:
@@ -1740,12 +1974,12 @@ bool Instruction<SRegint, SBit>::execute(
    */
 
   // Deal the offline data input routines as these need thread locking
-  if (opcode == TRIPLE || opcode == SQUARE || opcode == BIT || opcode == DABIT || opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT || opcode == STARTOPEN || opcode == STOPOPEN)
+  if (opcode == TRIPLE || opcode == SQUARE || opcode == BIT || opcode == DABIT || opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT || opcode == STARTOPEN || opcode == STOPOPEN || opcode == MPRIVATE_OUTPUT || opcode == MPRIVATE_INPUT)
     {
       if (opcode == TRIPLE || opcode == SQUARE || opcode == BIT)
         {
           // Deal with offline data
-          execute_using_sacrifice_data(Proc, OCD);
+          execute_using_sacrifice_data(P, Proc, OCD);
         }
       else if (opcode == DABIT)
         {
@@ -1754,8 +1988,11 @@ bool Instruction<SRegint, SBit>::execute(
             {
               Proc.write_daBit(r[0] + i, r[1] + i, P);
             }
+#ifdef BENCH_OFFLINE
+          P.dabits+= size;
+#endif
         }
-      else if (opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT)
+      else if (opcode == PRIVATE_OUTPUT || opcode == PRIVATE_INPUT || opcode == MPRIVATE_OUTPUT || opcode == MPRIVATE_INPUT)
         {
           // Private input/output
           if (Proc.get_thread_num() != 0)
@@ -1766,9 +2003,17 @@ bool Instruction<SRegint, SBit>::execute(
             {
               Proc.iop.private_output(p, r[0], m, Proc, P, machine, OCD, size);
             }
-          else
+          else if (opcode == PRIVATE_INPUT)
             {
               Proc.iop.private_input(p, r[0], m, Proc, P, machine, OCD, size);
+            }
+          else if (opcode == MPRIVATE_OUTPUT)
+            {
+              Proc.iop.mprivate_output(p, r[0], m, Proc.read_Ri(r[1]), Proc, P, machine, OCD, size);
+            }
+          else
+            {
+              Proc.iop.mprivate_input(p, r[0], m, Proc.read_Ri(r[1]), Proc, P, machine, OCD, size);
             }
         }
       else if (opcode == STARTOPEN)
@@ -1779,25 +2024,6 @@ bool Instruction<SRegint, SBit>::execute(
         {
           Proc.POpen_Stop(start, size, P);
         }
-#ifdef BENCH_OFFLINE
-      switch (opcode)
-        {
-          case TRIPLE:
-            P.triples+= size;
-            break;
-          case SQUARE:
-            P.squares+= size;
-            break;
-          case BIT:
-            P.bits+= size;
-            break;
-          case DABIT:
-            P.dabits+= size;
-            break;
-          default:
-            break;
-        }
-#endif
     }
   else
     {
@@ -1817,7 +2043,8 @@ bool Instruction<SRegint, SBit>::execute(
                 Proc.temp.ansp.assign(n);
                 Proc.write_Cp(r[0], Proc.temp.ansp);
                 break;
-                case LDSI: {
+              case LDSI:
+                {
                   Proc.temp.ansp.assign(n);
                   Proc.get_Sp_ref(r[0]).assign(Proc.temp.ansp, P.get_mac_keys());
                 }
@@ -2088,7 +2315,8 @@ bool Instruction<SRegint, SBit>::execute(
                 to_gfp(Proc.temp.ansp, Proc.temp.aa);
                 Proc.write_Cp(r[0], Proc.temp.ansp);
                 break;
-              case DIGESTC: {
+              case DIGESTC:
+                {
                   stringstream o;
                   to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
 
@@ -2381,7 +2609,7 @@ bool Instruction<SRegint, SBit>::execute(
               case DIVINT:
                 Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) / Proc.read_Ri(r[2]);
                 break;
-	      case MODINT:
+              case MODINT:
                 Proc.get_Ri_ref(r[0])= Proc.read_Ri(r[1]) % Proc.read_Ri(r[2]);
                 break;
               case CONVINT:
@@ -2519,13 +2747,36 @@ bool Instruction<SRegint, SBit>::execute(
                   }
                 break;
               case RAND:
-                Proc.write_Ri(r[0], Proc.get_random_uint() % (1 << Proc.read_Ri(r[1])));
+                Proc.write_Ri(r[0], Proc.get_random_word() % (1 << Proc.read_Ri(r[1])));
                 break;
               case START_CLOCK:
                 machine.start_timer(n);
                 break;
               case STOP_CLOCK:
                 machine.stop_timer(n);
+                break;
+              case RANDC:
+                Proc.write_Cp(r[0], Proc.get_random_gfp());
+                break;
+              case RANDINT:
+                Proc.write_Ri(r[0], Proc.get_random_word());
+                break;
+              case RANDSINT:
+                {
+                  SRegint a;
+                  a.randomize(Proc.online_thread_num, P);
+                  Proc.write_srint(r[0], a);
+                }
+                break;
+              case RANDFLOAT:
+                Proc.write_Ri(r[0], Proc.get_random_float());
+                break;
+              case RANDSBIT:
+                {
+                  SBit a;
+                  a.randomize(Proc.online_thread_num, P);
+                  Proc.write_sbit(r[0], a);
+                }
                 break;
               case REQBL:
                 break;
@@ -2796,6 +3047,243 @@ bool Instruction<SRegint, SBit>::execute(
                 break;
               case LF:
                 machine.LF_Table.apply_Function(n, Proc);
+                break;
+              case MADDC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.ansp.add(machine.Mc.read(j + t, machine.verbose), machine.Mc.read(k + t, machine.verbose));
+                      machine.Mc.write(i + t, Proc.temp.ansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MADDS:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.Sansp.add(machine.Ms.read(j + t, machine.verbose), machine.Ms.read(k + t, machine.verbose));
+                      machine.Ms.write(i + t, Proc.temp.Sansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MADDM:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.Sansp.add(machine.Ms.read(j + t, machine.verbose), machine.Mc.read(k + t, machine.verbose), P.get_mac_keys());
+                      machine.Ms.write(i + t, Proc.temp.Sansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MSUBC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.ansp.sub(machine.Mc.read(j + t, machine.verbose), machine.Mc.read(k + t, machine.verbose));
+                      machine.Mc.write(i + t, Proc.temp.ansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MSUBS:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.Sansp.sub(machine.Ms.read(j + t, machine.verbose), machine.Ms.read(k + t, machine.verbose));
+                      machine.Ms.write(i + t, Proc.temp.Sansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MSUBML:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.Sansp.sub(machine.Ms.read(j + t, machine.verbose), machine.Mc.read(k + t, machine.verbose), P.get_mac_keys());
+                      machine.Ms.write(i + t, Proc.temp.Sansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MSUBMR:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.Sansp.sub(machine.Mc.read(j + t, machine.verbose), machine.Ms.read(k + t, machine.verbose), P.get_mac_keys());
+                      machine.Ms.write(i + t, Proc.temp.Sansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MMULC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.ansp.mul(machine.Mc.read(j + t, machine.verbose), machine.Mc.read(k + t, machine.verbose));
+                      machine.Mc.write(i + t, Proc.temp.ansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MMULM:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      Proc.temp.Sansp.mul(machine.Ms.read(j + t, machine.verbose), machine.Mc.read(k + t, machine.verbose));
+                      machine.Ms.write(i + t, Proc.temp.Sansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MDIVC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      gfp num= machine.Mc.read(k + t, machine.verbose);
+                      if (num.is_zero())
+                        throw Processor_Error("Division by zero from register");
+                      Proc.temp.ansp.invert(num);
+                      Proc.temp.ansp.mul(machine.Mc.read(j + t, machine.verbose));
+                      machine.Mc.write(i + t, Proc.temp.ansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MMODC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int k= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < Proc.read_Ri(n); t++)
+                    {
+                      to_bigint(Proc.temp.aa, machine.Mc.read(j + t, machine.verbose));
+                      to_bigint(Proc.temp.aa2, machine.Mc.read(k + t, machine.verbose));
+                      mpz_fdiv_r(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t(),
+                                 Proc.temp.aa2.get_mpz_t());
+                      to_gfp(Proc.temp.ansp, Proc.temp.aa);
+                      machine.Mc.write(i + t, Proc.temp.ansp, machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MREVC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int len= Proc.read_Ri(r[2]);
+                  // Copy first in case i=j
+                  vector<gfp> A(len);
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      A[t]= machine.Mc.read(len - 1 + j - t, machine.verbose);
+                    }
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      machine.Mc.write(i + t, A[t], machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MREVS:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int j= Proc.read_Ri(r[1]);
+                  unsigned int len= Proc.read_Ri(r[2]);
+                  // Copy first in case i=j
+                  vector<Share> A(len);
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      A[t]= machine.Ms.read(len - 1 + j - t, machine.verbose);
+                    }
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      machine.Ms.write(i + t, A[t], machine.verbose, Proc.get_PC());
+                    }
+                }
+                break;
+              case MEVALCC:
+                {
+                  unsigned int i= Proc.read_Ri(r[1]);
+                  unsigned int len= Proc.read_Ri(r[2]);
+                  gfp x= Proc.read_Cp(n), xpow= 1, sum= 0;
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      sum= sum + machine.Mc.read(i + t, machine.verbose) * xpow;
+                      xpow= xpow * x;
+                    }
+                  Proc.write_Cp(r[0], sum);
+                }
+                break;
+              case MEVALSC:
+                {
+                  unsigned int i= Proc.read_Ri(r[1]);
+                  unsigned int len= Proc.read_Ri(r[2]);
+                  gfp x= Proc.read_Cp(n), xpow= 1;
+                  Share sum(P.whoami());
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      sum= sum + machine.Ms.read(i + t, machine.verbose) * xpow;
+                      ;
+                      xpow= xpow * x;
+                    }
+                  Proc.write_Sp(r[0], sum);
+                }
+                break;
+              case MBITDECC:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  gfp zero, one, x= Proc.read_Cp(r[1]);
+                  unsigned int len= Proc.read_Ri(r[2]);
+                  zero.assign_zero();
+                  one.assign_one();
+                  bigint val;
+                  to_bigint(val, x);
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      if (isOdd(val))
+                        {
+                          machine.Mc.write(i + t, one, machine.verbose, Proc.get_PC());
+                        }
+                      else
+                        {
+                          machine.Mc.write(i + t, zero, machine.verbose, Proc.get_PC());
+                        }
+                      val>>= 1;
+                    }
+                }
+                break;
+              case MBITDECINT:
+                {
+                  unsigned int i= Proc.read_Ri(r[0]);
+                  unsigned int val= Proc.read_Ri(r[1]);
+                  unsigned int len= Proc.read_Ri(r[2]);
+                  for (unsigned int t= 0; t < len; t++)
+                    {
+                      machine.Mr.write(i + t, val & 1, machine.verbose, Proc.get_PC());
+                      val>>= 1;
+                    }
+                }
                 break;
               default:
                 printf("Invalid opcode=%d. Since it is not implemented\n", opcode);

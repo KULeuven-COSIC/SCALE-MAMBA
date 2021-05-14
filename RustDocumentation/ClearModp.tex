@@ -46,6 +46,16 @@ Computes a pseudo-random digest of the value $x$.
 \end{lstlisting}
 
 
+\func{ClearModp::randomize()}
+Produces a random number in the range $[0,\ldots,p-1]$,
+where $p$ is the prime underlying the $\ClearModp$ type.
+This random number is the `same' for all players.
+\begin{lstlisting}
+   let a = ClearModp::randomize();
+\end{lstlisting}
+
+
+
 \subsubsection{Memory Access}
 \func{a.store_in_mem(x)}
 To store data into memory location $50$ say you need to execute,

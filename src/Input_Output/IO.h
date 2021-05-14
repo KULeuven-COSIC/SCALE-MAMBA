@@ -9,6 +9,6 @@ All rights reserved
 
 #include "Input_Output_Simple.h"
 
-// #include "Input_Output_Galois.h"
+#include "Input_Output_Test.h"
 
 #endif

@@ -1,0 +1,80 @@
+\mainsection{SCALE Dummies Guide}
+There are a lot of types defined here, and to exploit the most
+from the system you need to (kind of) understand how the MPC
+engine works under-the-hood. As most people will not be able
+to do that we here provide a quick dummy guide to get the most
+performance out of the system.
+In this section we are mainly talking about your programs, and
+not system tuning for an application. The latter topic is far
+more of a black-art alas.
+
+\subsection{Integer Types}
+There two {\em basic} clear integer types $\ints$ and \verb|ClearModp|.
+The former represent $64$-bit integers and the latter integers
+modulo $p$, for the prime you have chosen. These work at
+roughly machine speed, bar any overhead due to the VM.
+There is an {\em advanced} clear integer types \verb|Integer<K>|
+which holds an integer in $\Z$ as a \verb|ClearModp| but with the 
+`soft' gaurantee that the integer lies in $\Zk$.
+On the secret side these are duplicated by the \verb|SecretI64|,
+\verb|SecretModp| and \verb|SecretInteger<K>| types.
+
+Note the secret operations are {\em always} more expensive than
+the clear operations, and that \verb|SecretI64| operations are
+generally more expensive than \verb|SecretModp| operations.
+The \verb|SecretInteger<K>| type is more costly than a
+\verb|SecretModp| type, as it has to worry about size issues.
+Conversion between \verb|SecretModp| and  \verb|SecretI64| types
+are expensive, thus best avoided if possible.
+Conversion betwen \verb|SecretModp| and  \verb|SecretInteger<K>|
+types if for free, as it is assumed the programmer knows
+the conversion will be `valid'.
+
+But there seems to be more arithmetic operations for \verb|SecretI64|
+than for \verb|SecretModp|. For example, you cannot compare
+two \verb|SecretModp| values (after all integers modulo $p$ have
+no notion of `size', so mathematically this makes no sense).
+
+However, in MPC algorithms we often use \verb|SecretModp| values
+to hold integers (i.e. elements of $\Z$) and compute on them
+whilst keeping a mental note of how big they are. This means
+we can perform operations by keeping in the \verb|SecretModp|
+domain, without needing to convert to \verb|SecretI64| values.
+
+\begin{lstlisting}
+   let a = SecretModp::from(10);
+   let b = SecretModp::from(20);
+
+   let c = a*b;
+   let d = a+b;
+
+   // Suppose we now want to "compare" c and d.
+   // We know the max size is 9 bits (c is 200,
+   // which is at least 9 bits in signed representation)
+   let ci : SecretInteger<9> = SecretInteger::from(c);
+   let di : SecretInteger<9> = SecretInteger::from(d);
+   let compare = ci.lt(di);
+\end{lstlisting}
+The above is {\em much} faster than mapping \verb|c|
+and \verb|d| over to the \verb|SecretI64| domain and doing
+the comparison there.
+Obviously the above code is a bit fake, as you know what the
+values are, but you can see the idea.
+
+\subsection{Floating Point Types}
+In general \verb|ClearIEEE| should be your preferred clear floating
+point type, as it provides almost machine level performance.
+The preferred secret floating point type is \verb|SecretFixed<K,F>|
+as it is much faster. However, it only provides fixed point arithmetic.
+If true floating point is required then  \verb|SecretFloat<V,P>|
+is better, but it can result in programs which take ages to compile.
+For faster compilation, but slower programs, use  \verb|SecretIEEE|
+
+\subsection{Bits}
+There is a \verb|SecretBit| type. Due to some current limitations
+of the intermediate \verb|wasm| representation there is a lot of
+conversions between \verb|SecretBit| types and \verb|SecretModp|
+types under the hood. This results in slower programs than are really
+necessary. Once \verb|wasm| has been extended to cope with more than
+four basic register types this restriction will be removed.
+

@@ -93,6 +93,8 @@ opcodes = dict(
   INPUT_INT= 0x49,
   OPEN_CHANNEL= 0x4A,
   CLOSE_CHANNEL= 0x4B,
+  MPRIVATE_INPUT = 0x4C,
+  MPRIVATE_OUTPUT = 0x4D,
 
   # Open
   STARTOPEN= 0xA0,
@@ -231,6 +233,12 @@ opcodes = dict(
   START_CLOCK= 0xE1,
   STOP_CLOCK= 0xE2,
 
+  RANDC = 0xE3,
+  RANDINT = 0xE4,
+  RANDSINT = 0xE5,
+  RANDFLOAT = 0xE6,
+  RANDSBIT = 0xE7,
+
   # Stack operations
   PUSHINT= 0x100,
   POPINT= 0x101,
@@ -262,17 +270,40 @@ opcodes = dict(
   POKES= 0x118,
   GETSPS= 0x119,
 
+  # Memory based vector addition/subtraction
+  MADDC= 0x120,
+  MADDS= 0x121,
+  MADDM= 0x122,
+  MSUBC= 0x125,
+  MSUBS= 0x126,
+  MSUBML= 0x127,
+  MSUBMR= 0x128,
+
+  # Memory based multiplication/division arithmetic
+  MMULC= 0x130,
+  MMULM= 0x131,
+  MDIVC= 0x134,
+  MMODC= 0x136,
+
+  # Vector manipulation operations
+  MREVC   = 0x138,
+  MREVS   = 0x139,
+  MEVALCC = 0x13A,
+  MEVALSC = 0x13B,
+  MBITDECC = 0x13C,
+  MBITDECINT = 0x13D,
+
   # Relative peek and poke
-  RPEEKINT= 0x120,
-  RPOKEINT= 0x121,
-  RPEEKSINT= 0x122,
-  RPOKESINT= 0x123,
-  RPEEKSBIT= 0x124,
-  RPOKESBIT= 0x125,
-  RPEEKC= 0x126,
-  RPOKEC= 0x127,
-  RPEEKS= 0x128,
-  RPOKES= 0x129,
+  RPEEKINT= 0x1F0,
+  RPOKEINT= 0x1F1,
+  RPEEKSINT= 0x1F2,
+  RPOKESINT= 0x1F3,
+  RPEEKSBIT= 0x1F4,
+  RPOKESBIT= 0x1F5,
+  RPEEKC= 0x1F6,
+  RPOKEC= 0x1F7,
+  RPEEKS= 0x1F8,
+  RPOKES= 0x1F9,
 )
 
 

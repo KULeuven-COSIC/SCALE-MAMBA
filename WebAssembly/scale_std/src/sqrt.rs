@@ -22,11 +22,7 @@ fn Secret_MSB<const K: u64, const KAPPA: u64>(
     _: ConstU64<KAPPA>,
 ) -> Array<SecretModp, K> {
     let x_order = BitDec::<K, K, KAPPA>(b);
-    // Invert x
-    let mut x: Slice<SecretModp> = Slice::uninitialized(K);
-    for i in 0..K {
-        x.set(i, &*x_order.get_unchecked(K - 1 - i));
-    }
+    let x = x_order.reverse();
     let y = x.PreOr();
     let mut z: Array<SecretModp, K> = Array::uninitialized();
     for i in 0..(K - 1) {
@@ -44,12 +40,8 @@ fn Secret_MSB<const K: u64, const KAPPA: u64>(
 // generics?
 #[allow(non_snake_case)]
 fn Clear_MSB<const K: u64>(b: ClearModp, _: ConstU64<K>) -> Array<ClearModp, K> {
-    let x_order = BitDec_ClearModp(b, K);
-    // Invert x
-    let mut x: Slice<ClearModp> = Slice::uninitialized(K);
-    for i in 0..K {
-        x.set(i, &*x_order.get_unchecked(K - 1 - i));
-    }
+    let x_order: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(b, K);
+    let x = x_order.reverse();
     let y = x.PreOr();
     let mut z: Array<ClearModp, K> = Array::uninitialized();
     for i in 0..(K - 1) {
@@ -122,8 +114,6 @@ impl<const K: u64, const F: u64, const KAPPA: u64> Sqrt for SecretFixed<K, F, KA
 where
     ConstU64<{ 2 * K }>: ,
     ConstU64<{ 2 * F }>: ,
-    ConstU64<{ 2 * (K - F) }>: ,
-    ConstU64<{ F + 1 }>: ,
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
     ConstU64<{ SecretFixed::<K, F, KAPPA>::THETA }>: ,
@@ -179,8 +169,6 @@ impl<const K: u64, const F: u64> Sqrt for ClearFixed<K, F>
 where
     ConstU64<{ 2 * K }>: ,
     ConstU64<{ 2 * F }>: ,
-    ConstU64<{ 2 * (K - F) }>: ,
-    ConstU64<{ F + 1 }>: ,
     ConstU64<{ K + 1 }>: ,
     ConstU64<{ K - 1 }>: ,
     ConstU64<{ ClearFixed::<K, F>::THETA }>: ,

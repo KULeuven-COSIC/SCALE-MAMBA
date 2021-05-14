@@ -1632,7 +1632,7 @@ print_ln("The returned value is %s %s %s",hh[0][0].reveal(), hh[0][1].reveal(), 
 print_ln("m value : %s",m())
 print_ln("m value : %s",m(2))
 \end{lstlisting}
-The functions are called executing a \verb+CALL+ bytecode, which
+The functions are called executing a \verb+CALL+ byte-code, which
 pushes the current program counter onto the integer stack.
 
 If you call \verb+RETURN()+ from within a MAMBA program this will
@@ -1736,7 +1736,7 @@ C[n - 1].reveal().print_reg()
 \end{lstlisting}
 Notice the multiplication open is performed in parallel and executes
 100 multiplications in one go.
-This single Mamba line is compiled down into byte codes as...
+This single Mamba line is compiled down into byte-codes as...
 \begin{lstlisting}
 vtriple 100, s100, s0, s200 # 0
 vsubs 100, s400, s500, s0 # 2

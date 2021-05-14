@@ -658,15 +658,17 @@ $(a-a \mod{2^m})/2^m$, where the $\mod$ operator here produces a positive value.
   \end{enumerate}
   Below we will give a version of $\mathsf{Trunc}$ in which $m$ is kept secret shared.
 
-  \paragraph{MAMBA Example:} You truncate a number as follows:
+  \paragraph{MAMBA Example:} You truncate a number as follows, where a is a register of type \verb|sint|,
   \begin{lstlisting}[language={python}]
-# a = sint(23)
-# k = 5
-# m = 3
-# kappa = 20
-# where a is a register of type sint
-a= AdvInteger.Trunc(a, k, m, kappa)
+a = sint(23)
+k = 5
+m = 3
+kappa = 20
+a= AdvInteger.Trunc(a, k, m, kappa, True)
 \end{lstlisting}
+When the final value is set to $\true$ the value $a$ is assumed to lie in $\Zk$,
+but when $\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{k-1})$.
+
   There is also an exact version of $\mathsf{Trunc}$ called $\mathsf{TruncRoundNearest}$
   which rounds the value $a/2^m$ to the nearest integer.
   This is called as
@@ -1237,7 +1239,6 @@ this first.
             + (\sshare{z_2}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_1}
             + (\sshare{z_1}-\sshare{z_1 \cdot z_2}) \cdot \sshare{s_2}$.
     \item $\sshare{\err} \asn \sshare{\err_1} + \sshare{\err_2} + \mathsf{FlowDetect}(\sshare{p})$.
-    \item $\sshare{\err} \asn \sshare{\err} + \mathsf{FlowDetect}(\sshare{p})$.
     \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err})$.
   \end{enumerate}
 
@@ -1481,7 +1482,7 @@ $\floor{\overline{a}/2^f}$.
   \begin{lstlisting}[language={python}]
 x = sifx(5.5)
 # y stores 5 in a sint register
-y = AdvInteger.Trunc(x.v, x.k, x.f, x.kappa)
+y = AdvInteger.Trunc(x.v, x.k, x.f, x.kappa, True)
 \end{lstlisting}
   \msubsubsection{$\mathsf{FxFloor}(\sshare{a},k,f)$:}
   Given a value $a \in \Qk{f}$ this does the same, but
@@ -1911,9 +1912,6 @@ $2^{|a|}=2^{b+c}=2^b \cdot 2^c=d \cdot e$,
   \paragraph{MAMBA Example:} To obtain $2^y$ where $y$ is secret shared you could run the following:
   \begin{lstlisting}[language={python}]
 from Compiler import mpc_math
-sfloat.vlen = 15   # Length of mantissa in bits
-sfloat.plen = 10   # Length of exponent in bits
-sfloat.kappa = 4  # Statistical security parameter for floats
 
 y =sfix(4)
 
@@ -2017,7 +2015,9 @@ by the following table
 from Compiler import mpc_math
 sfloat.vlen = 15   # Length of mantissa in bits
 sfloat.plen = 10   # Length of exponent in bits
-sfloat.kappa = 4  # Statistical security parameter for floats
+sfloat.kappa = 40  # Statistical security parameter for floats
+sfix.set_precision(20,40)
+cfix.set_precision(20,40)
 
 x =sfix(4)
 # extracts k and f from y
@@ -2029,7 +2029,7 @@ Thus, you need to set up \verb+sfloat+ and \verb+sfix+ correctly for this to wor
 In particular if you look deep inside the code there is the following cryptic remark in relation to \verb+log2_fx+...
 \begin{verbatim}
      # Note that sfloat and sfix sizes have to be parametrized correctly,
-     # such that sfix k > sfix.f >= sfloat vlen. This is not the case by default.
+     # such that sfix.k > sfix.f >= sfloat vlen. This is not the case by default.
 \end{verbatim}
 
 
