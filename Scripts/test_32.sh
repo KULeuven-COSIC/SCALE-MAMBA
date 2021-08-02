@@ -16,7 +16,7 @@ run_test() {
     optimizations=$2
     shift
     printf "\n\n\n\n\n\n\n\n\n\n"
-    echo "$test"
+    echo "       $test    "
     $ROOT/compile.sh $optimizations Programs/$test || exit 1
     Scripts/run-online.sh Programs/$test || exit 1
     python2 Scripts/test-result.py $test_opts $test || exit 1

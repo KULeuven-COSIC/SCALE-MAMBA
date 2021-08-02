@@ -59,33 +59,34 @@ impl<'a> Statement<'a> {
             | "subsfi" | "subint" | "subsint" | "subsintc" | "subcints" | "mulc" | "mulm"
             | "mulci" | "mulsi" | "mulsint" | "mulsintc" | "mulint" | "divc" | "divci"
             | "divsint" | "divint" | "modc" | "modci" | "modint" | "shlsint" | "shrsint"
-            | "shlc" | "shrc" | "shlci" | "shrci" | "ltint" | "gtint" | "eqint" | "andc"
-            | "xorc" | "orc" | "andci" | "orci" | "xorci" | "sand" | "xorsb" | "andsb" | "orsb"
-            | "andsint" | "andsintc" | "orsint" | "xorsint" | "notc" | "orsintc" | "xorsintc"
-            | "bitsint" | "andint" | "orint" | "xorint" | "shlint" | "shrint" | "legendrec"
-            | "digestc" | "neg" | "negb" | "invsint" | "eqzint" | "ltzint" | "invint"
-            | "eqzsint" | "ltzsint" | "rand" | "randc" | "randint" | "randsint" | "randfloat"
-            | "randsbit" | "getspc" | "getsps" | "getspint" | "getspsint" | "getspsbit"
-            | "ldmc" | "ldms" | "ldmci" | "ldmsi" | "ldmint" | "ldminti" | "ldmsint"
-            | "ldmsinti" | "stmc" | "stms" | "stmci" | "stmsi" | "stmint" | "stminti"
-            | "stmsint" | "stmsinti" | "open_channel" | "close_channel" | "private_input"
-            | "private_output" | "mprivate_input" | "mprivate_output" | "output_clear"
-            | "input_clear" | "output_int" | "input_int" | "reqbl" | "join_tape" | "run_tape"
-            | "start_clock" | "stop_clock" | "clear_memory" | "clear_registers" | "starg"
-            | "convsuregsint" | "convint" | "convmodp" | "convregsreg" | "convsregsint"
-            | "convsintsreg" | "convsintsbit" | "convsbitsint" | "pokeint" | "pokec" | "pokes"
-            | "pokesint" | "pokesbit" | "peekint" | "peekc" | "peeks" | "peeksint" | "peeksbit"
-            | "rpokeint" | "rpokec" | "rpokes" | "rpokesint" | "rpokesbit" | "rpeekint"
-            | "rpeekc" | "rpeeks" | "rpeeksint" | "rpeeksbit" | "popint" | "popc" | "pops"
-            | "popsint" | "popsbit" | "pushint" | "pushc" | "pushs" | "pushsint" | "pushsbit"
-            | "ldarg" | "ldtn" | "opensint" | "opensbit" | "dabit" | "mul2sint" | "sintbit"
-            | "gc" | "lf" | "print_reg" | "print_char_regint" | "print_char4_regint"
-            | "print_int" | "print_fix_plain" | "print_ieee_float" | "print_float"
-            | "print_mem" | "print_fix" | "print_char" | "print_char4" | "newc" | "news"
-            | "newint" | "newsint" | "deletec" | "deletes" | "deleteint" | "deletesint"
-            | "maddc" | "madds" | "maddm" | "msubc" | "msubs" | "msubml" | "msubmr" | "mmulc"
-            | "mmulm" | "mdivc" | "mmodc" | "mrevc" | "mrevs" | "mevalcc" | "mevalsc"
-            | "mbitdecc" | "mbitdecint" => {
+            | "shlc" | "shrc" | "shlci" | "shrci" | "eqzc" | "ltzc" | "ltint" | "gtint"
+            | "eqint" | "andc" | "xorc" | "orc" | "andci" | "orci" | "xorci" | "sand" | "xorsb"
+            | "andsb" | "orsb" | "andsint" | "andsintc" | "orsint" | "xorsint" | "notc"
+            | "orsintc" | "xorsintc" | "bitsint" | "andint" | "orint" | "xorint" | "shlint"
+            | "shrint" | "legendrec" | "digestc" | "neg" | "negb" | "invsint" | "eqzint"
+            | "ltzint" | "invint" | "eqzsint" | "ltzsint" | "rand" | "randc" | "randint"
+            | "randsint" | "randfloat" | "randsbit" | "getspc" | "getsps" | "getspint"
+            | "getspsint" | "getspsbit" | "ldmc" | "ldms" | "ldmci" | "ldmsi" | "ldmint"
+            | "ldminti" | "ldmsint" | "ldmsinti" | "stmc" | "stms" | "stmci" | "stmsi"
+            | "stmint" | "stminti" | "stmsint" | "stmsinti" | "open_channel" | "close_channel"
+            | "private_input" | "private_output" | "mprivate_input" | "mprivate_output"
+            | "output_clear" | "input_clear" | "output_int" | "input_int" | "reqbl"
+            | "join_tape" | "run_tape" | "start_clock" | "stop_clock" | "clear_memory"
+            | "clear_registers" | "starg" | "convsuregsint" | "convint" | "convmodp"
+            | "convregsreg" | "convsregsint" | "convsintsreg" | "convsintsbit" | "convsbitsint"
+            | "pokeint" | "pokec" | "pokes" | "pokesint" | "pokesbit" | "peekint" | "peekc"
+            | "peeks" | "peeksint" | "peeksbit" | "rpokeint" | "rpokec" | "rpokes"
+            | "rpokesint" | "rpokesbit" | "rpeekint" | "rpeekc" | "rpeeks" | "rpeeksint"
+            | "rpeeksbit" | "popint" | "popc" | "pops" | "popsint" | "popsbit" | "pushint"
+            | "pushc" | "pushs" | "pushsint" | "pushsbit" | "ldarg" | "ldtn" | "opensint"
+            | "opensbit" | "dabit" | "mul2sint" | "sintbit" | "setbit" | "gc" | "lf"
+            | "print_reg" | "print_char_regint" | "print_char4_regint" | "print_int"
+            | "print_fix_plain" | "print_ieee_float" | "print_float" | "print_mem"
+            | "print_fix" | "print_char" | "print_char4" | "newc" | "news" | "newint"
+            | "newsint" | "deletec" | "deletes" | "deleteint" | "deletesint" | "maddc"
+            | "madds" | "maddm" | "msubc" | "msubs" | "msubml" | "msubmr" | "mmulc" | "mmulm"
+            | "mdivc" | "mmodc" | "mrevc" | "mrevs" | "mevalcc" | "mevalsc" | "mbitdecc"
+            | "mbitdecint" | "mbitdeccs" => {
                 let instr = name2instr(instruction).expect("unknown instruction");
                 if instr.args.len() == args.elem.len() {
                     let num_destinations = instr
@@ -136,7 +137,7 @@ impl<'a> Statement<'a> {
                 }
             }
             "input_shares" | "output_shares" => {
-                let channel = args.index_or_err(cx, 1).require_uint(cx);
+                let channel = args.index_or_err(cx, 1).require(cx);
                 let registers: Vec<_> = args.elem.iter().skip(2).map(|op| op.require(cx)).collect();
                 assert_eq!(
                     args.index_or_err(cx, 0).require_uint(cx).elem,

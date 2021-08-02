@@ -16,41 +16,48 @@ use scale_std::slice::Slice;
 fn main() {
     let v: i64 = 1;
 
-    let _ans = open_channel(Channel::<10>);
-    v.output(Channel::<10>);
+    let _ans = open_channel(10);
+    v.output(1);
 
     let b = ConstI32::<3543>;
 
-    let sa = SecretModp::private_input(Player::<1>, Channel::<10>);
+    let sa = SecretModp::private_input(1, 10);
     let sb = SecretModp::from(b);
     let sc = sa * sb;
     let ca = sc.reveal();
-    ca.output(Channel::<10>);
-    sa.private_output(Player::<0>, Channel::<10>);
-    sb.private_output(Player::<1>, Channel::<10>);
-    sc.private_output(Player::<2>, Channel::<10>);
+    ca.output(2);
+    sa.private_output(0, 3);
+    sb.private_output(1, 4);
+    sc.private_output(2, 5);
 
     println!("Enter two values on each player. Must be same on each player");
-    let ca = ClearModp::input(Channel::<10>);
-    let a = i64::input(Channel::<10>);
-    ca.output(Channel::<10>);
-    a.output(Channel::<10>);
+    let ca = ClearModp::input(40);
+    let a = i64::input(50);
+    ca.output(6);
+    a.output(7);
 
-    println!("Now enter the array of five values");
+    println!("Now player 1 enter the array of five values");
 
-    let a: Array<SecretModp, 5> = Array::private_input(Player::<1>, Channel::<10>);
+    let a: Array<SecretModp, 5> = Array::private_input(1, 20);
     for i in 0..5 {
         println!("a.", i, " = ", a.get(i).unwrap().reveal());
     }
-    a.private_output(Player::<2>, Channel::<10>);
+    a.private_output(2,8);
 
-    println!("Now enter the slice of six values");
+    println!("Now player 2 enter the slice of six values");
 
-    let b: Slice<SecretModp> = Slice::private_input(6, Player::<1>, Channel::<10>);
+    let b: Slice<SecretModp> = Slice::private_input(6, 2, 30);
     for i in 0..6 {
         println!("b.", i, " = ", b.get(i).unwrap().reveal());
     }
-    b.private_output(Player::<2>, Channel::<10>);
+    b.private_output(2, 9);
 
-    close_channel(Channel::<10>);
+    println!("Now each player enter a value");
+    for i in 0..3 {
+        println!("Player ",i," enter a value:");
+        let sa = SecretModp::private_input(i, 15);
+        println!("Player ",i," enterred the value ",sa.reveal());
+    }
+
+    close_channel(10);
 }

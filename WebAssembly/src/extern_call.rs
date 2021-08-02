@@ -2,24 +2,44 @@
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
 use scasm::{
-    asm::Instruction, asm::Statement, asm::Terminator, binary::instructions::name2instr,
-    binary::instructions::ArgTy, binary::instructions::RegisterMode, lexer::Const, lexer::Lexical,
-    lexer::Operand, lexer::RegisterKind, span::Span,
+    asm::Instruction,
+    asm::Statement,
+    asm::Terminator,
+    binary::instructions::name2instr,
+    binary::instructions::ArgTy,
+    binary::instructions::RegisterMode,
+    lexer::Const,
+    lexer::Lexical,
+    lexer::RegisterKind,
+    lexer::{Operand, Register},
+    span::Span,
 };
 use tracing::{debug, instrument, trace};
 use walrus::{ir::Value, ActiveDataLocation, DataKind, ExportItem, GlobalKind, InitExpr, Type};
 
-use crate::{error::Error, CurrentBlockHandler};
+use crate::CurrentBlockHandler;
 
 const TEST_MEMORY_OFFSET: u32 = 1000;
 
 impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
     #[instrument(skip(self))]
-    pub fn handle_extern_call(&mut self, name: &str, fn_ty: &Type) -> Result<(), Error> {
+    pub fn handle_extern_call(&mut self, name: &str, fn_ty: &Type) -> anyhow::Result<()> {
         match name {
             "init_wasm_heap_memory" => {
-                assert_eq!(fn_ty.params().len(), 0);
-                assert_eq!(fn_ty.results().len(), 0);
+                if !fn_ty.params().is_empty() {
+                    anyhow::bail!(
+                        "init_wasm_heap_memory: {} param(s) expected but found: {}",
+                        0,
+                        fn_ty.params().len()
+                    );
+                }
+                if !fn_ty.results().is_empty() {
+                    anyhow::bail!(
+                        "init_wasm_heap_memory: {} result(s) expected but found: {}",
+                        0,
+                        fn_ty.results().len()
+                    );
+                }
 
                 let global_heap_base_id = self
                     .module
@@ -34,15 +54,22 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
 
                         None
                     })
-                    .expect("cannot find the heap memory start address");
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "init_wasm_heap_memory: cannot find the heap memory start address",
+                        )
+                    })?;
                 let mut wasm_heap_start_address =
                     match self.module.globals.get(global_heap_base_id).kind {
                         GlobalKind::Import(_) => {
-                            unimplemented!();
+                            anyhow::bail!("Imported Globals are not implemented");
                         }
                         GlobalKind::Local(local) => match local {
-                            InitExpr::Value(value) => self.wasm_val_to_op(value),
-                            _ => unimplemented!(),
+                            InitExpr::Value(value) => self.wasm_val_to_op(value)?,
+                            x => anyhow::bail!(
+                                "Local Globals with init expr.: {:?} are not implemented",
+                                x
+                            ),
                         },
                     };
                 if let Operand::Value(Const::Int(wasm_heap_address)) = &mut wasm_heap_start_address
@@ -63,28 +90,28 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
 
                 // Write the initial memory state
                 if let Some(memory) = self.module.memories.iter().next() {
-                    assert!(
-                        self.module.memories.iter().nth(1).is_none(),
-                        "we don't support multiple memories yet"
-                    );
+                    if !self.module.memories.iter().nth(1).is_none() {
+                        anyhow::bail!("we don't support multiple memories yet");
+                    }
                     let mut last_segment_end = None;
                     for &segment in &memory.data_segments {
                         let segment = self.module.data.get(segment);
                         let mut start = match &segment.kind {
                             DataKind::Active(act) => match act.location {
                                 ActiveDataLocation::Absolute(start) => start,
-                                ActiveDataLocation::Relative(_) => unimplemented!(),
+                                ActiveDataLocation::Relative(_) => anyhow::bail!("Relative locations of active data segments are not implemented"),
                             },
-                            DataKind::Passive => unimplemented!(),
+                            DataKind::Passive => anyhow::bail!("Passive Data segments are not implemented"),
                         };
-                        // FIXME: look for data from previous segments that may overlap here instead of just panicking
+                        // FIXME: look for data from previous segments that may overlap here instead of just bailing out
                         if let Some(last_segment_end) = last_segment_end {
-                            assert!(
-                                start / 8 > last_segment_end / 8,
-                                "{} > {}",
-                                start,
-                                last_segment_end
-                            );
+                            if !(start / 8 > last_segment_end / 8) {
+                                anyhow::bail!(
+                                    "init_wasm_heap_memory: start: {} > last segment end {}",
+                                    start,
+                                    last_segment_end
+                                );
+                            }
                         }
                         last_segment_end = Some(start + segment.value.len() as u32);
                         trace!(start);
@@ -105,13 +132,13 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             *dest = *src;
                         }
 
-                        let mut write_val = |idx: i32, data| {
+                        let mut write_val = |idx: i32, data| -> anyhow::Result<()> {
                             trace!(?idx, ?data, "write val");
                             let data = u64::from_le_bytes(data);
                             if data == 0 {
-                                return;
+                                return Ok(());
                             }
-                            let data = self.wasm_val_to_op(Value::I64(data as i64));
+                            let data = self.wasm_val_to_op(Value::I64(data as i64))?;
                             let data = self.val_to_reg(data);
                             let addr = Operand::Value(Const::Int(idx + start as i32));
                             self.push_stmt(Instruction::General {
@@ -119,9 +146,10 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                                 destinations: vec![],
                                 values: vec![Span::DUMMY.with(data.into()), Span::DUMMY.with(addr)],
                             });
+                            Ok(())
                         };
 
-                        write_val(-1, data);
+                        write_val(-1, data)?;
 
                         if let Some(rest) = segment.value.get((8 - alignment)..) {
                             // We iterate over up to 8 bytes at a time and write them to memory as a `u64`
@@ -129,7 +157,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                                 let mut data = [0; 8];
                                 // The last bytes may not exist, so we leave them as zero.
                                 data[..slice.len()].copy_from_slice(slice);
-                                write_val(idx as i32, data)
+                                write_val(idx as i32, data)?
                             }
                         }
                     }
@@ -139,22 +167,42 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             }
             // Special handling for some things
             "__black_box" => {
-                assert_eq!(fn_ty.params().len(), 1);
-                assert_eq!(fn_ty.results().len(), 1);
-                let comment = self.comment(|f| write!(f, "function call: {}", name));
+                if fn_ty.params().len() != 1 {
+                    anyhow::bail!(
+                        "__black_box: {} param(s) expected but found: {}",
+                        1,
+                        fn_ty.params().len()
+                    );
+                }
+                if fn_ty.results().len() != 1 {
+                    anyhow::bail!(
+                        "__black_box: {} result(s) expected but found: {}",
+                        1,
+                        fn_ty.results().len()
+                    );
+                }
+                let comment = self.comment(|f| write!(f, "function call: {}", name))?;
                 let instr = Instruction::Assign {
-                    value: Span::DUMMY.with(self.stack.pop()),
+                    value: Span::DUMMY.with(self.stack.pop()?),
                     destination: Span::DUMMY.with(self.stack.push_temp(RegisterKind::Regint)),
                 };
                 self.push_stmt(Statement::from_instr_with_comment(instr, comment));
                 Ok(())
             }
             "__reqbl" => {
-                assert_eq!(fn_ty.params().len(), 1);
-                let reqbl = self.stack.pop();
+                if fn_ty.params().len() != 1 {
+                    anyhow::bail!(
+                        "__reqbl: {} param(s) expected but found: {}",
+                        1,
+                        fn_ty.params().len()
+                    );
+                }
+                let reqbl = self.stack.pop()?;
                 match reqbl {
-                    Operand::Register(_) => panic!("reqbl must take a constant argument"),
-                    Operand::Value(Const::Bool(_)) => panic!("reqbl must take an integer argument"),
+                    Operand::Register(_) => anyhow::bail!("reqbl must take a constant argument"),
+                    Operand::Value(Const::Bool(_)) => {
+                        anyhow::bail!("reqbl must take an integer argument")
+                    }
                     Operand::Value(Const::Int(i)) => match &mut self.reqbl {
                         reqbl @ None => *reqbl = Some(i),
                         Some(reqbl) => *reqbl = std::cmp::max(*reqbl, i),
@@ -163,9 +211,21 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 Ok(())
             }
             "__bit" => {
-                assert_eq!(fn_ty.params().len(), 0);
-                assert_eq!(fn_ty.results().len(), 1);
-                let comment = self.comment(|f| write!(f, "function call: {}", name));
+                if !fn_ty.params().is_empty() {
+                    anyhow::bail!(
+                        "__bit: {} param(s) expected but found: {}",
+                        0,
+                        fn_ty.params().len()
+                    );
+                }
+                if fn_ty.results().len() != 1 {
+                    anyhow::bail!(
+                        "__bit: {} result(s) expected but found: {}",
+                        1,
+                        fn_ty.results().len()
+                    );
+                }
+                let comment = self.comment(|f| write!(f, "function call: {}", name))?;
                 let instr = Instruction::DataInstr {
                     instruction: "bit",
                     registers: vec![Span::DUMMY
@@ -176,9 +236,21 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 Ok(())
             }
             "__square" => {
-                assert_eq!(fn_ty.params().len(), 0);
-                assert_eq!(fn_ty.results().len(), 0); // results are handled via the pop functions
-                let comment = self.comment(|f| write!(f, "function call: {}", name));
+                if !fn_ty.params().is_empty() {
+                    anyhow::bail!(
+                        "__square: {} param(s) expected but found: {}",
+                        0,
+                        fn_ty.params().len()
+                    );
+                }
+                if !fn_ty.results().is_empty() {
+                    anyhow::bail!(
+                        "__square: {} result(s) expected but found: {}",
+                        0,
+                        fn_ty.results().len()
+                    );
+                } // results are handled via the pop functions
+                let comment = self.comment(|f| write!(f, "function call: {}", name))?;
 
                 // Reverse order pushing so that the popping in Rust works in the right order.
                 let b = self.stack.push_temp(RegisterKind::Secret);
@@ -195,9 +267,21 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 Ok(())
             }
             "__triple" => {
-                assert_eq!(fn_ty.params().len(), 0);
-                assert_eq!(fn_ty.results().len(), 0); // results are handled via the pop functions
-                let comment = self.comment(|f| write!(f, "function call: {}", name));
+                if !fn_ty.params().is_empty() {
+                    anyhow::bail!(
+                        "__triple: {} param(s) expected but found: {}",
+                        0,
+                        fn_ty.params().len()
+                    );
+                }
+                if !fn_ty.results().is_empty() {
+                    anyhow::bail!(
+                        "__triple: {} result(s) expected but found: {}",
+                        0,
+                        fn_ty.results().len()
+                    );
+                } // results are handled via the pop functions
+                let comment = self.comment(|f| write!(f, "function call: {}", name))?;
 
                 // Reverse order pushing so that the popping in Rust works in the right order.
                 let c = self.stack.push_temp(RegisterKind::Secret);
@@ -216,11 +300,23 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 Ok(())
             }
             "reveal" => {
-                assert_eq!(fn_ty.params().len(), 1);
-                assert_eq!(fn_ty.results().len(), 1);
-                let comment = self.comment(|f| write!(f, "function call: {}", name));
+                if fn_ty.params().len() != 1 {
+                    anyhow::bail!(
+                        "reveal: {} param(s) expected but found: {}",
+                        1,
+                        fn_ty.params().len()
+                    );
+                }
+                if fn_ty.results().len() != 1 {
+                    anyhow::bail!(
+                        "reveal: {} result(s) expected but found: {}",
+                        1,
+                        fn_ty.results().len()
+                    );
+                }
+                let comment = self.comment(|f| write!(f, "function call: {}", name))?;
                 let instr = Instruction::StartOpen {
-                    registers: vec![Span::DUMMY.with(self.stack.pop()).require(self.cx)],
+                    registers: vec![Span::DUMMY.with(self.stack.pop()?).require(self.cx)],
                 };
                 self.push_stmt(Statement::from_instr_with_comment(instr, comment));
                 let instr = Instruction::StopOpen {
@@ -233,11 +329,23 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             }
             "__maybe_optimized_secret_modp_multiplication" => {
                 // FIXME: implement squaring if the registers are the same.
-                assert_eq!(fn_ty.params().len(), 2);
-                assert_eq!(fn_ty.results().len(), 1);
-                let comment = self.comment(|f| write!(f, "secret modp multiplication"));
-                let a = self.stack.pop();
-                let b = self.stack.pop();
+                if fn_ty.params().len() != 2 {
+                    anyhow::bail!(
+                        "__maybe_optimized_secret_modp_multiplication: {} param(s) expected but found: {}",
+                        2,
+                        fn_ty.params().len()
+                    );
+                }
+                if fn_ty.results().len() != 1 {
+                    anyhow::bail!(
+                        "__maybe_optimized_secret_modp_multiplication: {} result(s) expected but found: {}",
+                        1,
+                        fn_ty.results().len()
+                    );
+                }
+                let comment = self.comment(|f| write!(f, "secret modp multiplication"))?;
+                let a = self.stack.pop()?;
+                let b = self.stack.pop()?;
                 // triple s3, s4, s5 # 2
                 let x = self.r(RegisterKind::Secret);
                 let y = self.r(RegisterKind::Secret);
@@ -285,19 +393,33 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 Ok(())
             }
             "pop_secret_bit" | "pop_secret_i64" | "pop_secret_modp" => {
-                assert_eq!(fn_ty.params().len(), 0);
-                assert_eq!(fn_ty.results().len(), 1);
+                if !fn_ty.params().is_empty() {
+                    anyhow::bail!(
+                        "pop_xxx: {} param(s) expected but found: {}",
+                        0,
+                        fn_ty.params().len()
+                    );
+                }
+                if fn_ty.results().len() != 1 {
+                    anyhow::bail!(
+                        "pop_xxx: {} result(s) expected but found: {}",
+                        1,
+                        fn_ty.results().len()
+                    );
+                }
                 // Value already on stack
                 Ok(())
             }
             // Everything else is translated 1:1 into assembly or
             // actually implemented as a function call.
-            _ => {
+            inst => {
                 let params = fn_ty.params().len();
                 let results = fn_ty.results().len();
 
                 let (adjusted_name, results) = if name.starts_with("push_multi_arg_") {
-                    assert_eq!(results, 0);
+                    if results != 0 {
+                        anyhow::bail!("push_multi_arg_xxx num results should be 0");
+                    }
                     (name.trim_start_matches("push_multi_arg_"), None)
                 } else {
                     (name.trim_start_matches('_'), Some(results))
@@ -305,7 +427,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
 
                 let instr = match name2instr(adjusted_name) {
                     Some(instr) => instr,
-                    None => unimplemented!("unknown extern function: {}, {:?}", name, fn_ty),
+                    None => anyhow::bail!("unknown extern function: {}, {:?}", name, fn_ty),
                 };
                 if instr.terminator {
                     match adjusted_name {
@@ -338,54 +460,73 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                                 comment: Span::DUMMY,
                             }
                         }
-                        _ => todo!(),
+                        name => anyhow::bail!("terminator: {}, not implemented", name),
                     }
                     return Ok(());
                 }
-                let results = results.unwrap_or_else(|| instr.args.len() - params);
+                let num_results = results.unwrap_or_else(|| instr.args.len() - params);
                 trace!(?instr.args);
-                assert_eq!(
-                    params + results,
-                    instr.args.len(),
-                    "{} params and {} results, but instruction has {} args",
-                    params,
-                    results,
-                    instr.args.len()
-                );
+                if params + num_results != instr.args.len() {
+                    anyhow::bail!(
+                        "{}: {} param(s) and {} result(s), but instruction has {} args",
+                        inst,
+                        params,
+                        num_results,
+                        instr.args.len()
+                    );
+                }
 
-                let params: Vec<_> = instr.args[results..]
+                let mut params: Vec<Operand> = vec![];
+                for arg in instr.args[num_results..]
                     .iter()
                     .rev()
                     .inspect(|&arg| trace!(?arg))
-                    .map(|arg| match arg.ty {
+                {
+                    let op = match &arg.ty {
                         ArgTy::Register(_, mode) => {
-                            assert_eq!(mode, RegisterMode::Read);
-                            let val = self.stack.pop();
+                            if mode != &RegisterMode::Read {
+                                anyhow::bail!("{}: params Register mode should be Read", inst);
+                            }
+                            let val = self.stack.pop()?;
                             // We need to lift constants to a register in case the
                             // assembly instruction requires a register arg.
                             self.val_to_reg(val).into()
                         }
-                        ArgTy::Int { .. } => self.stack.pop(),
-                        ArgTy::Player => self.stack.pop(),
-                        ArgTy::Channel => self.stack.pop(),
-                        _ => panic!("invalid input register: {:?}", arg),
-                    })
-                    .collect();
-                let results: Vec<_> = instr.args[0..results]
+                        ArgTy::Int { .. } => self.stack.pop()?,
+                        ty => {
+                            anyhow::bail!(
+                                "{}: invalid input register: {:?} and type: {}",
+                                inst,
+                                arg,
+                                ty
+                            )
+                        }
+                    };
+                    params.push(op);
+                }
+
+                let mut results: Vec<Register> = vec![];
+                for arg in instr.args[0..num_results]
                     .iter()
                     // Using reverse order so that the `rev` in the result printing
                     // gives the right order again. We need the reverse order in
                     // pushing the return values to the stack, so when popping the
                     // elements we get the first return value on the first pop.
                     .rev()
-                    .map(|arg| match arg.ty {
+                {
+                    let r = match arg.ty {
                         ArgTy::Register(kind, mode) => {
-                            assert_eq!(mode, RegisterMode::Write);
+                            if mode != RegisterMode::Write {
+                                anyhow::bail!("{}: results Register mode should be Write", inst);
+                            }
                             self.stack.push_temp(kind)
                         }
-                        _ => panic!("invalid output register: {:?}", arg),
-                    })
-                    .collect();
+                        _ => {
+                            anyhow::bail!("{}: invalid output register: {:?}", inst, arg)
+                        }
+                    };
+                    results.push(r);
+                }
                 // Generate the asm
                 let span = self.comment(|f| {
                     write!(f, "{}", adjusted_name)?;
@@ -408,13 +549,20 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     }
                     write!(f, "# converted function call directly to asm")?;
                     Ok(())
-                });
+                })?;
                 let snip = span.snippet(self.cx);
                 debug!(?snip);
                 // Parse the asm back
-                let lex = Lexical::parse(self.cx, span).unwrap();
+                let lex = Lexical::parse(self.cx, span)
+                    .ok_or_else(|| anyhow::anyhow!("{}: Could not lex back the ASM", inst))?;
                 let stmt = Statement::parse(self.cx, &lex);
-                assert!(scasm::transforms::validate::validate(self.cx, &stmt));
+                if !scasm::transforms::validate::validate(self.cx, &stmt) {
+                    anyhow::bail!(
+                        "{}: the ASM statement: {:?} failed to validate",
+                        inst,
+                        &stmt
+                    )
+                }
                 self.push_stmt(stmt);
                 Ok(())
             }

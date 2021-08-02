@@ -62,8 +62,6 @@ pub enum ArgTy {
         /// Name of the argument that specifies the length of this array
         len_arg: &'static str,
     },
-    Player,
-    Channel,
 }
 
 impl ArgTy {
@@ -86,8 +84,6 @@ impl std::fmt::Display for ArgTy {
                     write!(fmt, "int")
                 }
             }
-            ArgTy::Player => write!(fmt, "p"),
-            ArgTy::Channel => write!(fmt, "ch"),
             ArgTy::List { element_type, .. } => write!(fmt, "*{}", element_type),
             ArgTy::Register(RegisterKind::Secret, RegisterMode::Write) => write!(fmt, "sw"),
             ArgTy::Register(RegisterKind::Bit, RegisterMode::Write)
@@ -242,39 +238,39 @@ instructions! {
                                              Truncated hash computation on a clear register ci = H(cj)."## & ""
   },
   "IO" {
-  OUTPUT_CLEAR & 0x40 & (value: c, channel: ch) & vectorizable barrier thread_0_only & r##"OUTPUT\_CLEAR ci n \newline
-                                            Public output of clear register ci to IO class on channel n. "## & ""
-  INPUT_CLEAR & 0x41 & (dest: cw, channel: ch) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci n \newline
-					    Gets clear public input ci from the IO class on channel n.
+  OUTPUT_CLEAR & 0x40 & (value: c, channel: r) & vectorizable barrier thread_0_only & r##"OUTPUT\_CLEAR ci rj \newline
+                                            Public output of clear register ci to IO class on channel rj. "## & ""
+  INPUT_CLEAR & 0x41 & (dest: cw, channel: r) & vectorizable barrier thread_0_only & r##"INPUT\_CLEAR ci rj \newline
+					    Gets clear public input ci from the IO class on channel rj.
                                             Public inputs need to be the same for all players running the protocol, otherwise a crash will occur. "## & ""
-  OUTPUT_SHARES & 0x42 &  (n + 1: int, channel: ch, shares: [s; n]) & vectorizable barrier thread_0_only & r##"OUTPUT\_SHARES n+1 ch si1 ... sin \newline
-           Write shares sij for j=1..n to the IO class channel ch.  "## & ""
-  INPUT_SHARES & 0x43 & (n + 1: int, channel: ch, shares: [sw; n]) & vectorizable barrier thread_0_only & r##"INPUT\_SHARES n+1 ch si1 ... sin \newline
-          Read shares sij for j=1..n from the IO class channel ch.  "## & ""
-  PRIVATE_INPUT & 0x44 & (dest: sw, player: p, channel: ch) & vectorizable barrier thread_0_only & r##"PRIVATE\_INPUT si p m \newline
-                                  Private input from player p on channel m assign result to secret si. "## & r##"c1"##
-  PRIVATE_OUTPUT & 0x46  & (value: s, player: p, channel: ch) & vectorizable barrier thread_0_only & r##"PRIVATE\_OUTPUT si p m \newline
-                                  Private output to player p on channel m of secret si. "## & r##"c1"##
-  OUTPUT_INT & 0x48 & (value: r, channel: ch) & vectorizable barrier thread_0_only & r##" OUTPUT\_INT ri n \newline
-                                            Public output of regint register ri to IO class on channel n. "## & ""
-  INPUT_INT & 0x49 & (dest: rw, channel: ch) & vectorizable barrier thread_0_only & r##"INPUT\_INT ri n \newline
-					    Gets regint public input ri from the IO class on channel n.
+  OUTPUT_SHARES & 0x42 &  (n + 1: int, channel: r, shares: [s; n]) & vectorizable barrier thread_0_only & r##"OUTPUT\_SHARES n+1 ri si1 ... sin \newline
+           Write shares sij for j=1..n to the IO class channel ri.  "## & ""
+  INPUT_SHARES & 0x43 & (n + 1: int, channel: r, shares: [sw; n]) & vectorizable barrier thread_0_only & r##"INPUT\_SHARES n+1 ri si1 ... sin \newline
+          Read shares sij for j=1..n from the IO class channel ri.  "## & ""
+  PRIVATE_INPUT & 0x44 & (dest: sw, player: r, channel: r) & vectorizable barrier thread_0_only & r##"PRIVATE\_INPUT si rj rk \newline
+                                  Private input from player rj on channel rk assign result to secret si. "## & r##"c1"##
+  PRIVATE_OUTPUT & 0x46  & (value: s, player: r, channel: r) & vectorizable barrier thread_0_only & r##"PRIVATE\_OUTPUT si rj rk \newline
+                                  Private output to player rj on channel rk of secret si. "## & r##"c1"##
+  OUTPUT_INT & 0x48 & (value: r, channel: r) & vectorizable barrier thread_0_only & r##" OUTPUT\_INT ri rj \newline
+                                            Public output of regint register ri to IO class on channel rj. "## & ""
+  INPUT_INT & 0x49 & (dest: rw, channel: r) & vectorizable barrier thread_0_only & r##"INPUT\_INT ri rj \newline
+					    Gets regint public input ri from the IO class on channel rj.
                                             Public inputs need to be the same for all players running the protocol, otherwise a crash will occur. "## & ""
-  OPEN_CHANNEL & 0x4A & (dest: rw, channel: ch) & barrier thread_0_only & r##"OPEN\_CHANNEL ri n \newline
-					  Opens channel number n for reading/writing on the IO class.
+  OPEN_CHANNEL & 0x4A & (dest: rw, channel: r) & barrier thread_0_only & r##"OPEN\_CHANNEL ri rj \newline
+					  Opens channel number rj for reading/writing on the IO class.
                                           Channels are assumed to be bi-directional, i.e. can read and write.
                                           This is provided as some IO classes may require this to be called
 					  explicitly, the default one does not need this.
 					  The return value ri {\bf can} be some error code which the IO class
             may want to return. "## & ""
-  CLOSE_CHANNEL & 0x4B & (channel: ch) & barrier thread_0_only & r##"CLOSE\_CHANNEL n \newline
-					  Closes channel number n for reading/writing on the IO class.
+  CLOSE_CHANNEL & 0x4B & (channel: r) & barrier thread_0_only & r##"CLOSE\_CHANNEL i \newline
+					  Closes channel number ri for reading/writing on the IO class.
                                           This is provided as some IO classes may require this to be called
             explicitly, the default one does not need this. "## & ""
-  MPRIVATE_INPUT & 0x4C & (value: r, value: r, player: p, channel: ch) & mem_read mem_write vectorizable barrier thread_0_only & r##"MPRIVATE\_INPUT ri p m n\newline
-                                  Private input of n items from player p on channel m assigning the result to sint memory [ri+k] for k=0...rj-1. "## & r##"c1"##
-  MPRIVATE_OUTPUT & 0x4D  & (value: r, value: r, player: p, channel: ch) & mem_read mem_write vectorizable barrier thread_0_only & r##"MPRIVATE\_OUTPUT ri rj p m\newline
-                                  Private output of n items from player p on channel m outputing the values in sint memory [ri+k] for k=0...rj-1. "## & r##"c1"##
+  MPRIVATE_INPUT & 0x4C & (value: r, value: r, player: r, channel: r) & mem_read mem_write vectorizable barrier thread_0_only & r##"MPRIVATE\_INPUT ri rj rk rl\newline
+                                  Private input of rj items from player rk on channel rl assigning the result to sint memory [ri+t] for t=0...rj-1. "## & r##"c1"##
+  MPRIVATE_OUTPUT & 0x4D  & (value: r, value: r, player: r, channel: r) & mem_read mem_write vectorizable barrier thread_0_only & r##"MPRIVATE\_OUTPUT ri rj rk rl\newline
+                                  Private output of rj items from player rk on channel rl outputing the values in sint memory [ri+t] for t=0...rj-1. "## & r##"c1"##
   },
   "Open" {
   STARTOPEN & 0xA0 & (n: int, registers: [s; n]) & vectorizable & r##"STARTOPEN n, s1,...,sn \newline
@@ -396,7 +392,7 @@ instructions! {
   NEGB & 0x7C & (dest: sbw, value: sb) & vectorizable & r##"NEGB sbi sbj \newline
                                        Secret NEG of sbit register sbi = 1-sbj."## & ""
   },
-  "Bitwise shifts" {
+  "Bitwise operations mod p" {
   SHLC & 0x80 & (dest: cw, left: c, right: c) & vectorizable & r##"SHLC ci cj ck \newline
                                      Clear bitwise shift left of clear register ci = cj $\ll$ ck (after converting to integers)"## & ""
   SHRC & 0x81 & (dest: cw, left: c, right: c) & vectorizable & r##"SHRC ci cj ck \newline
@@ -405,6 +401,11 @@ instructions! {
                                      Clear bitwise shift left of clear register ci = cj $\ll$ n (after converting to integers)"## & ""
   SHRCI & 0x83 & (dest: cw, left: c, right: i) & vectorizable & r##"SHRCI ci cj n \newline
                                      Clear bitwise shift right of clear register ci = cj $\gg$ n (after converting to integers)"## & ""
+  EQZC  & 0x84 & (dest: cw, left: c) & vectorizable & r##"EQZC ci cj \newline
+                                     Sets cint register ci the value of (cj==0)"## & ""
+  LTZC  & 0x85 & (dest: cw, left: c) & vectorizable & r##"LTZC ci cj \newline
+                                     Sets cint register ci the value of (cj<0), i.e. whether the top bit of
+cj is set"## & ""
   },
   "Branching and comparison" {
   JMP & 0x90 & (offset: int) & terminator & r##"JMP n \newline
@@ -538,8 +539,12 @@ instructions! {
                             This calls the Garbled Circuit with index i."## & r##"c2"##
   BITSINT  & 0xDC & (dest: sbw, value: sr, bit: int) & vectorizable & r##"BITSINT sbi sj n \newline
                                                 Assigns sbit register sbi the n-th bit of register sj."## & ""
-  SINTBIT  & 0xDD  & (value: srw, dest: sr, bit_value: sb, bit_index: int) & vectorizable & r##"BITSINT si sj sbk n \newline
+  SINTBIT  & 0xDD  & (value: srw, dest: sr, bit_value: sb, bit_index: int) & vectorizable & r##"SINTBIT si sj sbk n \newline
                                         Assigns sj to si, and then sets the n-th bit to be sbk"## & ""
+  SETBIT   & 0xDF  & (value: srw, bit_value: sb, bit_index: int) & vectorizable & r##"SETBIT si sbk n \newline
+                                        Assigns zero to si, and then sets the n-th bit to be sbk. \newline
+                                        The assignment of zero, rather than take an existing register
+                                        is to ensure we maintain SSA."## & ""
   },
   "Others" {
   RAND & 0xE0 & (dest: rw, modulo: r) & vectorizable & r##"RAND ri rj \newline
@@ -685,5 +690,7 @@ instructions! {
                                  Takes cint register cj and decomposes it into rk bits and places them in C[ri+t] for t=0...rk-1. "## & ""
   MBITDECINT & 0x13D & (value: r, value: r, value: r) & mem_write & r##"MBITDECC ri rj rk \newline
                                  Takes register rj and decomposes it into rk bits and places them in R[ri+t] for t=0...rk-1. "## & ""
+  MBITDECCS & 0x13E & (value: r, value: c, value: r) & mem_write & r##"MBITDECC ri cj rk \newline
+                                 Takes cint register cj and decomposes it into rk bits and places them in C[ri+t] for t=0...rk-1. Assumes cj is signed, i.e. if cj>p/2 then this bit-decomposes cj-p "## & ""
 },
 }

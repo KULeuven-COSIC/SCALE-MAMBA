@@ -289,7 +289,6 @@ Notation  & Meaning \\
     'srw' & A secret RegInt (64-bit value) (Write Only) \\
     'i'   & Integer Value Possibly Signed \\
     'int' & Integer Value Unsigned \\
-    'p'   & A Player Number \\
     'str' & String \\
 \hline
 \end{tabular}
@@ -536,6 +535,8 @@ theoretic functions. The instructions are the following:
     \verb+SHRC+,
     \verb+SHLCI+,
     \verb+SHRCI+,
+    \verb+EQZC+,
+    \verb+LTZC+,
     \verb+DIVC+,
     \verb+DIVCI+,
     \verb+DIVINT+,
@@ -568,7 +569,7 @@ and
 \verb+INVSINT+.
 You can extract bits from an \verb|sregint| variable using the instruction
 \verb+BITSINT+, and assign an \verb|sbit| to a specific bit location in
-an \verb|sregint| by using the instruction \verb+SINTBIT+.
+an \verb|sregint| by using the instruction \verb+SINTBIT+ or \verb+SETBIT+.
 
 \paragraph{Note:}
 The choices of byte-codes here is a bit of a legacy issue. It would

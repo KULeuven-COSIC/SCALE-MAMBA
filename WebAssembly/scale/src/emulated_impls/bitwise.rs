@@ -19,6 +19,11 @@ extern "C" fn __sintbit(s: crate::SecretI64, b: crate::RawSecretBit, pos: u32) -
 }
 
 #[no_mangle]
+extern "C" fn __setbit(b: crate::RawSecretBit, pos: u32) -> crate::SecretI64 {
+    crate::SecretI64(b.0 << pos)
+}
+
+#[no_mangle]
 extern "C" fn __bitsint(s: crate::SecretI64, pos: u32) -> crate::RawSecretBit {
     crate::RawSecretBit((s.0 >> pos) & 1)
 }

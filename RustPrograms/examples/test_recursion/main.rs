@@ -7,7 +7,6 @@
 
 use scale::black_box;
 
-#[scale::main(KAPPA = 40)]
 #[inline(never)]
 fn fib(x: u64) -> u64 {
     print!(x as i64, "\n");
@@ -24,6 +23,7 @@ fn check(n: i64) -> i64 {
 }
 
 #[inline(never)]
+#[scale::main(KAPPA = 40)]
 fn main() {
     check(0).test();
     check(1).test();

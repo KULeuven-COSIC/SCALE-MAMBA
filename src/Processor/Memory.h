@@ -63,13 +63,12 @@ class Memory
   // Map used as hash map to store the starting
   // address as key and size of allocated segment
   // key as value
-  map<unsigned int, unsigned int> mp;
+  map<unsigned int, pair<unsigned int, unsigned int>> mp;
 
   bool initialized;
 
   // Checks whether the memory at position pos is currently
-  // in an allocated block [does not check out of bounds
-  // errors, just allocation]
+  // in an allocated block and whether the reference is out of bounds.
   bool check_allocated(unsigned int pos);
 
 public:
@@ -111,18 +110,18 @@ public:
       {
         throw memory_access_error();
       }
+      /*
+    stringstream ss;
+    M[i].output(ss, true);
+    printf("\t Reading data %s in memory %s position %lu \n", ss.str().c_str(), T::type_string().c_str(), i);
+    fflush(stdout);
+    */
 #endif
     if (i >= M.size())
       {
         fprintf(stderr, "Accessing memory position %d \n", i);
         throw memory_out_of_bounds();
       }
-#ifdef DEBUGMEM
-    stringstream ss;
-    M[i].output(ss, true);
-    printf("\t Reading data %s in memory %s position %lu \n", ss.str().c_str(), T::type_string().c_str(), i);
-    fflush(stdout);
-#endif
     return M[i];
   }
 
@@ -133,10 +132,12 @@ public:
       {
         throw memory_access_error();
       }
+      /*
     stringstream ss;
     x.output(ss, true);
     printf("\t Storing data %s in memory %s position %lu \n", ss.str().c_str(), T::type_string().c_str(), i);
     fflush(stdout);
+    */
 #endif
     if (i >= M.size())
       {

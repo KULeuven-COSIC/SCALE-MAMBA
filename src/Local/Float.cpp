@@ -294,7 +294,7 @@ void to_signed_bigint(bigint &bi, const gfp &x, int len)
     }
   // reduce to range -2^(len-1), ..., 2^(len-1)
   bigint one= 1;
-  bi&= (one << len) - 1;
+  bi&= (one << (len - 1)) - 1;
   if (neg)
     bi= -bi;
 }
@@ -401,7 +401,7 @@ void FP_to_float(Processor<SRegint, SBit> &Proc)
     {
       err= 1;
     }
-  if (a == 0)
+  else if (a == 0)
     {
       z= 1;
       v= 0;

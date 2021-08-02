@@ -1,6 +1,7 @@
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
+use anyhow::Context as _;
 use scasm::lexer::{Operand, Register, RegisterKind, RegisterStruct};
 use std::collections::HashMap;
 use tracing::{instrument, trace};
@@ -56,8 +57,11 @@ impl Stack {
         trace!("{:#?}", self.stack);
     }
 
-    pub fn expect_stack_empty(&self) {
-        assert!(self.stack.is_empty(), "stack is {:#?}", self.stack);
+    pub fn expect_stack_empty(&self) -> anyhow::Result<()> {
+        if !self.stack.is_empty() {
+            anyhow::bail!("stack is {:#?}", self.stack)
+        }
+        Ok(())
     }
 
     /// Creates a register that is not on the stack.
@@ -81,23 +85,23 @@ impl Stack {
         self.stack.push(op);
     }
 
-    pub fn pop(&mut self) -> Operand {
+    pub fn pop(&mut self) -> anyhow::Result<Operand> {
         let op = self
             .stack
             .pop()
-            .expect("invalid wasm: stack did not contain any element");
+            .context("invalid wasm: stack did not contain any element on pop")?;
         trace!(?op, "pop");
-        op
+        Ok(op)
     }
 
-    pub fn read_top(&self) -> Operand {
+    pub fn read_top(&self) -> anyhow::Result<Operand> {
         let op = self
             .stack
             .last()
             .copied()
-            .expect("invalid wasm: stack did not contain any element");
+            .context("invalid wasm: stack did not contain any element on read_top")?;
         trace!(?op, "read_top");
-        op
+        Ok(op)
     }
 
     #[instrument(skip(self))]
@@ -117,13 +121,15 @@ impl Stack {
     }
 
     #[instrument(skip(self))]
-    pub fn global(&mut self, global: GlobalId) -> Register {
+    pub fn global(&mut self, global: GlobalId) -> anyhow::Result<Register> {
         if let Some(&r) = self.globals.get(&global) {
-            assert_eq!(r.kind(), RegisterKind::Regint);
-            return r;
+            if r.kind() != RegisterKind::Regint {
+                anyhow::bail!("the register should be a RegInt")
+            }
+            return Ok(r);
         }
         let persistent_reg = self.temp(RegisterKind::Regint);
         self.globals.insert(global, persistent_reg);
-        persistent_reg
+        Ok(persistent_reg)
     }
 }

@@ -12,7 +12,7 @@ use scale::alloc::GetAllocator;
 use scale::*;
 use scale::{alloc::Allocate, LoadFromMem, Reveal, Stack, StackAddress, StoreInMem};
 
-/// An array datastructure that allocates memory and never frees it
+/// An array datastructure that allocates memory and deallocates when goes out of scope
 pub struct Array<T, const N: u64>
 where
     T: GetAllocator,
@@ -52,6 +52,9 @@ impl<T: GetAllocator, const N: u64> GetAllocator for Array<T, N> {
         ArrayAllocator {
             element_allocator: T::get_allocator(),
         }
+    }
+    fn size_type() -> u64 {
+        1
     }
 }
 
@@ -104,7 +107,7 @@ where
 
         let mut new_one = Slice::uninitialized(length);
         for i in 0..length {
-            new_one.set(i, &T::load_from_mem(self.addr(start + i)));
+            new_one.set(i, &T::load_from_mem(self.addr(start + i * T::size_type())));
         }
 
         new_one
@@ -114,7 +117,7 @@ where
         let mut new_one: Array<T, { N - S }> = Array::uninitialized();
 
         for i in 0..(N - S) {
-            new_one.set(i, &T::load_from_mem(self.addr(i)));
+            new_one.set(i, &T::load_from_mem(self.addr(i * T::size_type())));
         }
 
         new_one
@@ -142,7 +145,7 @@ where
     #[inline(always)]
     pub fn get_unchecked(&'a self, i: u64) -> Guard<'a, T> {
         Guard {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         }
     }
@@ -155,7 +158,7 @@ where
         }
 
         Some(Guard {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         })
     }
@@ -168,7 +171,7 @@ where
         }
 
         Some(GuardMut {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         })
     }
@@ -177,7 +180,7 @@ where
     #[inline(always)]
     pub fn get_mut_unchecked(&'a mut self, i: u64) -> GuardMut<'a, T> {
         GuardMut {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         }
     }
@@ -195,7 +198,7 @@ where
 {
     #[inline(always)]
     pub fn set(&mut self, i: u64, val: &T) {
-        unsafe { val.store_in_mem(self.addr(i)) }
+        unsafe { val.store_in_mem(self.addr(i * T::size_type())) }
     }
 }
 
@@ -288,16 +291,16 @@ where
 
 impl<const N: u64> Array<SecretModp, N> {
     #[inline(always)]
-    pub fn private_input<const P: u32, const C: u32>(_: Player<P>, _: Channel<C>) -> Self {
+    pub fn private_input(player: i64, channel: i64) -> Self {
         let array = Self::uninitialized();
-        unsafe { __mprivate_input(array.first_element.address as i64, N as i64, P, C) }
+        unsafe { __mprivate_input(array.first_element.address as i64, N as i64, player, channel) }
         array
     }
 
     #[inline(always)]
-    pub fn private_output<const P: u32, const C: u32>(self, _: Player<P>, _: Channel<C>) {
+    pub fn private_output(self, player: i64, channel: i64) { 
         unsafe {
-            __mprivate_output(self.first_element.address as i64, N as i64, P, C);
+            __mprivate_output(self.first_element.address as i64, N as i64, player, channel);
         }
     }
 }
@@ -1445,6 +1448,15 @@ impl<const N: u64> Array<ClearModp, N> {
         unsafe { __mbitdecc(array.first_element.address as i64, val, N as i64) }
         array
     }
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    pub fn bit_decomposition_ClearModp_Signed(val: ClearModp) -> Self {
+        let array = Self::uninitialized();
+        unsafe { __mbitdeccs(array.first_element.address as i64, val, N as i64) }
+        array
+    }
+
 }
 
 impl<const N: u64> Array<i64, N> {

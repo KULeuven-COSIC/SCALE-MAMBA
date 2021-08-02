@@ -1,6 +1,6 @@
 [package]
 name = "scale_documentation"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Oliver Scherer <oliver.scherer@cosmian.com>", "Benjamin Coenen <benjamin.coenen@cosmian.com>"]
 edition = "2018"
 description = "structured SCALE assembly documentation"
@@ -18,5 +18,5 @@ path = "documentation.rs"
 
 [dependencies]
 lazy_static = "1.4.0"
-documentation_parser = { package = "scale_documentation_parser", version = "0.1.0", path = "documentation_parser" }
+documentation_parser = { package = "scale_documentation_parser", version = "0.1.2", path = "documentation_parser" }
 eyre = "0.6.0"

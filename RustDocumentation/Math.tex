@@ -169,49 +169,56 @@ The following functions are implemented
 
 
 \subsection{ClearFloat}
-The following functions are implemented
+The following functions are implemented.
+For the exponential and (hence) the hyperbolic functions we assume
+that $V < 2^{P-1}$, which it will be in almost all instances;
+unless $P$ is very small.
 \begin{lstlisting}
     let c: ClearFloat<40,20>= ClearFloat::from(0.5431);
-    // let t = c.acos();
-    // let t = c.asin();
-    // let t = c.atan();
-    // let t = c.cos();
-    // let t = c.cosh();
-    // let t = c.sin();
-    // let t = c.sinh();
-    // let t = c.tan();
-    // let t = c.tanh();
-    // let t = c.exp();
-    // let t = c.exp2()
-    // let t = c.log();
-    // let t = c.log2();
-    // let t = c.log10();
-    // let t = c.ceil();
-    let t = c.fabs();
-    // let t = c.floor();
-    // let t = c.sqrt();
+    // let t = c.clone().acos();
+    // let t = c.clone().asin();
+    // let t = c.clone().atan();
+    // let t = c.clone().cos();
+    let t = c.clone().cosh();
+    // let t = c.clone().sin();
+    let t = c.clone().sinh();
+    // let t = c.clone().tan();
+    let t = c.clone().tanh();
+    let t = c.clone().exp();
+    let t = c.clone().exp2()
+    let t = c.clone().log();
+    let t = c.clone().log2();
+    let t = c.clone().log10();
+    let t = c.clone().ceil();
+    let t = c.clone().fabs();
+    let t = c.clone().floor();
+    let t = c.clone().sqrt();
 \end{lstlisting}
 
 \subsection{SecretFloat}
-The following functions are implemented
+The following functions are implemented.
+For the exponential and (hence) the hyperbolic functions we assume
+that $V < 2^{P-1}$, which it will be in almost all instances;
+unless $P$ is very small.
 \begin{lstlisting}
     let s: SecretFloat<40,20>= SecretFloat::from(0.5431);
-    // let s = c.acos();
-    // let s = c.asin();
-    // let s = c.atan();
-    // let s = c.cos();
-    // let s = c.cosh();
-    // let s = c.sin();
-    // let s = c.sinh();
-    // let s = c.tan();
-    // let s = c.tanh();
-    // let s = c.exp();
-    // let s = c.exp2()
-    // let s = c.log();
-    // let s = c.log2();
-    // let s = c.log10();
-    // let s = c.ceil();
-    let s = c.fabs();
-    // let s = c.floor();
-    // let s = c.sqrt();
+    // let t = s.clone().acos();
+    // let t = s.clone().asin();
+    // let t = s.clone().atan();
+    // let t = s.clone().cos();
+    let t = s.clone().cosh();
+    // let t = s.clone().sin();
+    let t = s.clone().sinh();
+    // let t = s.clone().tan();
+    let t = s.clone().tanh();
+    let t = s.clone().exp();
+    let t = s.clone().exp2()
+    let t = s.clone().log();
+    let t = s.clone().log2();
+    let t = s.clone().log10();
+    let t = s.clone().ceil();
+    let t = s.clone().fabs();
+    let t = s.clone().floor();
+    let t = s.clone().sqrt();
+
 \end{lstlisting}

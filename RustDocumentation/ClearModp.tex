@@ -18,14 +18,14 @@ The IO class functions for $\ClearModp$ datatypes can be access via the followin
 \func{ClearModp::input(x)}
 Loads an $\ClearModp$ from the channel $x$.
 \begin{lstlisting}
-    let a=ClearModp::input(Channel::<10>);
+    let a=ClearModp::input(10);
 \end{lstlisting}
 
 \func{a.output(x)}
 Writes an $\ClearModp$ to channel $x$.
 \begin{lstlisting}
    let v = ClearModp::from(ConstI32::<1>);
-   v.output(Channel::<10>);
+   v.output(10);
 \end{lstlisting}
 
 

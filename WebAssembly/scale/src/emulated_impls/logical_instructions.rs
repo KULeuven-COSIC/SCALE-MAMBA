@@ -4,6 +4,8 @@
 use num_bigint::BigInt;
 use std::convert::TryFrom;
 
+use crate::testing_emulated::P;
+
 #[no_mangle]
 extern "C" fn __andsint(left: crate::SecretI64, right: crate::SecretI64) -> crate::SecretI64 {
     crate::SecretI64(left.0 & right.0)
@@ -98,4 +100,22 @@ extern "C" fn __shrc(left: crate::ClearModp, right: crate::ClearModp) -> crate::
 #[no_mangle]
 extern "C" fn __shrci(left: crate::ClearModp, right: i32) -> crate::ClearModp {
     (BigInt::from(left) >> right).into()
+}
+
+#[no_mangle]
+extern "C" fn __eqzc(value: crate::ClearModp) -> crate::ClearModp {
+    let mut ans: crate::ClearModp = crate::ClearModp::from(0);
+    if BigInt::from(value)==BigInt::from(0)
+       { ans = crate::ClearModp::from(1); }
+    ans
+}
+
+#[no_mangle]
+extern "C" fn __ltzc(value: crate::ClearModp) -> crate::ClearModp {
+    let val_big : BigInt = value.into();
+    let mut ans: BigInt =BigInt::from(0);
+    if val_big > (&*P / 2) {
+        ans=BigInt::from(1);
+    }
+    ans.into()
 }

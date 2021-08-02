@@ -15,7 +15,7 @@ fn main() {
     require_bit_length(ConstU32::<10>);
     require_bit_length(ConstU32::<20>);
 
-    let t=ClearModp::input(Channel::<10>);
+    let t=ClearModp::input(10);
     let t = i64::from(t);
 
     if t==0 {

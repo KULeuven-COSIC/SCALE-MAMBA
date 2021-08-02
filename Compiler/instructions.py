@@ -150,11 +150,13 @@
   NEGB= 0x7C,
   LDSBIT = 0x7C,
 
-  # Bitwise shifts
+  # Bitwise operations mod p
   SHLC= 0x80,
   SHRC= 0x81,
   SHLCI= 0x82,
   SHRCI= 0x83,
+  EQZC = 0x84,
+  LTZC = 0x85,
 
   # Branching and comparison
   JMP= 0x90,
@@ -217,6 +219,7 @@
   BITSINT = 0xDC,
   SINTBIT = 0xDD,
   LF      = 0xDE,
+  SETBIT  = 0xDF,
 
   # Others
   RAND= 0xE0,
@@ -282,6 +285,7 @@
   MEVALSC = 0x13B,
   MBITDECC = 0x13C,
   MBITDECINT = 0x13D,
+  MBITDECCS = 0x13E,
 
   # Relative peek and poke
   RPEEKINT= 0x1F0,
@@ -318,6 +322,12 @@ the result in register si
 Takes cint register cj and decomposes it into rk bits
 and places them in C[ri+t] for t=0...rk-1
 
+   MBITDECCS i j k
+Takes cint register cj and decomposes it into rk bits
+and places them in C[ri+t] for t=0...rk-1. Assumes
+cj is signed, i.e. if cj>p/2 then this really bit decomposes
+cj-p/2.
+
   MBITDECINT i j k
 Takes register rj and decomposes it into rk bits
 and places them in R[ri+t] for t=0...rk-1
@@ -343,7 +353,6 @@ Arguments to instructions can have various types
     'srw' : A secret RegInt (64-bit value) (Write Only)
     'i'  : Integer Value Possibly Signed
     'int': Integer Value Unsigned
-    'p'  : A Player Number
     'str': String
 
 Global memory comes in three variants, which is not thread locked
@@ -836,9 +845,21 @@ class sintbit(base.Instruction):
     arg_format = ['srw', 'sr', 'sb', 'int']
 
 @base.vectorize
+class setbit(base.Instruction):
+    r""" SETBIT i k n
+         Assigns zero to sri, and then sets the n-th bit to be sb_k
+         The assignment of zero, rather than take an existing register
+         is to ensure we maintain SSA.
+         This instruction is vectorizable
+     """
+    __slots__ = ["code"]
+    code = base.opcodes['SETBIT']
+    arg_format = ['srw', 'sb', 'int']
+
+@base.vectorize
 class ldsbit(base.Instruction):
     r""" LDSBIT i n
-         Assigns sbit register sr_i a share of the value n.
+         Assigns sbit register sb_i a share of the value n.
          This instruction is vectorizable
      """
     __slots__ = []
@@ -1663,6 +1684,25 @@ class shrci(base.ClearShiftInstruction):
     op = '__rshift__'
 
 
+@base.vectorize
+class eqzc(base.ClearShiftInstruction):
+    r""" EQZC i j
+         Sets cint register ci the value of (cj==0)
+     """
+    __slots__ = []
+    code = base.opcodes['EQZC']
+    arg_format = ['cw', 'c']
+
+@base.vectorize
+class ltzc(base.ClearShiftInstruction):
+    r""" LTZC i j
+         Sets cint register ci the value of (cj<0), i.e. whether the top bit of cj is set
+     """
+    __slots__ = []
+    code = base.opcodes['LTZC']
+    arg_format = ['cw', 'c']
+
+
 #
 # Data access instructions
 #
@@ -1721,25 +1761,25 @@ class square(base.DataInstruction, base.VarArgsInstruction):
 
 @base.vectorize
 class private_input(base.IOInstruction):
-    r""" PRIVATE_INPUT i p m
-         Private input from player p on channel m assign result to sint s_i
+    r""" PRIVATE_INPUT i j k
+         Private input from player r_j on channel r_k assign result to sint s_i
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['PRIVATE_INPUT']
-    arg_format = ['sw', 'p','int']
+    arg_format = ['sw', 'r','r']
 
 @base.vectorize
 class mprivate_input(base.IOInstruction):
-    r""" MPRIVATE_INPUT i j p m 
-         Private input of n items from player p on channel m 
-         assign the result to sint memory [r_i+k] for k=0...rj-1
+    r""" MPRIVATE_INPUT i j k l 
+         Private input of rj items from player rk on channel rl
+         assign the result to sint memory [ri+t] for t=0...rj-1
          When vectorized ri increases, but rj stays the same.
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['MPRIVATE_INPUT']
-    arg_format = ['r', 'r',  'p','int']
+    arg_format = ['r', 'r',  'r','r']
 
 
 @base.vectorize
@@ -1859,32 +1899,32 @@ class print_char4_regint(base.IOInstruction):
 
 @base.vectorize
 class input_clear(base.IOInstruction):
-    r""" INPUT_CLEAR i n
-         Gets cint public input c_i from the IO class on channel n.
+    r""" INPUT_CLEAR i j
+         Gets cint public input c_i from the IO class on channel rj.
          Public inputs need to be the same for all players running the protocol, otherwise a crash will occur.
          This instruction is vectorizable
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['INPUT_CLEAR']
-    arg_format = ['cw','i']
+    arg_format = ['cw','r']
 
 
 @base.vectorize
 class input_int(base.IOInstruction):
-    r""" INPUT_INT i n
-         Gets public regint input r_i from the IO class on channel n.
+    r""" INPUT_INT i j
+         Gets public regint input r_i from the IO class on channel rj.
          Public inputs need to be the same for all players running the protocol, otherwise a crash will occur.
          This instruction is vectorizable
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['INPUT_INT']
-    arg_format = ['rw','i']
+    arg_format = ['rw','r']
 
 class open_channel(base.IOInstruction):
-    r""" OPEN_CHANNEL i n
-         Opens channel number n for reading/writing on the IO class.
+    r""" OPEN_CHANNEL i j
+         Opens channel number rj for reading/writing on the IO class.
          Channels are assumed to be bi-directional, i.e. can read and write.
          This is provided as some IO classes may require this to be called explicitly, the default one does not need this.
          The return value r_i *can* be some error code which the IO class may want to return.
@@ -1892,95 +1932,95 @@ class open_channel(base.IOInstruction):
      """
     __slots__ = []
     code = base.opcodes['OPEN_CHANNEL']
-    arg_format = ['rw','i']
+    arg_format = ['rw','r']
 
 class close_channel(base.IOInstruction):
-    r""" CLOSE_CHANNEL n
-         Closes channel number n for reading/writing on the IO class.
+    r""" CLOSE_CHANNEL i
+         Closes channel number ri for reading/writing on the IO class.
          This is provided as some IO classes may require this to be called explicitly, the default one does not need this.
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['CLOSE_CHANNEL']
-    arg_format = ['i']
+    arg_format = ['r']
 
 
 @base.vectorize
 class output_shares(base.IOInstruction):
-    r""" OUTPUT_SHARES (n+1) ch i1 i2 ... in
-         Write shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using
+    r""" OUTPUT_SHARES (n+1) ri i1 i2 ... in
+         Write shares s_{i_j} to the IO class channel ri. This can be called from our MAMBA language using
                inp = [sint(1), sint(2), sint(3), sint(4)]
                output_shares(ch, *inp)
          Can only be executed in thread zero.
     """
     __slots__ = []
     code = base.opcodes['OUTPUT_SHARES']
-    arg_format = tools.chain(['i'],itertools.repeat('s'))
+    arg_format = tools.chain(['r'],itertools.repeat('s'))
 
     def has_var_args(self):
         return True
 
 @base.vectorize
 class input_shares(base.IOInstruction):
-    r""" INPUT_SHARES (n+1) ch i1 i2 ... in
-         Read shares s_{i_j} to the IO class channel ch. This can be called from our MAMBA language using
+    r""" INPUT_SHARES (n+1) ri i1 i2 ... in
+         Read shares s_{i_j} to the IO class channel ri. This can be called from our MAMBA language using
             inp = [sint(1), sint(2), sint(3), sint(4)]
             input_shares(ch,*inp)
          Can only be executed in thread zero.
     """
     __slots__ = []
     code = base.opcodes['INPUT_SHARES']
-    arg_format = tools.chain(['i'],itertools.repeat('sw'))
+    arg_format = tools.chain(['r'],itertools.repeat('sw'))
 
     def has_var_args(self):
         return True
 
 @base.vectorize
 class output_clear(base.IOInstruction):
-    r""" OUTPUT_CLEAR i n
-         Public output of cint register c_i to IO class on channel n.
+    r""" OUTPUT_CLEAR i j
+         Public output of cint register c_i to IO class on channel rj.
          This instruction is vectorizable
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['OUTPUT_CLEAR']
-    arg_format = ['c','i']
+    arg_format = ['c','r']
 
 @base.vectorize
 class output_int(base.IOInstruction):
-    r""" OUTPUT_INT i n
-         Public output of regint register r_i to IO class on channel n.
+    r""" OUTPUT_INT i j
+         Public output of regint register r_i to IO class on channel rj.
          This instruction is vectorizable
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['OUTPUT_INT']
-    arg_format = ['r','i']
+    arg_format = ['r','r']
 
 
 @base.vectorize
 class private_output(base.IOInstruction):
-    r""" PRIVATE_OUTPUT i p m
-         Private output to p of the sint value s_i on channel m
+    r""" PRIVATE_OUTPUT i j k
+         Private output to rj of the sint value s_i on channel rk 
          This instruction is vectorizable
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['PRIVATE_OUTPUT']
-    arg_format = ['s', 'p', 'i']
+    arg_format = ['s', 'r', 'r']
 
 
 @base.vectorize
 class mprivate_output(base.IOInstruction):
-    r""" MPRIVATE_OUTPUT i j p m 
-         Private output of n items from player p on channel m
-         outputing the values in sint memory [r_i+k] for k=0...rj-1
+    r""" MPRIVATE_OUTPUT i j k l 
+         Private output of rj items from player rk on channel rl
+         outputing the values in sint memory [ri+t] for t=0...rj-1
          When vectorized ri increases, but rj stays the same.
          Can only be executed in thread zero.
      """
     __slots__ = []
     code = base.opcodes['MPRIVATE_OUTPUT']
-    arg_format = ['r', 'r', 'p','int']
+    arg_format = ['r', 'r', 'r','r']
 
   
 

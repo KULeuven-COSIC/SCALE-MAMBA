@@ -12,24 +12,24 @@ use scale::*;
 */
 #[inline(always)]
 pub fn secret_or_op(a: SecretModp, b: SecretModp) -> SecretModp {
-    return a + b - a * b;
+    a + b - a * b
 }
 
 pub fn clear_or_op(a: ClearModp, b: ClearModp) -> ClearModp {
-    return a + b - a * b;
+    a + b - a * b
 }
 
 #[inline(always)]
 pub fn mul_op(a: SecretModp, b: SecretModp) -> SecretModp {
-    return a * b;
+    a * b
 }
 #[inline(always)]
 pub fn addition_op(a: SecretModp, b: SecretModp) -> SecretModp {
-    return a + b;
+    a + b
 }
 #[inline(always)]
 pub fn xor_op(a: SecretModp, b: SecretModp) -> SecretModp {
-    return a + b - ConstI32::<2> * a * b;
+    a + b - ConstI32::<2> * a * b
 }
 
 #[inline(always)]
@@ -46,6 +46,7 @@ pub fn reg_carry(
         1,
         &(*a.get_unchecked(1) + *a.get_unchecked(0) * *b.get_unchecked(1)),
     );
+
     ans
 }
 
@@ -57,6 +58,7 @@ pub fn carry(b: Array<SecretModp, 2>, a: Array<SecretModp, 2>) -> Array<SecretMo
         1,
         &(*a.get_unchecked(1) + *a.get_unchecked(0) * *b.get_unchecked(1)),
     );
+
     ans
 }
 
@@ -73,6 +75,7 @@ pub const fn ceil_log_2(a: u32) -> u32 {
     if a.count_ones() == 1 {
         check = 1;
     }
+
     num_bits::<i32>() as u32 - a.leading_zeros() - check
 }
 
@@ -90,7 +93,8 @@ pub fn two_power(n: u64) -> u64 {
     for _i in 0..n / 30 {
         res *= b;
     }
-    return res;
+
+    res
 }
 
 pub struct TwoPower<const N: u64>;
@@ -120,7 +124,8 @@ pub const fn i64_two_power(n: u64) -> i64 {
         res *= b;
         i += 1;
     }
-    return res;
+
+    res
 }
 
 // Now version producing a ClearModp result and create
@@ -141,7 +146,8 @@ pub fn modp_two_power(n: u64) -> ClearModp {
     for _i in 0..n / 30 {
         res *= max;
     }
-    return res;
+
+    res
 }
 
 /* Produces an array expressing 2<<bitlen-p */
@@ -167,7 +173,8 @@ pub fn get_primecompl(bitlen: u64) -> Slice<ClearModp> {
             }
         }
     }
-    return result;
+
+    result
 }
 
 #[inline(always)]
@@ -177,7 +184,8 @@ pub fn Inv(a: SecretModp) -> SecretModp {
     let s = t0 * a;
     let c = s.reveal();
     let c = ConstI32::<1> / c;
-    return c * t0;
+
+    c * t0
 }
 
 /*
@@ -196,12 +204,13 @@ pub fn KOpL(
     start_addr: i64,
     len: i64,
 ) -> SecretModp {
-    if len == 1 {
+    if len <= 1 {
         let s = SecretModp::load_from_mem(start_addr);
         return s;
     }
     let t1: SecretModp = KOpL(op, start_addr, len / 2);
     let t2: SecretModp = KOpL(op, start_addr + len / 2, len - len / 2);
+
     op(t1, t2)
 }
 
@@ -241,6 +250,7 @@ where
             }
         }
     }
+
     output
 }
 
@@ -287,6 +297,7 @@ pub fn PreOpL2(
             }
         }
     }
+
     output
 }
 
@@ -339,7 +350,8 @@ pub fn PRandM_Array<const K: u64, const M: u64, const KAPPA: u64>(
     }
     let r = rb.evaluate(ClearModp::from(2));
     let r2: SecretModp = PRandInt(K + KAPPA - M);
-    return (r2, r, rb);
+
+    (r2, r, rb)
 }
 
 #[inline(always)]
@@ -352,7 +364,8 @@ pub fn PRandM_Slice(K: u64, M: u64, KAPPA: u64) -> (SecretModp, SecretModp, Slic
     }
     let r = rb.evaluate(ClearModp::from(2));
     let r2: SecretModp = PRandInt(K + KAPPA - M);
-    return (r2, r, rb);
+
+    (r2, r, rb)
 }
 
 #[inline(always)]
@@ -383,7 +396,8 @@ pub fn CarryOutAux(a: &Slice<Array<SecretModp, 2>>) -> SecretModp {
         u.get_mut_unchecked(0)
             .set(1, &*a.get_unchecked(0).get_unchecked(1));
     }
-    return CarryOutAux(&u);
+
+    CarryOutAux(&u)
 }
 
 #[inline(always)]
@@ -401,7 +415,7 @@ pub fn CarryOut(a: &Slice<ClearModp>, b: &Slice<SecretModp>, c: ClearModp) -> Se
     let resp =
         *d.get_unchecked(k - 1).get_unchecked(1) + c * *d.get_unchecked(k - 1).get_unchecked(0);
     d.get_mut_unchecked(k - 1).set(1, &resp);
-    return CarryOutAux(&d);
+    CarryOutAux(&d)
 }
 
 /* Here M is the number of bits we want to return
@@ -448,7 +462,8 @@ where
     if M == (k + 1) {
         s.set(k, &*c.get_unchecked(k - 1).get_unchecked(1));
     }
-    return s;
+
+    s
 }
 
 #[inline(always)]
@@ -478,7 +493,8 @@ pub fn BitIncrement<const K: u64>(ab: &Array<SecretModp, K>) -> Slice<SecretModp
         );
     }
     s.set(K, &*c.get_unchecked(K - 1).get_unchecked(1));
-    return s;
+
+    s
 }
 
 #[inline(always)]
@@ -497,7 +513,8 @@ pub fn BitLT(a: ClearModp, b: &Slice<SecretModp>, K: u64) -> SecretModp {
         sb.set(K - 1 - i as u64, &(ConstI32::<1> - *b.get_unchecked(i)));
     }
     let c: SecretModp = CarryOut(&ab, &sb, ClearModp::from(ConstI32::<1>));
-    return ConstI32::<1> - c;
+
+    ConstI32::<1> - c
 }
 
 #[inline(always)]
@@ -529,9 +546,10 @@ where
     let mut ans = SecretModp::from(0);
     for i in 0..k {
         let temp = *bb.get_unchecked(i) * *g.get_unchecked(i);
-        ans = ans + temp;
+        ans += temp;
     }
-    return ans;
+
+    ans
 }
 
 #[inline(always)]
@@ -541,9 +559,23 @@ pub fn BitDec<const K: u64, const M: u64, const KAPPA: u64>(a: SecretModp) -> Sl
     let cons: ClearModp = modp_two_power(K) + modp_two_power(K + KAPPA);
     let sc: SecretModp = a + cons - modp_two_power(M) * r_prime - r;
     let c = sc.reveal();
-    let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(c, M);
+    let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(c, M);
     BitAdd(&cb, &rb, M)
 }
+
+/* Now with K=M and runtime values */
+#[inline(always)]
+#[allow(non_snake_case)]
+pub fn bitdec<const KAPPA: u64>(a: SecretModp, k: i64) -> Slice<SecretModp> {
+    let (r_prime, r, rb) = PRandM_Slice(k as u64, k as u64, KAPPA);
+    let twop = modp_two_power(k as u64);
+    let cons: ClearModp = twop + modp_two_power(k as u64 + KAPPA);
+    let sc: SecretModp = a + cons - twop * r_prime - r;
+    let c = sc.reveal();
+    let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(c, k as u64);
+    BitAdd(&cb, &rb, k as u64)
+}
+
 
 const BITLEN: u64 = P.len() as u64;
 
@@ -559,6 +591,7 @@ const BITLENP: u64 = {
 #[allow(non_snake_case)]
 pub fn BitDecFullBig(a: SecretModp) -> Array<SecretModp, BITLENP> {
     // Returns secret shared bit decomposition of
+    println!("In BitDecFullBig");
     let mut abits: Array<SecretModp, BITLENP> = Array::uninitialized();
     let mut bbits: Slice<SecretModp> = Slice::uninitialized(BITLENP);
     let mut pbits: Slice<ClearModp> = Slice::uninitialized(BITLENP + 1);
@@ -592,7 +625,8 @@ pub fn BitDecFullBig(a: SecretModp) -> Array<SecretModp, BITLENP> {
             &(*h.get_unchecked(i) * (ConstI32::<1> - czero) + *bbits.get_unchecked(i) * czero),
         );
     }
-    return abits;
+
+    abits
 }
 
 #[inline(always)]
@@ -644,5 +678,6 @@ pub fn BitDecFull(a: SecretModp) -> Array<SecretModp, BITLENP> {
             &((ClearModp::from(1) - czero) * *h.get_unchecked(i) + czero * *bbits.get_unchecked(i)),
         );
     }
-    return abits;
+
+    abits
 }

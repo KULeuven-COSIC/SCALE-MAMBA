@@ -1570,7 +1570,8 @@ x = sfix(sfloat(5.5))
 \end{lstlisting}
 
 \msubsection{SQRT Functions}
-\todo{These functions are only currently supported in their fixed point versions.}
+\todo{These functions are only currently supported in their fixed point versions in Mamba,
+all variants are however supported in the Rust pipeline.}
 The original description of the protocols for the fixed point square root algorithm are included in:
 \begin{itemize}
   \item Secure Distributed Computation of the Square Root and Applications, {\em ISPEC 2012}
@@ -1578,7 +1579,7 @@ The original description of the protocols for the fixed point square root algori
 \end{itemize}
 The floating point variant is in
 \begin{itemize}
-  \item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.\todo{This is not currently implemented}
+  \item Secure Computation on Floating Point Numbers {\em NDSS 2013} \cite{ABZS13}.
 \end{itemize}
 Additionally, we provide a simplified implementation for the Square Root on fixed point variables, that is appropriate for inputs of any size. We make use Liedel's protocol, when the input's size makes it possible, as we explain later in this section.
 Both algorithms makes use of two constants
@@ -1684,7 +1685,7 @@ Our \verb|FxSqrt| functionality returns the square root of any fixed point input
         \end{enumerate}
   \item else:
         \begin{enumerate}
-          \item $\sshare{x} \asn Trunc(\sshare{x} \cdot 2^{f}, sfix.k, sfix.k-sfix.f)$
+		\item $\sshare{x} \asn \mathsf{Trunc}(\sshare{x} \cdot 2^{f}, sfix.k, sfix.k-sfix.f)$
           \item Return $\mathsf{ParamFxSqrt}(\sshare{x}, k, f)$.
         \end{enumerate}
 \end{enumerate}
@@ -1749,74 +1750,78 @@ $\sqrt{2}$ in floating point representation.
     \item $\sshare{p} \asn 2^{-1} \cdot (\sshare{p_1}-\sshare{b})
             +\floor{\ell/2}+\mathsf{OR}(\sshare{b},\ell_0)$.
     \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
-            \asn \mathsf{FLMult}((\sshare{v_1},-\ell,0,0,0),(v_\alpha,p_\alpha,z_\alpha,s_\alpha,0))$.
+            \asn \mathsf{FLMult}((\sshare{v_1},-\ell,0,0,0),~~
+		  (v_\alpha,p_\alpha,z_\alpha,s_\alpha,0))$.
     \item $(\sshare{v_0},\sshare{p_0},\sshare{z_0},\sshare{s_0},\sshare{\err_0})
-            \asn \mathsf{FLAdd}((\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),(v_\beta,p_\beta,z_\beta,s_\beta,0))$.
+            \asn \mathsf{FLAdd}((\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),~~
+		  (v_\beta,p_\beta,z_\beta,s_\beta,0))$.
     \item $(\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g})
-            \asn \mathsf{FLMult}((\sshare{v_1},-\ell,0,0,0),(\sshare{v_0},\sshare{p_0},\sshare{z_0},\sshare{s_0},\sshare{\err_0}))$.
+            \asn \mathsf{FLMult}((\sshare{v_1},-\ell,0,0,0),(\sshare{v_0},~~
+		  \sshare{p_0},\sshare{z_0},\sshare{s_0},\sshare{\err_0}))$.
     \item  $(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
             \asn   (\sshare{v_0},\sshare{p_0}-1,\sshare{z_0},\sshare{s_0},\sshare{\err_0})$.
-    \item For $i \in [1,\ldots,\ceil{\ell/5.4}-1]$ do
+    \item For $i \in [1,\ldots,\ceil{\log_2(\ell/5.4)}-1]$ do
           \begin{enumerate}
             \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
                     \asn \mathsf{FLMult}(
-                    (\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g}),
+                    (\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g}),~~
                     (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
                     )$.
             \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
                     \asn \mathsf{FLSub}(
-                    (3 \cdot 2^{\ell-2},-(\ell-1),0,0,0),
+                    (3 \cdot 2^{\ell-2},-(\ell-1),0,0,0),~~
                     (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
                     )$.
             \item $(\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g})
                     \asn \mathsf{FLMult}(
-                    (\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g}),
+                    (\sshare{v_g},\sshare{p_g},\sshare{z_g},\sshare{s_g},\sshare{\err_g}),~~
                     (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
                     )$.
             \item $(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
                     \asn \mathsf{FLMult}(
-                    (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),
+                    (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),~~
                     (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
                     )$.
           \end{enumerate}
     \item $(\sshare{v_{h^2}},\sshare{p_{h^2}},\sshare{z_{h^2}},\sshare{s_{h^2}},\sshare{\err_{h^2}})
             \asn \mathsf{FLMult}(
-            (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),
+            (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),~~
             (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
             )$.
     \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
             \asn \mathsf{FLMult}(
-            (\sshare{v_1},-\ell,0,0,0),
+            (\sshare{v_1},-\ell,0,0,0),~~
             (\sshare{v_{h^2}},\sshare{p_{h^2}},\sshare{z_{h^2}},\sshare{s_{h^2}},\sshare{\err_{h^2}})$.
     \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
             \asn \mathsf{FLSub}(
-            (3 \cdot 2^{\ell-2},-(\ell-1),0,0,0),
+            (3 \cdot 2^{\ell-2},-(\ell-1),0,0,0),~~
             (\sshare{v_2},\sshare{p_2}+1,\sshare{z_2},\sshare{s_2},\sshare{\err_2})
             )$.
     \item $(\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h})
             \asn \mathsf{FLMult}(
-            (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),
+            (\sshare{v_h},\sshare{p_h},\sshare{z_h},\sshare{s_h},\sshare{\err_h}),~~
             (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
             )$.
     \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
             \asn \mathsf{FLMult}(
-            (\sshare{v_1},-\ell,0,0,0),
+            (\sshare{v_1},-\ell,0,0,0),~~
             (\sshare{v_h},\sshare{p_h}+1,\sshare{z_h},\sshare{s_h},\sshare{\err_h})
             )$.
     \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
             \asn \mathsf{FLMult}(
-            (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2})
+            (\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),~~
             (2^{\ell-1} \cdot (1-\sshare{c}) + v_{\sqrt{2}} \cdot \sshare{c},
-            -(1-\sshare{c}) \cdot (\ell-1)+p_{\sqrt{2}} \cdot \sshare{c},0,0,0)$.
+	    -(1-\sshare{c}) \cdot (\ell-1)+p_{\sqrt{2}} \cdot \sshare{c},0,0,0)
+	    )$.
     \item $\sshare{p} \asn (\sshare{p_2}+\sshare{p}) \cdot (1-\sshare{z_1})$.
     \item $\sshare{v} \asn \sshare{v_2} \cdot (1-\sshare{z_1})$.
-    \item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err_2},\sshare{s_1})$.
+    \item $\sshare{\err} \asn \sshare{\err_2} + \sshare{s_1}$.
     \item Return $(\sshare{v},\sshare{p},\sshare{z_1},\sshare{s_1},\sshare{\err})$.
   \end{enumerate}
-  \todo{Have we picked up $\err$ correctly here?}
 
   \msubsection{EXP and LOG Functions}
-  \todo{These functions are only currently supported in their fixed point versions.}
+  \todo{The exp and log functions are only currently supported in their fixed point versions
+  in the Mamba pipeline. Both functions are supported in the Rust pipeline.}
 
   A secure fixed point exponentiation and logarithm algorithm is not found anywhere, so
   this is our own one derived from the identities in the book.
@@ -2049,20 +2054,20 @@ In particular if you look deep inside the code there is the following cryptic re
             \item $(\sshare{v_2},\sshare{p_2},0,0,0) \asn \mathsf{FLMult}((\sshare{v_y},\sshare{p_y},0,0,0),(cv_i,cp_i,0,0,0))$.
             \item $(\sshare{v},\sshare{p},0,0,0) \asn \mathsf{FLAdd}((\sshare{v},\sshare{p},0,0,0),(\sshare{v_2},\sshare{p_2},0,0,0))$.
           \end{enumerate}
-    \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}) \asn \mathsf{Int2FL}(\ell,-\sshare{p},\ell,\ell)$.
+  \item $(\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}) \asn \mathsf{Int2FL}(\ell+\sshare{p},\ell,\ell)$. % Note paper here says $\ell - \sshare{p}$ but this is definitely wrong
     \item $(\sshare{v},\sshare{p},\sshare{z},\sshare{s},\sshare{\err}) \asn \mathsf{FLSub}((\sshare{v_2},\sshare{p_2},\sshare{z_2},\sshare{s_2},\sshare{\err_2}),(\sshare{v},\sshare{p},0,0,0))$.
     \item $\sshare{a} \asn \mathsf{EQ}(\sshare{p_1},-(\ell-1),k)$.
     \item $\sshare{b} \asn \mathsf{EQ}(\sshare{v_1},2^{\ell-1},\ell)$.
     \item $\sshare{z} \asn \sshare{a} \cdot \sshare{b}$.
     \item $\sshare{v} \asn \sshare{v} \cdot(1-\sshare{z})$.
-    \item $\sshare{\err} \asn \mathsf{OR}(\sshare{\err},\sshare{\err_1})$.
-    \item $\sshare{\err} \asn \mathsf{OR}(\mathsf{OR}(\sshare{z_1},\sshare{s_1}),\err)$.
+    \item $\sshare{\err} \asn \sshare{\err_1} + \sshare{z_1} + \sshare{s_1}$.
     \item $\sshare{p} \asn \sshare{p} \cdot(1-\sshare{z})$.
-    \item Return $(\sshare{v},\sshare{p},\sshare{z_1},\sshare{s_1},\sshare{\err})$.
+    \item Return $(\sshare{v},\sshare{p},\sshare{z},\sshare{s_1},\sshare{\err})$.
   \end{enumerate}
 
 
   \msubsection{Trigonometic Functions}
+  \todo{These still need implementing for sfloat in the Rust pipeline.}
   All three basic trigonometric functions support inputs of either
   fixed point or floating point precision.
   With the output type being equal to the input type.
@@ -2231,8 +2236,9 @@ y = mpc_math.tan(x)
 \end{lstlisting}
 
   \msubsection{Inverse Trigonometric Functions}
-  \todo{Given that SCALE-MAMBA currently only supports square root operations for sfix inputs,
+  \todo{Given that MAMBA currently only supports square root operations for sfix inputs,
     inverse trigonometric functions are restricted to sfix inputs.}
+  \todo{These still need implementing for sfloat in the Rust pipeline.}
   To obtain  $\arcsin$ and $\arccos$ one makes use of the formula:
   \begin{align*}
     \arcsin (x) & = \arctan \left( \frac{x}{\sqrt{1-x^2}} \right), \\

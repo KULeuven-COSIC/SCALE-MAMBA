@@ -402,9 +402,9 @@ impl<const K: u64, const KAPPA: u64> ScaleCmpZ<SecretModp> for SecretInteger<K, 
     fn eqz(self) -> SecretModp {
         let (r_dprime, r, rb) = PRandM_Slice(K, K, KAPPA);
         let twok = modp_two_power(K);
-        let t = self.x + r_dprime * twok + self.x + r;
+        let t = self.x + r_dprime * twok + r;
         let c = t.reveal();
-        let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(c, K);
+        let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(c, K);
         let mut d: Slice<SecretModp> = Slice::uninitialized(K);
         for i in 0..K {
             let v = *cb.get_unchecked(i) * *rb.get_unchecked(i);
@@ -421,8 +421,7 @@ impl<const K: u64, const KAPPA: u64> ScaleCmpZ<SecretModp> for SecretInteger<K, 
 impl<const K: u64> ScaleCmpZ<ClearModp> for ClearInteger<K> {
     #[inline(always)]
     fn ltz(self) -> ClearModp {
-        let t = self.Trunc(K - 1, true);
-        -t.x
+        unsafe { __ltzc(self.x) }
     }
     #[inline(always)]
     fn lez(self) -> ClearModp {
@@ -443,13 +442,7 @@ impl<const K: u64> ScaleCmpZ<ClearModp> for ClearInteger<K> {
     }
     #[inline(always)]
     fn eqz(self) -> ClearModp {
-        let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(self.x, K);
-        let one = ClearModp::from(1);
-        let mut d = one;
-        for i in 0..K {
-            d = d * (one - *cb.get_unchecked(i));
-        }
-        d
+        unsafe { __eqzc(self.x) }
     }
     #[inline(always)]
     fn nez(self) -> ClearModp {
@@ -648,7 +641,7 @@ pub fn B2U<const K: u64, const KAPPA: u64>(a: SecretModp) -> (Slice<SecretModp>,
     let random = PRandM_Slice(K, K, KAPPA);
     let v = pow2a + modp_two_power(K) * random.0 + random.1;
     let c = v.reveal();
-    let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(c, K);
+    let cb: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(c, K);
     let mut x: Slice<SecretModp> = Slice::uninitialized(K);
     for i in 0..K {
         let v = *cb.get_unchecked(i) * *random.2.get_unchecked(i);
@@ -736,12 +729,14 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
         Self { x: a }
     }
 
+    //  This computes (t = self/2^m, self-pow2*t, pow2) where pow2 = 2^m
     #[allow(non_snake_case)]
-    pub fn ObliviousTrunc(self, m: SecretModp) -> Self {
+    pub fn ObliviousTrunc(self, m: SecretModp) -> Array<SecretModp, 3> {
+        let mut ans: Array<SecretModp, 3> = Array::uninitialized();
         if K == 1 {
-            let ans = Self {
-                x: self.x * (ClearModp::from(1) - m),
-            };
+            ans.set(0, &(self.x * (ClearModp::from(1) - m)));
+            ans.set(1, &(self.x * m));
+            ans.set(2, &(ClearModp::from(1) + m));
             return ans;
         }
         unsafe { __reqbl((K + KAPPA) as u32) };
@@ -773,9 +768,14 @@ impl<const K: u64, const KAPPA: u64> SecretInteger<K, KAPPA> {
         }
         let test: SecretInteger<K, KAPPA> = SecretInteger::from(c_dprime - r_prime);
         let d = test.ltz();
+
         let pow2inv = Inv(pow2m);
         let b = (self.x - c_dprime + r_prime) * pow2inv - d;
-        Self { x: b }
+        ans.set(0, &b);
+        let b = c_dprime - r_prime + pow2m * d;
+        ans.set(1, &b);
+        ans.set(2, &pow2m);
+        ans
     }
 }
 

@@ -10,6 +10,7 @@ use crate::integer::*;
 use crate::local_functions::*;
 use crate::slice::*;
 use core::ops::{Add, Div, Mul, Neg, Sub};
+use scale::alloc::*;
 use scale::*;
 
 /* This gives floating point arithmetic
@@ -28,6 +29,91 @@ pub struct ClearFloat<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> {
 #[derive(Clone)]
 pub struct SecretFloat<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> {
     param: Array<SecretModp, 5>, // v, p, z, s, err
+}
+
+/*
+ * Stuff to enable usage in arrays etc
+ *
+ */
+
+impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> GetAllocator
+    for ClearFloat<V, P, DETECT_OVERFLOW>
+{
+    type Allocator = &'static Allocator<ClearModp>;
+    fn get_allocator() -> &'static Allocator<ClearModp> {
+        ClearModp::get_allocator()
+    }
+    fn size_type() -> u64 {
+        5
+    }
+}
+
+impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> LoadFromMem<i64>
+    for ClearFloat<V, P, DETECT_OVERFLOW>
+{
+    #[allow(non_snake_case)]
+    fn load_from_mem(idx: i64) -> Self {
+        let mut Atemp: Array<ClearModp, 5> = Array::uninitialized();
+        Atemp.set(0, &ClearModp::load_from_mem(idx));
+        Atemp.set(1, &ClearModp::load_from_mem(idx + 1));
+        Atemp.set(2, &ClearModp::load_from_mem(idx + 2));
+        Atemp.set(3, &ClearModp::load_from_mem(idx + 3));
+        Atemp.set(4, &ClearModp::load_from_mem(idx + 4));
+        let temp: ClearFloat<V, P, DETECT_OVERFLOW> = ClearFloat::set(Atemp);
+        temp
+    }
+}
+
+impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> StoreInMem<i64>
+    for ClearFloat<V, P, DETECT_OVERFLOW>
+{
+    unsafe fn store_in_mem(&self, idx: i64) {
+        self.v().store_in_mem(idx);
+        self.p().store_in_mem(idx + 1);
+        self.z().store_in_mem(idx + 2);
+        self.s().store_in_mem(idx + 3);
+        self.err().store_in_mem(idx + 4);
+    }
+}
+
+impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> GetAllocator
+    for SecretFloat<V, P, KAPPA, DETECT_OVERFLOW>
+{
+    type Allocator = &'static Allocator<SecretModp>;
+    fn get_allocator() -> &'static Allocator<SecretModp> {
+        SecretModp::get_allocator()
+    }
+    fn size_type() -> u64 {
+        5
+    }
+}
+
+impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> LoadFromMem<i64>
+    for SecretFloat<V, P, KAPPA, DETECT_OVERFLOW>
+{
+    #[allow(non_snake_case)]
+    fn load_from_mem(idx: i64) -> Self {
+        let mut Atemp: Array<SecretModp, 5> = Array::uninitialized();
+        Atemp.set(0, &SecretModp::load_from_mem(idx));
+        Atemp.set(1, &SecretModp::load_from_mem(idx + 1));
+        Atemp.set(2, &SecretModp::load_from_mem(idx + 2));
+        Atemp.set(3, &SecretModp::load_from_mem(idx + 3));
+        Atemp.set(4, &SecretModp::load_from_mem(idx + 4));
+        let temp: SecretFloat<V, P, KAPPA, DETECT_OVERFLOW> = SecretFloat::set(Atemp);
+        temp
+    }
+}
+
+impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> StoreInMem<i64>
+    for SecretFloat<V, P, KAPPA, DETECT_OVERFLOW>
+{
+    unsafe fn store_in_mem(&self, idx: i64) {
+        self.v().store_in_mem(idx);
+        self.p().store_in_mem(idx + 1);
+        self.z().store_in_mem(idx + 2);
+        self.s().store_in_mem(idx + 3);
+        self.err().store_in_mem(idx + 4);
+    }
 }
 
 /* Prints a clear float */
@@ -77,9 +163,9 @@ where
         let s = p_int.ltz() * ClearModp::from(-2) + ClearModp::from(1);
         let sp_int: SecretInteger<P, KAPPA> = SecretInteger::from(s * p);
         let max: SecretInteger<P, KAPPA> = SecretInteger::from(two_power(P - 1) as i64);
-        return sp_int.ge(max);
+        sp_int.ge(max)
     } else {
-        return SecretModp::from(0);
+        SecretModp::from(0)
     }
 }
 
@@ -95,9 +181,9 @@ where
         let s = p_int.ltz() * ClearModp::from(-2) + ClearModp::from(1);
         let sp_int: ClearInteger<P> = ClearInteger::from(s * p);
         let max: ClearInteger<P> = ClearInteger::from(two_power(P - 1) as i64);
-        return sp_int.ge(max);
+        sp_int.ge(max)
     } else {
-        return ClearModp::from(0);
+        ClearModp::from(0)
     }
 }
 
@@ -431,7 +517,7 @@ where
     result.set(3, &s);
     result.set(4, &err);
 
-    return result;
+    result
 }
 
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -457,7 +543,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -484,7 +570,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -510,7 +596,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -536,7 +622,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -588,7 +674,7 @@ where
     let v = (d * vmax + (ClearModp::from(1) - d) * v4)
         * modp_two_power(V)
         * Inv(SecretModp::from(pow_delta)).reveal();
-    let u = Slice::bit_decomposition_ClearModp(v, 2 * V + 1);
+    let u = Slice::bit_decomposition_ClearModp_Signed(v, 2 * V + 1);
     let u_reverse = u.reverse().slice(..V + 1);
     let h = u_reverse.PreOr();
     let p0 = ClearModp::from((V + 1) as i64) - h.evaluate(ClearModp::from(1));
@@ -627,7 +713,7 @@ where
     result.set(3, &s);
     result.set(4, &err);
 
-    return result;
+    result
 }
 
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool>
@@ -652,7 +738,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool>
@@ -677,7 +763,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool>
@@ -702,7 +788,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> Add<ClearFloat<V, P, DETECT_OVERFLOW>>
@@ -727,7 +813,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 
@@ -755,7 +841,7 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -781,7 +867,7 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -807,7 +893,7 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -833,7 +919,7 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -860,7 +946,7 @@ where
             SecretModp::from(self.s()),
             SecretModp::from(self.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -886,7 +972,7 @@ where
             SecretModp::from(self.s()),
             SecretModp::from(self.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -912,7 +998,7 @@ where
             SecretModp::from(self.s()),
             SecretModp::from(self.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -938,7 +1024,7 @@ where
             SecretModp::from(self.s()),
             SecretModp::from(self.err()),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -956,7 +1042,7 @@ impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> Neg
         param_new.set(2, &self.z());
         param_new.set(3, &s);
         param_new.set(4, &self.err());
-        return ClearFloat { param: param_new };
+        ClearFloat { param: param_new }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> Neg
@@ -973,7 +1059,7 @@ impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> 
         param_new.set(2, &self.z());
         param_new.set(3, &s);
         param_new.set(4, &self.err());
-        return SecretFloat { param: param_new };
+        SecretFloat { param: param_new }
     }
 }
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool> Neg
@@ -988,7 +1074,7 @@ impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool> Neg
         param_new.set(2, &self.z());
         param_new.set(3, &(ClearModp::from(1) - self.s()));
         param_new.set(4, &self.err());
-        return ClearFloat { param: param_new };
+        ClearFloat { param: param_new }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool> Neg
@@ -1003,7 +1089,7 @@ impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bo
         param_new.set(2, &self.z());
         param_new.set(3, &(ClearModp::from(1) - self.s()));
         param_new.set(4, &self.err());
-        return SecretFloat { param: param_new };
+        SecretFloat { param: param_new }
     }
 }
 
@@ -1332,7 +1418,7 @@ where
         &(err1 + err2 + flow_detect::<V, P, KAPPA, DETECT_OVERFLOW>(p)),
     );
 
-    return res;
+    res
 }
 
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1357,7 +1443,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1383,7 +1469,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1409,7 +1495,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1436,7 +1522,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1482,7 +1568,7 @@ where
         &(err1 + err2 + flow_detect_c::<V, P, DETECT_OVERFLOW>(p)),
     );
 
-    return res;
+    res
 }
 
 impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> Mul<ClearFloat<V, P, DETECT_OVERFLOW>>
@@ -1507,7 +1593,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 
@@ -1533,7 +1619,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 
@@ -1559,7 +1645,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool>
@@ -1584,7 +1670,7 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+        ClearFloat { param: result }
     }
 }
 
@@ -1610,7 +1696,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1636,7 +1722,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1662,7 +1748,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1687,7 +1773,7 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1713,7 +1799,7 @@ where
             self.s(),
             self.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1738,7 +1824,7 @@ where
             self.s(),
             self.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1764,7 +1850,7 @@ where
             self.s(),
             self.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1789,7 +1875,7 @@ where
             self.s(),
             self.err(),
         );
-        return SecretFloat { param: result };
+        SecretFloat { param: result }
     }
 }
 
@@ -1813,9 +1899,11 @@ where
     }
     let y_int: SecretInteger<{ 2 * V + 1 }, KAPPA> = SecretInteger::from(y * (two_pow_v - x));
     let y: SecretModp = y_int.TruncPr(V, true).rep();
-    return y;
+
+    y
 }
 
+#[allow(non_snake_case)]
 pub fn ssfloatdiv<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>(
     v1: SecretModp,
     p1: SecretModp,
@@ -1842,7 +1930,8 @@ where
     let t = v * b + v;
 
     let t_int: SecretInteger<{ V + 1 }, KAPPA> = SecretInteger::from(t);
-    let v: SecretModp = t_int.ObliviousTrunc(SecretModp::from(1)).rep();
+    let ObTr = t_int.ObliviousTrunc(SecretModp::from(1));
+    let v = *ObTr.get_unchecked(0);
     let p =
         (ClearModp::from(1) - z1) * (p1 - p2 - ClearModp::from(V as i64) + ClearModp::from(1) - b);
     let s = s1 + s2 - ClearModp::from(2) * s1 * s2;
@@ -1854,6 +1943,7 @@ where
     result.set(2, &z1);
     result.set(3, &s);
     result.set(4, &err);
+
     result
 }
 
@@ -1880,7 +1970,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1905,7 +1996,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1930,7 +2022,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -1955,7 +2048,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 
@@ -1981,7 +2075,8 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2006,7 +2101,8 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2031,7 +2127,8 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2056,7 +2153,8 @@ where
             SecretModp::from(other.s()),
             SecretModp::from(other.err()),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2081,7 +2179,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2106,7 +2205,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2131,7 +2231,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const KAPPA: u64, const DETECT_OVERFLOW: bool>
@@ -2156,7 +2257,8 @@ where
             other.s(),
             other.err(),
         );
-        return SecretFloat { param: result };
+
+        SecretFloat { param: result }
     }
 }
 
@@ -2180,7 +2282,8 @@ where
     }
     let y_int: ClearInteger<{ 2 * V + 1 }> = ClearInteger::from(y * (two_pow_v - x));
     let y: ClearModp = y_int.Trunc(V, true).rep();
-    return y;
+
+    y
 }
 pub fn ccfloatdiv<const V: u64, const P: u64, const DETECT_OVERFLOW: bool>(
     v1: ClearModp,
@@ -2220,6 +2323,7 @@ where
     result.set(2, &z1);
     result.set(3, &s);
     result.set(4, &err);
+
     result
 }
 
@@ -2245,7 +2349,8 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+
+        ClearFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool>
@@ -2270,7 +2375,8 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+
+        ClearFloat { param: result }
     }
 }
 impl<'a, const V: u64, const P: u64, const DETECT_OVERFLOW: bool>
@@ -2295,7 +2401,8 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+
+        ClearFloat { param: result }
     }
 }
 impl<const V: u64, const P: u64, const DETECT_OVERFLOW: bool> Div<ClearFloat<V, P, DETECT_OVERFLOW>>
@@ -2320,7 +2427,8 @@ where
             other.s(),
             other.err(),
         );
-        return ClearFloat { param: result };
+
+        ClearFloat { param: result }
     }
 }
 

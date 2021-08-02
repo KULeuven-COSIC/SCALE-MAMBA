@@ -17,7 +17,7 @@ run_test() {
     test=$1
     shift
     printf "\n\n\n\n\n\n\n\n\n\n"
-    echo "$test"
+    echo "        $test       "
     $ROOT/compile-mamba.py -a scasm -n -r -M -u -D -s Programs/$test || exit 1
     mv *.asm Assembler/tests/scasm-tests/
 }

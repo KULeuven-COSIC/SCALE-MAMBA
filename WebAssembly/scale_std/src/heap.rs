@@ -4,7 +4,7 @@
 use scale::alloc::GetAllocator;
 use scale::{alloc::Allocate, LoadFromMem, StoreInMem};
 
-/// A smart pointer datastructure that allocates memory but never frees it
+/// A smart pointer datastructure that allocates memory and deallocates when goes out of scope
 pub struct Box<T>
 where
     T: GetAllocator,
@@ -33,6 +33,9 @@ impl<T: GetAllocator> GetAllocator for Box<T> {
     fn get_allocator() -> Self::Allocator {
         T::get_allocator()
     }
+    fn size_type() -> u64 {
+        T::size_type()
+    }
 }
 
 impl<T: StoreInMem<i64> + GetAllocator> Box<T> {
@@ -49,7 +52,7 @@ impl<T: GetAllocator> Box<T> {
         Self {
             phantom: core::marker::PhantomData,
             keep_alive: false,
-            address: T::get_allocator().allocate(1),
+            address: T::get_allocator().allocate(T::size_type()),
         }
     }
 
@@ -58,7 +61,7 @@ impl<T: GetAllocator> Box<T> {
         Self {
             phantom: core::marker::PhantomData,
             keep_alive: false,
-            address: T::get_allocator().allocate(length),
+            address: T::get_allocator().allocate(length * T::size_type()),
         }
     }
 

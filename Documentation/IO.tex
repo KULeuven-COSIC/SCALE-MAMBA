@@ -243,17 +243,17 @@ and \verb+c+ of type \verb+regint+.
     b=public_input(10)
 
     # Share Output on channel 1000
-    output_shares(1000,[sint(1)])
+    output_shares(regint(1000),[sint(1)])
 
     # Share Input on channel 2000
     inp=[sint()]
-    input_shares(2000,*inp)
+    input_shares(regint(2000),*inp)
 
     # Regint input and output on channel 4
-    a=open_channel_with_return(4)
+    a=open_channel_with_return(regint(4))
     e=regint.public_input(4)
     e.public_output(4)
-    close_channel(4)
+    close_channel(regint(4))
 \end{verbatim}
 The \verb+IO.trigger(Schedule& schedule)+ is called only when a \verb+restart()+ command
 is executed from MAMBA.

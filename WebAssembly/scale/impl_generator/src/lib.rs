@@ -26,8 +26,6 @@ fn asm_ty(ty: &ArgTy) -> proc_macro2::TokenStream {
         ArgTy::Register(RegisterKind::Bit, ..) => quote!(bool),
         ArgTy::Register(RegisterKind::SecretRegint, ..) => quote!(crate::SecretI64),
         ArgTy::List { .. } => unimplemented!(),
-        ArgTy::Player => quote!(u32),
-        ArgTy::Channel => quote!(u32),
     }
 }
 
@@ -42,8 +40,6 @@ fn print_ty(ty: &ArgTy) -> proc_macro2::TokenStream {
         ArgTy::Register(RegisterKind::Bit, ..) => quote!(bool),
         ArgTy::Register(RegisterKind::SecretRegint, ..) => quote!(crate::SecretI64),
         ArgTy::List { .. } => unimplemented!(),
-        ArgTy::Player => quote!(crate::Player),
-        ArgTy::Channel => quote!(crate::Channel),
     }
 }
 
@@ -61,8 +57,6 @@ fn ty_generics(
         ArgTy::Register(RegisterKind::Bit, ..) => None,
         ArgTy::Register(RegisterKind::SecretRegint, ..) => None,
         ArgTy::List { .. } => unimplemented!(),
-        ArgTy::Player => Some(quote!(u32)),
-        ArgTy::Channel => Some(quote!(u32)),
     };
     match ty {
         None => (None, None),
@@ -84,16 +78,12 @@ fn pop_ty_fn_name(ty: &ArgTy) -> &'static str {
         ArgTy::Register(RegisterKind::Bit, ..) => "bool",
         ArgTy::Register(RegisterKind::SecretRegint, ..) => "secret_i64",
         ArgTy::List { .. } => unimplemented!(),
-        ArgTy::Player => unimplemented!(),
-        ArgTy::Channel => unimplemented!(),
     }
 }
 
 fn check_ty_for_impl(ty: &ArgTy) -> bool {
     match ty {
         ArgTy::Int { .. }
-        | ArgTy::Player
-        | ArgTy::Channel
         | ArgTy::Register(RegisterKind::Regint, ..)
         | ArgTy::Register(RegisterKind::Bit, ..) => false,
         ArgTy::Register(RegisterKind::Secret, ..)

@@ -22,7 +22,7 @@ mod types {
     pub struct SecretI64(f64);
     #[repr(transparent)]
     #[derive(Copy, Clone)]
-    pub struct SecretBit(pub(crate) SecretModp);
+    pub struct SecretBit(pub(crate) SecretI64);
     #[repr(transparent)]
     #[derive(Copy, Clone)]
     pub struct RawSecretBit(pub(crate) f64);
@@ -137,10 +137,10 @@ impl<T: StoreInMem<i64>> StoreInMem<(i64, i64)> for Option<T> {
 impl<T: LoadFromMem<i64>> LoadFromMem<(i64, i64)> for Option<T> {
     fn load_from_mem(idk: (i64, i64)) -> Option<T> {
         let ind = i64::load_from_mem(idk.0);
-        return match ind {
+        match ind {
             1 => Some(T::load_from_mem(idk.1)),
             _ => None,
-        };
+        }
     }
 }
 
@@ -362,8 +362,7 @@ pub fn __square() -> (SecretModp, SecretModp) {
 
 #[cfg(feature = "emulate")]
 pub unsafe fn __bit() -> SecretModp {
-    let s = SecretModp::from(0);
-    s
+    SecretModp::from(0)
 }
 
 pub trait Test {
@@ -384,11 +383,11 @@ pub trait TestMem {
 }
 
 pub trait Output {
-    fn output<const C: u32>(self, ch: Channel<C>);
+    fn output(self, ch: i64);
 }
 
 pub trait Input {
-    fn input<const C: u32>(ch: Channel<C>) -> Self;
+    fn input(ch: i64) -> Self;
 }
 
 #[cfg(not(feature = "emulate"))]
@@ -521,9 +520,6 @@ macro_rules! execute_local_function {
 }
 
 #[derive(Copy, Clone)]
-pub struct Player<const ID: u32>;
-
-#[derive(Copy, Clone)]
 pub struct ConstU32<const U: u32>;
 
 #[derive(Copy, Clone)]
@@ -534,9 +530,6 @@ pub struct ConstBool<const U: bool>;
 
 #[derive(Copy, Clone)]
 pub struct ConstI32<const I: i32>;
-
-#[derive(Copy, Clone)]
-pub struct Channel<const ID: u32>;
 
 /// Internal helper to map user-visible types
 /// to internal types.
@@ -590,14 +583,6 @@ impl AssemblyType for SecretI64 {
     }
 }
 
-impl<const I: u32> AssemblyType for Channel<I> {
-    type Type = u32;
-
-    #[inline(always)]
-    fn to_asm(self) -> Self::Type {
-        I
-    }
-}
 
 impl<const I: i32> AssemblyType for ConstI32<I> {
     type Type = i32;
@@ -635,14 +620,6 @@ impl<const I: bool> AssemblyType for ConstBool<I> {
     }
 }
 
-impl<const I: u32> AssemblyType for Player<I> {
-    type Type = u32;
-
-    #[inline(always)]
-    fn to_asm(self) -> Self::Type {
-        I
-    }
-}
 
 impl AssemblyType for Never {
     type Type = Never;

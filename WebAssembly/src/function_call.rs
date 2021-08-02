@@ -2,7 +2,7 @@
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
 use scasm::{
-    asm::{Instruction, Jump, JumpMode, Terminator},
+    asm::{Instruction, Jump, JumpMode, Statement, Terminator},
     lexer::RegisterKind,
     span::Span,
 };
@@ -30,12 +30,6 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         let function_start_block = self.add(func);
         trace!(function_start_block);
 
-        // Write function arguments
-        for &local in func.args.iter().rev() {
-            let val = self.stack.pop();
-            self.assign_to_persistent(PersistentKind::Local(local), val, "function argument");
-        }
-
         // Stash the *current* function's local variables
         let mut locals = Used::default();
         dfs_in_order(&mut locals, func, func.entry_block());
@@ -51,6 +45,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 self.locals.insert(*id);
             }
         }
+
+        // FIXME: bug on the push (we are sometimes calling a push on a register which is not set)
         for local in locals.iter().copied() {
             let val = self.stack.expect_local(local);
             let instruction = match val.kind() {
@@ -65,12 +61,19 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 destinations: vec![],
                 values: vec![Span::DUMMY.with(val.into())],
             };
-            self.push_stmt(instr);
+            let comment = self.comment(|f| write!(f, "push for local {}", local.index()))?;
+            self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+        }
+
+        // Write function arguments
+        for &local in func.args.iter().rev() {
+            let val = self.stack.pop()?;
+            self.assign_to_persistent(PersistentKind::Local(local), val, "function argument")?;
         }
 
         // Actually perform the call
         let results = self.module.types.results(func.ty());
-        let comment = self.comment(|f| write!(f, "call {}", name.as_ref().unwrap()));
+        let comment = self.comment(|f| write!(f, "call {}", name.as_ref().unwrap()))?;
 
         let fallthrough_block = self.allocate_new_block();
         let terminator = std::mem::replace(
@@ -83,7 +86,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         );
         // Continue after the call
         self.scasm_block_id = fallthrough_block;
-        self.set_terminator(terminator);
+        self.set_terminator(terminator)?;
 
         // Restore local variables
         for local in locals.iter().copied().rev() {
@@ -95,12 +98,14 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 RegisterKind::SecretRegint => "popsint",
                 RegisterKind::SecretBit => "popsbit",
             };
+
             let instr = Instruction::General {
                 instruction,
-                destinations: vec![Span::DUMMY.with(val)],
+                destinations: vec![comment.with(val)],
                 values: vec![],
             };
-            self.push_stmt(instr);
+            let comment = self.comment(|f| write!(f, "pop for local {}", local.index()))?;
+            self.push_stmt(Statement::from_instr_with_comment(instr, comment));
         }
 
         // Read function return values
@@ -108,8 +113,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             self.read_from_persistent(
                 PersistentKind::FunctionReturn(func.entry_block(), i),
                 result.as_register_kind(),
-                "return value passing via stack",
-            );
+                "read return value passing via stack",
+            )?;
         }
         Ok(())
     }

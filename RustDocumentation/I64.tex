@@ -19,14 +19,14 @@ The IO class functions for $\ints$ datatypes can be access via the following com
 \func{i64::input(x)}
 Loads an $\ints$ from the channel $x$.
 \begin{lstlisting}
-    let a=i64::input(Channel::<10>);
+    let a=i64::input(10);
 \end{lstlisting}
 
 \func{a.output(x)}
 Writes an $\ints$ to channel $x$.
 \begin{lstlisting}
    let v: i64 = 1;
-   v.output(Channel::<10>);
+   v.output(10);
 \end{lstlisting}
 
 \subsubsection{Comparisons}

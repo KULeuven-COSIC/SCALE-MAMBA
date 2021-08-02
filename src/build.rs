@@ -34,6 +34,7 @@ fn main() -> eyre::Result<()> {
         .flag("-std=c++14")
         .flag("-pedantic")
         .flag("-Wimplicit-fallthrough=1") // any comment will silence the warning // BGR: fails with GCC 4.5
+        .flag("-Wno-unused-parameter")
         .flag("-Wno-deprecated-copy") // FIXME: we should fix the problems in the source instead of silencing the warning
         .flag("-Wno-sign-compare") // Hide warnings about signed ints getting compared with unsigned ints
         .flag("-Wno-return-type") // Hide warnings about missing return types
@@ -43,7 +44,7 @@ fn main() -> eyre::Result<()> {
         .flag("-mpclmul")
         .flag("-msse4.1")
         .flag("-mavx")
-        .flag("-march=native")
+        // .flag("-march=native")
         .flag("-funroll-loops")
         .flag("-fverbose-asm");
 
@@ -62,38 +63,57 @@ fn main() -> eyre::Result<()> {
     build
         .includes(includes)
         .include(".") // Also add the current directory to include paths, as most imports are relative to this dir.
+        .include("/usr/local/lib/cryptopp/include")
+        .include("/usr/local/lib/openssl/include")
+        .include("/usr/local/lib/mpir/include")
         .files(files)
         .compile("scale-mamba"); // The output `.a` file is named `scale-mamba.a`
 
-    // Pick up some libraries via pkg_config
-    pkg_config::Config::new()
-        .atleast_version("1.1.0")
-        .probe("openssl")?;
-    pkg_config::Config::new()
-        .atleast_version("1.1.0")
-        .probe("libcrypto")?;
+    if std::env::var("NIX_OS_BUILD").is_ok() {
+        // Pick up some libraries via pkg_config
+        pkg_config::Config::new()
+            .atleast_version("1.1.0")
+            .probe("openssl")?;
+        pkg_config::Config::new()
+            .atleast_version("1.1.0")
+            .probe("libcrypto")?;
 
-    // Some libraries do not have pkg-config files and need to be found manually
-    // pkg_config::Config::new()
-    //     .atleast_version("8.2.0")
-    //     .probe("libcrypto")?;
-    println!("cargo:rerun-if-env-changed=LIBCRYPTO_PATH");
-    println!(
-        "cargo:rustc-link-search=native={}",
-        std::env::var("LIBCRYPTO_PATH")
-            .context("cannot find `cryptopp`, please specify the `LIBCRYPTO_PATH` env var")?
-    );
+        // Some libraries do not have pkg-config files and need to be found manually
+        // pkg_config::Config::new()
+        //     .atleast_version("8.2.0")
+        //     .probe("libcrypto")?;
+        println!("cargo:rerun-if-env-changed=LIBCRYPTO_PATH");
+        println!(
+            "cargo:rustc-link-search=native={}",
+            std::env::var("LIBCRYPTO_PATH")
+                .context("cannot find `cryptopp`, please specify the `LIBCRYPTO_PATH` env var")?
+        );
 
-    // waiting for https://github.com/wbhart/mpir/issues/288
-    // pkg_config::Config::new()
-    //     .atleast_version("3.0.0")
-    //     .probe("mpir")?;
-    println!("cargo:rerun-if-env-changed=LIBMPIR_PATH");
-    println!(
-        "cargo:rustc-link-search=native={}",
-        std::env::var("LIBMPIR_PATH")
-            .context("cannot find `cryptopp`, please specify the `LIBCRYPTO_PATH` env var")?
-    );
+        // waiting for https://github.com/wbhart/mpir/issues/288
+        // pkg_config::Config::new()
+        //     .atleast_version("3.0.0")
+        //     .probe("mpir")?;
+        println!("cargo:rerun-if-env-changed=LIBMPIR_PATH");
+        println!(
+            "cargo:rustc-link-search=native={}",
+            std::env::var("LIBMPIR_PATH")
+                .context("cannot find `cryptopp`, please specify the `LIBMPIR_PATH` env var")?
+        );
+    } else {
+        println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu");
+        println!("cargo:rustc-link-search=native=/usr/lib");
+        println!("cargo:rustc-link-search=native=/usr/lib64");
+        println!("cargo:rustc-link-search=native=/lib64");
+        println!("cargo:rustc-link-search=native=/usr/local/lib");
+        println!("cargo:rustc-link-search=native=/usr/local/lib/cryptopp/lib");
+        println!("cargo:rustc-link-search=native=/usr/local/lib/openssl/lib");
+        println!("cargo:rustc-link-search=native=/usr/local/lib/mpir/lib");
+        println!("cargo:rustc-link-lib=dylib=stdc++");
+        println!("cargo:rustc-link-lib=static=crypto");
+        println!("cargo:rustc-link-lib=static=ssl");
+        println!("cargo:rustc-link-lib=dylib=z");
+    }
+
     println!("cargo:rustc-link-lib=dylib=mpirxx");
     println!("cargo:rustc-link-lib=dylib=mpir");
     println!("cargo:rustc-link-lib=static=cryptopp");

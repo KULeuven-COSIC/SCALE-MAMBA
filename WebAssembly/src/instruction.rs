@@ -3,6 +3,7 @@
 
 use std::convert::{TryFrom, TryInto};
 
+use anyhow::Context as _;
 use scasm::{
     asm::Instruction,
     asm::Jump,
@@ -24,23 +25,24 @@ use walrus::{
     FunctionKind, GlobalId,
 };
 
-use crate::{error::Error, stack::AsRegisterKind, stack::PersistentKind, CurrentBlockHandler};
+use crate::{stack::AsRegisterKind, stack::PersistentKind, CurrentBlockHandler};
 
 impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
-    pub(crate) fn global_set(&mut self, val: Operand, global: GlobalId) {
-        let reg = self.stack.global(global);
+    pub(crate) fn global_set(&mut self, val: Operand, global: GlobalId) -> anyhow::Result<()> {
+        let reg = self.stack.global(global)?;
         let instr = Instruction::Assign {
             destination: reg.into(),
             value: val.into(),
         };
         let comment = self
             .bh
-            .comment(|f| write!(f, "read from global {}: {}", global.index(), reg));
+            .comment(|f| write!(f, "read from global {}: {}", global.index(), reg))?;
         self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+        Ok(())
     }
 
-    pub fn wasm_val_to_op(&mut self, val: Value) -> Operand {
-        match val {
+    pub fn wasm_val_to_op(&mut self, val: Value) -> anyhow::Result<Operand> {
+        Ok(match val {
             Value::I64(i) if i32::try_from(i).is_ok() => Operand::Value(Const::Int(i as i32)),
             Value::I64(i) => {
                 let mut upper = i >> 32;
@@ -81,15 +83,15 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             }
             Value::I32(i) => Operand::Value(Const::Int(i)),
             Value::F32(f) if f == 0.0 => Operand::Value(Const::Int(0)),
-            other => unimplemented!("{:?}", other),
-        }
+            other => anyhow::bail!("unimplemented {:?}", other),
+        })
     }
 
     #[instrument(skip(self), level = "info")]
-    pub fn process_instr(&mut self, instr: &Instr) -> Result<(), Error> {
+    pub fn process_instr(&mut self, instr: &Instr) -> anyhow::Result<()> {
         match instr {
             Instr::Const(c) => {
-                let op = self.wasm_val_to_op(c.value);
+                let op = self.wasm_val_to_op(c.value)?;
                 self.stack.push(op);
             }
             Instr::Call(call) => {
@@ -99,7 +101,9 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     FunctionKind::Import(import) => {
                         let fn_ty = self.module.types.get(import.ty);
                         let import = self.module.imports.get(import.import);
-                        assert_eq!(import.module, "env");
+                        if import.module != "env" {
+                            anyhow::bail!("Instruction Call, import: module is not env")
+                        }
                         trace!(%import.name);
 
                         self.handle_extern_call(&import.name, fn_ty)?;
@@ -119,14 +123,14 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             Instr::Unop(Unop {
                 op: UnaryOp::I32x4Splat,
             }) => {
-                self.stack.pop();
+                self.stack.pop()?;
                 self.stack.push_temp(RegisterKind::Clear);
             }
             Instr::Unop(Unop {
                 op: UnaryOp::I32WrapI64,
             }) => {
-                let val = self.stack.pop();
-                let comment = self.comment(|f| write!(f, "wrap i64 to be a valid i32"));
+                let val = self.stack.pop()?;
+                let comment = self.comment(|f| write!(f, "wrap i64 to be a valid i32"))?;
                 let mask = self.val_to_reg(Operand::from(-1));
                 let result = self.binop(val, mask, RegisterKind::Regint, "andint", comment);
                 self.stack.push(result);
@@ -137,7 +141,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             | Instr::Unop(Unop {
                 op: UnaryOp::I64Eqz,
             }) => {
-                let val = self.stack.pop();
+                let val = self.stack.pop()?;
                 let result = self.unop(val, "eqzint");
                 self.stack.push(result.elem);
             }
@@ -198,8 +202,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             | Instr::Binop(Binop {
                 op: op @ BinaryOp::I64Or,
             }) => {
-                let b = self.stack.pop();
-                let a = self.stack.pop();
+                let b = self.stack.pop()?;
+                let a = self.stack.pop()?;
                 let instruction = match op {
                     BinaryOp::I32Add | BinaryOp::I64Add => "addint",
                     BinaryOp::I32Sub | BinaryOp::I64Sub => "subint",
@@ -239,8 +243,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             | Instr::Binop(Binop {
                 op: op @ BinaryOp::I64RemU,
             }) => {
-                let b = self.stack.pop();
-                let a = self.stack.pop();
+                let b = self.stack.pop()?;
+                let a = self.stack.pop()?;
                 let a = self.val_to_reg(a);
                 let b = self.val_to_reg(b);
                 let result = self.binop(a, b, RegisterKind::Regint, "modint", Span::DUMMY);
@@ -307,8 +311,8 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             | Instr::Binop(Binop {
                 op: op @ BinaryOp::I64GeS,
             }) => {
-                let b = self.stack.pop();
-                let a = self.stack.pop();
+                let b = self.stack.pop()?;
+                let a = self.stack.pop()?;
                 let a = self.val_to_reg(a);
                 let b = self.val_to_reg(b);
                 let (check_for_unsigned, op) = match op {
@@ -334,7 +338,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 };
                 let result = self.binop(a, b, RegisterKind::Regint, instruction, Span::DUMMY);
                 let result = if invert {
-                    self.invert_bit(result)
+                    self.invert_bit(result)?
                 } else {
                     result
                 };
@@ -371,11 +375,11 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     let sign_eq =
                         self.binop(a_ltz, b_ltz, RegisterKind::Regint, "eqint", Span::DUMMY);
                     // !xy
-                    let not_result = self.invert_bit(result);
+                    let not_result = self.invert_bit(result)?;
                     // !xneg & yneg for "lt" and xneg & !yneg for "gt"
                     let discriminant = if instruction == "ltint" {
                         // !xneg
-                        let not_a_ltz = self.invert_bit(a_ltz);
+                        let not_a_ltz = self.invert_bit(a_ltz)?;
                         self.binop(
                             not_a_ltz,
                             b_ltz,
@@ -385,7 +389,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         )
                     } else {
                         // !yneg
-                        let not_b_ltz = self.invert_bit(b_ltz);
+                        let not_b_ltz = self.invert_bit(b_ltz)?;
                         self.binop(
                             a_ltz,
                             not_b_ltz,
@@ -422,17 +426,25 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 };
                 self.stack.push(result);
             }
-            Instr::LocalSet(LocalSet { local }) | Instr::LocalTee(LocalTee { local }) => {
-                let val = match instr {
-                    Instr::LocalTee(_) => self.stack.read_top(),
-                    Instr::LocalSet(_) => self.stack.pop(),
-                    _ => unreachable!(),
-                };
+            Instr::LocalSet(LocalSet { local }) => {
+                let val = self.stack.pop()?;
+
                 self.assign_to_persistent(
                     PersistentKind::Local(*local),
                     val,
-                    format_args!("write to local {}", local.index()),
-                );
+                    format_args!("write to local from local.set {}", local.index()),
+                )?;
+            }
+            Instr::LocalTee(LocalTee { local }) => {
+                let val = self.stack.pop()?;
+
+                let reg = self.assign_to_persistent(
+                    PersistentKind::Local(*local),
+                    val,
+                    format_args!("write to local from local.tee {}", local.index()),
+                )?;
+
+                self.stack.push(reg);
             }
             Instr::LocalGet(LocalGet { local }) => {
                 // WARNING: Subtle semantics
@@ -445,20 +457,20 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     PersistentKind::Local(*local),
                     self.module.locals.get(*local).ty().as_register_kind(),
                     format_args!("read from local {}", local.index()),
-                )
+                )?
             }
             Instr::IfElse(IfElse {
                 consequent,
                 alternative,
             }) => {
-                let cond = self.stack.pop();
+                let cond = self.stack.pop()?;
                 let cond = Span::DUMMY.with(cond).require(self.cx);
                 // We allocate the `follow` branch first, then the `else` branch,
                 // because that's the order that wasm orders its
                 // block ids, leading to a similar processing. Additionally this leads to simpler assembly
                 // in SCALE.
                 let follow = self.allocate_new_block();
-                let alternative_id = self.allocate_block(*alternative).scale_block_id;
+                let alternative_id = self.allocate_block(*alternative)?.scale_block_id;
                 // jump back to current block afterwards
                 self.body.blocks[alternative_id].terminator = Terminator::Jump(Jump {
                     target_block: follow,
@@ -466,7 +478,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     mode: JumpMode::Goto,
                 })
                 .into();
-                let consequent_id = self.allocate_block(*consequent).scale_block_id;
+                let consequent_id = self.allocate_block(*consequent)?.scale_block_id;
                 self.body.blocks[consequent_id].terminator = Terminator::Jump(Jump {
                     target_block: follow,
                     comment: Span::DUMMY,
@@ -485,37 +497,37 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         register: cond,
                     }),
                 });
-                self.set_terminator(terminator);
+                self.set_terminator(terminator)?;
                 // for statements after the if/else
                 self.scasm_block_id = follow;
             }
             Instr::BrIf(BrIf { block }) => {
-                let cond = self.stack.pop();
+                let cond = self.stack.pop()?;
                 let cond = match cond {
                     Operand::Register(reg) => reg,
-                    Operand::Value(val) => panic!("{:?}", val),
+                    Operand::Value(val) => anyhow::bail!("BrIf operand: {:?}, not supported", val),
                 };
-                self.br_if(cond, *block, 0, false, "br_if".into());
+                self.br_if(cond, *block, 0, false, "br_if".into())?;
             }
             Instr::BrTable(BrTable { blocks, default }) => {
                 trace!(?blocks, ?default, "br_table");
-                let index = self.stack.pop();
+                let index = self.stack.pop()?;
                 // The wasm optimizer is sometimes a bit weird and creates `br_table` with
                 // constant conditions. The `scasm` optimizations will clean that up, so
                 // do not try to be smart here and just translate everything the same.
                 let index = self.val_to_reg(index);
                 for (i, &block) in blocks.iter().enumerate() {
-                    let i = i32::try_from(i).expect("too many br_table entries");
-                    self.br_if(index, block, i, true, "br_table".into());
+                    let i = i32::try_from(i).context("too many br_table entries")?;
+                    self.br_if(index, block, i, true, "br_table".into())?;
                 }
-                self.br(*default);
+                self.br(*default)?;
             }
             Instr::Loop(Loop { seq }) => {
-                let loop_id = self.allocate_block(*seq).scale_block_id;
+                let loop_id = self.allocate_block(*seq)?.scale_block_id;
                 let fallthrough = self.allocate_new_block();
                 // The terminator of the loop block is to jump to the next block. Any actual looping will
                 // require a `br` instruction to jump to the loop block
-                let comment = self.comment(|f| write!(f, "end loop {:?}", seq));
+                let comment = self.comment(|f| write!(f, "end loop {:?}", seq))?;
                 let terminator = Terminator::Jump(Jump {
                     target_block: fallthrough,
                     comment,
@@ -524,26 +536,28 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 self.body.blocks[loop_id].terminator = terminator.into();
                 let terminator = std::mem::replace(self.terminator_mut(), Terminator::Done);
                 self.body.blocks[fallthrough].terminator.elem = terminator;
-                let comment = self.comment(|f| write!(f, "start loop {:?}", seq));
+                let comment = self.comment(|f| write!(f, "start loop {:?}", seq))?;
 
                 self.set_terminator(Terminator::Jump(Jump {
                     target_block: loop_id,
                     comment,
                     mode: JumpMode::Goto,
-                }));
+                }))?;
                 self.scasm_block_id = fallthrough;
             }
             Instr::Block(Block { seq }) => {
                 // Any `goto block_id`s in wasm will want to jump to the end of the block,
                 // so basically to the start of the fallthrough block.
                 let fallthrough = self.allocate_new_block();
-                let block = self.allocate_block(*seq);
+                let block = self.allocate_block(*seq)?;
                 block.jump_target_block = fallthrough;
                 let block_id = block.scale_block_id;
                 // Blocks can require args and leave results on the stack
                 let has_return_value = match self.func.block(*seq).ty {
                     InstrSeqType::Simple(ty) => ty,
-                    InstrSeqType::MultiValue(_) => unimplemented!("multi-value extension to wasm"),
+                    InstrSeqType::MultiValue(_) => {
+                        anyhow::bail!("unimplemented multi-value extension to wasm")
+                    }
                 };
                 // The terminator of the new block is to jump to the end of the block, and thus
                 // to the fallthrough block.
@@ -561,7 +575,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     target_block: block_id,
                     comment: Span::DUMMY,
                     mode: JumpMode::Goto,
-                }));
+                }))?;
                 // We continue processing the current instructions in the fallthrough, the block
                 // itself will be processed via `self.to_process`.
                 self.scasm_block_id = fallthrough;
@@ -570,7 +584,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         PersistentKind::BlockReturn(*seq),
                         ty.as_register_kind(),
                         format_args!("obtain previous block's return value"),
-                    );
+                    )?;
                 }
             }
             Instr::Drop(Drop {}) => {
@@ -578,13 +592,13 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 trace!(?to_drop);
             }
             Instr::Select(Select { ty: _ }) => {
-                let condition = self.stack.pop();
+                let condition = self.stack.pop()?;
                 let condition = Span::DUMMY.with(condition).require(self.cx);
-                let value_if_cond_is_zero = self.stack.pop();
-                let value_if_cond_is_not_zero = self.stack.pop();
+                let value_if_cond_is_zero = self.stack.pop()?;
+                let value_if_cond_is_not_zero = self.stack.pop()?;
 
                 let kind = Register::try_from(value_if_cond_is_not_zero)
-                    .or(Register::try_from(value_if_cond_is_zero))
+                    .or_else(|_| Register::try_from(value_if_cond_is_zero))
                     .map(|r| r.kind())
                     .unwrap_or(RegisterKind::Regint);
 
@@ -630,15 +644,15 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         register: condition,
                     }),
                 });
-                self.set_terminator(terminator);
+                self.set_terminator(terminator)?;
                 self.scasm_block_id = follow;
             }
             Instr::GlobalSet(GlobalSet { global }) => {
-                let val = self.stack.pop();
-                self.global_set(val, *global);
+                let val = self.stack.pop()?;
+                self.global_set(val, *global)?;
             }
             Instr::GlobalGet(GlobalGet { global }) => {
-                let reg = self.stack.global(*global);
+                let reg = self.stack.global(*global)?;
                 let dest = self.stack.push_temp(RegisterKind::Regint);
                 let instr = Instruction::Assign {
                     destination: dest.into(),
@@ -646,24 +660,26 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 };
                 let comment = self
                     .bh
-                    .comment(|f| write!(f, "read from global {}: {}", global.index(), reg));
+                    .comment(|f| write!(f, "read from global {}: {}", global.index(), reg))?;
                 self.push_stmt(Statement::from_instr_with_comment(instr, comment));
             }
             Instr::Store(Store { memory, kind, arg }) => {
-                let value = self.stack.pop();
-                match self.stack.pop() {
+                let value = self.stack.pop()?;
+                match self.stack.pop()? {
                     Operand::Value(Const::Int(address)) => {
-                        assert_eq!(memory.index(), 0);
+                        if memory.index() != 0 {
+                            anyhow::bail!("Instruction Store, Value: index is not zero")
+                        }
                         match kind {
                             StoreKind::I64 { .. } => {}
-                            _ => unimplemented!("memory store for {:?}", kind),
+                            _ => anyhow::bail!("unimplemented memory store for {:?}", kind),
                         }
                         let offset = arg.offset + address as u32;
                         let offset = offset / 8;
                         let offset = offset
                             + self
                                 .offset_addr_val
-                                .expect("must have an offset address set");
+                                .context("must have an offset address set")?;
 
                         // FIXME: get rid of this hack with https://github.com/rust-lang/rust/blob/38030ffb4e735b26260848b744c0910a5641e1db/compiler/rustc_target/src/spec/wasm32_base.rs#L17
                         let instr = Instruction::General {
@@ -718,13 +734,13 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             | StoreKind::I64_32 { .. } => "stminti",
                             StoreKind::F32 => "stmsi",
                             StoreKind::I32 { .. } => {
-                                unimplemented!()
+                                anyhow::bail!("unimplemented Store Kind: I32")
                             }
                             StoreKind::F64 => {
-                                unimplemented!()
+                                anyhow::bail!("unimplemented Store Kind: F64")
                             }
                             StoreKind::V128 => {
-                                unimplemented!()
+                                anyhow::bail!("unimplemented Store Kind: V128")
                             }
                         };
 
@@ -738,19 +754,22 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         };
                         self.push_stmt(instr);
                     }
-                    other => unimplemented!("this operand {:?} is not implemented", other),
+                    other => anyhow::bail!("this operand {:?} is not implemented", other),
                 };
             }
             Instr::Load(Load { memory, kind, arg }) => {
-                assert_eq!(memory.index(), 0);
+                if memory.index() != 0 {
+                    anyhow::bail!("Load: memory index should be 0")
+                }
                 let eight = self.val_to_reg(Operand::Value(Const::Int(8)));
-                let (instruction, address, sub_offset, dest_register_kind) = match self.stack.pop()
+                let (instruction, address, sub_offset, dest_register_kind) = match self
+                    .stack
+                    .pop()?
                 {
                     Operand::Value(Const::Int(i)) => {
-                        assert_eq!(
-                            arg.offset, 0,
-                            "wasm should have optimized away any static offsets to memory accesses"
-                        );
+                        if arg.offset != 0 {
+                            anyhow::bail!("wasm should have optimized away any static offsets to memory accesses")
+                        }
                         let offset = i as u32;
 
                         // The address may not be a multiple of `8`, so we need to do a partial load.
@@ -760,7 +779,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                         let offset = offset
                             + self
                                 .offset_addr_val
-                                .expect("must have an offset address set");
+                                .context("must have an offset address set")?;
 
                         trace!(?offset);
                         (
@@ -828,13 +847,14 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             | LoadKind::I64_32 { .. } => ("ldminti", RegisterKind::Regint),
                             LoadKind::F32 => ("ldmsi", RegisterKind::Secret),
                             LoadKind::I32 { .. } => {
-                                unimplemented!()
+                                // TODO: need to implement this part quickly
+                                anyhow::bail!("Operand Register I32 is unimplemented")
                             }
                             LoadKind::F64 => {
-                                unimplemented!()
+                                anyhow::bail!("Operand Register F64 is unimplemented")
                             }
                             LoadKind::V128 => {
-                                unimplemented!()
+                                anyhow::bail!("Operand Register V128 is unimplemented")
                             }
                         };
 
@@ -845,7 +865,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             dest_register_kind,
                         )
                     }
-                    _ => unimplemented!(),
+                    op => anyhow::bail!("Operand: {} not implemented", op),
                 };
                 let destination = self.stack.push_temp(dest_register_kind);
                 let instr = Instruction::General {
@@ -869,7 +889,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             LoadKind::I32 { .. } | LoadKind::I64_32 { .. } => 0xFFFF_FFFF,
                             LoadKind::I32_16 { .. } | LoadKind::I64_16 { .. } => 0xFFFF,
                             LoadKind::I32_8 { .. } | LoadKind::I64_8 { .. } => 0xFF,
-                            _ => unreachable!(),
+                            lk => anyhow::bail!("Load Kind: {:?} not implemented", lk),
                         };
                         // FIXME: implement sign extension
                         match kind {
@@ -878,7 +898,9 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             | LoadKind::I64_16 { kind }
                             | LoadKind::I32_8 { kind }
                             | LoadKind::I64_8 { kind } => match kind {
-                                ExtendedLoad::SignExtend => unimplemented!(),
+                                ExtendedLoad::SignExtend => {
+                                    anyhow::bail!("ExtendedLoad::SignExtend not implemented")
+                                }
                                 ExtendedLoad::ZeroExtend | ExtendedLoad::ZeroExtendAtomic => {}
                             },
                             LoadKind::I32 { .. }
@@ -887,19 +909,23 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                             | LoadKind::F64
                             | LoadKind::V128 => {}
                         }
-                        let mask = |val, this: &mut CurrentBlockHandler<'_, '_, '_, '_>| {
-                            let mask = this.wasm_val_to_op(Value::I64(mask));
+                        let mask = |val,
+                                    this: &mut CurrentBlockHandler<'_, '_, '_, '_>|
+                         -> anyhow::Result<Register> {
+                            let mask = this.wasm_val_to_op(Value::I64(mask))?;
                             let mask = this.val_to_reg(mask);
-                            this.binop(val, mask, RegisterKind::Regint, "andint", Span::DUMMY)
+                            Ok(this.binop(val, mask, RegisterKind::Regint, "andint", Span::DUMMY))
                         };
-                        let val = self.stack.pop();
+                        let val = self.stack.pop()?;
                         let dest = match sub_offset {
                             Operand::Value(Const::Int(4)) => {
                                 let shift = self.val_to_reg(Operand::Value(Const::Int(32)));
                                 self.binop(val, shift, RegisterKind::Regint, "shrint", Span::DUMMY)
                             }
-                            Operand::Value(Const::Int(0)) => mask(val, self),
-                            Operand::Value(other) => unimplemented!("sub-offset {}", other),
+                            Operand::Value(Const::Int(0)) => mask(val, self)?,
+                            Operand::Value(other) => {
+                                anyhow::bail!("unimplemented sub-offset {}", other)
+                            }
                             Operand::Register(_) => {
                                 // Branchless extraction of the correct 32 bit sub-component of the 64 bit value.
                                 let shift = self.binop(
@@ -916,14 +942,14 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                                     "shrint",
                                     Span::DUMMY,
                                 );
-                                mask(val.into(), self)
+                                mask(val.into(), self)?
                             }
                         };
                         self.stack.push(Operand::Register(dest));
                     }
                     LoadKind::F32 => {}
                     LoadKind::F64 | LoadKind::V128 => {
-                        unimplemented!("memory load for {:?}", kind)
+                        anyhow::bail!("unimplemented memory load for {:?}", kind)
                     }
                 }
             }
@@ -937,24 +963,24 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                     *self.terminator_mut() = Terminator::Done;
                 } else {
                     let fn_ty = self.func.ty();
-                    for _ in self.module.types.results(fn_ty) {
-                        let val = self.stack.pop();
+                    for (id, _) in self.module.types.results(fn_ty).iter().enumerate() {
+                        let val = self.stack.pop()?;
 
                         self.assign_to_persistent(
-                            PersistentKind::FunctionReturn(self.block.id(), 0),
+                            PersistentKind::FunctionReturn(self.func.entry_block(), id),
                             val,
-                            "trailing block return value",
-                        );
+                            "return value for function ret",
+                        )?;
                     }
                     *self.terminator_mut() = Terminator::Return {
-                        comment: Span::DUMMY,
+                        comment: self.comment(|f| write!(f, "return for func {:?}", fn_ty))?,
                     };
                 }
             }
             Instr::Br(Br { block }) => {
-                self.br(*block);
+                self.br(*block)?;
             }
-            other => unimplemented!("{:?}", other),
+            other => anyhow::bail!("unimplemented {:?}", other),
         }
         Ok(())
     }

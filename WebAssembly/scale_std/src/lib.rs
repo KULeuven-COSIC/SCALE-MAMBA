@@ -30,6 +30,7 @@ pub mod local_functions;
 pub mod math;
 pub mod math_generic;
 pub mod matrix;
+pub mod oram;
 pub mod slice;
 pub mod sqrt;
 

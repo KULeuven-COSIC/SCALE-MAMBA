@@ -6,7 +6,7 @@ the software.
 \vspace{5mm}
 
 \noindent
-This is currently {\bf version 1.13} of the SCALE and MAMBA software.
+This is currently {\bf version 1.14} of the SCALE and MAMBA software.
 There are {\bf three} main components to the system, a run time system called
 SCALE,
 \begin{center}
@@ -27,6 +27,29 @@ replace MAMBA as the main programming language for the system.
 The software is a major modification of the earlier SPDZ software.
 You {\em should not} assume it works the same so please read
 the documentation fully before proceeding.
+
+\subsection{Changes in version 1.14 from 1.13}
+Apart from the usual minor bug fixes the main changes
+are now focused on supporting a better compilation pipeline
+for Rust.
+\begin{enumerate}
+\item Added instructions \verb+SETBIT+, \verb+EQZC+, \verb+LTZC+
+	to help with the Rust pipeline.
+\item The underlying input, output and channel instructions are now
+	slightly different. This means that sometimes you need to
+	specify the channel number as a regint (as opposed to an
+	immediate integer) explicitly in the Mamba code. 
+	See the \verb|IO_demo.mpc| program for examples.
+\item {\bf Important:} Another resulting change is that vectorization of the input
+	and output operations from Mamba are now alterred in meaning.
+	We have tried to make it so that old code which would work
+	incorrectly should now no longer compiler, but we may have
+	missed something.
+	This is to make the Rust pipeline simpler, where vectorization
+	of input and output is now very fast and simple.
+	Given we are no longer supporting Mamba going forward, if this
+	affects you, then you should switch to the Rust pipeline.
+\end{enumerate}
 
 \subsection{Changes in version 1.13 from 1.12}
 Apart from the usual minor bug fixes the main changes

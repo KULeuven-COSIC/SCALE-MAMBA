@@ -33,6 +33,9 @@ impl GetAllocator for ClearIEEE {
     fn get_allocator() -> &'static Allocator<i64> {
         i64::get_allocator()
     }
+    fn size_type() -> u64 {
+        1
+    }
 }
 
 impl LoadFromMem<i64> for ClearIEEE {
@@ -52,6 +55,9 @@ impl GetAllocator for SecretIEEE {
     type Allocator = &'static Allocator<SecretI64>;
     fn get_allocator() -> &'static Allocator<SecretI64> {
         SecretI64::get_allocator()
+    }
+    fn size_type() -> u64 {
+        1
     }
 }
 
@@ -255,7 +261,8 @@ impl PartialOrd for ClearIEEE {
         if b == 1 {
             return Some(Greater);
         }
-        return None;
+
+        None
     }
 }
 

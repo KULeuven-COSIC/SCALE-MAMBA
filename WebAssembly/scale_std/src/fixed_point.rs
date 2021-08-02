@@ -39,6 +39,9 @@ impl<const K: u64, const F: u64> GetAllocator for ClearFixed<K, F> {
     fn get_allocator() -> &'static Allocator<ClearModp> {
         ClearModp::get_allocator()
     }
+    fn size_type() -> u64 {
+        1
+    }
 }
 
 impl<const K: u64, const F: u64> LoadFromMem<i64> for ClearFixed<K, F> {
@@ -59,6 +62,9 @@ impl<const K: u64, const F: u64, const KAPPA: u64> GetAllocator for SecretFixed<
     type Allocator = &'static Allocator<SecretModp>;
     fn get_allocator() -> &'static Allocator<SecretModp> {
         SecretModp::get_allocator()
+    }
+    fn size_type() -> u64 {
+        1
     }
 }
 
@@ -660,7 +666,7 @@ where
 
 #[inline(always)]
 fn twos_complement<const K: u64>(x: ClearModp, _: ConstU64<K>) -> ClearModp {
-    let bits: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(x, K);
+    let bits: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(x, K);
     let mut twos_result = ClearModp::from(0);
     for i in 0..K {
         twos_result =
@@ -679,7 +685,7 @@ fn approximate_reciprocal<const K: u64, const F: u64, const THETA: u64>(
 where
     ConstI32<{ f_as_i32(K) }>: ,
 {
-    let bits: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(divisor, K);
+    let bits: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(divisor, K);
     let mut cnt_leading_zeros = ClearModp::from(0);
     let mut flag: i64 = 0;
     let mut normalized_divisor = divisor;

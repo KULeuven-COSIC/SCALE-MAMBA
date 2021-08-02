@@ -11,6 +11,7 @@ mod function_call;
 mod instruction;
 mod stack;
 
+use anyhow::{Context as _, Result};
 pub use error::Error;
 
 use std::io::Write as _;
@@ -80,7 +81,7 @@ impl<'a, 'wasm> Context<'a, 'wasm> {
         cx: &'a Compiler,
         exports: HashMap<String, &'wasm ExportItem>,
         module: &'wasm walrus::Module,
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
         let mut this = Self {
             body: Body::default(),
             cx,
@@ -94,14 +95,16 @@ impl<'a, 'wasm> Context<'a, 'wasm> {
             stack: Stack::from_locals(module.locals.iter()),
         };
         let initial = this.allocate_new_block();
-        assert_eq!(initial, 0);
+        if initial != 0 {
+            anyhow::bail!("Initial block si not zero, it is : {}", initial)
+        };
 
         this.body.blocks[0].terminator.elem = Terminator::Jump(Jump {
             target_block: 1,
             mode: JumpMode::Goto,
             comment: Span::DUMMY,
         });
-        this
+        Ok(this)
     }
 
     // Create a new block that does not correspond to a wasm block
@@ -178,18 +181,23 @@ impl<'a, 'cx, 'wasm> BlockHandler<'a, 'cx, 'wasm> {
             bh: self,
         })
     }
-    fn comment(&mut self, f: impl FnOnce(&mut dyn fmt::Write) -> fmt::Result) -> Span {
+    fn comment(
+        &mut self,
+        f: impl FnOnce(&mut dyn fmt::Write) -> fmt::Result,
+    ) -> anyhow::Result<Span> {
         let mut val = String::new();
         f(&mut val).unwrap();
-        assert!(!val.is_empty(), "nothing written");
+        if val.is_empty() {
+            anyhow::bail!("nothing written");
+        }
         let file = self.cx.files.len() as u32;
         let text = self.cx.files.push_get(val);
-        Span::new(
+        Ok(Span::new(
             file,
             0,
             text.len().try_into().unwrap(),
             Expansion::Generated,
-        )
+        ))
     }
 }
 
@@ -226,36 +234,37 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         self.push_stmt_to_block(block, instr)
     }
 
-    fn set_terminator(&mut self, terminator: impl Into<Terminator>) {
+    fn set_terminator(&mut self, terminator: impl Into<Terminator>) -> Result<()> {
         let t = self.terminator_mut();
         if !matches!(t, Terminator::Done) {
-            panic!("{:?}", t);
+            anyhow::bail!("Expected terminator to be Done, not: {:?}", t);
         }
         *t = terminator.into();
+        Ok(())
     }
     fn terminator_mut(&mut self) -> &mut Terminator {
         &mut self.bh.body.blocks[self.scasm_block_id].terminator.elem
     }
 
     #[track_caller]
-    fn allocate_block(&mut self, wasm_block_id: InstrSeqId) -> &mut BlockInfo {
+    fn allocate_block(&mut self, wasm_block_id: InstrSeqId) -> anyhow::Result<&mut BlockInfo> {
         let scale_block_id = self.body.blocks.len();
         self.to_process.push((scale_block_id, wasm_block_id));
         self.body.blocks.push(Default::default());
         // Blocks can require args and leave results on the stack
         let has_return = match self.func.block(wasm_block_id).ty {
             InstrSeqType::Simple(None) => false,
-            InstrSeqType::MultiValue(_) => unimplemented!("multi-value extension to wasm"),
+            InstrSeqType::MultiValue(_) => anyhow::bail!("multi-value extension to wasm"),
             InstrSeqType::Simple(Some(_)) => true,
         };
-        match self.seen.entry(wasm_block_id) {
+        Ok(match self.seen.entry(wasm_block_id) {
             Entry::Occupied(_) => unreachable!(),
             Entry::Vacant(vac) => vac.insert(BlockInfo {
                 scale_block_id,
                 jump_target_block: scale_block_id,
                 has_return,
             }),
-        }
+        })
     }
 
     #[track_caller]
@@ -377,12 +386,12 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
     /// Super hacky because there's no neg for `RegisterKind::Regint`, so
     /// we subtract the bit from `1`, which, since `tmp` can only be `1` or
     /// `0`, boils down to inverting the bit
-    fn invert_bit(&mut self, val: impl Into<Operand>) -> Register {
+    fn invert_bit(&mut self, val: impl Into<Operand>) -> anyhow::Result<Register> {
         let comment = self
             .bh
-            .comment(|f| write!(f, "negation hack, sub from 1 is the same as negation"));
+            .comment(|f| write!(f, "negation hack, sub from 1 is the same as negation"))?;
         let one = self.val_to_reg(Operand::Value(Const::Int(1)));
-        self.binop(one, val, RegisterKind::Regint, "subint", comment)
+        Ok(self.binop(one, val, RegisterKind::Regint, "subint", comment))
     }
 
     fn read_from_persistent(
@@ -390,15 +399,16 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         kind: PersistentKind,
         register_kind: RegisterKind,
         comment: impl std::fmt::Display,
-    ) {
+    ) -> anyhow::Result<()> {
         let reg = self.stack.local(kind, register_kind);
         let dest = self.stack.push_temp(register_kind);
         let instr = Instruction::Assign {
             destination: Span::DUMMY.with(dest),
             value: Span::DUMMY.with(reg.into()),
         };
-        let comment = self.comment(|f| write!(f, "{}", comment));
+        let comment = self.comment(|f| write!(f, "{}", comment))?;
         self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+        Ok(())
     }
 
     fn assign_to_persistent(
@@ -406,7 +416,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         kind: PersistentKind,
         val: Operand,
         comment: impl std::fmt::Display,
-    ) {
+    ) -> anyhow::Result<Register> {
         let register_kind = match val {
             Operand::Value(_) => RegisterKind::Regint,
             Operand::Register(reg) => reg.kind(),
@@ -416,8 +426,9 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
             destination: Span::DUMMY.with(reg),
             value: Span::DUMMY.with(val),
         };
-        let comment = self.comment(|f| write!(f, "{}", comment));
+        let comment = self.comment(|f| write!(f, "{}", comment))?;
         self.push_stmt(Statement::from_instr_with_comment(instr, comment));
+        Ok(reg)
     }
 
     fn br_if(
@@ -427,7 +438,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         cmp_constant: i32,
         jump_if_equal: bool,
         comment: String,
-    ) {
+    ) -> anyhow::Result<()> {
         let cond = Span::DUMMY.with(cond).require(self.cx);
         let fallthrough_block = self.allocate_new_block();
         let terminator = std::mem::replace(self.terminator_mut(), Terminator::Done);
@@ -436,11 +447,13 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         let has_return = target_block.has_return;
         let target_block = target_block.jump_target_block;
 
-        self.create_block_return_value_assignment(wasm_block_id, has_return, |this| {
-            this.stack.read_top()
-        });
+        self.create_block_return_value_assignment(
+            wasm_block_id,
+            has_return,
+            |this| -> anyhow::Result<Operand> { this.stack.read_top() },
+        )?;
 
-        let comment = self.comment(|f| f.write_str(&comment));
+        let comment = self.comment(|f| f.write_str(&comment))?;
 
         *self.terminator_mut() = Terminator::Jump(Jump {
             target_block,
@@ -454,38 +467,41 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         });
         // Continue adding instructions to the fallthrough block
         self.scasm_block_id = fallthrough_block;
+        Ok(())
     }
 
     fn create_block_return_value_assignment(
         &mut self,
         wasm_block_id: InstrSeqId,
         has_return: bool,
-        get_stack_element: impl FnOnce(&mut Self) -> Operand,
-    ) {
+        get_stack_element: impl FnOnce(&mut Self) -> anyhow::Result<Operand>,
+    ) -> anyhow::Result<()> {
         if has_return {
-            let val = get_stack_element(self);
+            let val = get_stack_element(self)?;
             self.assign_to_persistent(
                 PersistentKind::BlockReturn(wasm_block_id),
                 val,
                 format_args!("block return value"),
-            );
+            )?;
         }
+        Ok(())
     }
 
-    fn br(&mut self, wasm_block_id: InstrSeqId) {
+    fn br(&mut self, wasm_block_id: InstrSeqId) -> anyhow::Result<()> {
         let target_block = self.get_block(wasm_block_id);
         let has_return = target_block.has_return;
         let target_block = target_block.jump_target_block;
 
         self.create_block_return_value_assignment(wasm_block_id, has_return, |this| {
             this.stack.pop()
-        });
+        })?;
 
         *self.terminator_mut() = Terminator::Jump(Jump {
             target_block,
             comment: Span::DUMMY,
             mode: JumpMode::Goto,
         });
+        Ok(())
     }
 }
 
@@ -494,13 +510,15 @@ pub fn transpile_wasm_function_body_to_scale<'a, 'wasm>(
     module: &'wasm walrus::Module,
     func: &'wasm walrus::LocalFunction,
     exports: HashMap<String, &'wasm ExportItem>,
-) -> Result<Context<'a, 'wasm>, Error> {
-    let mut context = Context::new(cx, exports, module);
+) -> anyhow::Result<Context<'a, 'wasm>> {
+    let mut context = Context::new(cx, exports, module)?;
     context.add(func);
 
     let mut first_func = true;
     while let Some(mut blocks) = context.process_next() {
-        assert_eq!(first_func, blocks.is_main_function);
+        if first_func != blocks.is_main_function {
+            anyhow::bail!("The first function is not the main function")
+        }
         // scasm_block_id is mutable, because things like `BrIf` introduce a new scasm block
         // without doing the same in wasm.
         let mut first_block = true;
@@ -509,15 +527,15 @@ pub fn transpile_wasm_function_body_to_scale<'a, 'wasm>(
                 for global in module.globals.iter() {
                     match global.kind {
                         walrus::GlobalKind::Import(_) => {
-                            unimplemented!()
+                            anyhow::bail!("the global Import is not supported")
                         }
                         walrus::GlobalKind::Local(init_expr) => match init_expr {
                             walrus::InitExpr::Value(value) => {
-                                let operand = cbh.wasm_val_to_op(value);
-                                cbh.global_set(operand, global.id());
+                                let operand = cbh.wasm_val_to_op(value)?;
+                                cbh.global_set(operand, global.id())?;
                             }
                             other => {
-                                unimplemented!("do not support this kind of global '{:?}'", other)
+                                anyhow::bail!("do not support this kind of global '{:?}'", other)
                             }
                         },
                     }
@@ -533,7 +551,7 @@ pub fn transpile_wasm_function_body_to_scale<'a, 'wasm>(
             let ret_types = match cbh.block.ty {
                 InstrSeqType::MultiValue(id) => module.types.get(id).results().to_owned(),
                 InstrSeqType::Simple(None) => {
-                    cbh.stack.expect_stack_empty();
+                    cbh.stack.expect_stack_empty()?;
                     vec![]
                 }
                 // FIXME: use the value in the Some to do something more concrete than `pop_unknown`.
@@ -544,18 +562,18 @@ pub fn transpile_wasm_function_body_to_scale<'a, 'wasm>(
                     .block
                     .instrs
                     .last()
-                    .expect("wasm doesn't produce empty blocks")
+                    .context("wasm doesn't produce empty blocks")?
                     .0
                 {
                     // If the last instruction diverged there will be nothing left on the stack.
                     walrus::ir::Instr::Br(..) | walrus::ir::Instr::Unreachable(..) => {
-                        cbh.stack.expect_stack_empty();
+                        cbh.stack.expect_stack_empty()?;
                     }
                     _ => {
                         for ret_type in ret_types {
                             trace!(?ret_type, "popping function return value");
                             // FIXME: is the iteration order correct here for the popping?
-                            let val = cbh.stack.pop();
+                            let val = cbh.stack.pop()?;
                             let persistent = if first_block {
                                 PersistentKind::FunctionReturn(cbh.block.id(), 0)
                             } else {
@@ -564,8 +582,8 @@ pub fn transpile_wasm_function_body_to_scale<'a, 'wasm>(
                             cbh.assign_to_persistent(
                                 persistent,
                                 val,
-                                "trailing block return value",
-                            );
+                                "assign trailing block return value",
+                            )?;
                         }
                     }
                 }
@@ -649,12 +667,15 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
     #[allow(dead_code)]
     fn debug_print(&mut self, line: &str) {
         line.chars().for_each(|ch| {
+            let comment = self
+                .comment(|f| write!(f, "print char {}", ch))
+                .expect("cannot format comment");
             let print_line = Instruction::General {
                 instruction: "print_char",
                 destinations: vec![],
                 values: vec![Span::DUMMY.with(Operand::Value(Const::Int(ch as i32)))],
             };
-            self.push_stmt(print_line);
+            self.push_stmt(Statement::from_instr_with_comment(print_line, comment));
         })
     }
 
@@ -662,7 +683,11 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
     #[allow(dead_code)]
     fn debug_print_reg(&mut self, reg: Register) {
         let print_reg = Instruction::General {
-            instruction: "print_int",
+            instruction: match reg.kind() {
+                RegisterKind::Regint => "print_int",
+                RegisterKind::Clear => "print_reg",
+                _ => "print_reg",
+            },
             destinations: vec![],
             values: vec![Span::DUMMY.with(Operand::Register(reg))],
         };
@@ -694,7 +719,7 @@ pub struct Args {
     pub optimization_level: u8,
 }
 
-pub fn main(args: Args) -> Result<(), Error> {
+pub fn main(args: Args) -> anyhow::Result<()> {
     // Load wasm input
     let buf = if let Some(file) = args.input {
         std::fs::read(file)?
@@ -718,11 +743,11 @@ pub fn main(args: Args) -> Result<(), Error> {
     let func = if let ExportItem::Function(func) = exports["main"] {
         *func
     } else {
-        panic!("invalid item for main: {:?}", exports["main"]);
+        anyhow::bail!("invalid item for main: {:?}", exports["main"]);
     };
     let func = module.funcs.get(func);
     let func = match &func.kind {
-        FunctionKind::Import(_) => return Err("main function is a function import".into()),
+        FunctionKind::Import(_) => anyhow::bail!("main function is a function import"),
         FunctionKind::Local(func) => func,
         FunctionKind::Uninitialized(_) => unreachable!(),
     };
@@ -787,7 +812,7 @@ pub fn main(args: Args) -> Result<(), Error> {
         }
         writeln!(schedfile)?;
     } else {
-        panic!(
+        anyhow::bail!(
             "unknown destination format: {}",
             path.extension().unwrap().to_str().unwrap()
         );

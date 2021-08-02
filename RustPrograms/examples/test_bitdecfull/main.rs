@@ -21,16 +21,16 @@ fn main() {
 
     let v3 = BitDecFull(ss1);
     for i in 0..10 {
-        print!(" i = ", i, "   ", v3.get(i as u64).unwrap().reveal(), "\n");
+        print!(" i = ", i, "   ", v3.get_unchecked(i as u64).reveal(), "\n");
     }
-    v3.get(0).unwrap().reveal().test_value(ClearModp::from(1));
-    v3.get(1).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(2).unwrap().reveal().test_value(ClearModp::from(1));
-    v3.get(3).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(4).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(5).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(6).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(7).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(8).unwrap().reveal().test_value(ClearModp::from(0));
-    v3.get(9).unwrap().reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(0).reveal().test_value(ClearModp::from(1));
+    v3.get_unchecked(1).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(2).reveal().test_value(ClearModp::from(1));
+    v3.get_unchecked(3).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(4).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(5).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(6).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(7).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(8).reveal().test_value(ClearModp::from(0));
+    v3.get_unchecked(9).reveal().test_value(ClearModp::from(0));
 }

@@ -278,9 +278,9 @@ void Main_Func(thread_info<SRegint, SBit> &tinfo)
   fflush(stdout);
 
   int num5= num % 5;
+  int num_online= (num - num5) / 5;
   if (num < 10000)
     {
-      int num_online= (num - num5) / 5;
       switch (num5)
         {
           case 0:
@@ -345,6 +345,12 @@ void Main_Func(thread_info<SRegint, SBit> &tinfo)
       P.print_offline();
     }
 #endif
+  if (num < 10000 && num5 == 4)
+    {
+      printf(BENCH_TEXT_BOLD BENCH_COLOR_RED BENCH_MAGIC_START
+             "Number instructions executed in online thread %d is %ld \n" BENCH_MAGIC_END BENCH_ATTR_RESET,
+             num_online, P.number_instructions);
+    }
 }
 
 template void Main_Func(thread_info<aBitVector, aBit> &tinfo);

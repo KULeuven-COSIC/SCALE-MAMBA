@@ -175,6 +175,7 @@ Player::Player(int mynumber, const SystemData &SD, int thread, SSL_CTX *ctx,
   aands= 0;
   mod2s= 0;
 #endif
+  number_instructions= 0;
 
   // When communicating with player i, player me acts as server when i<me
   for (unsigned int i= 0; i < SD.n; i++)

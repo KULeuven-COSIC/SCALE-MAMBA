@@ -26,11 +26,11 @@ Again does the obvious.
 
 \subsection{Arrays}
 This data type is implemented using the SCALE memory.
-It is currently available for the following types
+It is currently available for the following types;
 $\ints$, $\SecretI$, $\ClearModp$, $\SecretModp$,
 \verb|ClearFixed<K,F>|, \verb|SecretFixed<K,F>|,
-\verb|ClearIEEE| and \verb|SecretIEEE|
-data types.
+\verb|ClearFloat<V,P>|, \verb|SecretFloat<V,P>|,
+\verb|ClearIEEE| and \verb|SecretIEEE|.
 You can always use simple arrays of the form
 \begin{lstlisting}
     let key128: [SecretI64; 2] = [zero, none];
@@ -137,6 +137,7 @@ Just like Arrays, this data type is implemented using the SCALE memory.
 It is currently available for the following types
 $\ints$, $\SecretI$, $\ClearModp$, $\SecretModp$,
 \verb|ClearFixed<K,F>|, \verb|SecretFixed<K,F>|,
+\verb|ClearFloat<V,P>|, \verb|SecretFloat<V,P>|,
 \verb|ClearIEEE| and \verb|SecretIEEE|
 data types.
 To load the standard library version of slices use
@@ -223,12 +224,12 @@ size of the Array or Slice.
 \func{s.private_output(p,c)}
 These are all called in the following manner
 \begin{lstlisting}
-    let a: Array<SecretModp, 5>=Array::private_input(Player::<1>, Channel::<10>);
-    a.private_output(Player::<2>, Channel::<10>);
+    let a: Array<SecretModp, 5>=Array::private_input(1, 10);
+    a.private_output(2, 10);
 
 
-    let b: Slice<SecretModp>=Slice::private_input(6, Player::<1>, Channel::<10>);
-    b.private_output(Player::<2>, Channel::<10>);
+    let b: Slice<SecretModp>=Slice::private_input(6, 1, 10);
+    b.private_output(2, 10);
 \end{lstlisting}
 
 \subsubsection{Addition/Subtraction/Multiplication}
@@ -317,6 +318,11 @@ for the $\ClearModp$ value $c$.
 Given a $\ClearModp$ value $c$ or an $\ints$ value $v$, these functions
 compute the bit-decomposition of $c$ (resp. $v$) upto the $N$-th bit
 position. Returning the result as an Array or Slice.
+
+\func{Array<ClearModp,N>::bit_decomposition_ClearModp_Signed(c)}
+\func{Slice<ClearModp>::bit_decomposition_ClearModp_Signed(c, N)}
+The same but assumes the value $c$ is signed, i.e. if $p>2$ then
+we bit-decompose the negative value $c-p$.
 
 \subsection{Matrices}
 \label{sec:matrices}
@@ -638,6 +644,17 @@ of which represents a bit.
     let v2 = BitDec::<10,5,40>(ss2);
 \end{lstlisting}
 
+\func{bitdec::<KAPPA>(s, k)}
+Same but now $k$ can be a run time variable and not a compile time constant, 
+and we use $K=M=k$.
+\begin{lstlisting}
+    let ss1 = SecretModp::from(5);
+    let ss2 = SecretModp::from(-5);
+    let v1 = bitdec::<40>(ss1, 10);
+    let v2 = bitdec::<40>(ss2, 10);
+\end{lstlisting}
+
+
 \func{BitDecFull(x)}
 Given a $\SecretModp$ value this produces the bit-decomposition
 into a slice of dimension $\log_2 p$.
@@ -843,7 +860,10 @@ but when $S=\false$ the value $a$ is assumed to lie in $[0,\ldots,2^{K-1})$.
 
 \func{a.ObliviousTrunc(m)}
 Implements \verb|Trunc| operation where $m$ is a $\SecretModp$ value
-which lies in the range $[0,\ldots,K)$.
+which lies in the range $[0,\ldots,K)$. The output is an \verb|Array| of three
+$\SecretModp$ values.
+The first element is $t = \floor{a/2^m}$, the second is $a-2^m \cdot t$
+and the third element is $2^m$.
 \begin{lstlisting}
     let a = SecretModp::from(23);
     let b: SecretInteger::<6> = SecretInteger::from(a);
@@ -1280,5 +1300,118 @@ These are accessed as in the following example for addition.
     let ccrc = &ca + cb.clone();
     let cccc = ca.clone() + cb.clone();
 \end{lstlisting}
+
+\subsection{ORAM Operations}
+Given a \verb|SecretModp| index value $i$ and an \verb|Array| or
+\verb|Slice| $A$ one wants to either read the value $A[i]$, or
+one wants to update $A[i]$ with a new value $v$. One would want
+to do this without revealing the value $i$, or even any access
+pattern.
+This is enabled via a Demux data structure which provided a linear
+time read and write access to the data structure in an oblivious way.
+The key thing needed is an upper bound on the bit length of the
+index value $i$, which is kind of known in any case, as $i$ must
+be less than the length of the  \verb|Array| or \verb|Slice|.
+
+Note these operations require a bit length of the base prime of
+larger than 100.
+
+\func{a.read_oram::<K,KAPPA>(i)}
+This takes a secret index of bit length less than $K$ are does a
+read into the array $a$ at position $i$.
+The value $K$ must be such that $2^K$ is greater than or equal
+to the length of $a$.
+As an example, we present an example for \verb|Array|s,
+an identical syntax works for \verb|Slice|s,
+\begin{lstlisting}
+    let mut arr : Array<SecretModp, 20> = Array::uninitialized();
+    for i in 0..20 {
+       arr.set(i, &SecretModp::from(i as i64));
+    }
+
+    let i = SecretModp::from(7);
+    let v = arr.read_oram::<5,40>(i);
+\end{lstlisting}
+
+\func{a.write_oram::<K,KAPPA>(i, v)}
+This takes a secret index of bit length less than $K$ are does a
+write into the array $a$ of the value $v$ at position $i$.
+The value $K$ must be such that $2^K$ is greater than or equal
+to the length of $a$.
+As an example, we present an example for \verb|Slice|s,
+an identical syntax works for \verb|Array|s,
+\begin{lstlisting}
+    let mut sli : Slice<SecretModp> = Slice::uninitialized(20);
+    for i in 0..20 {
+       sli.set(i, &SecretModp::from(i as i64));
+    }
+
+    let i = SecretModp::from(13);
+    let v = SecretModp::from(666);
+    sli.write_oram::<5,40>(i, v);
+\end{lstlisting}
+
+\func{Demux::<K,KAPPA>(i)}
+In order to allow efficient indexing at the same index, we also
+allow the creation of the demux data externally.
+This function produces a \verb|Slice| of \verb|SecretModp| values
+of length at least $2^K$, which corresponds to the demux array of
+the index $i$.
+Note, the function outputs an \verb|Slice| which is bigger than 
+needed. This is done in order to enable a memory efficient algorithm.
+
+\func{demux::<KAPPA>(i, k)}
+Same, but now $k$ is a runtime variable and not a compile time constant.
+
+\func{a.read_with_demux(\&demux)}
+This is the same as the \verb|read_oram| operation, but uses
+the demux output.
+Thus we can execute
+\begin{lstlisting}
+    let i = SecretModp::from(19);
+    let demx = Demux::<5,40>(i);
+    let va = arr.read_with_demux(&demx);
+    let vs = sli.read_with_demux(&demx);
+\end{lstlisting}
+
+
+\func{a.write_with_demux(\&demux, v)}
+This is the same as the \verb|write_oram| operation, but uses
+the demux output.
+Thus we can execute
+\begin{lstlisting}
+    let i = SecretModp::from(19);
+    let demx = Demux::<5,40>(i);
+    let v = SecretModp::from(666);
+    let va = arr.write_with_demux(&demx, v);
+    let vs = sli.write_with_demux(&demx, v);
+\end{lstlisting}
+
+\func{a.read_with_demux_and_offset(offset, \&demux)}
+This is the same as the \verb|read_oram_with_demux| operation, but 
+offsets the demux operation to start at position \verb|offset|.
+No checking is performed as to whether this gives array out
+of bounds errors.
+\begin{lstlisting}
+    let i = SecretModp::from(5);
+    let demx = demux::<40>(i, 3);
+    let va = arr.read_with_demux_and_offset(13, &demx);
+    let vs = sli.read_with_demux_and_offset(13, &demx);
+\end{lstlisting}
+
+
+\func{a.write_with_demux_and_offset(offset, \&demux, v)}
+This is the same as the \verb|write_oram_with_demux| operation, 
+but offsets the demux operation to start at position \verb|offset|.
+No checking is performed as to whether this gives array out
+of bounds errors.
+\begin{lstlisting}
+    let i = SecretModp::from(5);
+    let demx = demux::(i,3);
+    let v = SecretModp::from(666);
+    let va = arr.write_with_demux(13, &demx, v);
+    let vs = sli.write_with_demux(13, &demx, v);
+\end{lstlisting}
+
 
 

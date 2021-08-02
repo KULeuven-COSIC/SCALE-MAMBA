@@ -1,6 +1,6 @@
 [package]
 name = "scale_documentation_parser"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Oliver Scherer <oliver.scherer@cosmian.com>"]
 edition = "2018"
 description = "a proc macro to parse the structured SCALE documentation into Rust datastructures"

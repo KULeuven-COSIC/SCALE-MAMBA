@@ -36,17 +36,17 @@ impl<const I: i32> core::ops::Rem<ClearModp> for ConstI32<I> {
 
 impl Output for ClearModp {
     #[inline(always)]
-    fn output<const C: u32>(self, _: Channel<C>) {
+    fn output(self, channel: i64) {
         unsafe {
-            __output_clear(self, C);
+            __output_clear(self, channel);
         }
     }
 }
 
 impl Input for ClearModp {
     #[inline(always)]
-    fn input<const C: u32>(_: Channel<C>) -> Self {
-        unsafe { __input_clear(C) }
+    fn input(channel: i64) -> Self {
+        unsafe { __input_clear(channel) }
     }
 }
 

@@ -5,7 +5,7 @@ use crate::array::Array;
 use scale::alloc::GetAllocator;
 use scale::{alloc::Allocate, LoadFromMem, Reveal, Stack, StackAddress, StoreInMem};
 
-/// An matrix datastructure that allocates memory and never frees it
+/// A matrix datastructure that allocates memory and deallocates when goes out of scope
 pub struct Matrix<T, const N: u64, const M: u64> {
     // Act like we are a matrix
     phantom: core::marker::PhantomData<T>,

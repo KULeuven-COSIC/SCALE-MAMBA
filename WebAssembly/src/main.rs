@@ -10,5 +10,5 @@ use wasca::Error;
 #[paw::main]
 fn main(args: wasca::Args) -> Result<(), Error> {
     scasm::init_logger()?;
-    wasca::main(args)
+    wasca::main(args).map_err(|s| s.to_string().into())
 }

@@ -24,7 +24,7 @@ pub fn validate(cx: &Compiler, stmt: &Statement<'_>) -> bool {
     };
     for (arg_index, (should, &is)) in instr.args.iter().zip(args).enumerate() {
         match should.ty {
-            ArgTy::Player | ArgTy::Channel | ArgTy::Int { .. } => match is.elem {
+            ArgTy::Int { .. } => match is.elem {
                 Operand::Register(_) => {
                     cx.report(ExpectedGot {
                         expected: format!(

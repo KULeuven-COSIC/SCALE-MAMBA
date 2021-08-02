@@ -121,7 +121,7 @@ pub fn parse<'a>(cx: &'a Compiler, input: &'a [u8]) -> Vec<Lexical<'a>> {
             ) -> Result<(), ()> {
                 match ty {
                     // FIXME: treat unsigned and signed types differently
-                    ArgTy::Player | ArgTy::Channel | ArgTy::Int { .. } => {
+                    ArgTy::Int { .. } => {
                         let i = read(false)?;
                         args.push(Operand::from(i as i32).into())
                     }

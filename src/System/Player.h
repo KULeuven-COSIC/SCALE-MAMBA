@@ -70,6 +70,8 @@ public:
   mutable unsigned long aands;
   mutable unsigned long mod2s;
 #endif
+  // Counts number of instructions executed
+  mutable unsigned long number_instructions;
 
   PRNG G; // Each player has a local PRNG
           // Avoids needing to set one up all the time

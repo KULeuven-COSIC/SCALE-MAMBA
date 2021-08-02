@@ -26,7 +26,7 @@ where
     let z = a_int.eqz();
     let a = a_int.rep();
     let aa = (ClearModp::from(1) - s - s) * a;
-    let vec_a: Slice<ClearModp> = Slice::bit_decomposition_ClearModp(aa, K - 1);
+    let vec_a: Slice<ClearModp> = Slice::bit_decomposition_ClearModp_Signed(aa, K - 1);
     let rev_a = vec_a.reverse();
     let vec_b = rev_a.PreOr();
     let one = ClearModp::from(1_i64);

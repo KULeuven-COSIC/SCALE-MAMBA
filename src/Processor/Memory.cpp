@@ -103,7 +103,7 @@ unsigned int Memory<T>::New(unsigned int sz)
       free_list[n].erase(free_list[n].begin());
 
       // map starting address with size to make deallocating easy
-      mp[temp.first]= temp.second - temp.first + 1;
+      mp[temp.first]= make_pair(temp.second - temp.first + 1, sz);
 
 #ifdef DEBUGMEM
       printf("\n New %s memory of size %d at position %d\n", T::type_string().c_str(), sz, temp.first);
@@ -154,7 +154,7 @@ unsigned int Memory<T>::New(unsigned int sz)
       // Remove first free block to further split
       free_list[ii].erase(free_list[ii].begin());
     }
-  mp[temp.first]= temp.second - temp.first + 1;
+  mp[temp.first]= make_pair(temp.second - temp.first + 1, sz);
 
 #ifdef DEBUGMEM
   printf("\n New %s memory of size %d at position %d\n", T::type_string().c_str(), sz, temp.first);
@@ -184,7 +184,7 @@ void Memory<T>::Delete(unsigned int pos)
     }
 
   // Size of block to be searched
-  unsigned int n= ceil(log(mp[pos]) / log(2));
+  unsigned int n= ceil(log(mp[pos].first) / log(2));
 
   // Add the block in free list
   free_list[n].push_back(make_pair(pos, pos + pow(2, n) - 1));
@@ -236,11 +236,11 @@ void Memory<T>::Delete(unsigned int pos)
 template<class T>
 bool Memory<T>::check_allocated(unsigned int pos)
 {
-  map<unsigned int, unsigned int>::iterator it;
+  map<unsigned int, pair<unsigned int, unsigned int>>::iterator it;
 
   for (it= mp.begin(); it != mp.end(); it++)
     {
-      if (pos >= it->first && pos < (it->first + it->second))
+      if (pos >= it->first && pos < (it->first + it->second.second))
         {
           return true;
         }

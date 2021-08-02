@@ -1,6 +1,7 @@
 // Copyright (c) 2021, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 // Copyright (c) 2021, Cosmian Tech SAS, 53-55 rue La Boétie, Paris, France.
 
+use super::array::Array;
 use super::guard::{Guard, GuardMut};
 use super::heap::Box;
 use core::marker::PhantomData;
@@ -10,7 +11,7 @@ use scale::alloc::GetAllocator;
 use scale::*;
 use scale::{alloc::Allocate, LoadFromMem, Reveal, StoreInMem};
 
-/// An array datastructure that allocates memory and never frees it
+/// An array datastructure that allocates memory and deallocates when goes out of scope
 pub struct Slice<T>
 where
     T: GetAllocator,
@@ -69,7 +70,7 @@ where
     #[inline(always)]
     pub fn get_unchecked(&'a self, i: u64) -> Guard<'a, T> {
         Guard {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         }
     }
@@ -82,7 +83,7 @@ where
         }
 
         Some(Guard {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         })
     }
@@ -95,7 +96,7 @@ where
         }
 
         Some(GuardMut {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         })
     }
@@ -104,7 +105,7 @@ where
     #[inline(always)]
     pub fn get_mut_unchecked(&'a mut self, i: u64) -> GuardMut<'a, T> {
         GuardMut {
-            inner: T::load_from_mem(self.addr(i)),
+            inner: T::load_from_mem(self.addr(i * T::size_type())),
             phantom: PhantomData,
         }
     }
@@ -163,7 +164,7 @@ where
 {
     #[inline(always)]
     pub fn set(&mut self, i: u64, val: &T) {
-        unsafe { val.store_in_mem(self.addr(i)) }
+        unsafe { val.store_in_mem(self.addr(i * T::size_type())) }
     }
 }
 
@@ -204,7 +205,7 @@ impl<T: GetAllocator + StoreInMem<i64> + LoadFromMem<i64> + Clone> Slice<T> {
 
         let mut new_one = Slice::uninitialized(length);
         for i in 0..length {
-            new_one.set(i, &T::load_from_mem(self.addr(start + i)));
+            new_one.set(i, &T::load_from_mem(self.addr(start + i * T::size_type())));
         }
 
         new_one
@@ -218,29 +219,41 @@ where
     fn clone(&self) -> Self {
         let mut uninit_slice: Slice<T> = Self::uninitialized(self.length);
         for idx in 0..self.length {
-            uninit_slice.set(idx, &*self.get_unchecked(idx));
+            uninit_slice.set(idx, &self.get_unchecked(idx).clone());
         }
 
         uninit_slice
     }
 }
 
+impl<T, const N: u64> Clone for Slice<Array<T, N>>
+where
+    T: GetAllocator + StoreInMem<i64> + LoadFromMem<i64> + Clone,
+{
+    fn clone(&self) -> Self {
+        let mut new_a: Slice<Array<T, N>> = Slice::uninitialized(self.length);
+        for i in 0..self.length {
+            let array = self.get_unchecked(i).clone();
+            for j in 0..N {
+                new_a.get_mut_unchecked(i).set(j, &*array.get_unchecked(j));
+            }
+        }
+        new_a
+    }
+}
+
 impl Slice<SecretModp> {
     #[inline(always)]
-    pub fn private_input<const P: u32, const C: u32>(
-        length: u64,
-        _: Player<P>,
-        _: Channel<C>,
-    ) -> Self {
+    pub fn private_input( length: u64, player: i64, channel: i64) -> Self {
         let array = Self::uninitialized(length);
-        unsafe { __mprivate_input(array.first_element.address as i64, length as i64, P, C) }
+        unsafe { __mprivate_input(array.first_element.address as i64, length as i64, player, channel) }
         array
     }
 
     #[inline(always)]
-    pub fn private_output<const P: u32, const C: u32>(self, _: Player<P>, _: Channel<C>) {
+    pub fn private_output(self, player: i64, channel: i64) { 
         unsafe {
-            __mprivate_output(self.first_element.address as i64, self.length as i64, P, C);
+            __mprivate_output(self.first_element.address as i64, self.length as i64, player, channel);
         }
     }
 }
@@ -1386,6 +1399,14 @@ impl Slice<ClearModp> {
     pub fn bit_decomposition_ClearModp(val: ClearModp, length: u64) -> Self {
         let array = Self::uninitialized(length);
         unsafe { __mbitdecc(array.first_element.address as i64, val, length as i64) }
+        array
+    }
+
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    pub fn bit_decomposition_ClearModp_Signed(val: ClearModp, length: u64) -> Self {
+        let array = Self::uninitialized(length);
+        unsafe { __mbitdeccs(array.first_element.address as i64, val, length as i64) }
         array
     }
 }

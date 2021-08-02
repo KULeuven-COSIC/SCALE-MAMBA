@@ -178,7 +178,7 @@ impl TestValue for ClearModp {
     fn test_value(self, val: Self) {
         let loc = core::panic::Location::caller();
         let vm = read_clear(i64::from(loc.line()) + TEST_MEMORY_OFFSET);
-        println!("{} {} {}", loc, BigInt::from(vm), BigInt::from(vm) % &*P);
+        println!("loc = {} val = {} vm = {}", loc, BigInt::from(val), BigInt::from(vm) % &*P);
         assert_eq!(
             BigInt::from(val) % &*P,
             BigInt::from(vm) % &*P,
@@ -200,7 +200,7 @@ impl TestValue for i64 {
     fn test_value(self, val: i64) {
         let loc = core::panic::Location::caller();
         let vm = read_int(i64::from(loc.line()) + TEST_MEMORY_OFFSET);
-        println!("{} {} {}", loc, vm, val);
+        println!("loc = {} val = {} vm = {}", loc, val, vm);
         assert_eq!(
             vm, val,
             "value at {} differs between emulation and tested value",

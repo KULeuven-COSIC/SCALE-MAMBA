@@ -11,14 +11,14 @@ use super::*;
  */
 
 #[inline(always)]
-pub fn open_channel<const C: u32>(_: Channel<C>) -> i64 {
-    unsafe { __open_channel(C) }
+pub fn open_channel(channel: i64) -> i64 {
+    unsafe { __open_channel(channel) }
 }
 
 #[inline(always)]
-pub fn close_channel<const C: u32>(_: Channel<C>) {
+pub fn close_channel(channel: i64) {
     unsafe {
-        __close_channel(C);
+        __close_channel(channel);
     }
 }
 

@@ -13,7 +13,7 @@ impl RawSecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            SecretBit(__convsbitsint(self))
+            SecretBit(__setbit(self, 0))
         }
     }
 }
@@ -26,7 +26,7 @@ impl SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            __convsintsbit(self.0)
+            __bitsint(self.0, 0)
         }
     }
 }
@@ -41,7 +41,7 @@ impl Reveal for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            __opensbit(__convsintsbit(self.0))
+            __opensbit(__bitsint(self.0, 0))
         }
     }
 }
@@ -58,7 +58,7 @@ impl core::ops::Not for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            SecretBit(__convsbitsint(__negb(__convsintsbit(self.0))))
+            SecretBit(__setbit(__negb(__bitsint(self.0, 0)),0))
         }
     }
 }
@@ -72,10 +72,10 @@ impl core::ops::BitOr for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            SecretBit(__convsbitsint(__orsb(
-                __convsintsbit(self.0),
-                __convsintsbit(other.0),
-            )))
+            SecretBit(__setbit(__orsb(
+                __bitsint(self.0,0),
+                __bitsint(other.0,0),
+                ),0))
         }
     }
 }
@@ -88,10 +88,10 @@ impl core::ops::BitXor for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            SecretBit(__convsbitsint(__xorsb(
-                __convsintsbit(self.0),
-                __convsintsbit(other.0),
-            )))
+            SecretBit(__setbit(__xorsb(
+                __bitsint(self.0,0),
+                __bitsint(other.0,0),
+            ),0))
         }
     }
 }
@@ -104,10 +104,10 @@ impl core::ops::BitAnd for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         unsafe {
-            SecretBit(__convsbitsint(__andsb(
-                __convsintsbit(self.0),
-                __convsintsbit(other.0),
-            )))
+            SecretBit(__setbit(__andsb(
+                __bitsint(self.0,0),
+                __bitsint(other.0,0),
+            ),0))
         }
     }
 }
@@ -130,7 +130,9 @@ impl From<SecretModp> for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         {
-            Self(val)
+           unsafe {
+               Self(__convsintsreg(val))
+           }
         }
     }
 }
@@ -143,7 +145,7 @@ impl From<SecretBit> for SecretModp {
         }
         #[cfg(not(feature = "emulate"))]
         {
-            val.0
+            unsafe { __convsregsint(val.0) }
         }
     }
 }
@@ -157,7 +159,7 @@ impl Randomize for SecretBit {
         }
         #[cfg(not(feature = "emulate"))]
         {
-            unsafe { SecretBit(__convsbitsint(__randsbit())) }
+           unsafe{ SecretBit(__setbit( __randsbit(), 0)) }
         }
     }
 }

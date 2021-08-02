@@ -5,17 +5,17 @@ use super::*;
 
 impl Output for i64 {
     #[inline(always)]
-    fn output<const C: u32>(self, _: Channel<C>) {
+    fn output(self, channel: i64) {
         unsafe {
-            __output_int(self, C);
+            __output_int(self, channel);
         }
     }
 }
 
 impl Input for i64 {
     #[inline(always)]
-    fn input<const C: u32>(_: Channel<C>) -> Self {
-        unsafe { __input_int(C) }
+    fn input(channel: i64) -> Self {
+        unsafe { __input_int(channel) }
     }
 }
 

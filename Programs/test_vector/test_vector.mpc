@@ -74,7 +74,7 @@ test(0 > cb)
 test(ca != 0)
 
 int_max = cint(2**(program.bit_length-1) - 1, size=16)
-int_min = cint(-2**(program.bit_length-1), size=16)
+int_min = cint(-2**(program.bit_length-1) + 1, size=16)
 test(1 - int_max < 0)
 test(int_max - 1 <= int_max)
 test(int_max - 1 >= int_max)

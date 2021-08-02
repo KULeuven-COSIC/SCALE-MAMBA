@@ -1,6 +1,6 @@
 [package]
 name = "scale_impl_generator"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Oliver Scherer <oliver.scherer@cosmian.com>", "Benjamin Coenen <benjamin.coenen@cosmian.com>"]
 edition = "2018"
 description = "a proc macro to generate a large percentage of all impls on SCALE crypto primitives"
@@ -15,7 +15,7 @@ proc-macro = true
 [dependencies]
 quote = "1.0"
 proc-macro2 = "1.0"
-documentation = { package = "scale_documentation", version = "0.1.0", path = "../../../Documentation"}
+documentation = { package = "scale_documentation", version = "0.1.2", path = "../../../Documentation"}
 tracing = "0.1"
 num-bigint = "0.3.0"
 num-integer = "0.1.43"

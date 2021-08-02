@@ -174,11 +174,13 @@ enum {
   NEGB= 0x7C,
   LDSBIT= 0x7D,
 
-  // Bitwise shifts
+  // Bitwise operations mod p
   SHLC= 0x80,
   SHRC= 0x81,
   SHLCI= 0x82,
   SHRCI= 0x83,
+  EQZC= 0x84,
+  LTZC= 0x85,
 
   // Branching and comparison
   JMP= 0x90,
@@ -241,6 +243,7 @@ enum {
   BITSINT= 0xDC,
   SINTBIT= 0xDD,
   LF= 0xDE,
+  SETBIT= 0xDF,
 
   // Others
   RAND= 0xE0,
@@ -306,6 +309,7 @@ enum {
   MEVALSC= 0x13B,
   MBITDECC= 0x13C,
   MBITDECINT= 0x13D,
+  MBITDECCS= 0x13E,
 
   // Relative peek and poke
   RPEEKINT= 0x1F0,
@@ -346,7 +350,6 @@ protected:
   int opcode;        // The code
   unsigned int size; // Vector size
   int r[4];          // Fixed parameter registers
-  unsigned int p;    // Player value of argument
   unsigned int n;    // Possible immediate value
   unsigned int m;    // Possible immediate value
   vector<int> start; // Values for a start/stop open

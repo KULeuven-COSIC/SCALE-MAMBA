@@ -51,7 +51,7 @@ pub enum Instruction<'a> {
 
     Io {
         instr: IoInstruction,
-        channel: Spanned<u32>,
+        channel: Spanned<Register>,
     },
 
     /// An instruction that doesn't exist in SCALE, will get optimized out

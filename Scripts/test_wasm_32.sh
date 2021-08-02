@@ -12,8 +12,8 @@ run_test() {
     test=$1
     optimizations=$2
     shift
-    echo "$test"
     printf "\n\n\n\n\n\n\n\n\n\n"
+    echo "    $test    "
     $ROOT/compile-rust.sh $optimizations $test
     if [ "$NO_RUN" != "1" ]; then
         if [ "$EMULATE_ONLY" != "1" ]; then

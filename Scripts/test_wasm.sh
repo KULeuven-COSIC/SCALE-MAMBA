@@ -12,8 +12,8 @@ run_test() {
     test=$1
     optimizations=$2
     shift
-    echo "$test"
     printf "\n\n\n\n\n\n\n\n\n\n"
+    echo "    $test    "
     $ROOT/compile-rust.sh $optimizations $test
     if [ "$NO_RUN" != "1" ]; then
         if [ "$EMULATE_ONLY" != "1" ]; then
@@ -32,7 +32,7 @@ else
         OPTS= run_test $test
     done
     # Deliberately not calling test_recursion and test_call here
-    for test in test_array test_array_arith test_bitdecfull test_GC test_bitprotocols test_ieee test_modp test_sregint test_local_functions test_stacks test_sfix test_sfix_lib test_sfloat; do
+    for test in test_array test_array_arith test_bitdecfull test_GC test_bitprotocols test_ieee test_modp test_sregint test_local_functions test_stacks test_sfix test_sfix_lib test_oram test_sfloat test_sfloat_lib; do
 	run_test $test
     done
     printf "\n\n\n\n\n\n\n\n\n\n"

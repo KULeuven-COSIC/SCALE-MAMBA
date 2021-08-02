@@ -23,12 +23,7 @@ impl From<ClearModp> for SecretModp {
 impl From<i64> for SecretModp {
     #[inline(always)]
     fn from(a: i64) -> SecretModp {
-        // FIXME: this could be `Self::from(ClearModp::from(a))`
-        unsafe {
-            let s = __ldsi(0);
-            let c = __convint(a);
-            __addm(s, c)
-        }
+        Self::from(ClearModp::from(a))
     }
 }
 
@@ -96,9 +91,18 @@ impl core::ops::Mul for SecretModp {
 }
 
 impl SecretModp {
+    #[cfg(not(feature = "emulate"))]
     #[inline(always)]
     pub fn get_random_bit() -> Self {
         unsafe { __bit() }
+    }
+
+    #[cfg(feature = "emulate")]
+    #[inline(always)]
+    pub fn get_random_bit() -> Self {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        SecretModp::from(rng.gen_range(0..2))
     }
 
     #[inline(always)]
@@ -122,17 +126,17 @@ impl Randomize for SecretModp {
 
 impl SecretModp {
     #[inline(always)]
-    pub fn private_output<const P: u32, const C: u32>(self, _: Player<P>, _: Channel<C>) {
+    pub fn private_output(self, player: i64, channel: i64) {
         unsafe {
-            __private_output(self, P, C);
+            __private_output(self, player, channel);
         }
     }
 }
 
 impl SecretModp {
     #[inline(always)]
-    pub fn private_input<const P: u32, const C: u32>(_: Player<P>, _: Channel<C>) -> Self {
-        unsafe { __private_input(P, C) }
+    pub fn private_input(player: i64, channel: i64) -> Self {
+        unsafe { __private_input(player, channel) }
     }
 }
 

@@ -1,5 +1,6 @@
 let
   sources = import ./nix/sources.nix;
+  binaryen_100 = import ./nix/binaryen.nix;
   pkgs = import sources.nixpkgs { config = import ./nix/config.nix; };
   unstable = import sources.unstable { config = { allowUnfree = true; }; };
 in pkgs.mkShell {
@@ -19,7 +20,7 @@ in pkgs.mkShell {
     doxygen
     python2
     killall
-    binaryen
+    binaryen_100
     wabt
     rustup
     unstable.rust-analyzer

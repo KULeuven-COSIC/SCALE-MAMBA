@@ -84,6 +84,8 @@ impl Allocate for &'static Allocator<SecretI64> {
 pub trait GetAllocator: Sized + 'static {
     type Allocator: Allocate;
     fn get_allocator() -> Self::Allocator;
+
+    fn size_type() -> u64; 
 }
 
 impl GetAllocator for SecretI64 {
@@ -91,6 +93,7 @@ impl GetAllocator for SecretI64 {
     fn get_allocator() -> &'static Allocator<Self> {
         &Allocator::DEFAULT
     }
+    fn size_type() -> u64 { 1 }
 }
 
 impl GetAllocator for i64 {
@@ -98,6 +101,7 @@ impl GetAllocator for i64 {
     fn get_allocator() -> &'static Allocator<Self> {
         &Allocator::DEFAULT
     }
+    fn size_type() -> u64 { 1 }
 }
 
 impl GetAllocator for ClearModp {
@@ -105,6 +109,7 @@ impl GetAllocator for ClearModp {
     fn get_allocator() -> &'static Allocator<Self> {
         &Allocator::DEFAULT
     }
+    fn size_type() -> u64 { 1 }
 }
 
 impl GetAllocator for SecretModp {
@@ -112,4 +117,5 @@ impl GetAllocator for SecretModp {
     fn get_allocator() -> &'static Allocator<Self> {
         &Allocator::DEFAULT
     }
+    fn size_type() -> u64 { 1 }
 }

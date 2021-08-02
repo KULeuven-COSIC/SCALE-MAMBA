@@ -430,7 +430,10 @@ class cint(_clear, _int):
                 x=cint.public_input(c)
         """
         res = cls()
-        input_clear(res, channel)
+        if isinstance(channel, regint):
+            input_clear(res, channel)
+        else:
+            input_clear(res, regint(channel))
         return res
 
     @vectorize
@@ -438,7 +441,10 @@ class cint(_clear, _int):
         r"""Send public output to IO channel c
                  x.public_output(c)
         """
-        output_clear(self, channel);
+        if isinstance(channel, regint):
+            output_clear(self, channel)
+        else:
+            output_clear(self, regint(channel))
 
     @vectorize
     def load_int(self, val):
@@ -970,7 +976,14 @@ class _secretMod2(_sec):
     @set_instruction_type
     @vectorize
     def reveal_to(self, player, channel=0):
-        private_output(self, player, channel)
+        if isinstance(player, regint) and instance(channel, regint):
+            private_output(self, player, channel)
+        elif isinstance(player, regint):
+            private_output(self, player, regint(channel))
+        elif isinstance(channel, regint):
+            private_output(self, regint(player), channel)
+        else:
+            private_output(self, regint(player), regint(channel))
 
 ##
 # secret  class for all integer types mod2n
@@ -1203,7 +1216,14 @@ class _secretModp(_sec):
     @set_instruction_type
     @vectorize
     def reveal_to(self, player, channel=0):
-        private_output(self, player, channel)
+        if isinstance(player, regint) and instance(channel, regint):
+            private_output(self, player, channel)
+        elif isinstance(player, regint):
+            private_output(self, player, regint(channel))
+        elif isinstance(channel, regint):
+            private_output(self, regint(player), channel)
+        else:
+            private_output(self, regint(player), regint(channel))
 
 ##
 # Base 2 secret bit type
@@ -1523,7 +1543,7 @@ class sint(_secretModp, _int):
     def get_random_int(cls, bits):
         r"""
           Usage
-               a=sint.get_private_input_from(n)
+               a=sint.get_random_int(n)
           assigns a to be a random integer in the range [0..,2^n]
         """
         res = sint()
@@ -1538,7 +1558,14 @@ class sint(_secretModp, _int):
           obtains a from player p using IO channel c
         """
         res = cls()
-        private_input(res, player, channel)
+        if isinstance(player, regint) and instance(channel, regint):
+            private_input(res, player, channel)
+        elif isinstance(player, regint):
+            private_input(res, player, regint(channel))
+        elif isinstance(channel, regint):
+            private_input(res, regint(player), channel)
+        else:
+            private_input(res, regint(player), regint(channel))
         return res
 
     @vectorize_arg0

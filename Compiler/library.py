@@ -1178,7 +1178,7 @@ def test_mem(value, address, lower=None, upper=None):
 def no_result_testing():
     pass
 
-def open_channel_with_return(channel=0):
+def open_channel_with_return(channel):
    r"""Open channel and return any possible error message
    """
    res = regint()

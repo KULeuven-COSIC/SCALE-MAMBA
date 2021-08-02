@@ -13,9 +13,17 @@ extern "C" fn __convint(value: i64) -> ClearModp {
 }
 
 #[no_mangle]
-extern "C" fn __convmodp(value: ClearModp, bitlength: u32) -> i64 {
-    let value: BigInt = value.into();
-    assert!(value < (BigInt::from(1) << bitlength));
+extern "C" fn __convmodp(val: ClearModp, bitlength: u32) -> i64 {
+    let mut value: BigInt = val.into();
+    let mut neg = 0;
+    if value > (&*P / 2) {
+        neg = 1;
+        value = &*P - value;
+    }
+    value = value & ((BigInt::from(1) << (bitlength-1))-1);
+    if neg == 1 {
+       value=-value;
+    }
     value.try_into().unwrap()
 }
 

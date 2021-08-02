@@ -28,11 +28,7 @@ fn reciprocity(num: &BigInt, den: &BigInt) -> i8 {
 
 fn is_even(num: &BigInt) -> bool {
     let nn: u32 = (num % BigInt::from(2)).to_u32().unwrap();
-    if nn == 0 {
-        true
-    } else {
-        false
-    }
+    nn == 0
 }
 
 pub fn jacobi(a: &BigInt, n: &BigInt) -> i8 {
