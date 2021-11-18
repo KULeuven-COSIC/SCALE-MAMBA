@@ -615,6 +615,10 @@ class regint(_register, _int):
                 x=regint.public_input(c)
         """
         res = cls()
+        if isinstance(channel, regint):
+            input_int(res, channel)
+        else:
+            input_int(res, regint(channel))
         input_int(res, channel)
         return res
 
@@ -623,7 +627,10 @@ class regint(_register, _int):
         r"""Send public output to IO channel c
                  x.public_output(c)
         """
-        output_int(self, channel);
+        if isinstance(channel, regint):
+            output_int(self, channel)
+        else:
+            output_int(self, regint(channel))
 
     @vectorize_arg0
     def push(cls, val):
