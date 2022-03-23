@@ -29,7 +29,7 @@ else
     for test in test_call test_recursion; do
         OPTS= run_test $test
     done
-    for test in test_array test_array_arith test_bitdecfull test_GC test_bitprotocols test_ieee test_modp test_sregint test_local_functions test_sfix test_sfix_lib test_stacks test_oram test_sfloat test_sfloat_lib; do
+    for test in test_array test_array_arith test_bitdecfull test_GC test_bitprotocols test_ieee test_modp test_sregint test_local_functions test_sfix test_sfix_lib test_stacks test_oram test_sfloat test_sfloat_lib test_constants; do
 	run_test $test
     done
     printf "\n\n\n\n\n\n\n\n\n\n"
