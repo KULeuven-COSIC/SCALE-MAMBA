@@ -50,8 +50,7 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
                 if lower >= 2_i64.pow(31) {
                     lower -= 2_i64.pow(32);
                     upper += 1;
-                }
-                if lower < -2_i64.pow(31) {
+                } else if lower < -2_i64.pow(31) {
                     lower += 2_i64.pow(32);
                     upper -= 1;
                 }
