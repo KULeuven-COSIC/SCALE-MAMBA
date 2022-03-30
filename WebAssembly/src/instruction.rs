@@ -45,11 +45,14 @@ impl<'a, 'bh, 'cx, 'wasm> CurrentBlockHandler<'a, 'bh, 'cx, 'wasm> {
         Ok(match val {
             Value::I64(i) if i32::try_from(i).is_ok() => Operand::Value(Const::Int(i as i32)),
             Value::I64(i) => {
-                let mut upper = i >> 32;
+                let mut upper = i / 2_i64.pow(32);
                 let mut lower = i % 2_i64.pow(32);
                 if lower >= 2_i64.pow(31) {
                     lower -= 2_i64.pow(32);
                     upper += 1;
+                } else if lower < -2_i64.pow(31) {
+                    lower += 2_i64.pow(32);
+                    upper -= 1;
                 }
                 let lower = self.val_to_reg(Operand::Value(Const::Int(lower as i32)));
                 let upper = self.val_to_reg(Operand::Value(Const::Int(upper as i32)));
