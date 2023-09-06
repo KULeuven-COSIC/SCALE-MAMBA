@@ -12,6 +12,7 @@ libraries:
 \item Crypto++: Tested with version 7.0
 \item yasm (for MPIR)
 \item m4 (for MPIR)
+\item autotools-dev, autoconf, libtool, texinfo (for MPIR)
 \item A Rust compiler of at least version 1.47.0.
 We use the nightly build, so we strongly recommend using this
 as we use a lot of new features in various places.
@@ -81,9 +82,10 @@ the main repository in your \verb+$HOME+ directory.
     cd ${mylocal}
 
     # install MPIR 3.0.0
-    curl -O 'http://mpir.org/mpir-3.0.0.tar.bz2'
+    curl -O 'https://github.com/wbhart/mpir/archive/refs/tags/mpir-3.0.0.tar.gz'
     tar xf mpir-3.0.0.tar.bz2
-    cd mpir-3.0.0
+    cd mpir-mpir-3.0.0
+    ./autogen.sh
     ./configure --enable-cxx --prefix="${mylocal}/mpir"
     make && make check && make install
 
