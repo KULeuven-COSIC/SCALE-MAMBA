@@ -353,6 +353,12 @@ void Gen_Checked_Triples(Player &P, PRSS2 &prss,
       P.OP2->Open_To_All(ans, temp2, P, 0);
     }
   P.OP2->RunOpenCheck(P, aux, 0);
+
+  // The opened sacrifice values must all be zero, otherwise some
+  // output triple (a,b,c) has c != a*b
+  for (unsigned int i= 0; i < ans.size(); i++)
+    if (ans[i] != 0)
+      throw Sacrifice_Check_Error("Mod2 Triples");
 }
 
 void Mult_Bit(Share2 &z, const Share2 &x, const Share2 &y,
